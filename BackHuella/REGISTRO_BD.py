@@ -26,7 +26,7 @@ Contraseña = str(input("Introduce contraseña: "))
 Contraseña2 = str(input("Vuelve a introducir la contraseña: "))
 """
 
-@app.route('Pag/paginicio', methods=['POST'])
+@app.route('Pag/paginicio.html', methods=['POST'])
 def registro():
     #RECOGER DATOS DEL FORMULARIO
     Rut = int(request.form.get('rut'))
