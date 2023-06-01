@@ -26,17 +26,18 @@ Contraseña = str(input("Introduce contraseña: "))
 Contraseña2 = str(input("Vuelve a introducir la contraseña: "))
 """
 
-@app.route('Pag/paginicio.html', methods=['POST'])
+@app.route('Pag/registroinicio.html', methods=['POST'])
 def registro():
     #RECOGER DATOS DEL FORMULARIO
-    Rut = int(request.form.get('rut'))
-    Nombre = request.form.get('nombre')
+    Rut = request.form.get('rut')
+    Nombre = request.form.get('nombre1')
     Nombre2 = request.form.get('nombre2')
-    Apellido = request.form.get('apellido')
+    Apellido = request.form.get('apellido1')
     Apellido2 = request.form.get('apellido2')
     Edad = int(request.form.get('edad'))
     Telefono = int(request.form.get('telefono'))
     Email = request.form.get('email')
+    Region = int(request.form.get('region'))
     Comuna = int(request.form.get('comuna'))
     Direccion = request.form.get('direccion')
     Tipo_cuenta = int(request.form.get('tipo_cuenta'))

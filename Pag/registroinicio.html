@@ -9,18 +9,30 @@
 </head>
 <body>
   <section class="form-register">
-    <h1>Formulario Registro</h1><br>
-    <input class="controls" type="text" name="nombres" id="nombres" placeholder="Ingrese su Nombre" required>
-    <input class="controls" type="text" name="apellidos" id="apellidos" placeholder="Ingrese su Apellido" required>
-    <input class="controls" type="email" name="correo" id="correo" placeholder="Ingrese su Correo" required>
-    <input class="controls" type="password" name="correo" id="correo" placeholder="Ingrese su Contraseña" required><br>
-    <a href="huella.html">Registrar Huella</a><br><br>
-    
-    <p1>Estoy de acuerdo con <a href="preferencias%20de%20la%20cuenta.html">Terminos y Condiciones</a></p1>
-    
-    
-    <input class="botons" type="submit" value="Registrar">
-    <p><a href="sesion.html">Ya tengo Cuenta</a></p>
+    <form action="http://localhost:5000/registro" method="post">
+      <h1>Formulario Registro</h1><br>
+      <input class="controls" type="text" name="rut" id="rut" placeholder="Ingrese su Rut" required>
+      <input class="controls" type="text" name="nombre1" id="nombre1" placeholder="Ingrese su primer nombre" required>
+      <input class="controls" type="text" name="nombre2" id="nombre2" placeholder="Ingrese su segundo nombre" required>
+      <input class="controls" type="text" name="apellido1" id="apellido1" placeholder="Ingrese su primer apellido" required><br>
+      <input class="controls" type="text" name="apellido2" id="apellido2" placeholder="Ingrese su segundo apellido" required>
+      <input class="controls" type="number" name="edad" id="edad" placeholder="Ingrese su Edad" required>
+      <input class="controls" type="number" name="telefono" id="telefono" placeholder="Ingrese su Numero Celular" required><br>
+      <input class="controls" type="email" name="email" id="email" placeholder="Ingrese su email" required>
+      <!--Aqui quiero poner una lista de las regiones disponibles-->
+      <!--Aqui quiero poner una lista de las comunas segun la region seleccionada-->
+      <input class="controls" type="text" name="direccion" id="direccion" placeholder="Ingrese su direccion completa" required><br>
+      <!--Aqui quiero poner una lista con el tipo de cuenta que tendra el cliente-->
+      <input class="controls" type="password" name="password1" id="password1" placeholder="Ingrese su contraseña" required>
+      <input class="controls" type="password" name="password2" id="password2" placeholder="Vuelva a ingresar su contraseña" required><br>
+      <a href="huella.html">Registrar Huella</a><br><br>
+      
+      <p1>Estoy de acuerdo con <a href="preferencias%20de%20la%20cuenta.html">Terminos y Condiciones</a></p1>
+      
+      
+      <input class="botons" type="submit" value="Registrar">
+      <p><a href="sesion.html">Ya tengo Cuenta</a></p>
+    </form>
   </section>
 
 </body>
