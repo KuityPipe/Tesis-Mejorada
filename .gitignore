@@ -14,3 +14,7 @@ __pycache__/
 
 # Archivo de backup/export de GitHub (contiene datos personales, se deja fuera del tracking)
 TesisAntigua/
+
+# Cache regenerable (ej. texto extraído de PDFs para análisis) — no versionar
+.sistema/cache/*
+!.sistema/cache/.gitkeep

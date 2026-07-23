@@ -10,10 +10,10 @@ def carga(img):
         for y in range(img.size[1]):
             arr[x,y] = img.getpixel((x,y))
     return arr
-Huella = Image.open("BackHuella/Huella Imagen/imagenInput/ejemplohuella.png").convert("L")
+Huella = Image.open("codigo/biometria/huella/Huella Imagen/imagenInput/ejemplohuella.png").convert("L")
 #Llama a la funcion para convertir la imagen en datos(pixeles)
 cargaDato = carga(Huella)
-Huella.save("BackHuella/Huella Imagen/imagenOutput/cargahuella.png")
+Huella.save("codigo/biometria/huella/Huella Imagen/imagenOutput/cargahuella.png")
 Huella.show()
 
 #Binarizacion, convierte a valores binarios los colores de la huella digital
@@ -27,9 +27,9 @@ def binarizacion (img,umbral):
             else:
                 arrBina[x,y] = 0
     return arrBina
-Huella = Image.open("BackHuella/Huella Imagen/imagenOutput/cargahuella.png").convert("L")
+Huella = Image.open("codigo/biometria/huella/Huella Imagen/imagenOutput/cargahuella.png").convert("L")
 cargaBina = binarizacion(Huella,128)
-Huella.save("BackHuella/Huella Imagen/imagenOutput/Binarihuella.png")
+Huella.save("codigo/biometria/huella/Huella Imagen/imagenOutput/Binarihuella.png")
 Huella.show()
 
 #Adelgazamiento imagen evita el ruido al poner la huella en caso de movimiento en el lector
@@ -75,7 +75,7 @@ def adelgazamiento(img,mascaraH,mascaraV):
             arrAdel[x-1,y-1] = int(valor)
     return arrAdel
 
-img = Image.open("BackHuella/Huella Imagen/imagenOutput/Binarihuella.png").convert("L")
+img = Image.open("codigo/biometria/huella/Huella Imagen/imagenOutput/Binarihuella.png").convert("L")
 thiningX = [[0.0 ,0.0, 0.0],
             [0.0 ,1.0, 0.0],
             [1.0 ,1.0, 1.0],
@@ -111,7 +111,7 @@ thiningY = [[0.0,  0.0,  0.0],
 
 
 I =  adelgazamiento(img,thiningX,thiningY)
-img.save("BackHuella/Huella Imagen/imagenOutput/Adelgahuella.png")
+img.save("codigo/biometria/huella/Huella Imagen/imagenOutput/Adelgahuella.png")
 img.show()
 
 #Poda Pule los bordes de la huella
@@ -157,7 +157,7 @@ def poda(img,mascaraH,mascaraV):
             arrPoda[x-1,y-1] = int(valor)
     return arrPoda
 
-img = Image.open("BackHuella/Huella Imagen/imagenOutput/Adelgahuella.png").convert("L")
+img = Image.open("codigo/biometria/huella/Huella Imagen/imagenOutput/Adelgahuella.png").convert("L")
 pruningX = [[0.0 ,0.0, 0.0],
             [0.0 ,1.0, 0.0],
             [0.0 ,0.0, 0.0]]
@@ -169,7 +169,7 @@ pruningY = [[0.0,  0.0,  0.0],
 
 
 I =  poda(img,thiningX,thiningY)
-img.save("BackHuella/Huella Imagen/imagenOutput/Podahuella.png")
+img.save("codigo/biometria/huella/Huella Imagen/imagenOutput/Podahuella.png")
 img.show()
 
 #Continuar con guardar la huela en la base de datos y hacer una comprobacion de hash#
@@ -182,12 +182,12 @@ def archivo_hash(img):
             imghash.update(x)
     return imghash.hexdigest()
 
-img = Image.open("BackHuella/Huella Imagen/imagenOutput/Podahuella.png").convert("L")
+img = Image.open("codigo/biometria/huella/Huella Imagen/imagenOutput/Podahuella.png").convert("L")
 
-salida_hash = archivo_hash("BackHuella/Huella Imagen/imagenOutput/Podahuella.png")
+salida_hash = archivo_hash("codigo/biometria/huella/Huella Imagen/imagenOutput/Podahuella.png")
 print(salida_hash)
 
-codigo = open('BackHuella/Contraseña dactilar/CodigoHuella.txt','w')
+codigo = open('codigo/biometria/huella/Contraseña dactilar/CodigoHuella.txt','w')
 codigo.write(salida_hash)
 codigo.close()
 
