@@ -1,0 +1,16 @@
+# Entornos virtuales
+venv*/
+*/venv/
+fr-venv/
+*/fr-venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyd
+
+# Variables de entorno / secretos
+.env
+
+# Archivo de backup/export de GitHub (contiene datos personales, se deja fuera del tracking)
+TesisAntigua/

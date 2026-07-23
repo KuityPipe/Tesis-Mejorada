@@ -1,0 +1,65 @@
+.reservation {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f2f2f2;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h2, h3 {
+  margin: 0;
+  color: #0099cc;
+  font-family: "Arial", sans-serif;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: #666;
+  font-family: "Arial", sans-serif;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="time"],
+select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+}
+
+ul {
+  padding: 0;
+  list-style-type: none;
+}
+
+button {
+  background-color: #0099cc;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0077b3;
+}
+
+.confirmation p {
+  margin-bottom: 10px;
+  font-family: "Arial", sans-serif;
+  color: #666;
+}
+
+.history li {
+  margin-bottom: 5px;
+  font-family: "Arial", sans-serif;
+  color: #666;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+}
