@@ -62,6 +62,8 @@ python manage.py migrate
 python manage.py runserver 8000
 python manage.py createsuperuser
 python manage.py test KeyServApp   # 21 tests, all passing
+python manage.py test KeyServApp.tests.ContratacionFlowTests            # single test class
+python manage.py test KeyServApp.tests.ContratacionFlowTests.test_flujo_completo_de_contratacion_y_valoracion  # single test method
 ```
 
 **PostgreSQL is installed and running** — see "Database" below. `migrate` has been run for real, not just validated dry.
