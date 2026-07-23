@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
   <head>
@@ -5,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KeyServ</title>
-    <link rel="stylesheet" href="{% static 'css/registroinicio.css' %}">
+    <link rel="stylesheet" href="{% static 'KeyServApp/css/registroinicio.css' %}">
   </head>
   
   <body>
@@ -24,9 +25,9 @@
         </div>
         
         <input type="submit" value="Iniciar Sesión"><br><br><br>
-        <a href="recuperar.html">Recuperar Contraseña</a><br>
-        <a href="registroinicio.html">Crear Cuenta</a><br>
-        <a class="Inicio" href="paginicio.html">Volver al Inicio</a>
+        <a href="{% url 'KeyServApp:recuperar' %}">Recuperar Contraseña</a><br>
+        <a href="{% url 'KeyServApp:registro' %}">Crear Cuenta</a><br>
+        <a class="Inicio" href="{% url 'KeyServApp:paginicio' %}">Volver al Inicio</a>
       </form>
     </div>
     

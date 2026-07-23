@@ -1,14 +1,15 @@
+{% load static %}
 <meta charset="UTF-8">
   <title>Título de tu página</title>
-  <link rel="stylesheet" href="css/preferencias.css">
+  <link rel="stylesheet" href="{% static 'KeyServApp/css/preferencias.css' %}">
 <header>
   <div class="logo">
     <img src="ruta_del_logo.png" alt="Logo">
   </div>
   <nav>
     <ul>
-      <li><a href="paginicio.html">Inicio</a></li>
-      <li><a href="#">Cerrar sesión</a></li>
+      <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
+      <li><a href="{% url 'KeyServApp:logout' %}">Cerrar sesión</a></li>
     </ul>
   </nav>
 </header>

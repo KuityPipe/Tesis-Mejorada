@@ -1,8 +1,23 @@
+"""
+LEGACY / DEPRECADO (Fase 3): este script sigue dependiendo de `CONEXION_BD.cur`
+(que no existe realmente, ver CODE_ANALYSIS_FINDINGS.md) y es un flujo CLI
+con `input()`, no un endpoint real. La decisión de arquitectura (Fase 2) es
+consolidar el envío del código de verificación como una vista Django, no
+seguir manteniendo este script aparte — ver docs/NEW_CODE_CREATED.md.
+
+Lo único que se corrigió acá, porque no podía esperar a esa migración: tenía
+una contraseña de correo real en texto plano hardcodeada en el código fuente
+(un secreto de verdad, no un placeholder). Ahora se lee desde variables de
+entorno — ver `.env.example` (SMTP_USER/SMTP_PASSWORD). Si ves esto y las
+variables no están seteadas, el script falla al loguearse al SMTP en vez de
+usar un secreto expuesto.
+"""
 from email.message import EmailMessage
 from datetime import datetime
 import smtplib
 import random
 import hashlib
+import os
 import CONEXION_BD
 
 #LLAMAR A LA BASE DE DATOS
@@ -29,7 +44,8 @@ seleccion = cursorS.fetchall()
 
 
 #Seleccionar desde la base de datos mail del cliente solicitado
-remitente = "kuitysalinas@outlook.com"
+# Antes: email personal hardcodeado en el código fuente. Ahora sale de .env.
+remitente = os.environ.get('SMTP_USER')
 destinatario = seleccion
 mensaje = CodigoAl
 hash_object = hashlib.md5(str(mensaje).encode('utf-8'))
@@ -54,7 +70,7 @@ smtp.starttls()
 
 #smtp = smtplib.SMTP_SSL("smtp.outlook.com")
 
-smtp.login(remitente, "Wesdxc32")
+smtp.login(remitente, os.environ.get('SMTP_PASSWORD'))
 smtp.sendmail(remitente, destinatario, email.as_string())
 smtp.quit()
 

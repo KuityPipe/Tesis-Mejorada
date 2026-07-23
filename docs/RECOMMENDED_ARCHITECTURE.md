@@ -2,12 +2,14 @@
 
 Basado en `docs/PDF_ANALYSIS_FINDINGS.md` (requisitos de la tesis) y `docs/CODE_ANALYSIS_FINDINGS.md` (estado real del código). Principio rector: **la tesis ya fijó el stack como restricción del proyecto** (Django, MySQL, AWS) y el modelo de datos del diccionario de datos coincide con lo ya implementado — no hay motivo técnico para reescribir desde cero. La recomendación es **consolidar sobre lo que existe**, no reemplazarlo.
 
+> **Actualización (Fase 3):** el usuario confirmó que la restricción de "MySQL + AWS" era específica al contexto académico de la tesis y ya no aplica para el producto comercial — se decidió migrar a **PostgreSQL** (gratis sin topes, backend de primera clase en Django, portable a cualquier nube). El resto de esta sección queda vigente tal cual salvo la fila de "Base de datos", actualizada abajo. Ver `docs/REFACTORING_LOG.md` para el detalle de la migración.
+
 ## 1. Stack recomendado
 
 | Capa | Recomendación | Justificación |
 |---|---|---|
 | Backend | **Django 4.2.x** (monolito, mismo framework ya usado) | Restricción explícita del PDF (PAGE 133-134); modelo de datos de 24 tablas ya migrado y validado contra el diccionario de datos de la tesis |
-| Base de datos | **MySQL, un solo schema (`notpaper2`)** | Ya usado por Django; se elimina el schema `notpaper` duplicado que solo usaba el Flask muerto (ver §3) |
+| Base de datos | ~~MySQL~~ **PostgreSQL** (actualizado en Fase 3) | Gratis sin topes de tamaño/recursos (a diferencia de alternativas como SQL Server Express), backend de primera clase en Django, portable a cualquier nube sin costo de licencia (AWS RDS, Supabase, Neon, etc.) |
 | Frontend | **Django templates server-rendered** (HTML/CSS/JS vanilla, sin framework SPA) | Coincide con la restricción del PDF ("HTML, CSS3, JavaScript", sin mención de SPA); los 21 templates ya existen, reescribir a React/Vue sería tirar trabajo ya hecho sin que el PDF lo pida |
 | Autenticación | **`django.contrib.auth`** con modelo de usuario personalizado (`AbstractUser` o perfil 1-a-1 sobre `Usuario`) + hashers nativos (PBKDF2/Argon2) | El diccionario de datos del PDF ya incluye `django_session` (PAGE 129) — los autores ya contemplaban el sistema de sesiones nativo de Django, nunca se usó. Elimina el bug de SHA256 sin salt y el re-hash en cada `save()` |
 | Biometría | Módulo interno de Django (`KeyServApp/biometria/` o app separada `Biometria`), **no un proceso Flask aparte** | Hoy la huella y el reconocimiento facial corren aislados sin conexión HTTP a Django — no tiene sentido mantenerlos como microservicio Flask separado cuando pueden ser funciones Python invocadas directamente desde la vista de registro/login, evitando la duplicación de conexión a BD que ya causó el desalineamiento `notpaper`/`notpaper2` |

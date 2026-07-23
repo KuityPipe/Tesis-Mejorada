@@ -1,0 +1,55 @@
+.user-profile-section {
+  background-color: #f0f2f5;
+  padding: 20px;
+}
+
+.section-title {
+  font-size: 24px;
+  color: #385898;
+  margin-bottom: 20px;
+  font-family: 'Arial', sans-serif;
+}
+
+.user-profile {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+}
+
+.profile-picture img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #385898;
+}
+
+.personal-info {
+  margin-left: 20px;
+}
+
+.info-title {
+  font-size: 20px;
+  color: #333;
+  margin-bottom: 10px;
+  font-family: 'Arial', sans-serif;
+}
+
+.info-label {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 5px;
+  font-family: 'Arial', sans-serif;
+}
+
+.info-value {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 10px;
+  font-family: '
+

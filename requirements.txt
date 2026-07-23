@@ -1,0 +1,27 @@
+# Dependencias de KeyServ (Fase 3 — antes no existía este archivo).
+#
+# Núcleo del backend Django — necesario para levantar el sitio.
+# django-environ/psycopg2-binary/Pillow sin pin exacto a propósito: se probó
+# instalar en Python 3.14 (venv_tesis) y las versiones ancla originales no
+# tenían wheel precompilado para esa versión de Python tan nueva; con
+# mínimos quedan libres para resolver la última compatible.
+Django==4.2.1
+django-environ>=0.11
+psycopg2-binary>=2.9.9
+Pillow>=10.3
+
+# Biometría de huella dactilar (codigo/biometria/huella/IMAGEN_HUELLA.py) —
+# solo necesita Pillow, ya declarado arriba.
+
+# Reconocimiento facial (codigo/biometria/reconocimiento_facial/) — pesado
+# (dlib se compila nativamente), instalar aparte si se va a probar esa
+# funcionalidad puntual. No es necesario para levantar el resto del sitio.
+opencv-python==4.9.0.80
+face_recognition==1.3.0
+
+# Generación de PDF (codigo/biometria/huella/GUARDAR_DOCUMENTO.py)
+fpdf2==2.7.9
+
+# Pagos (codigo/backend/django/KeyServApp/pagos.py) — se instala cuando
+# haya credenciales de comercio Transbank (ver docs/NEW_CODE_CREATED.md):
+# transbank-sdk==5.1.0

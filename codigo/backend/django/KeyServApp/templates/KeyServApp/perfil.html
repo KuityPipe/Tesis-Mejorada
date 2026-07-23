@@ -1,28 +1,29 @@
+{% load static %}
 <!DOCTYPE html>
     <html>
 <head>
   <meta charset="UTF-8">
   <title>Perfil</title>
-  <link rel="stylesheet" type="text/css" href="styleinicio.css">
+  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
 </head>
   <header>
     <div class="logo">
-      <img src="imagenes/logokeyserv.png" alt="Logo de mi web" >
+      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
     </div>
     <nav>
       <ul class="menu">
-        <li><a href="paginicio.html">Inicio</a></li>
-        <li><a href="">Acerca de nosotros</a></li>
-        <li><a href="contacto.html">Contacto</a></li>
-        <li><a href="sesion.html">Inicio sesión</a></li>
-        <li><a href="registroinicio.html">Registrarse</a></li>
+        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
+        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
+        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
+        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
+        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
       </ul>
     </nav>
   </header>
 
 
 
-<link rel="stylesheet" href="css/perfil.css">
+<link rel="stylesheet" href="{% static 'KeyServApp/css/perfil.css' %}">
 <section class="user-profile-section">
   <h2 class="section-title">Perfil de usuario</h2>
   <div class="user-profile">
@@ -61,7 +62,7 @@
       <!-- Agrega más reseñas según sea necesario -->
     </div>
     <div class="profile-actions">
-     <a href="editarperfil.html"s>Editar perfil</a>
+     <a href="{% url 'KeyServApp:editar_perfil' %}">Editar perfil</a>
     </div>
   </div>
 </section>

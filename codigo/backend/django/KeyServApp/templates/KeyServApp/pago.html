@@ -1,22 +1,23 @@
+{% load static %}
 
 <!DOCTYPE html>
     <html>
 <head>
   <meta charset="UTF-8">
   <title>Contacto</title>
-  <link rel="stylesheet" type="text/css" href="css/styleinicio.css">
+  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
 </head>
   <header>
     <div class="logo">
-      <img src="imagenes/logokeyserv.png" alt="Logo de mi web" >
+      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
     </div>
     <nav>
       <ul class="menu">
-        <li><a href="paginicio.html">Inicio</a></li>
-        <li><a href="">Acerca de nosotros</a></li>
-        <li><a href="contacto.html">Contacto</a></li>
-        <li><a href="sesion.html">Inicio sesión</a></li>
-        <li><a href="registroinicio.html">Registrarse</a></li>
+        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
+        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
+        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
+        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
+        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
       </ul>
     </nav>
   </header>
@@ -27,7 +28,7 @@
         
  <body>       
         
-<link rel="stylesheet" href="css/pago.css">
+<link rel="stylesheet" href="{% static 'KeyServApp/css/pago.css' %}">
 
 <form id="payment-form">
   <h2>Detalles de Pago</h2>

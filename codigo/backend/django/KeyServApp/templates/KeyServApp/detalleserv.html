@@ -1,22 +1,23 @@
+{% load static %}
 
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>Detalles del Servicio</title>
-  <link rel="stylesheet" href="css/detalleserv.css" >
-      <link rel="stylesheet" href="styleinicio.css" >
+  <link rel="stylesheet" href="{% static 'KeyServApp/css/detalleserv.css' %}">
+      <link rel="stylesheet" href="{% static 'KeyServApp/css/styleinicio.css' %}" >
     <header>
     <div class="logo">
-      <img src="imagenes/logokeyserv.png" alt="Logo de mi web" >
+      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
     </div>
     <nav>
       <ul class="menu">
-        <li><a href="paginicio.html">Inicio</a></li>
-        <li><a href="">Acerca de nosotros</a></li>
-        <li><a href="contacto.html">Contacto</a></li>
-        <li><a href="sesion.html">Inicio sesión</a></li>
-        <li><a href="registroinicio.html">Registrarse</a></li>
+        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
+        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
+        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
+        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
+        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
       </ul>
     </nav>
   </header>

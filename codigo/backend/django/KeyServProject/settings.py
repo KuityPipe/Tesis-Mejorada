@@ -1,19 +1,37 @@
+"""
+Configuración del proyecto Django KeyServProject.
+
+Refactor Fase 3: `SECRET_KEY` y las credenciales de base de datos estaban
+hardcodeadas en este archivo (issue de seguridad ya documentado en
+CODE_ANALYSIS_FINDINGS.md). Ahora se leen desde variables de entorno vía
+`django-environ` — ver `.env.example` para la lista completa de variables
+esperadas. También se cambió el motor de base de datos de MySQL a
+PostgreSQL (decisión tomada con el usuario: la restricción de la tesis de
+usar MySQL/AWS era solo para el contexto académico, ya no aplica).
+
+Ver codigo/viejo/backup_fase3/KeyServProject/settings.py para la versión
+previa (con los secretos hardcodeados).
+"""
 from pathlib import Path
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env()
+# Busca un archivo .env en la raíz del proyecto Django (codigo/backend/django/.env).
+# Si no existe (ej. en un entorno donde las variables ya vienen del sistema
+# operativo/contenedor), simplemente sigue usando os.environ.
+environ.Env.read_env(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-fkf^7-6yvs-=3r)rq6l@4ppql*g^o&(7zp5ft_bse__39o&8xp'
+SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-solo-para-desarrollo-local-cambiar-en-produccion')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
 
 
 # Application definition
@@ -61,21 +79,26 @@ WSGI_APPLICATION = 'KeyServProject.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+# Postgres en vez de MySQL (ver docstring de arriba). Variables esperadas
+# en .env: DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT.
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'notpaper2',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',   # O la IP donde está tu base de datos
-        'PORT': '3306',        # Puerto default de MySQL
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_NAME', default='keyserv'),
+        'USER': env('DB_USER', default='postgres'),
+        'PASSWORD': env('DB_PASSWORD', default=''),
+        'HOST': env('DB_HOST', default='localhost'),
+        'PORT': env('DB_PORT', default='5432'),
     }
 }
 
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+# Nota: esto valida el User de django.contrib.auth, que no usamos como
+# modelo de login (ver decorators.py) — se deja igual por si en el futuro
+# se agregan superusuarios de /admin/.
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -95,10 +118,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
+# RNF008 del PDF: idioma español.
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-cl'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Santiago'
 
 USE_I18N = True
 
@@ -107,13 +131,48 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
+# Refactor Fase 3: antes STATICFILES_DIRS apuntaba a BASE_DIR / 'static',
+# una carpeta que nunca existió (los {% static %} no resolvían a nada). Los
+# assets ahora viven en KeyServApp/static/KeyServApp/{css,imagenes}/, que
+# Django encuentra solo con el AppDirectoriesFinder por defecto — no hace
+# falta declarar STATICFILES_DIRS.
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # destino de `collectstatic` en producción
+
+
+# Media files (subidas de usuario: documentos, fotos de perfil, etc.)
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Logging (nuevo en Fase 3 — antes no había ninguna configuración de logging,
+# los errores de las vistas quedaban silenciados o solo como excepción cruda).
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': env('DJANGO_LOG_LEVEL', default='INFO'),
+    },
+}
