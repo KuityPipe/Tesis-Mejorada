@@ -9,6 +9,11 @@ esperadas. También se cambió el motor de base de datos de MySQL a
 PostgreSQL (decisión tomada con el usuario: la restricción de la tesis de
 usar MySQL/AWS era solo para el contexto académico, ya no aplica).
 
+Fase 4: Django se subió de 4.2.1 a 5.2 LTS — la versión original tiene un
+bug real de incompatibilidad con Python 3.14 en su test client (revienta
+`copy()` del contexto del template en cada request durante `manage.py test`,
+incluso en el último parche 4.2.30). 5.2 lo soporta limpio.
+
 Ver codigo/viejo/backup_fase3/KeyServProject/settings.py para la versión
 previa (con los secretos hardcodeados).
 """
@@ -78,7 +83,7 @@ WSGI_APPLICATION = 'KeyServProject.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 # Postgres en vez de MySQL (ver docstring de arriba). Variables esperadas
 # en .env: DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT.
 
@@ -95,7 +100,7 @@ DATABASES = {
 
 
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 # Nota: esto valida el User de django.contrib.auth, que no usamos como
 # modelo de login (ver decorators.py) — se deja igual por si en el futuro
 # se agregan superusuarios de /admin/.
@@ -117,7 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
+# https://docs.djangoproject.com/en/5.2/topics/i18n/
 # RNF008 del PDF: idioma español.
 
 LANGUAGE_CODE = 'es-cl'
@@ -130,7 +135,7 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
 # Refactor Fase 3: antes STATICFILES_DIRS apuntaba a BASE_DIR / 'static',
 # una carpeta que nunca existió (los {% static %} no resolvían a nada). Los
 # assets ahora viven en KeyServApp/static/KeyServApp/{css,imagenes}/, que
@@ -148,7 +153,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -174,5 +179,18 @@ LOGGING = {
     'root': {
         'handlers': ['console'],
         'level': env('DJANGO_LOG_LEVEL', default='INFO'),
+    },
+    'loggers': {
+        # Sin este override, Django castea los errores 500 al AdminEmailHandler
+        # por defecto (activo cuando DEBUG=False, que es lo que fuerza
+        # manage.py test) — y ese handler choca con Python 3.14 al intentar
+        # generar el traceback HTML (bug de compatibilidad de Django 4.2, no
+        # nuestro). Iba camino a un error de infraestructura que tapaba el
+        # error real de la vista. Con esto los 500 solo van a la consola.
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 }

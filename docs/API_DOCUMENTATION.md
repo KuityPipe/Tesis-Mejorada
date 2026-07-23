@@ -40,16 +40,22 @@ consistente con la arquitectura decidida en Fase 2 (sin SPA separada).
 
 | Ruta | Nombre | Método | Auth | Notas |
 |---|---|---|---|---|
-| `/servicios/<int:pk>/` | `publicacion_detalle` | GET | No | 404 si `pk` no existe |
-| `/servicios/crear/` | `publicacion_crear` | GET/POST | **Sí, solo `es_proveedor=True`** | POST body: `titulo, sub_titulo, descripcion_publicacion`. Redirect a `publicacion_detalle` si es válido |
+| `/servicios/<int:pk>/` | `publicacion_detalle` | GET | No | Muestra proveedor, ranking y reseñas reales (`Valoracion`). 404 si `pk` no existe |
+| `/servicios/crear/` | `publicacion_crear` | GET/POST | **Sí, solo `es_proveedor=True`** | POST body: `titulo, sub_titulo, descripcion_publicacion`. Template dedicado `crear_publicacion.html` (Fase 4 — antes usaba `crearperfil.html` como placeholder). Redirect a `publicacion_detalle` si es válido |
 | `/servicios/<int:publicacion_id>/contratar/` | `contratacion_crear` | POST | **Sí** | Crea una `Contratacion` en estado `SOLICITADA` |
 
 ## Contrataciones / valoraciones
 
+Flujo completo (Fase 4) del BPMN "Proceso de contratación" del PDF (PAGE 136-137):
+`SOLICITADA` (contratar) → `CONFIRMADA` (proveedor re-autentica) → `COMPLETADA`
+(cliente re-autentica) → valoración.
+
 | Ruta | Nombre | Método | Auth | Notas |
 |---|---|---|---|---|
-| `/reservas/` | `reservas` | GET | **Sí** | Lista contrataciones donde el usuario es cliente o proveedor |
-| `/contrataciones/<int:contratacion_id>/valorar/` | `valoracion_crear` | GET/POST | **Sí** | Solo si la `Contratacion` está `COMPLETADA`. POST body: `puntuacion (1-5), comentario` |
+| `/reservas/` | `reservas` | GET | **Sí** | Lista contrataciones donde el usuario es cliente o proveedor, con los botones de acción según estado/rol |
+| `/contrataciones/<int:contratacion_id>/confirmar/` | `contratacion_confirmar` | POST | **Sí, solo el proveedor** | Body: `password` (re-autenticación). `SOLICITADA` → `CONFIRMADA` |
+| `/contrataciones/<int:contratacion_id>/completar/` | `contratacion_completar` | POST | **Sí, solo el cliente** | Body: `password` (re-autenticación). `CONFIRMADA` → `COMPLETADA` |
+| `/contrataciones/<int:contratacion_id>/valorar/` | `valoracion_crear` | GET/POST | **Sí** | Solo si la `Contratacion` está `COMPLETADA`. POST body: `puntuacion (1-5), comentario` — recalcula el `Ranking` del receptor |
 
 ## Biometría
 
@@ -58,11 +64,16 @@ consistente con la arquitectura decidida en Fase 2 (sin SPA separada).
 | `/huella/` | `huella` | GET | **Sí** | Pantalla de captura |
 | `/huella/verificar/` | `verificacion_huella` | POST | **Sí** | Body: `ruta_imagen` (TODO: en la integración real vendría de un `<input type="file">`, no de texto) |
 
-## Mensajería (esqueleto)
+## Mensajería (real desde Fase 4)
+
+Una `Conversacion` se crea automáticamente entre cliente y proveedor apenas
+se solicita una contratación (en vez de enviar un email, se usa el sistema
+de mensajería ya existente).
 
 | Ruta | Nombre | Método | Auth | Notas |
 |---|---|---|---|---|
-| `/chat/` | `chat` | GET | **Sí** | TODO: no lista conversaciones/mensajes reales todavía |
+| `/chat/` | `chat` | GET | **Sí** | Lista las `Conversacion` del usuario logueado |
+| `/chat/<int:conversacion_id>/` | `conversacion_detalle` | GET/POST | **Sí, solo participantes** | Muestra los mensajes y procesa el envío de uno nuevo (`contenido`). 403-ish redirect a `/chat/` si el usuario no participa en esa conversación |
 
 ## Pagos (esqueleto)
 

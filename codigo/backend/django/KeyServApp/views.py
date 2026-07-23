@@ -20,10 +20,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 
 from .decorators import login_requerido, obtener_usuario_actual
-from .forms import RegistroForm, LoginForm, PublicacionForm, ValoracionForm
+from .forms import (
+    RegistroForm, LoginForm, PublicacionForm, ValoracionForm, MensajeForm,
+    ReautenticacionForm,
+)
 from .models import (
-    Comuna, Contratacion, Publicaciones, Ranking, Region, TipoCuenta,
-    Transaccion, Valoracion,
+    Comuna, Contratacion, Conversacion, Mensaje, Publicaciones, Ranking,
+    Region, TipoCuenta, Transaccion, Usuario, UsuarioConversacion, Valoracion,
 )
 from . import biometria, pagos
 
@@ -111,7 +114,6 @@ def sesion_view(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
-            from .models import Usuario
             usuario = Usuario.objects.filter(email=form.cleaned_data['email']).first()
             if usuario and usuario.check_password(form.cleaned_data['password']):
                 request.session['usuario_id'] = usuario.id_usuario
@@ -144,9 +146,17 @@ def load_comunas(request):
 
 @login_requerido
 def perfil_view(request):
-    """Muestra el perfil del usuario logueado."""
+    """Muestra el perfil del usuario logueado: sus datos, sus publicaciones (si es proveedor) y las reseñas que recibió."""
     usuario = obtener_usuario_actual(request)
-    return render(request, 'KeyServApp/perfil.html', {'usuario': usuario})
+    publicaciones = Publicaciones.objects.filter(usuario_publicador=usuario).order_by('-fecha_publicacion') if usuario.es_proveedor else []
+    resenas_recibidas = Valoracion.objects.filter(usuario_receptor=usuario).select_related('usuario_emisor').order_by('-fecha_valoracion')
+    ranking = Ranking.objects.filter(usuario=usuario).first()
+    return render(request, 'KeyServApp/perfil.html', {
+        'usuario': usuario,
+        'publicaciones': publicaciones,
+        'resenas_recibidas': resenas_recibidas,
+        'ranking': ranking,
+    })
 
 
 @login_requerido
@@ -173,20 +183,24 @@ def editar_perfil_view(request):
 # ---------------------------------------------------------------------------
 
 def publicacion_detalle_view(request, pk):
-    """Detalle de una publicación de servicio puntual (RF004/RF010)."""
+    """Detalle de una publicación de servicio puntual (RF004/RF010), con proveedor y reseñas reales."""
     publicacion = get_object_or_404(Publicaciones, pk=pk)
-    return render(request, 'KeyServApp/detalleserv.html', {'publicacion': publicacion})
+    proveedor = publicacion.usuario_publicador
+    resenas = Valoracion.objects.filter(publicacion=publicacion).select_related('usuario_emisor').order_by('-fecha_valoracion')
+    ranking = Ranking.objects.filter(usuario=proveedor).first() if proveedor else None
+    usuario_actual = obtener_usuario_actual(request)
+    return render(request, 'KeyServApp/detalleserv.html', {
+        'publicacion': publicacion,
+        'proveedor': proveedor,
+        'resenas': resenas,
+        'ranking': ranking,
+        'puede_contratar': bool(usuario_actual) and usuario_actual != proveedor,
+    })
 
 
 @login_requerido
 def publicacion_crear_view(request):
-    """
-    Crear una nueva publicación de servicio (solo proveedores).
-    ESQUELETO: no existe todavía un template de creación entre las páginas
-    heredadas de la tesis — se deja la lógica de guardado lista (usa
-    `PublicacionForm`) pero renderiza sobre `crearperfil.html` como
-    placeholder hasta que se diseñe una pantalla dedicada.
-    """
+    """Crear una nueva publicación de servicio (solo proveedores) — RF002."""
     usuario = obtener_usuario_actual(request)
     if not usuario.es_proveedor:
         messages.error(request, 'Solo los proveedores pueden publicar servicios.')
@@ -204,22 +218,25 @@ def publicacion_crear_view(request):
     else:
         form = PublicacionForm()
 
-    # TODO: reemplazar por un template real de "crear publicación" (no existe en el diseño heredado de la tesis).
-    return render(request, 'KeyServApp/crearperfil.html', {'form': form, 'usuario': usuario})
+    return render(request, 'KeyServApp/crear_publicacion.html', {'form': form, 'usuario': usuario})
 
 
 # ---------------------------------------------------------------------------
-# Contratación (BPMN "Proceso de contratación" del PDF, PAGE 136-137) — ESQUELETO
+# Contratación (BPMN "Proceso de contratación" del PDF, PAGE 136-137)
 # ---------------------------------------------------------------------------
 
 @login_requerido
 def reservas_view(request):
-    """Lista las Contratacion donde el usuario logueado participa (como cliente o proveedor)."""
+    """Lista las Contratacion donde el usuario logueado participa (como cliente o proveedor), con el form de re-auth listo para confirmar/completar."""
     usuario = obtener_usuario_actual(request)
     contrataciones = Contratacion.objects.filter(
         cliente=usuario,
     ) | Contratacion.objects.filter(proveedor=usuario)
-    return render(request, 'KeyServApp/reservas.html', {'contrataciones': contrataciones.distinct()})
+    return render(request, 'KeyServApp/reservas.html', {
+        'contrataciones': contrataciones.distinct().select_related('publicacion', 'cliente', 'proveedor'),
+        'usuario': usuario,
+        'reautenticacion_form': ReautenticacionForm(),
+    })
 
 
 @login_requerido
@@ -227,22 +244,84 @@ def reservas_view(request):
 def contratacion_crear_view(request, publicacion_id):
     """
     Solicita contratar el servicio de una Publicacion (primer paso del BPMN
-    de contratación). ESQUELETO: crea el registro en estado SOLICITADA, pero
-    todavía falta:
-      - Notificar al proveedor (email/mensaje).
-      - Forzar la re-autenticación de ambas partes antes de CONFIRMADA
-        (el PDF lo pide explícitamente).
-      - Disparar el flujo de pago (ver `pagos.py`) antes de EN_CURSO.
+    de contratación) — crea el registro en estado SOLICITADA y notifica al
+    proveedor abriendo/reusando una Conversacion con un mensaje automático
+    (en vez de email, reutiliza el sistema de mensajería ya existente).
+
+    TODO: el pago (antes de pasar a EN_CURSO) sigue sin integrarse — depende
+    de `pagos.py`/credenciales de Transbank.
     """
     publicacion = get_object_or_404(Publicaciones, pk=publicacion_id)
     cliente = obtener_usuario_actual(request)
+    proveedor = publicacion.usuario_publicador
+
+    if cliente == proveedor:
+        messages.error(request, 'No podés contratar tu propia publicación.')
+        return redirect('KeyServApp:publicacion_detalle', pk=publicacion_id)
+
     contratacion = Contratacion.objects.create(
         publicacion=publicacion,
         cliente=cliente,
-        proveedor=publicacion.usuario_publicador,
+        proveedor=proveedor,
     )
-    logger.info('Contratación solicitada: id=%s', contratacion.id_contratacion)
-    messages.success(request, 'Solicitud de contratación enviada.')
+    conversacion = _obtener_o_crear_conversacion(cliente, proveedor)
+    Mensaje.objects.create(
+        conversacion=conversacion,
+        usuario=cliente,
+        contenido=f'[Sistema] {cliente} solicitó contratar "{publicacion.titulo}". Contratación #{contratacion.id_contratacion}.',
+    )
+    logger.info('Contratación solicitada: id=%s cliente=%s proveedor=%s', contratacion.id_contratacion, cliente.id_usuario, proveedor.id_usuario)
+    messages.success(request, 'Solicitud de contratación enviada. Le avisamos al proveedor por mensaje.')
+    return redirect('KeyServApp:reservas')
+
+
+@login_requerido
+@require_POST
+def contratacion_confirmar_view(request, contratacion_id):
+    """
+    El PROVEEDOR confirma que acepta la solicitud (SOLICITADA -> CONFIRMADA).
+    Exige re-autenticación (re-ingresar la contraseña) — lo pide el BPMN del
+    PDF explícitamente para ambas partes del proceso de contratación.
+    """
+    contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.SOLICITADA)
+    usuario = obtener_usuario_actual(request)
+    if usuario != contratacion.proveedor:
+        messages.error(request, 'Solo el proveedor puede confirmar esta contratación.')
+        return redirect('KeyServApp:reservas')
+
+    form = ReautenticacionForm(request.POST)
+    if form.is_valid() and usuario.check_password(form.cleaned_data['password']):
+        contratacion.estado = Contratacion.CONFIRMADA
+        contratacion.save()
+        logger.info('Contratación confirmada por el proveedor: id=%s', contratacion.id_contratacion)
+        messages.success(request, 'Contratación confirmada.')
+    else:
+        messages.error(request, 'Contraseña incorrecta — no se pudo confirmar.')
+    return redirect('KeyServApp:reservas')
+
+
+@login_requerido
+@require_POST
+def contratacion_completar_view(request, contratacion_id):
+    """
+    El CLIENTE confirma que el servicio se completó (CONFIRMADA -> COMPLETADA).
+    También exige re-autenticación, mismo motivo que arriba. Una vez
+    completada, el cliente puede dejar una Valoracion (ver valoracion_crear_view).
+    """
+    contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.CONFIRMADA)
+    usuario = obtener_usuario_actual(request)
+    if usuario != contratacion.cliente:
+        messages.error(request, 'Solo el cliente puede marcar la contratación como completada.')
+        return redirect('KeyServApp:reservas')
+
+    form = ReautenticacionForm(request.POST)
+    if form.is_valid() and usuario.check_password(form.cleaned_data['password']):
+        contratacion.estado = Contratacion.COMPLETADA
+        contratacion.save()
+        logger.info('Contratación completada: id=%s', contratacion.id_contratacion)
+        messages.success(request, '¡Servicio marcado como completado! Ya podés calificarlo.')
+    else:
+        messages.error(request, 'Contraseña incorrecta — no se pudo completar.')
     return redirect('KeyServApp:reservas')
 
 
@@ -323,16 +402,68 @@ def verificacion_huella_view(request):
 
 
 # ---------------------------------------------------------------------------
-# Mensajería — ESQUELETO (modelos Mensaje/Conversacion ya existen, sin vistas)
+# Mensajería (caso de uso UML del PDF — antes los modelos existían sin vistas)
 # ---------------------------------------------------------------------------
+
+def _obtener_o_crear_conversacion(usuario_a, usuario_b):
+    """
+    Busca una Conversacion donde participen exactamente estos dos usuarios;
+    si no existe, la crea junto con sus dos filas de UsuarioConversacion.
+    """
+    conversaciones_a = set(
+        UsuarioConversacion.objects.filter(usuario=usuario_a).values_list('conversacion_id', flat=True)
+    )
+    conversaciones_b = set(
+        UsuarioConversacion.objects.filter(usuario=usuario_b).values_list('conversacion_id', flat=True)
+    )
+    comunes = conversaciones_a & conversaciones_b
+    if comunes:
+        return Conversacion.objects.get(pk=comunes.pop())
+
+    conversacion = Conversacion.objects.create(
+        nombre_conversacion=f'{usuario_a} / {usuario_b}',
+    )
+    UsuarioConversacion.objects.create(usuario=usuario_a, conversacion=conversacion)
+    UsuarioConversacion.objects.create(usuario=usuario_b, conversacion=conversacion)
+    return conversacion
+
 
 @login_requerido
 def chat_view(request):
-    """
-    TODO: listar las Conversacion del usuario y permitir enviar Mensaje —
-    hoy solo renderiza el template estático, sin datos reales.
-    """
-    return render(request, 'KeyServApp/chat.html')
+    """Lista las Conversacion del usuario logueado, con el último mensaje de cada una."""
+    usuario = obtener_usuario_actual(request)
+    conversacion_ids = UsuarioConversacion.objects.filter(usuario=usuario).values_list('conversacion_id', flat=True)
+    conversaciones = Conversacion.objects.filter(id_conversacion__in=conversacion_ids).order_by('-fecha_creacion')
+    return render(request, 'KeyServApp/chat.html', {'conversaciones': conversaciones})
+
+
+@login_requerido
+def conversacion_detalle_view(request, conversacion_id):
+    """Muestra los mensajes de una Conversacion puntual y procesa el envío de mensajes nuevos."""
+    usuario = obtener_usuario_actual(request)
+    conversacion = get_object_or_404(Conversacion, pk=conversacion_id)
+    if not UsuarioConversacion.objects.filter(usuario=usuario, conversacion=conversacion).exists():
+        messages.error(request, 'No participás en esta conversación.')
+        return redirect('KeyServApp:chat')
+
+    if request.method == 'POST':
+        form = MensajeForm(request.POST)
+        if form.is_valid():
+            mensaje = form.save(commit=False)
+            mensaje.conversacion = conversacion
+            mensaje.usuario = usuario
+            mensaje.save()
+            return redirect('KeyServApp:conversacion_detalle', conversacion_id=conversacion.id_conversacion)
+    else:
+        form = MensajeForm()
+
+    mensajes = Mensaje.objects.filter(conversacion=conversacion).select_related('usuario').order_by('fecha_envio')
+    return render(request, 'KeyServApp/chat.html', {
+        'conversacion': conversacion,
+        'mensajes': mensajes,
+        'form': form,
+        'usuario': usuario,
+    })
 
 
 # ---------------------------------------------------------------------------

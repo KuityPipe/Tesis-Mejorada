@@ -1,11 +1,18 @@
 # Dependencias de KeyServ (Fase 3 — antes no existía este archivo).
 #
 # Núcleo del backend Django — necesario para levantar el sitio.
+# Django==4.2.1 (la versión original, pinneada por la tesis) tiene un bug de
+# incompatibilidad real con Python 3.14 en su test client (django/template/context.py
+# __copy__ revienta con "AttributeError: 'super' object has no attribute 'dicts'"
+# en CADA request hecho por `manage.py test` — no es un bug de KeyServ, es de
+# Django). Se probó primero con el último parche 4.2.30 (misma rama LTS) y
+# seguía roto. Se subió a Django 5.2 LTS (Fase 4), que sí soporta Python 3.14
+# limpio — los 21 tests automatizados corren sin errores con esta versión.
 # django-environ/psycopg2-binary/Pillow sin pin exacto a propósito: se probó
 # instalar en Python 3.14 (venv_tesis) y las versiones ancla originales no
 # tenían wheel precompilado para esa versión de Python tan nueva; con
 # mínimos quedan libres para resolver la última compatible.
-Django==4.2.1
+Django==5.2.16
 django-environ>=0.11
 psycopg2-binary>=2.9.9
 Pillow>=10.3

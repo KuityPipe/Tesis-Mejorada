@@ -28,38 +28,45 @@
   <h2 class="section-title">Perfil de usuario</h2>
   <div class="user-profile">
     <div class="profile-info">
-      <div class="profile-picture">
-        <img src="ruta_de_la_imagen.jpg" alt="Foto de perfil">
-      </div>
       <div class="personal-info">
         <h3 class="info-title">Información personal</h3>
         <p class="info-label">Nombre:</p>
-        <p class="info-value">John Doe</p>
+        <p class="info-value">{{ usuario.nombre_usuario }} {{ usuario.apellido_usuario }}</p>
         <p class="info-label">Ubicación:</p>
-        <p class="info-value">Ciudad XYZ</p>
-        <!-- Agrega más información personal según sea necesario -->
+        <p class="info-value">{{ usuario.comuna.nombre_comuna }}, {{ usuario.comuna.region.nombre_region }}</p>
+        <p class="info-label">Verificación biométrica:</p>
+        <p class="info-value">
+          {% if usuario.verificado_biometricamente %}✅ Verificado{% else %}⚠️ Sin verificar — <a href="{% url 'KeyServApp:huella' %}">verificar ahora</a>{% endif %}
+        </p>
+        {% if ranking %}
+        <p class="info-label">Calificación como proveedor:</p>
+        <p class="info-value">{{ ranking.puntuacion_promedio }} ⭐ ({{ ranking.total_valoraciones }} valoraciones)</p>
+        {% endif %}
       </div>
     </div>
+    {% if usuario.es_proveedor %}
     <div class="services-list">
-      <h3 class="info-title">Lista de servicios ofrecidos o solicitados</h3>
+      <h3 class="info-title">Mis publicaciones</h3>
       <ul>
-        <li>Servicio 1 - Detalles y estado actual</li>
-        <li>Servicio 2 - Detalles y estado actual</li>
-        <li>Servicio 3 - Detalles y estado actual</li>
-        <!-- Agrega más servicios según sea necesario -->
+        {% for publicacion in publicaciones %}
+        <li><a href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">{{ publicacion.titulo }}</a> — {{ publicacion.get_estado_moderacion_display }}</li>
+        {% empty %}
+        <li>Todavía no publicaste ningún servicio.</li>
+        {% endfor %}
       </ul>
+      <p><a href="{% url 'KeyServApp:publicacion_crear' %}">+ Publicar un nuevo servicio</a></p>
     </div>
+    {% endif %}
     <div class="reviews-section">
       <h3 class="info-title">Reseñas y calificaciones recibidas</h3>
+      {% for resena in resenas_recibidas %}
       <div class="review">
-        <p class="review-text">Excelente servicio. Muy recomendado.</p>
-        <p class="review-rating">Calificación: 5 estrellas</p>
+        <p class="review-text">{{ resena.usuario_emisor }}: {{ resena.comentario }}</p>
+        <p class="review-rating">Calificación: {{ resena.puntuacion }} estrellas</p>
       </div>
-      <div class="review">
-        <p class="review-text">Buen trabajo realizado a tiempo.</p>
-        <p class="review-rating">Calificación: 4 estrellas</p>
-      </div>
-      <!-- Agrega más reseñas según sea necesario -->
+      {% empty %}
+      <p>Todavía no recibiste reseñas.</p>
+      {% endfor %}
     </div>
     <div class="profile-actions">
      <a href="{% url 'KeyServApp:editar_perfil' %}">Editar perfil</a>

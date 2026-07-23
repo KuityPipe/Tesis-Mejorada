@@ -7,7 +7,8 @@
 pip install -r requirements.txt
 ```
 
-Ya se instalaron y validaron en `venv_tesis` durante esta fase: `Django==4.2.1`,
+Ya se instalaron y validaron en `venv_tesis`: `Django==5.2.16` (subido desde
+4.2.1 en Fase 4 — la 4.2 no es compatible con Python 3.14, ver `docs/FASE4_LOG.md`),
 `django-environ`, `psycopg2-binary`, `Pillow`. `opencv-python`/`face_recognition`
 (reconocimiento facial) y `fpdf2` (generación de PDF) quedan en
 `requirements.txt` pero no se instalaron en este entorno — son pesados y no

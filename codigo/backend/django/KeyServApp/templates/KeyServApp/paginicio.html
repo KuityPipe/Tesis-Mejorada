@@ -55,7 +55,16 @@
     <button class="search-btn">Buscar</button>
   </div>
   <div class="search-results">
-    <!-- Aquí se mostrarán los resultados de búsqueda -->
+    <ul>
+      {% for publicacion in publicaciones %}
+      <li>
+        <a href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">{{ publicacion.titulo }}</a>
+        — {{ publicacion.sub_titulo }} (por {{ publicacion.usuario_publicador }})
+      </li>
+      {% empty %}
+      <li>Todavía no hay publicaciones aprobadas.</li>
+      {% endfor %}
+    </ul>
   </div>
   <div class="sort-options">
     <label for="sort">Ordenar por:</label>

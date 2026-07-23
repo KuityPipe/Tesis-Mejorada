@@ -6,8 +6,8 @@
   <meta charset="UTF-8">
   <title>Detalles del Servicio</title>
   <link rel="stylesheet" href="{% static 'KeyServApp/css/detalleserv.css' %}">
-      <link rel="stylesheet" href="{% static 'KeyServApp/css/styleinicio.css' %}" >
-    <header>
+  <link rel="stylesheet" href="{% static 'KeyServApp/css/styleinicio.css' %}">
+  <header>
     <div class="logo">
       <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
     </div>
@@ -24,41 +24,43 @@
 </head>
 <body>
   <div class="service-details">
-    <h2>Nombre del Servicio</h2>
+    <h2>{{ publicacion.titulo }}</h2>
+    <p>{{ publicacion.sub_titulo }}</p>
 
     <div class="provider-info">
       <h3>Proveedor</h3>
-      <p>Nombre del Proveedor</p>
-      <p>Ubicación: Ciudad, País</p>
-      <p>Horarios: Lunes a Viernes, 9am - 5pm</p>
+      <p>{{ proveedor }}</p>
+      {% if ranking %}
+      <p>Calificación promedio: {{ ranking.puntuacion_promedio }} ⭐ ({{ ranking.total_valoraciones }} valoraciones)</p>
+      {% endif %}
     </div>
 
     <div class="service-description">
       <h3>Descripción</h3>
-      <p>Descripción detallada del servicio.</p>
-      <p>Precios: $50 por hora</p>
+      <p>{{ publicacion.descripcion_publicacion }}</p>
     </div>
 
     <div class="reviews">
       <h3>Reseñas y Calificaciones</h3>
+      {% for resena in resenas %}
       <div class="review">
-        <p>Usuario 1:</p>
-        <p>Excelente servicio. Muy recomendado.</p>
-        <p>Calificación: 5 Estrellas</p>
+        <p>{{ resena.usuario_emisor }}:</p>
+        <p>{{ resena.comentario }}</p>
+        <p>Calificación: {{ resena.puntuacion }} Estrellas</p>
       </div>
-      <div class="review">
-        <p>Usuario 2:</p>
-        <p>Buen servicio, aunque un poco caro.</p>
-        <p>Calificación: 4 Estrellas</p>
-      </div>
+      {% empty %}
+      <p>Todavía no hay reseñas para este servicio.</p>
+      {% endfor %}
     </div>
 
-    <div class="contact-info">
-      <h3>Información de Contacto</h3>
-      <p>Correo Electrónico: proveedor@example.com</p>
-      <p>Número de Teléfono: +1234567890</p>
-      <p><a href="perfil-proveedor.html">Ver Perfil del Proveedor</a></p>
-    </div>
+    {% if puede_contratar %}
+    <form method="post" action="{% url 'KeyServApp:contratacion_crear' publicacion.id_publicacion %}">
+      {% csrf_token %}
+      <button type="submit">Contratar este servicio</button>
+    </form>
+    {% elif not proveedor %}
+    <p>Este servicio no tiene proveedor asignado.</p>
+    {% endif %}
   </div>
 </body>
 </html>

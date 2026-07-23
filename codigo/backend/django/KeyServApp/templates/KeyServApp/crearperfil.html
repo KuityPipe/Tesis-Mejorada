@@ -52,7 +52,8 @@
   </style>
 </head>
 <body>
-  <form>
+  <form method="post">
+    {% csrf_token %}
     <h2>Registro de Perfiles</h2>
 
     <label for="nombre">Nombre:</label>

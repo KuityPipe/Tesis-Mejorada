@@ -9,7 +9,7 @@ input no numérico tire un error 500 sin control.
 from django import forms
 from django.contrib.auth.hashers import make_password
 
-from .models import Usuario, Region, Comuna, TipoCuenta, Publicaciones, Valoracion
+from .models import Usuario, Region, Comuna, TipoCuenta, Publicaciones, Valoracion, Mensaje
 
 
 class RegistroForm(forms.Form):
@@ -104,3 +104,22 @@ class ValoracionForm(forms.ModelForm):
         if not 1 <= puntuacion <= 5:
             raise forms.ValidationError('La puntuación debe estar entre 1 y 5 estrellas.')
         return puntuacion
+
+
+class MensajeForm(forms.ModelForm):
+    """Formulario para enviar un mensaje dentro de una Conversacion (mensajería, Fase 4)."""
+
+    class Meta:
+        model = Mensaje
+        fields = ['contenido']
+        widgets = {'contenido': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Escribe tu mensaje...'})}
+
+
+class ReautenticacionForm(forms.Form):
+    """
+    Confirma que quien aprieta el botón realmente conoce la contraseña de la
+    sesión activa — lo exige el BPMN "Proceso de contratación" del PDF
+    (PAGE 136-137: "ambos se re-autentican") antes de confirmar/completar
+    una Contratacion.
+    """
+    password = forms.CharField(widget=forms.PasswordInput, label='Confirma tu contraseña')

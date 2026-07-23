@@ -30,7 +30,8 @@
   <link rel="stylesheet" href="{% static 'KeyServApp/css/editarperfil.css' %}">
 </head>
 <body>
-  <form>
+  <form method="post">
+    {% csrf_token %}
     <h2>Edición de Perfil</h2>
 
     <div class="profile-info">

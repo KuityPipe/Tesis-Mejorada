@@ -30,7 +30,8 @@
         
 <link rel="stylesheet" href="{% static 'KeyServApp/css/pago.css' %}">
 
-<form id="payment-form">
+<form id="payment-form" method="post">
+    {% csrf_token %}
   <h2>Detalles de Pago</h2>
   <div class="form-group">
    

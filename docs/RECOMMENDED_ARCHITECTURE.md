@@ -8,7 +8,7 @@ Basado en `docs/PDF_ANALYSIS_FINDINGS.md` (requisitos de la tesis) y `docs/CODE_
 
 | Capa | Recomendación | Justificación |
 |---|---|---|
-| Backend | **Django 4.2.x** (monolito, mismo framework ya usado) | Restricción explícita del PDF (PAGE 133-134); modelo de datos de 24 tablas ya migrado y validado contra el diccionario de datos de la tesis |
+| Backend | **Django** (monolito, mismo framework ya usado) — 5.2 LTS desde Fase 4 (subido de 4.2.1, incompatible con Python 3.14) | Restricción explícita del PDF (PAGE 133-134) de usar Django; modelo de datos de 24 tablas ya migrado y validado contra el diccionario de datos de la tesis |
 | Base de datos | ~~MySQL~~ **PostgreSQL** (actualizado en Fase 3) | Gratis sin topes de tamaño/recursos (a diferencia de alternativas como SQL Server Express), backend de primera clase en Django, portable a cualquier nube sin costo de licencia (AWS RDS, Supabase, Neon, etc.) |
 | Frontend | **Django templates server-rendered** (HTML/CSS/JS vanilla, sin framework SPA) | Coincide con la restricción del PDF ("HTML, CSS3, JavaScript", sin mención de SPA); los 21 templates ya existen, reescribir a React/Vue sería tirar trabajo ya hecho sin que el PDF lo pida |
 | Autenticación | **`django.contrib.auth`** con modelo de usuario personalizado (`AbstractUser` o perfil 1-a-1 sobre `Usuario`) + hashers nativos (PBKDF2/Argon2) | El diccionario de datos del PDF ya incluye `django_session` (PAGE 129) — los autores ya contemplaban el sistema de sesiones nativo de Django, nunca se usó. Elimina el bug de SHA256 sin salt y el re-hash en cada `save()` |

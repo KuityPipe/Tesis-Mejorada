@@ -1,0 +1,55 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Crear Publicación</title>
+  <link rel="stylesheet" href="{% static 'KeyServApp/css/stylecrearperfil.css' %}">
+  <link rel="stylesheet" href="{% static 'KeyServApp/css/styleinicio.css' %}">
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web">
+    </div>
+    <nav>
+      <ul class="menu">
+        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
+        <li><a href="{% url 'KeyServApp:perfil' %}">Mi perfil</a></li>
+        <li><a href="{% url 'KeyServApp:reservas' %}">Mis reservas</a></li>
+        <li><a href="{% url 'KeyServApp:logout' %}">Cerrar sesión</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <form class="profile-form" method="post">
+    {% csrf_token %}
+    <h1>Publicar un servicio</h1>
+
+    {% if form.non_field_errors %}
+      <p style="color:#ff8080;">{{ form.non_field_errors }}</p>
+    {% endif %}
+
+    <div class="form-group">
+      <label for="{{ form.titulo.id_for_label }}">Título</label>
+      {{ form.titulo }}
+      {% if form.titulo.errors %}<small style="color:#ff8080;">{{ form.titulo.errors }}</small>{% endif %}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.sub_titulo.id_for_label }}">Subtítulo</label>
+      {{ form.sub_titulo }}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.descripcion_publicacion.id_for_label }}">Descripción</label>
+      {{ form.descripcion_publicacion }}
+    </div>
+
+    <small>Tu publicación queda pendiente de aprobación antes de aparecer en el listado (moderación).</small>
+
+    <button type="submit">Publicar</button>
+  </form>
+</body>
+</html>

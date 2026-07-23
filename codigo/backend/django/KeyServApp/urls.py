@@ -42,6 +42,8 @@ urlpatterns = [
 
     # Contrataciones / reservas / valoraciones
     path('reservas/', views.reservas_view, name='reservas'),
+    path('contrataciones/<int:contratacion_id>/confirmar/', views.contratacion_confirmar_view, name='contratacion_confirmar'),
+    path('contrataciones/<int:contratacion_id>/completar/', views.contratacion_completar_view, name='contratacion_completar'),
     path('contrataciones/<int:contratacion_id>/valorar/', views.valoracion_crear_view, name='valoracion_crear'),
 
     # Biometría
@@ -50,6 +52,7 @@ urlpatterns = [
 
     # Mensajería
     path('chat/', views.chat_view, name='chat'),
+    path('chat/<int:conversacion_id>/', views.conversacion_detalle_view, name='conversacion_detalle'),
 
     # Pagos
     path('pago/', views.pago_view, name='pago'),

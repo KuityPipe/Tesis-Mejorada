@@ -1,77 +1,80 @@
 {% load static %}
 
 <!DOCTYPE html>
-    <html>
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Contacto</title>
+  <title>Reservas y Solicitudes</title>
   <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
+  <link rel="stylesheet" href="{% static 'KeyServApp/css/reservas.css' %}">
 </head>
+<body>
   <header>
     <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
+      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web">
     </div>
     <nav>
       <ul class="menu">
         <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
         <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
         <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
-        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
-        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
+        <li><a href="{% url 'KeyServApp:chat' %}">Mensajes</a></li>
+        <li><a href="{% url 'KeyServApp:logout' %}">Cerrar sesión</a></li>
       </ul>
     </nav>
   </header>
-        
-        
-        ---------------
-        
-        
-        
-        
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Reservas y Solicitudes</title>
-  <link rel="stylesheet" href="{% static 'KeyServApp/css/reservas.css' %}">
-</head>
-<body>
+
   <div class="reservation">
-    <h2>Reserva o Solicitud</h2>
-
-    <div class="service-selection">
-      <h3>Selección de Servicio</h3>
-      <select name="service" id="service">
-        <option value="service1">Servicio 1</option>
-        <option value="service2">Servicio 2</option>
-        <option value="service3">Servicio 3</option>
-      </select>
-    </div>
-
-    <div class="date-time-selection">
-      <h3>Fecha y Hora</h3>
-      <input type="date" id="date" name="date">
-      <input type="time" id="time" name="time">
-    </div>
-
-    
-
-    <div class="confirmation">
-      <h3>Confirmación</h3>
-      <p>Servicio: Servicio 1</p>
-      <p>Fecha: 01/01/2023</p>
-      <p>Hora: 10:00 AM</p>
-      <p>Total a Pagar: $50</p>
-    </div>
+    <h2>Mis Contrataciones</h2>
 
     <div class="history">
-      <h3>Historial de Reservas o Solicitudes</h3>
+      <h3>Historial</h3>
       <ul>
-        <li>Reserva 1 - Servicio 1 - Fecha: 01/01/2023</li>
-        <li>Reserva 2 - Servicio 2 - Fecha: 02/01/2023</li>
-        <li>Reserva 3 - Servicio 3 - Fecha: 03/01/2023</li>
+        {% for contratacion in contrataciones %}
+        <li>
+          <strong>{{ contratacion.publicacion.titulo }}</strong> —
+          Cliente: {{ contratacion.cliente }} | Proveedor: {{ contratacion.proveedor }} |
+          Estado: <strong>{{ contratacion.get_estado_display }}</strong>
+
+          {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
+          <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" style="margin-top:8px;">
+            {% csrf_token %}
+            {{ reautenticacion_form.password }}
+            <button type="submit">Confirmar (proveedor)</button>
+          </form>
+          {% endif %}
+
+          {% if contratacion.estado == 'CONFIRMADA' and usuario == contratacion.cliente %}
+          <form method="post" action="{% url 'KeyServApp:contratacion_completar' contratacion.id_contratacion %}" style="margin-top:8px;">
+            {% csrf_token %}
+            {{ reautenticacion_form.password }}
+            <button type="submit">Marcar completada (cliente)</button>
+          </form>
+          {% endif %}
+
+          {% if contratacion.estado == 'COMPLETADA' and usuario == contratacion.cliente %}
+          <p><a href="{% url 'KeyServApp:valoracion_crear' contratacion.id_contratacion %}">Calificar este servicio</a></p>
+          {% endif %}
+        </li>
+        {% empty %}
+        <li>Todavía no tenés contrataciones — <a href="{% url 'KeyServApp:paginicio' %}">buscá un servicio</a> para empezar.</li>
+        {% endfor %}
       </ul>
     </div>
+
+    {% if form %}
+    <div class="confirmation">
+      <h3>Calificar contratación #{{ contratacion.id_contratacion }}</h3>
+      <form method="post">
+        {% csrf_token %}
+        <label for="{{ form.puntuacion.id_for_label }}">Puntuación (1-5)</label>
+        {{ form.puntuacion }}
+        <label for="{{ form.comentario.id_for_label }}">Comentario</label>
+        {{ form.comentario }}
+        <button type="submit">Enviar calificación</button>
+      </form>
+    </div>
+    {% endif %}
   </div>
 </body>
 </html>
