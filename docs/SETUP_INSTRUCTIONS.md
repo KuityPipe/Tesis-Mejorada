@@ -48,11 +48,29 @@ Ya se corrió `manage.py migrate` contra esta instancia — las ~24 tablas
 existen de verdad en `C:\pgsql\data`, no es solo una migración generada sin
 aplicar. `codigo/database/schema.sql` también ya se generó desde la
 migración real aplicada. Se creó además un superusuario de Django
-(`admin` / `keyserv_admin_dev`) para entrar a `/admin/`, y se cargó un
-registro mínimo de `Region`/`Comuna`/`TipoCuenta` (Región Metropolitana /
-Santiago / plan Free) solo para poder probar el registro — **falta cargar
-el resto de las 16 regiones y sus comunas reales** antes de usar esto en
-serio (no existe todavía un fixture/seed completo, es un TODO).
+(`admin` / `keyserv_admin_dev`) para entrar a `/admin/`.
+
+**Catálogos reales cargados** (Fase 4): se encontró un dump MySQL viejo del
+proyecto (`notpaper3 (3).sql`, fuera del repo, en una carpeta personal del
+usuario) con datos reales de desarrollo. Se extrajeron **solo las tablas de
+catálogo** (16 regiones de Chile, 330 comunas reales, los 4 `TipoCuenta`
+reales — `CLIENTE`/`CLIENTE PREMIUM`/`COLABORADOR`/`COLABORADOR PREMIUM` —,
+`TipoFirma`, `EstadoAutentificacion`, `EstadoDocumento`) a
+`KeyServApp/fixtures/catalogos_iniciales.json` y se cargaron con
+`manage.py loaddata catalogos_iniciales`. **Deliberadamente NO se migraron**
+las tablas `usuario`/`autentificacion`/`documento`/`publicaciones`/
+`transaccion` del dump — son datos de prueba descartables (usuarios ficticios
+tipo "Usuario1"-"Usuario12" más un puñado de cuentas de prueba de los
+desarrolladores) con contraseñas hasheadas en SHA-256 sin salt (el hasher
+viejo, incompatible con el `check_password()` de PBKDF2 de Fase 3) —
+importarlas habría dejado cuentas con contraseñas efectivamente
+irrecuperables. El usuario ya rotó sus credenciales reales que aparecían ahí
+por separado. Para recargar los catálogos en otra base nueva:
+
+```powershell
+cd codigo\backend\django
+python manage.py loaddata catalogos_iniciales
+```
 
 Si en algún momento preferís migrar a un Postgres gestionado en la nube
 (Supabase, Neon, Railway, AWS RDS), simplemente cambiá `DB_HOST`/`DB_USER`/
@@ -74,7 +92,7 @@ datos real. El usuario de prueba se borró después de verificar.
 
 Para probarlo vos mismo, con el servidor corriendo (`python manage.py runserver 8000`):
 1. `http://localhost:8000/` — página de inicio.
-2. `http://localhost:8000/registro/` — registrar un usuario (elegí Región Metropolitana/Santiago, es lo único cargado).
+2. `http://localhost:8000/registro/` — registrar un usuario (las 16 regiones y 330 comunas reales de Chile ya están cargadas).
 3. `http://localhost:8000/sesion/` — loguearse con ese usuario.
 4. `http://localhost:8000/admin/` — con `admin`/`keyserv_admin_dev`, deberías ver los ~24 modelos ya registrados.
 
@@ -98,8 +116,8 @@ costo al registrarse como desarrollador — ver su portal de comercio.
 ## Checklist de lo que falta de tu lado
 
 - [x] ~~Levantar Postgres y correr `migrate`~~ — hecho en esta fase (servicio `postgresql-keyserv`, ver §3).
-- [x] ~~Rotar la contraseña SMTP~~ — en curso de tu lado.
-- [ ] Cargar el resto de regiones/comunas de Chile (hoy solo hay 1 de cada, cargada a mano para poder probar).
+- [x] ~~Rotar la contraseña SMTP~~ — confirmado por el usuario.
+- [x] ~~Cargar regiones/comunas de Chile~~ — hecho en esta fase, 16 regiones + 330 comunas reales vía `KeyServApp/fixtures/catalogos_iniciales.json` (ver §3).
 - [ ] Conseguir credenciales de Transbank ambiente integración si querés
       probar pagos.
 - [ ] Decidir/diseñar la pantalla de "crear publicación" (ver `docs/NEW_CODE_CREATED.md`).

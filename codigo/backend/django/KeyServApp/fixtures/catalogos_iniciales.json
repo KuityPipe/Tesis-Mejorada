@@ -1,0 +1,3208 @@
+[
+  {
+    "model": "KeyServApp.region",
+    "pk": 1,
+    "fields": {
+      "id_region": 1,
+      "nombre_region": "Región de Los Ríos"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 2,
+    "fields": {
+      "id_region": 2,
+      "nombre_region": "Región de Arica y Parinacota"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 3,
+    "fields": {
+      "id_region": 3,
+      "nombre_region": "Región de Tarapacá"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 4,
+    "fields": {
+      "id_region": 4,
+      "nombre_region": "Región de Antofagasta"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 5,
+    "fields": {
+      "id_region": 5,
+      "nombre_region": "Región de Atacama"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 6,
+    "fields": {
+      "id_region": 6,
+      "nombre_region": "Región de Coquimbo"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 7,
+    "fields": {
+      "id_region": 7,
+      "nombre_region": "Región de Valparaíso"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 8,
+    "fields": {
+      "id_region": 8,
+      "nombre_region": "Región de O’Higgins"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 9,
+    "fields": {
+      "id_region": 9,
+      "nombre_region": "Región del Maule"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 10,
+    "fields": {
+      "id_region": 10,
+      "nombre_region": "Región del Ñuble"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 11,
+    "fields": {
+      "id_region": 11,
+      "nombre_region": "Región del Biobío"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 12,
+    "fields": {
+      "id_region": 12,
+      "nombre_region": "Región de La Araucanía"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 13,
+    "fields": {
+      "id_region": 13,
+      "nombre_region": "REGION METROPOLITANA"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 14,
+    "fields": {
+      "id_region": 14,
+      "nombre_region": "Región de Los Lagos"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 15,
+    "fields": {
+      "id_region": 15,
+      "nombre_region": "Región de Aysén"
+    }
+  },
+  {
+    "model": "KeyServApp.region",
+    "pk": 16,
+    "fields": {
+      "id_region": 16,
+      "nombre_region": "Región de Magallanes"
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 1,
+    "fields": {
+      "id_comuna": 1,
+      "nombre_comuna": "SANTIAGO",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 2,
+    "fields": {
+      "id_comuna": 2,
+      "nombre_comuna": "TILTIL",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 3,
+    "fields": {
+      "id_comuna": 3,
+      "nombre_comuna": "Cerro Navia",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 4,
+    "fields": {
+      "id_comuna": 4,
+      "nombre_comuna": "Conchalí",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 5,
+    "fields": {
+      "id_comuna": 5,
+      "nombre_comuna": "El Bosque",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 6,
+    "fields": {
+      "id_comuna": 6,
+      "nombre_comuna": "Estación Central",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 7,
+    "fields": {
+      "id_comuna": 7,
+      "nombre_comuna": "Huechuraba",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 8,
+    "fields": {
+      "id_comuna": 8,
+      "nombre_comuna": "Independencia",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 9,
+    "fields": {
+      "id_comuna": 9,
+      "nombre_comuna": "La Cisterna",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 10,
+    "fields": {
+      "id_comuna": 10,
+      "nombre_comuna": "La Florida",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 11,
+    "fields": {
+      "id_comuna": 11,
+      "nombre_comuna": "La Granja",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 12,
+    "fields": {
+      "id_comuna": 12,
+      "nombre_comuna": "La Pintana",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 13,
+    "fields": {
+      "id_comuna": 13,
+      "nombre_comuna": "La Reina",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 14,
+    "fields": {
+      "id_comuna": 14,
+      "nombre_comuna": "Las Condes",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 15,
+    "fields": {
+      "id_comuna": 15,
+      "nombre_comuna": "Lo Barnechea",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 16,
+    "fields": {
+      "id_comuna": 16,
+      "nombre_comuna": "Lo Espejo",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 17,
+    "fields": {
+      "id_comuna": 17,
+      "nombre_comuna": "Lo Prado",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 18,
+    "fields": {
+      "id_comuna": 18,
+      "nombre_comuna": "Macul",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 19,
+    "fields": {
+      "id_comuna": 19,
+      "nombre_comuna": "Maipú",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 20,
+    "fields": {
+      "id_comuna": 20,
+      "nombre_comuna": "Ñuñoa",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 21,
+    "fields": {
+      "id_comuna": 21,
+      "nombre_comuna": "Padre Hurtado",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 22,
+    "fields": {
+      "id_comuna": 22,
+      "nombre_comuna": "Pedro Aguirre Cerda",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 23,
+    "fields": {
+      "id_comuna": 23,
+      "nombre_comuna": "Peñalolén",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 24,
+    "fields": {
+      "id_comuna": 24,
+      "nombre_comuna": "Pirque",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 25,
+    "fields": {
+      "id_comuna": 25,
+      "nombre_comuna": "Providencia",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 26,
+    "fields": {
+      "id_comuna": 26,
+      "nombre_comuna": "Pudahuel",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 27,
+    "fields": {
+      "id_comuna": 27,
+      "nombre_comuna": "Puente Alto",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 28,
+    "fields": {
+      "id_comuna": 28,
+      "nombre_comuna": "Quilicura",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 29,
+    "fields": {
+      "id_comuna": 29,
+      "nombre_comuna": "Quinta Normal",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 30,
+    "fields": {
+      "id_comuna": 30,
+      "nombre_comuna": "Recoleta",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 31,
+    "fields": {
+      "id_comuna": 31,
+      "nombre_comuna": "Renca",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 32,
+    "fields": {
+      "id_comuna": 32,
+      "nombre_comuna": "San Bernardo",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 33,
+    "fields": {
+      "id_comuna": 33,
+      "nombre_comuna": "San Joaquín",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 34,
+    "fields": {
+      "id_comuna": 34,
+      "nombre_comuna": "San José de Maipo",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 35,
+    "fields": {
+      "id_comuna": 35,
+      "nombre_comuna": "San Miguel",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 36,
+    "fields": {
+      "id_comuna": 36,
+      "nombre_comuna": "San Ramón",
+      "region": 13
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 37,
+    "fields": {
+      "id_comuna": 37,
+      "nombre_comuna": "General Lagos",
+      "region": 2
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 38,
+    "fields": {
+      "id_comuna": 38,
+      "nombre_comuna": "Putre",
+      "region": 2
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 39,
+    "fields": {
+      "id_comuna": 39,
+      "nombre_comuna": "Camarones",
+      "region": 2
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 40,
+    "fields": {
+      "id_comuna": 40,
+      "nombre_comuna": "Arica",
+      "region": 2
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 41,
+    "fields": {
+      "id_comuna": 41,
+      "nombre_comuna": "Alto Hospicio",
+      "region": 3
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 42,
+    "fields": {
+      "id_comuna": 42,
+      "nombre_comuna": "Camiña",
+      "region": 3
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 43,
+    "fields": {
+      "id_comuna": 43,
+      "nombre_comuna": "Colchane",
+      "region": 3
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 44,
+    "fields": {
+      "id_comuna": 44,
+      "nombre_comuna": "Huara",
+      "region": 3
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 45,
+    "fields": {
+      "id_comuna": 45,
+      "nombre_comuna": "Iquique",
+      "region": 3
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 46,
+    "fields": {
+      "id_comuna": 46,
+      "nombre_comuna": "Pica",
+      "region": 3
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 47,
+    "fields": {
+      "id_comuna": 47,
+      "nombre_comuna": "Pozo Almonte",
+      "region": 3
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 48,
+    "fields": {
+      "id_comuna": 48,
+      "nombre_comuna": "Antofagasta",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 49,
+    "fields": {
+      "id_comuna": 49,
+      "nombre_comuna": "Calama",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 50,
+    "fields": {
+      "id_comuna": 50,
+      "nombre_comuna": "María Elena",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 51,
+    "fields": {
+      "id_comuna": 51,
+      "nombre_comuna": "Mejillones",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 52,
+    "fields": {
+      "id_comuna": 52,
+      "nombre_comuna": "Ollagüe",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 53,
+    "fields": {
+      "id_comuna": 53,
+      "nombre_comuna": "San Pedro de Atacama",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 54,
+    "fields": {
+      "id_comuna": 54,
+      "nombre_comuna": "Sierra Gorda",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 55,
+    "fields": {
+      "id_comuna": 55,
+      "nombre_comuna": "Taltal",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 56,
+    "fields": {
+      "id_comuna": 56,
+      "nombre_comuna": "Tocopilla",
+      "region": 4
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 57,
+    "fields": {
+      "id_comuna": 57,
+      "nombre_comuna": "Alto del Carmen",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 58,
+    "fields": {
+      "id_comuna": 58,
+      "nombre_comuna": "Caldera",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 59,
+    "fields": {
+      "id_comuna": 59,
+      "nombre_comuna": "Chañaral",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 60,
+    "fields": {
+      "id_comuna": 60,
+      "nombre_comuna": "Copiapó",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 61,
+    "fields": {
+      "id_comuna": 61,
+      "nombre_comuna": "Diego de Almagro",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 62,
+    "fields": {
+      "id_comuna": 62,
+      "nombre_comuna": "Freirina",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 63,
+    "fields": {
+      "id_comuna": 63,
+      "nombre_comuna": "Huasco",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 64,
+    "fields": {
+      "id_comuna": 64,
+      "nombre_comuna": "Tierra Amarilla",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 65,
+    "fields": {
+      "id_comuna": 65,
+      "nombre_comuna": "Vallenar",
+      "region": 5
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 66,
+    "fields": {
+      "id_comuna": 66,
+      "nombre_comuna": "Andacollo",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 67,
+    "fields": {
+      "id_comuna": 67,
+      "nombre_comuna": "Canela",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 68,
+    "fields": {
+      "id_comuna": 68,
+      "nombre_comuna": "Combarbalá",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 69,
+    "fields": {
+      "id_comuna": 69,
+      "nombre_comuna": "Coquimbo",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 70,
+    "fields": {
+      "id_comuna": 70,
+      "nombre_comuna": "Illapel",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 71,
+    "fields": {
+      "id_comuna": 71,
+      "nombre_comuna": "La Higuera",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 72,
+    "fields": {
+      "id_comuna": 72,
+      "nombre_comuna": "La Serena",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 73,
+    "fields": {
+      "id_comuna": 73,
+      "nombre_comuna": "Los Vilos",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 74,
+    "fields": {
+      "id_comuna": 74,
+      "nombre_comuna": "Monte Patria",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 75,
+    "fields": {
+      "id_comuna": 75,
+      "nombre_comuna": "Ovalle",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 76,
+    "fields": {
+      "id_comuna": 76,
+      "nombre_comuna": "Paihuano",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 77,
+    "fields": {
+      "id_comuna": 77,
+      "nombre_comuna": "Punitaqui",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 78,
+    "fields": {
+      "id_comuna": 78,
+      "nombre_comuna": "Río Hurtado",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 79,
+    "fields": {
+      "id_comuna": 79,
+      "nombre_comuna": "Salamanca",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 80,
+    "fields": {
+      "id_comuna": 80,
+      "nombre_comuna": "Vicuña",
+      "region": 6
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 81,
+    "fields": {
+      "id_comuna": 81,
+      "nombre_comuna": "Algarrobo",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 82,
+    "fields": {
+      "id_comuna": 82,
+      "nombre_comuna": "Cabildo",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 83,
+    "fields": {
+      "id_comuna": 83,
+      "nombre_comuna": "Calera",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 84,
+    "fields": {
+      "id_comuna": 84,
+      "nombre_comuna": "Calle Larga",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 85,
+    "fields": {
+      "id_comuna": 85,
+      "nombre_comuna": "Cartagena",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 86,
+    "fields": {
+      "id_comuna": 86,
+      "nombre_comuna": "Casablanca",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 87,
+    "fields": {
+      "id_comuna": 87,
+      "nombre_comuna": "Catemu",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 88,
+    "fields": {
+      "id_comuna": 88,
+      "nombre_comuna": "Concón",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 89,
+    "fields": {
+      "id_comuna": 89,
+      "nombre_comuna": "El Quisco",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 90,
+    "fields": {
+      "id_comuna": 90,
+      "nombre_comuna": "El Tabo",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 91,
+    "fields": {
+      "id_comuna": 91,
+      "nombre_comuna": "Hijuelas",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 92,
+    "fields": {
+      "id_comuna": 92,
+      "nombre_comuna": "Isla de Pascua",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 93,
+    "fields": {
+      "id_comuna": 93,
+      "nombre_comuna": "Juan Fernández",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 94,
+    "fields": {
+      "id_comuna": 94,
+      "nombre_comuna": "La Cruz",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 95,
+    "fields": {
+      "id_comuna": 95,
+      "nombre_comuna": "La Ligua",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 96,
+    "fields": {
+      "id_comuna": 96,
+      "nombre_comuna": "Limache",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 97,
+    "fields": {
+      "id_comuna": 97,
+      "nombre_comuna": "Llaillay",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 98,
+    "fields": {
+      "id_comuna": 98,
+      "nombre_comuna": "Los Andes",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 99,
+    "fields": {
+      "id_comuna": 99,
+      "nombre_comuna": "Nogales",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 100,
+    "fields": {
+      "id_comuna": 100,
+      "nombre_comuna": "Olmué",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 101,
+    "fields": {
+      "id_comuna": 101,
+      "nombre_comuna": "Panquehue",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 102,
+    "fields": {
+      "id_comuna": 102,
+      "nombre_comuna": "Papudo",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 103,
+    "fields": {
+      "id_comuna": 103,
+      "nombre_comuna": "Petorca",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 104,
+    "fields": {
+      "id_comuna": 104,
+      "nombre_comuna": "Puchuncaví",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 105,
+    "fields": {
+      "id_comuna": 105,
+      "nombre_comuna": "Putaendo",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 106,
+    "fields": {
+      "id_comuna": 106,
+      "nombre_comuna": "Quillota",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 107,
+    "fields": {
+      "id_comuna": 107,
+      "nombre_comuna": "Quilpué",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 108,
+    "fields": {
+      "id_comuna": 108,
+      "nombre_comuna": "Quintero",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 109,
+    "fields": {
+      "id_comuna": 109,
+      "nombre_comuna": "Rinconada",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 110,
+    "fields": {
+      "id_comuna": 110,
+      "nombre_comuna": "San Antonio",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 111,
+    "fields": {
+      "id_comuna": 111,
+      "nombre_comuna": "San Esteban",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 112,
+    "fields": {
+      "id_comuna": 112,
+      "nombre_comuna": "San Felipe",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 113,
+    "fields": {
+      "id_comuna": 113,
+      "nombre_comuna": "Santa María",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 114,
+    "fields": {
+      "id_comuna": 114,
+      "nombre_comuna": "Santo Domingo",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 115,
+    "fields": {
+      "id_comuna": 115,
+      "nombre_comuna": "Valparaíso",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 116,
+    "fields": {
+      "id_comuna": 116,
+      "nombre_comuna": "Villa Alemana",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 117,
+    "fields": {
+      "id_comuna": 117,
+      "nombre_comuna": "Viña del Mar",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 118,
+    "fields": {
+      "id_comuna": 118,
+      "nombre_comuna": "Zapallar",
+      "region": 7
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 119,
+    "fields": {
+      "id_comuna": 119,
+      "nombre_comuna": "Chépica",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 120,
+    "fields": {
+      "id_comuna": 120,
+      "nombre_comuna": "Chimbarongo",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 121,
+    "fields": {
+      "id_comuna": 121,
+      "nombre_comuna": "Codegua",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 122,
+    "fields": {
+      "id_comuna": 122,
+      "nombre_comuna": "Coínco",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 123,
+    "fields": {
+      "id_comuna": 123,
+      "nombre_comuna": "Coltauco",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 124,
+    "fields": {
+      "id_comuna": 124,
+      "nombre_comuna": "Doñihue",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 125,
+    "fields": {
+      "id_comuna": 125,
+      "nombre_comuna": "Graneros",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 126,
+    "fields": {
+      "id_comuna": 126,
+      "nombre_comuna": "La Estrella",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 127,
+    "fields": {
+      "id_comuna": 127,
+      "nombre_comuna": "Las Cabras",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 128,
+    "fields": {
+      "id_comuna": 128,
+      "nombre_comuna": "Litueche",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 129,
+    "fields": {
+      "id_comuna": 129,
+      "nombre_comuna": "Lolol",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 130,
+    "fields": {
+      "id_comuna": 130,
+      "nombre_comuna": "Machalí",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 131,
+    "fields": {
+      "id_comuna": 131,
+      "nombre_comuna": "Malloa",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 132,
+    "fields": {
+      "id_comuna": 132,
+      "nombre_comuna": "Marchihue",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 133,
+    "fields": {
+      "id_comuna": 133,
+      "nombre_comuna": "Mostazal",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 134,
+    "fields": {
+      "id_comuna": 134,
+      "nombre_comuna": "Nancagua",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 135,
+    "fields": {
+      "id_comuna": 135,
+      "nombre_comuna": "Navidad",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 136,
+    "fields": {
+      "id_comuna": 136,
+      "nombre_comuna": "Olivar",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 137,
+    "fields": {
+      "id_comuna": 137,
+      "nombre_comuna": "Palmilla",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 138,
+    "fields": {
+      "id_comuna": 138,
+      "nombre_comuna": "Paredones",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 139,
+    "fields": {
+      "id_comuna": 139,
+      "nombre_comuna": "Peralillo",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 140,
+    "fields": {
+      "id_comuna": 140,
+      "nombre_comuna": "Peumo",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 141,
+    "fields": {
+      "id_comuna": 141,
+      "nombre_comuna": "Pichidegua",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 142,
+    "fields": {
+      "id_comuna": 142,
+      "nombre_comuna": "Pichilemu",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 143,
+    "fields": {
+      "id_comuna": 143,
+      "nombre_comuna": "Placilla",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 144,
+    "fields": {
+      "id_comuna": 144,
+      "nombre_comuna": "Pumanque",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 145,
+    "fields": {
+      "id_comuna": 145,
+      "nombre_comuna": "Quinta de Tilcoco",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 146,
+    "fields": {
+      "id_comuna": 146,
+      "nombre_comuna": "Rancagua",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 147,
+    "fields": {
+      "id_comuna": 147,
+      "nombre_comuna": "Rengo",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 148,
+    "fields": {
+      "id_comuna": 148,
+      "nombre_comuna": "Requínoa",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 149,
+    "fields": {
+      "id_comuna": 149,
+      "nombre_comuna": "San Fernando",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 150,
+    "fields": {
+      "id_comuna": 150,
+      "nombre_comuna": "Santa Cruz",
+      "region": 8
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 151,
+    "fields": {
+      "id_comuna": 151,
+      "nombre_comuna": "Cauquenes",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 152,
+    "fields": {
+      "id_comuna": 152,
+      "nombre_comuna": "Chanco",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 153,
+    "fields": {
+      "id_comuna": 153,
+      "nombre_comuna": "Colbún",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 154,
+    "fields": {
+      "id_comuna": 154,
+      "nombre_comuna": "Constitución",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 155,
+    "fields": {
+      "id_comuna": 155,
+      "nombre_comuna": "Curepto",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 156,
+    "fields": {
+      "id_comuna": 156,
+      "nombre_comuna": "Curicó",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 157,
+    "fields": {
+      "id_comuna": 157,
+      "nombre_comuna": "Empedrado",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 158,
+    "fields": {
+      "id_comuna": 158,
+      "nombre_comuna": "Hualañé",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 159,
+    "fields": {
+      "id_comuna": 159,
+      "nombre_comuna": "Licantén",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 160,
+    "fields": {
+      "id_comuna": 160,
+      "nombre_comuna": "Linares",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 161,
+    "fields": {
+      "id_comuna": 161,
+      "nombre_comuna": "Longaví",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 162,
+    "fields": {
+      "id_comuna": 162,
+      "nombre_comuna": "Maule",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 163,
+    "fields": {
+      "id_comuna": 163,
+      "nombre_comuna": "Molina",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 164,
+    "fields": {
+      "id_comuna": 164,
+      "nombre_comuna": "Parral",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 165,
+    "fields": {
+      "id_comuna": 165,
+      "nombre_comuna": "Pelarco",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 166,
+    "fields": {
+      "id_comuna": 166,
+      "nombre_comuna": "Pelluhue",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 167,
+    "fields": {
+      "id_comuna": 167,
+      "nombre_comuna": "Pencahue",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 168,
+    "fields": {
+      "id_comuna": 168,
+      "nombre_comuna": "Rauco",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 169,
+    "fields": {
+      "id_comuna": 169,
+      "nombre_comuna": "Retiro",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 170,
+    "fields": {
+      "id_comuna": 170,
+      "nombre_comuna": "Río Claro",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 171,
+    "fields": {
+      "id_comuna": 171,
+      "nombre_comuna": "Romeral",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 172,
+    "fields": {
+      "id_comuna": 172,
+      "nombre_comuna": "Sagrada Familia",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 173,
+    "fields": {
+      "id_comuna": 173,
+      "nombre_comuna": "San Clemente",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 174,
+    "fields": {
+      "id_comuna": 174,
+      "nombre_comuna": "San Javier",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 175,
+    "fields": {
+      "id_comuna": 175,
+      "nombre_comuna": "San Rafael",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 176,
+    "fields": {
+      "id_comuna": 176,
+      "nombre_comuna": "Talca",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 177,
+    "fields": {
+      "id_comuna": 177,
+      "nombre_comuna": "Teno",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 178,
+    "fields": {
+      "id_comuna": 178,
+      "nombre_comuna": "Vichuquén",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 179,
+    "fields": {
+      "id_comuna": 179,
+      "nombre_comuna": "Villa Alegre",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 180,
+    "fields": {
+      "id_comuna": 180,
+      "nombre_comuna": "Yerbas Buenas",
+      "region": 9
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 181,
+    "fields": {
+      "id_comuna": 181,
+      "nombre_comuna": "Bulnes",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 182,
+    "fields": {
+      "id_comuna": 182,
+      "nombre_comuna": "Chillán",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 183,
+    "fields": {
+      "id_comuna": 183,
+      "nombre_comuna": "Chillán Viejo",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 184,
+    "fields": {
+      "id_comuna": 184,
+      "nombre_comuna": "Cobquecura",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 185,
+    "fields": {
+      "id_comuna": 185,
+      "nombre_comuna": "Coelemu",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 186,
+    "fields": {
+      "id_comuna": 186,
+      "nombre_comuna": "Coihueco",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 187,
+    "fields": {
+      "id_comuna": 187,
+      "nombre_comuna": "El Carmen",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 188,
+    "fields": {
+      "id_comuna": 188,
+      "nombre_comuna": "Ninhue",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 189,
+    "fields": {
+      "id_comuna": 189,
+      "nombre_comuna": "Ñiquén",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 190,
+    "fields": {
+      "id_comuna": 190,
+      "nombre_comuna": "Pemuco",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 191,
+    "fields": {
+      "id_comuna": 191,
+      "nombre_comuna": "Pinto",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 192,
+    "fields": {
+      "id_comuna": 192,
+      "nombre_comuna": "Portezuelo",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 193,
+    "fields": {
+      "id_comuna": 193,
+      "nombre_comuna": "Quillón",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 194,
+    "fields": {
+      "id_comuna": 194,
+      "nombre_comuna": "Quirihue",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 195,
+    "fields": {
+      "id_comuna": 195,
+      "nombre_comuna": "Ránquil",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 196,
+    "fields": {
+      "id_comuna": 196,
+      "nombre_comuna": "San Carlos",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 197,
+    "fields": {
+      "id_comuna": 197,
+      "nombre_comuna": "San Fabián",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 198,
+    "fields": {
+      "id_comuna": 198,
+      "nombre_comuna": "San Ignacio",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 199,
+    "fields": {
+      "id_comuna": 199,
+      "nombre_comuna": "San Nicolás",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 200,
+    "fields": {
+      "id_comuna": 200,
+      "nombre_comuna": "Treguaco",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 201,
+    "fields": {
+      "id_comuna": 201,
+      "nombre_comuna": "Yungay",
+      "region": 10
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 202,
+    "fields": {
+      "id_comuna": 202,
+      "nombre_comuna": "Alto Biobío",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 203,
+    "fields": {
+      "id_comuna": 203,
+      "nombre_comuna": "Antuco",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 204,
+    "fields": {
+      "id_comuna": 204,
+      "nombre_comuna": "Arauco",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 205,
+    "fields": {
+      "id_comuna": 205,
+      "nombre_comuna": "Cabrero",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 206,
+    "fields": {
+      "id_comuna": 206,
+      "nombre_comuna": "Cañete",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 207,
+    "fields": {
+      "id_comuna": 207,
+      "nombre_comuna": "Chiguayante",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 208,
+    "fields": {
+      "id_comuna": 208,
+      "nombre_comuna": "Concepción",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 209,
+    "fields": {
+      "id_comuna": 209,
+      "nombre_comuna": "Contulmo",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 210,
+    "fields": {
+      "id_comuna": 210,
+      "nombre_comuna": "Coronel",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 211,
+    "fields": {
+      "id_comuna": 211,
+      "nombre_comuna": "Curanilahue",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 212,
+    "fields": {
+      "id_comuna": 212,
+      "nombre_comuna": "Florida",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 213,
+    "fields": {
+      "id_comuna": 213,
+      "nombre_comuna": "Hualpén",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 214,
+    "fields": {
+      "id_comuna": 214,
+      "nombre_comuna": "Hualqui",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 215,
+    "fields": {
+      "id_comuna": 215,
+      "nombre_comuna": "Laja",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 216,
+    "fields": {
+      "id_comuna": 216,
+      "nombre_comuna": "Lebu",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 217,
+    "fields": {
+      "id_comuna": 217,
+      "nombre_comuna": "Los Alamos",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 218,
+    "fields": {
+      "id_comuna": 218,
+      "nombre_comuna": "Los Angeles",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 219,
+    "fields": {
+      "id_comuna": 219,
+      "nombre_comuna": "Lota",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 220,
+    "fields": {
+      "id_comuna": 220,
+      "nombre_comuna": "Mulchén",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 221,
+    "fields": {
+      "id_comuna": 221,
+      "nombre_comuna": "Nacimiento",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 222,
+    "fields": {
+      "id_comuna": 222,
+      "nombre_comuna": "Negrete",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 223,
+    "fields": {
+      "id_comuna": 223,
+      "nombre_comuna": "Penco",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 224,
+    "fields": {
+      "id_comuna": 224,
+      "nombre_comuna": "Quilaco",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 225,
+    "fields": {
+      "id_comuna": 225,
+      "nombre_comuna": "Quilleco",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 226,
+    "fields": {
+      "id_comuna": 226,
+      "nombre_comuna": "San Pedro de la Paz",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 227,
+    "fields": {
+      "id_comuna": 227,
+      "nombre_comuna": "San Rosendo",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 228,
+    "fields": {
+      "id_comuna": 228,
+      "nombre_comuna": "Santa Bárbara",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 229,
+    "fields": {
+      "id_comuna": 229,
+      "nombre_comuna": "Santa Juana",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 230,
+    "fields": {
+      "id_comuna": 230,
+      "nombre_comuna": "Talcahuano",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 231,
+    "fields": {
+      "id_comuna": 231,
+      "nombre_comuna": "Tirúa",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 232,
+    "fields": {
+      "id_comuna": 232,
+      "nombre_comuna": "Tomé",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 233,
+    "fields": {
+      "id_comuna": 233,
+      "nombre_comuna": "Tucapel",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 234,
+    "fields": {
+      "id_comuna": 234,
+      "nombre_comuna": "Yumbel",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 235,
+    "fields": {
+      "id_comuna": 235,
+      "nombre_comuna": "Yungay",
+      "region": 11
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 236,
+    "fields": {
+      "id_comuna": 236,
+      "nombre_comuna": "Angol",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 237,
+    "fields": {
+      "id_comuna": 237,
+      "nombre_comuna": "Carahue",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 238,
+    "fields": {
+      "id_comuna": 238,
+      "nombre_comuna": "Cholchol",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 239,
+    "fields": {
+      "id_comuna": 239,
+      "nombre_comuna": "Collipulli",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 240,
+    "fields": {
+      "id_comuna": 240,
+      "nombre_comuna": "Cunco",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 241,
+    "fields": {
+      "id_comuna": 241,
+      "nombre_comuna": "Curacautín",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 242,
+    "fields": {
+      "id_comuna": 242,
+      "nombre_comuna": "Curarrehue",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 243,
+    "fields": {
+      "id_comuna": 243,
+      "nombre_comuna": "Ercilla",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 244,
+    "fields": {
+      "id_comuna": 244,
+      "nombre_comuna": "Freire",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 245,
+    "fields": {
+      "id_comuna": 245,
+      "nombre_comuna": "Galvarino",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 246,
+    "fields": {
+      "id_comuna": 246,
+      "nombre_comuna": "Gorbea",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 247,
+    "fields": {
+      "id_comuna": 247,
+      "nombre_comuna": "Lautaro",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 248,
+    "fields": {
+      "id_comuna": 248,
+      "nombre_comuna": "Loncoche",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 249,
+    "fields": {
+      "id_comuna": 249,
+      "nombre_comuna": "Lonquimay",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 250,
+    "fields": {
+      "id_comuna": 250,
+      "nombre_comuna": "Los Sauces",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 251,
+    "fields": {
+      "id_comuna": 251,
+      "nombre_comuna": "Lumaco",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 252,
+    "fields": {
+      "id_comuna": 252,
+      "nombre_comuna": "Melipeuco",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 253,
+    "fields": {
+      "id_comuna": 253,
+      "nombre_comuna": "Nueva Imperial",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 254,
+    "fields": {
+      "id_comuna": 254,
+      "nombre_comuna": "Padre Las Casas",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 255,
+    "fields": {
+      "id_comuna": 255,
+      "nombre_comuna": "Perquenco",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 256,
+    "fields": {
+      "id_comuna": 256,
+      "nombre_comuna": "Pitrufquén",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 257,
+    "fields": {
+      "id_comuna": 257,
+      "nombre_comuna": "Pucon",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 258,
+    "fields": {
+      "id_comuna": 258,
+      "nombre_comuna": "Purén",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 259,
+    "fields": {
+      "id_comuna": 259,
+      "nombre_comuna": "Renaico",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 260,
+    "fields": {
+      "id_comuna": 260,
+      "nombre_comuna": "Saavedra",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 261,
+    "fields": {
+      "id_comuna": 261,
+      "nombre_comuna": "Temuco",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 262,
+    "fields": {
+      "id_comuna": 262,
+      "nombre_comuna": "Teodoro Schmidt",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 263,
+    "fields": {
+      "id_comuna": 263,
+      "nombre_comuna": "Toltén",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 264,
+    "fields": {
+      "id_comuna": 264,
+      "nombre_comuna": "Traiguén",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 265,
+    "fields": {
+      "id_comuna": 265,
+      "nombre_comuna": "Victoria",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 266,
+    "fields": {
+      "id_comuna": 266,
+      "nombre_comuna": "Vilcún",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 267,
+    "fields": {
+      "id_comuna": 267,
+      "nombre_comuna": "Villarrica",
+      "region": 12
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 268,
+    "fields": {
+      "id_comuna": 268,
+      "nombre_comuna": "Corral",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 269,
+    "fields": {
+      "id_comuna": 269,
+      "nombre_comuna": "Futrono",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 270,
+    "fields": {
+      "id_comuna": 270,
+      "nombre_comuna": "La Unión",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 271,
+    "fields": {
+      "id_comuna": 271,
+      "nombre_comuna": "Lago Ranco",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 272,
+    "fields": {
+      "id_comuna": 272,
+      "nombre_comuna": "Lanco",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 273,
+    "fields": {
+      "id_comuna": 273,
+      "nombre_comuna": "Los Lagos",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 274,
+    "fields": {
+      "id_comuna": 274,
+      "nombre_comuna": "Mariquina",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 275,
+    "fields": {
+      "id_comuna": 275,
+      "nombre_comuna": "Máfil",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 276,
+    "fields": {
+      "id_comuna": 276,
+      "nombre_comuna": "Paillaco",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 277,
+    "fields": {
+      "id_comuna": 277,
+      "nombre_comuna": "Panguipulli",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 278,
+    "fields": {
+      "id_comuna": 278,
+      "nombre_comuna": "Río Bueno",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 279,
+    "fields": {
+      "id_comuna": 279,
+      "nombre_comuna": "Valdivia",
+      "region": 1
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 280,
+    "fields": {
+      "id_comuna": 280,
+      "nombre_comuna": "Ancud",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 281,
+    "fields": {
+      "id_comuna": 281,
+      "nombre_comuna": "Calbuco",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 282,
+    "fields": {
+      "id_comuna": 282,
+      "nombre_comuna": "Castro",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 283,
+    "fields": {
+      "id_comuna": 283,
+      "nombre_comuna": "Chaitén",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 284,
+    "fields": {
+      "id_comuna": 284,
+      "nombre_comuna": "Chonchi",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 285,
+    "fields": {
+      "id_comuna": 285,
+      "nombre_comuna": "Cochamó",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 286,
+    "fields": {
+      "id_comuna": 286,
+      "nombre_comuna": "Curaco de Vélez",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 287,
+    "fields": {
+      "id_comuna": 287,
+      "nombre_comuna": "Dalcahue",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 288,
+    "fields": {
+      "id_comuna": 288,
+      "nombre_comuna": "Fresia",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 289,
+    "fields": {
+      "id_comuna": 289,
+      "nombre_comuna": "Frutillar",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 290,
+    "fields": {
+      "id_comuna": 290,
+      "nombre_comuna": "Futaleufú",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 291,
+    "fields": {
+      "id_comuna": 291,
+      "nombre_comuna": "Hualaihué",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 292,
+    "fields": {
+      "id_comuna": 292,
+      "nombre_comuna": "Llanquihue",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 293,
+    "fields": {
+      "id_comuna": 293,
+      "nombre_comuna": "Los Muermos",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 294,
+    "fields": {
+      "id_comuna": 294,
+      "nombre_comuna": "Maullín",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 295,
+    "fields": {
+      "id_comuna": 295,
+      "nombre_comuna": "Osorno",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 296,
+    "fields": {
+      "id_comuna": 296,
+      "nombre_comuna": "Palena",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 297,
+    "fields": {
+      "id_comuna": 297,
+      "nombre_comuna": "Puerto Montt",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 298,
+    "fields": {
+      "id_comuna": 298,
+      "nombre_comuna": "Puerto Octay",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 299,
+    "fields": {
+      "id_comuna": 299,
+      "nombre_comuna": "Puerto Varas",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 300,
+    "fields": {
+      "id_comuna": 300,
+      "nombre_comuna": "Puqueldón",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 301,
+    "fields": {
+      "id_comuna": 301,
+      "nombre_comuna": "Purranque",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 302,
+    "fields": {
+      "id_comuna": 302,
+      "nombre_comuna": "Puyehue",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 303,
+    "fields": {
+      "id_comuna": 303,
+      "nombre_comuna": "Queilén",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 304,
+    "fields": {
+      "id_comuna": 304,
+      "nombre_comuna": "Quellón",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 305,
+    "fields": {
+      "id_comuna": 305,
+      "nombre_comuna": "Quemchi",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 306,
+    "fields": {
+      "id_comuna": 306,
+      "nombre_comuna": "Quinchao",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 307,
+    "fields": {
+      "id_comuna": 307,
+      "nombre_comuna": "Río Negro",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 308,
+    "fields": {
+      "id_comuna": 308,
+      "nombre_comuna": "San Juan de la Costa",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 309,
+    "fields": {
+      "id_comuna": 309,
+      "nombre_comuna": "San Pablo",
+      "region": 14
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 310,
+    "fields": {
+      "id_comuna": 310,
+      "nombre_comuna": "Aysén",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 311,
+    "fields": {
+      "id_comuna": 311,
+      "nombre_comuna": "Chile Chico",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 312,
+    "fields": {
+      "id_comuna": 312,
+      "nombre_comuna": "Cisnes",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 313,
+    "fields": {
+      "id_comuna": 313,
+      "nombre_comuna": "Cochrane",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 314,
+    "fields": {
+      "id_comuna": 314,
+      "nombre_comuna": "Coihaique",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 315,
+    "fields": {
+      "id_comuna": 315,
+      "nombre_comuna": "Guaitecas",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 316,
+    "fields": {
+      "id_comuna": 316,
+      "nombre_comuna": "Lago Verde",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 317,
+    "fields": {
+      "id_comuna": 317,
+      "nombre_comuna": "OHiggins",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 318,
+    "fields": {
+      "id_comuna": 318,
+      "nombre_comuna": "Rio Ibáñez",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 319,
+    "fields": {
+      "id_comuna": 319,
+      "nombre_comuna": "Tortel",
+      "region": 15
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 320,
+    "fields": {
+      "id_comuna": 320,
+      "nombre_comuna": "Antártica",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 321,
+    "fields": {
+      "id_comuna": 321,
+      "nombre_comuna": "Cabo de Hornos",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 322,
+    "fields": {
+      "id_comuna": 322,
+      "nombre_comuna": "Laguna Blanca",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 323,
+    "fields": {
+      "id_comuna": 323,
+      "nombre_comuna": "Natales",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 324,
+    "fields": {
+      "id_comuna": 324,
+      "nombre_comuna": "Porvenir",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 325,
+    "fields": {
+      "id_comuna": 325,
+      "nombre_comuna": "Primavera",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 326,
+    "fields": {
+      "id_comuna": 326,
+      "nombre_comuna": "Punta Arenas",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 327,
+    "fields": {
+      "id_comuna": 327,
+      "nombre_comuna": "Río Verde",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 328,
+    "fields": {
+      "id_comuna": 328,
+      "nombre_comuna": "San Gregorio",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 329,
+    "fields": {
+      "id_comuna": 329,
+      "nombre_comuna": "Timaukel",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.comuna",
+    "pk": 330,
+    "fields": {
+      "id_comuna": 330,
+      "nombre_comuna": "Torres del Paine",
+      "region": 16
+    }
+  },
+  {
+    "model": "KeyServApp.tipocuenta",
+    "pk": 1,
+    "fields": {
+      "id_tipo_cuenta": 1,
+      "nombre_tipo_cuenta": "CLIENTE",
+      "valor_cuenta": 0
+    }
+  },
+  {
+    "model": "KeyServApp.tipocuenta",
+    "pk": 2,
+    "fields": {
+      "id_tipo_cuenta": 2,
+      "nombre_tipo_cuenta": "CLIENTE PREMIUM",
+      "valor_cuenta": 5000
+    }
+  },
+  {
+    "model": "KeyServApp.tipocuenta",
+    "pk": 3,
+    "fields": {
+      "id_tipo_cuenta": 3,
+      "nombre_tipo_cuenta": "COLABORADOR",
+      "valor_cuenta": 0
+    }
+  },
+  {
+    "model": "KeyServApp.tipocuenta",
+    "pk": 4,
+    "fields": {
+      "id_tipo_cuenta": 4,
+      "nombre_tipo_cuenta": "COLABORADOR PREMIUM",
+      "valor_cuenta": 5000
+    }
+  },
+  {
+    "model": "KeyServApp.tipofirma",
+    "pk": 1,
+    "fields": {
+      "id_tipo_firma": 1,
+      "nombre_tipo_firma": "Firma Electronica"
+    }
+  },
+  {
+    "model": "KeyServApp.tipofirma",
+    "pk": 2,
+    "fields": {
+      "id_tipo_firma": 2,
+      "nombre_tipo_firma": "Clave Única"
+    }
+  },
+  {
+    "model": "KeyServApp.tipofirma",
+    "pk": 3,
+    "fields": {
+      "id_tipo_firma": 3,
+      "nombre_tipo_firma": "Biometrica"
+    }
+  },
+  {
+    "model": "KeyServApp.estadoautentificacion",
+    "pk": 1,
+    "fields": {
+      "id_estado_autentificacion": 1,
+      "nombre_estado_autentificacion": "Aprobada "
+    }
+  },
+  {
+    "model": "KeyServApp.estadoautentificacion",
+    "pk": 2,
+    "fields": {
+      "id_estado_autentificacion": 2,
+      "nombre_estado_autentificacion": "Rechazada "
+    }
+  },
+  {
+    "model": "KeyServApp.estadoautentificacion",
+    "pk": 3,
+    "fields": {
+      "id_estado_autentificacion": 3,
+      "nombre_estado_autentificacion": "Error"
+    }
+  },
+  {
+    "model": "KeyServApp.estadodocumento",
+    "pk": 1,
+    "fields": {
+      "id_estado_documento": 1,
+      "nombre_estado_documento": "Firmado"
+    }
+  },
+  {
+    "model": "KeyServApp.estadodocumento",
+    "pk": 2,
+    "fields": {
+      "id_estado_documento": 2,
+      "nombre_estado_documento": "No firmado"
+    }
+  },
+  {
+    "model": "KeyServApp.estadodocumento",
+    "pk": 3,
+    "fields": {
+      "id_estado_documento": 3,
+      "nombre_estado_documento": "Erróneo"
+    }
+  }
+]

@@ -76,7 +76,9 @@ Both are now proper importable modules (`procesar_huella()` / `cargar_rostro_con
 
 PostgreSQL, credentials via environment variables (`.env`, see `.env.example`) — no longer hardcoded in `settings.py`. `codigo/backend/django/KeyServApp/migrations/0001_initial.py` was regenerated from scratch against the corrected models (the old MySQL-era migration is backed up in `codigo/viejo/backup_fase3/`).
 
-**PostgreSQL 17 is installed and running** as a Windows service (`postgresql-keyserv`, data dir `C:\pgsql\data`, port 5432) — installed via the portable binaries zip since the official graphical installer failed in this non-interactive environment. `manage.py migrate` has been run against it (all ~24 tables exist for real), and the full register→login→ajax-comunas flow was verified end-to-end with a real HTTP request. Only one `Region`/`Comuna`/`TipoCuenta` row each are seeded (enough to test with) — the rest of Chile's regions/comunas still need loading.
+**PostgreSQL 17 is installed and running** as a Windows service (`postgresql-keyserv`, data dir `C:\pgsql\data`, port 5432) — installed via the portable binaries zip since the official graphical installer failed in this non-interactive environment. `manage.py migrate` has been run against it (all ~24 tables exist for real), and the full register→login→ajax-comunas flow was verified end-to-end with a real HTTP request.
+
+**Catalog data is loaded for real**: `KeyServApp/fixtures/catalogos_iniciales.json` (16 Chilean regions, 330 comunas, the 4 real `TipoCuenta` tiers, plus `TipoFirma`/`EstadoAutentificacion`/`EstadoDocumento`) — extracted from an old MySQL dump (`notpaper3`) the user had outside the repo, loaded via `manage.py loaddata catalogos_iniciales`. Deliberately excluded from that import: the dump's `usuario`/`autentificacion`/`documento`/`publicaciones`/`transaccion` rows — throwaway test/dummy data with SHA-256-without-salt password hashes incompatible with the Fase 3 PBKDF2 hasher.
 
 No automated tests are configured yet (`tests.py` files are still empty stubs) — see `docs/DEVELOPMENT_ROADMAP.md` for what to test first.
 
@@ -137,9 +139,8 @@ The `assets/mockups/pag_html/` HTML files are **not served by Django** — they 
 ## Known Issues
 
 - `codigo/biometria/huella/REGISTRO_BD.py`, `AUTENTIFICACION.py`, `GUARDAR_DOCUMENTO.py`, `CONEXION_BD.py` remain legacy/broken by design — the Fase 3 architecture decision was to consolidate this logic into Django (`KeyServApp/biometria.py`), not repair these standalone scripts. They still reference `CONEXION_BD.cur`, which doesn't exist.
-- **The SMTP password that used to be hardcoded in `AUTENTIFICACION.py` was removed and should be rotated** — it was exposed in git history (Fase 1/2 commits) before being pulled into an env var in Fase 3. Removing it from the current file does not remove it from history.
+- The SMTP password that used to be hardcoded in `AUTENTIFICACION.py` was removed in Fase 3 (pulled into an env var) and the user has since rotated the real credential — it's still in git history from Fase 1/2 commits, but no longer valid.
 - `codigo/biometria/reconocimiento_facial/probando_face_recognition.py` was rewritten from the byte-dump it used to be, but is unverified against a real webcam (none available in this dev environment).
 - No automated tests exist yet.
-- Only one `Region`/`Comuna` pair is seeded (Metropolitana/Santiago) — the rest of Chile's regions/comunas need loading before this is usable beyond testing.
 - `publicacion_crear_view` renders a placeholder template (`crearperfil.html`) — no dedicated "create publication" page exists among the templates inherited from the thesis.
 - `.vscode/launch.json` still points at a stale pre-reorg path — not fixed, low priority.
