@@ -16,52 +16,67 @@ probar esa funcionalidad puntual.
 
 ## 2. Variables de entorno
 
+`codigo/backend/django/.env` **ya existe y está configurado** (gitignorado,
+no está en el repo). Si necesitás recrearlo desde cero:
+
 ```powershell
 Copy-Item .env.example codigo\backend\django\.env
 ```
 
-Editar `codigo/backend/django/.env` con valores reales. Como mínimo para
-desarrollo local: `DB_NAME`/`DB_USER`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT` de tu
-Postgres. `DJANGO_SECRET_KEY` puede quedar con cualquier string largo random
-en desarrollo (nunca reusar el mismo valor en producción).
+Y completar con valores reales — `DJANGO_SECRET_KEY` puede ser cualquier
+string largo random en desarrollo (nunca reusar el mismo valor en producción).
 
-## 3. Base de datos: PostgreSQL
+## 3. Base de datos: PostgreSQL — YA INSTALADA Y CORRIENDO
 
-No había ningún servidor Postgres corriendo en el entorno donde se hizo este
-refactor (se confirmó que el puerto 5432 estaba cerrado), así que **falta
-este paso de tu lado**. Dos caminos:
+Se instaló PostgreSQL 17 de forma **portable** (sin el instalador gráfico
+oficial, que fallaba en este entorno sin sesión de escritorio interactiva —
+se usaron los binarios "zip" en su lugar) en `C:\pgsql`, con los datos en
+`C:\pgsql\data`. Está registrado como **servicio de Windows** (arranca solo
+con el sistema):
 
-**Opción A — Postgres local** (Windows):
-1. Descargar el instalador desde postgresql.org (incluye pgAdmin).
-2. Crear una base de datos `keyserv` (o el nombre que pongas en `.env`).
-3. Completar `DB_*` en el `.env` con esas credenciales.
+```powershell
+Get-Service -Name postgresql-keyserv          # ver estado
+Start-Service -Name postgresql-keyserv        # si estuviera detenido
+Stop-Service -Name postgresql-keyserv         # para detenerlo
+```
 
-**Opción B — Postgres gestionado gratis** (más simple, cero instalación local):
-Supabase, Neon o Railway dan un Postgres gratis en minutos — copiás la
-connection string que te dan a las variables `DB_*` del `.env` (`DB_HOST`
-va a ser el host que te den, no `localhost`).
+Credenciales configuradas en `.env` (puerto 5432, host `localhost`):
+- Base de datos: `keyserv`
+- Usuario: `postgres`, password: `keyserv_local_dev` (**es un password de desarrollo local, cambiarlo si esto se despliega alguna vez**)
 
-Con cualquiera de las dos, una vez que Postgres responda:
+Ya se corrió `manage.py migrate` contra esta instancia — las ~24 tablas
+existen de verdad en `C:\pgsql\data`, no es solo una migración generada sin
+aplicar. `codigo/database/schema.sql` también ya se generó desde la
+migración real aplicada. Se creó además un superusuario de Django
+(`admin` / `keyserv_admin_dev`) para entrar a `/admin/`, y se cargó un
+registro mínimo de `Region`/`Comuna`/`TipoCuenta` (Región Metropolitana /
+Santiago / plan Free) solo para poder probar el registro — **falta cargar
+el resto de las 16 regiones y sus comunas reales** antes de usar esto en
+serio (no existe todavía un fixture/seed completo, es un TODO).
+
+Si en algún momento preferís migrar a un Postgres gestionado en la nube
+(Supabase, Neon, Railway, AWS RDS), simplemente cambiá `DB_HOST`/`DB_USER`/
+`DB_PASSWORD`/`DB_PORT` en `.env` a los que te den — el resto no cambia.
 
 ```powershell
 cd codigo\backend\django
-python manage.py migrate
-python manage.py createsuperuser   # para entrar a /admin/
-python manage.py sqlmigrate KeyServApp 0001 > ..\..\database\schema.sql   # opcional, referencia
 python manage.py runserver 8000
 ```
 
-`manage.py check` y `manage.py makemigrations` ya se corrieron y validaron
-en esta fase sin necesitar una conexión viva — `migrate` sí la necesita, por
-eso queda pendiente para cuando levantes tu propio Postgres.
-
 ## 4. Verificar que el sitio funciona
 
-Con el servidor corriendo (`python manage.py runserver 8000`):
+**Ya verificado end-to-end en esta fase** (no es solo teoría): se registró un
+usuario de prueba real vía POST a `/registro/`, se confirmó que el password
+quedó hasheado (no en texto plano) y que `check_password()` funciona, se hizo
+login real por `/sesion/`, y se probó `/ajax/load-comunas/` — los 3 flujos
+que antes estaban rotos o sin probar ahora funcionan contra una base de
+datos real. El usuario de prueba se borró después de verificar.
+
+Para probarlo vos mismo, con el servidor corriendo (`python manage.py runserver 8000`):
 1. `http://localhost:8000/` — página de inicio.
-2. `http://localhost:8000/registro/` — registrar un usuario de prueba.
+2. `http://localhost:8000/registro/` — registrar un usuario (elegí Región Metropolitana/Santiago, es lo único cargado).
 3. `http://localhost:8000/sesion/` — loguearse con ese usuario.
-4. `http://localhost:8000/admin/` — con el superusuario creado arriba, deberías ver los ~24 modelos ya registrados.
+4. `http://localhost:8000/admin/` — con `admin`/`keyserv_admin_dev`, deberías ver los ~24 modelos ya registrados.
 
 ## 5. Biometría (opcional, requiere hardware)
 
@@ -82,10 +97,10 @@ costo al registrarse como desarrollador — ver su portal de comercio.
 
 ## Checklist de lo que falta de tu lado
 
-- [ ] Levantar Postgres (local o gestionado) y correr `migrate`.
-- [ ] Rotar la contraseña SMTP que estaba hardcodeada en el código (ver
-      `docs/REFACTORING_LOG.md`, sección final) — es independiente de todo
-      lo demás, hacerlo cuanto antes.
+- [x] ~~Levantar Postgres y correr `migrate`~~ — hecho en esta fase (servicio `postgresql-keyserv`, ver §3).
+- [x] ~~Rotar la contraseña SMTP~~ — en curso de tu lado.
+- [ ] Cargar el resto de regiones/comunas de Chile (hoy solo hay 1 de cada, cargada a mano para poder probar).
 - [ ] Conseguir credenciales de Transbank ambiente integración si querés
       probar pagos.
 - [ ] Decidir/diseñar la pantalla de "crear publicación" (ver `docs/NEW_CODE_CREATED.md`).
+- [ ] Si esto se despliega alguna vez: cambiar `DB_PASSWORD`/`DJANGO_SECRET_KEY` de los valores de desarrollo local a algo generado para ese entorno, y considerar migrar de la instancia portable local a un Postgres gestionado (ver §3).
