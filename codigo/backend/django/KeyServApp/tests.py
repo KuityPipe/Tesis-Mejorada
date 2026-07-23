@@ -164,10 +164,10 @@ class PublicacionYModeracionTests(TestCase):
         pub = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Gasfitería')
         self.assertEqual(pub.estado_moderacion, Publicaciones.PENDIENTE)
 
-    def test_paginicio_solo_muestra_aprobadas(self):
+    def test_catalogo_solo_muestra_aprobadas(self):
         Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pendiente', estado_moderacion=Publicaciones.PENDIENTE)
         Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Aprobada', estado_moderacion=Publicaciones.APROBADA)
-        resp = self.client.get(reverse('KeyServApp:paginicio'))
+        resp = self.client.get(reverse('KeyServApp:catalogo'))
         publicaciones = list(resp.context['publicaciones'])
         self.assertEqual(len(publicaciones), 1)
         self.assertEqual(publicaciones[0].titulo, 'Aprobada')
@@ -278,16 +278,22 @@ class MensajeriaTests(TestCase):
         self.assertEqual(mensaje.usuario, self.cliente)
 
     def test_ambos_pueden_ver_la_conversacion_pero_un_tercero_no(self):
-        from .views import _obtener_o_crear_conversacion
+        """El chat ahora es 1:1 con la Contratacion (antes era por par de usuarios)."""
+        from .models import Contratacion
+        from .views import _obtener_o_crear_conversacion_de_contratacion
 
-        conversacion = _obtener_o_crear_conversacion(self.cliente, self.proveedor)
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+        conversacion = _obtener_o_crear_conversacion_de_contratacion(contratacion)
 
         client = Client()
         session = client.session
         session['usuario_id'] = self.proveedor.id_usuario
         session.save()
+        # /chat/<id>/ redirige al detalle del trabajo, que trae el mismo chat embebido.
         resp = client.get(reverse('KeyServApp:conversacion_detalle', args=[conversacion.id_conversacion]))
-        self.assertEqual(resp.status_code, 200)
+        self.assertRedirects(resp, reverse('KeyServApp:contratacion_detalle', args=[contratacion.id_contratacion]))
+        resp_detalle = client.get(reverse('KeyServApp:contratacion_detalle', args=[contratacion.id_contratacion]))
+        self.assertEqual(resp_detalle.status_code, 200)
 
         otro = _crear_usuario('intruso@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
         client2 = Client()

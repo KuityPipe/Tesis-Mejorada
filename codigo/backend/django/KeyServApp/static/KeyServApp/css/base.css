@@ -1,0 +1,1074 @@
+/* ---------------------------------------------------------------------
+   Sistema de diseño KeyServ — paleta cálida derivada del logo (coral +
+   teal + crema). Reemplaza los colores de ejemplo (powderblue,
+   cornflowerblue) que traía cada CSS por página desde la versión original.
+   Variables compartidas por todas las páginas que extienden base.html.
+--------------------------------------------------------------------- */
+
+:root {
+  /* Dualidad de marca (logo nuevo): azul marino "conocimiento/seguridad" que
+     transiciona a coral "cercanía/calidez", con el teal del logo como puente
+     natural entre ambos — ver --ks-gradient-brand. */
+  --ks-cream: #FFF8F1;
+  --ks-cream-soft: #FFFFFF;
+  --ks-navy: #0B3D78;
+  --ks-navy-dark: #082C57;
+  --ks-navy-light: #E9F0FA;
+  --ks-teal: #12A38C;
+  --ks-teal-dark: #0C8272;
+  --ks-teal-light: #E1F7F2;
+  --ks-coral: #FF7A50;
+  --ks-coral-dark: #E85A30;
+  --ks-coral-light: #FFE4D6;
+  --ks-ink: #16233A;
+  --ks-ink-soft: #5B6B82;
+  --ks-border: #E7ECF3;
+  --ks-gradient-brand: linear-gradient(135deg, var(--ks-navy) 0%, var(--ks-teal) 55%, var(--ks-coral) 100%);
+  --ks-shadow: 0 10px 30px -12px rgba(11, 61, 120, 0.25);
+  --ks-radius-lg: 20px;
+  --ks-radius-md: 14px;
+  --ks-radius-sm: 10px;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  color: var(--ks-ink);
+  background-color: var(--ks-cream);
+}
+
+h1, h2, h3, h4, .ks-brand-font {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  color: var(--ks-navy-dark);
+}
+
+a {
+  text-decoration: none;
+}
+
+.ks-main {
+  min-height: 60vh;
+}
+
+/* ---------- Header ---------- */
+
+.ks-header {
+  background: var(--ks-cream-soft);
+  border-bottom: 3px solid transparent;
+  border-image: var(--ks-gradient-brand) 1;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.ks-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.ks-logo img {
+  height: 48px;
+  display: block;
+}
+
+.ks-nav-toggle {
+  display: none;
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  color: var(--ks-ink);
+}
+
+.ks-nav-collapse {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+/* En escritorio el menú siempre está visible; en móvil se oculta por
+   defecto y solo se muestra cuando el botón hamburguesa le agrega .show
+   (ver @media más abajo y el toggle de Bootstrap sobre #ksNav). */
+
+.ks-nav {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.ks-nav a {
+  font-weight: 600;
+  color: var(--ks-ink-soft);
+  padding: 6px 4px;
+  border-bottom: 2px solid transparent;
+  transition: color .15s ease, border-color .15s ease;
+}
+
+.ks-nav a:hover {
+  color: var(--ks-navy);
+  border-bottom-color: var(--ks-teal);
+}
+
+.ks-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.ks-icon-link {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
+  font-size: 1.1rem;
+}
+
+.ks-icon-link:hover {
+  background: var(--ks-teal);
+  color: #fff;
+}
+
+.ks-icon-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ks-coral);
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid var(--ks-cream-soft);
+}
+
+.ks-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--ks-ink);
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--ks-border);
+}
+
+.ks-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ks-gradient-brand);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+}
+
+/* ---------- Botones ---------- */
+
+.ks-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-family: 'Quicksand', sans-serif;
+  border: 2px solid transparent;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.ks-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ks-btn-primary {
+  background: var(--ks-gradient-brand);
+  background-size: 160% 160%;
+  background-position: 0% 50%;
+  color: #fff;
+  box-shadow: var(--ks-shadow);
+  transition: transform .12s ease, box-shadow .12s ease, background-position .25s ease;
+}
+
+.ks-btn-primary:hover {
+  background-position: 100% 50%;
+  color: #fff;
+}
+
+.ks-btn-outline {
+  background: transparent;
+  border-color: var(--ks-border);
+  color: var(--ks-navy-dark);
+}
+
+.ks-btn-outline:hover {
+  border-color: var(--ks-teal);
+  color: var(--ks-teal-dark);
+}
+
+/* ---------- Mensajes (Django messages) ---------- */
+
+.ks-messages {
+  padding-top: 16px;
+}
+
+.ks-alert {
+  border-radius: var(--ks-radius-sm);
+  border: none;
+  font-weight: 600;
+}
+
+/* ---------- Hero / buscador ---------- */
+
+.ks-hero {
+  background: linear-gradient(135deg, var(--ks-navy-light) 0%, var(--ks-cream) 45%, var(--ks-coral-light) 100%);
+  padding: 64px 0 56px;
+  text-align: center;
+}
+
+.ks-hero h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  max-width: 720px;
+  margin: 0 auto 12px;
+}
+
+.ks-hero p {
+  color: var(--ks-ink-soft);
+  font-size: 1.1rem;
+  margin-bottom: 32px;
+}
+
+.ks-search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 620px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 8px 8px 22px;
+  box-shadow: var(--ks-shadow);
+}
+
+.ks-search-form i {
+  color: var(--ks-ink-soft);
+}
+
+.ks-search-form input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  padding: 10px 0;
+  background: transparent;
+}
+
+.ks-hero-tags {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: .95rem;
+}
+
+.ks-hero-tags span {
+  color: var(--ks-ink-soft);
+}
+
+.ks-hero-tags a {
+  color: var(--ks-teal-dark);
+  font-weight: 700;
+  background: var(--ks-teal-light);
+  padding: 4px 14px;
+  border-radius: 999px;
+}
+
+.ks-hero-tags a:hover {
+  background: var(--ks-teal);
+  color: #fff;
+}
+
+.ks-filter-bar {
+  max-width: 780px;
+  margin: 28px auto 0;
+  background: #fff;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  text-align: left;
+}
+
+.ks-filter-field {
+  flex: 1;
+  min-width: 160px;
+}
+
+.ks-filter-field label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--ks-navy-dark);
+  margin-bottom: 4px;
+}
+
+.ks-filter-field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  font-family: 'Nunito', sans-serif;
+  background: var(--ks-cream-soft);
+  color: var(--ks-ink);
+}
+
+.ks-filter-field select:focus {
+  outline: none;
+  border-color: var(--ks-teal);
+}
+
+/* ---------- Sección de servicios / tarjetas ---------- */
+
+.ks-section {
+  padding: 48px 16px;
+}
+
+.ks-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ks-section-header span {
+  color: var(--ks-ink-soft);
+  font-weight: 600;
+}
+
+.ks-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.ks-card {
+  display: block;
+  background: #fff;
+  border-radius: var(--ks-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--ks-border);
+  color: var(--ks-ink);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.ks-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--ks-shadow);
+}
+
+.ks-card-img {
+  height: 160px;
+  background: var(--ks-teal-light);
+}
+
+.ks-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ks-card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  color: var(--ks-teal-dark);
+}
+
+.ks-card-body {
+  padding: 18px;
+}
+
+.ks-card-body h3 {
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.ks-card-body p {
+  color: var(--ks-ink-soft);
+  font-size: .92rem;
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ks-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .88rem;
+  font-weight: 700;
+}
+
+.ks-card-date {
+  color: var(--ks-ink-soft);
+  font-size: .78rem;
+  font-weight: 600;
+  margin: -8px 0 10px;
+  display: block;
+}
+
+.ks-card-provider {
+  color: var(--ks-ink-soft);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ks-card-rating {
+  color: var(--ks-coral-dark);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ks-empty-state {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--ks-ink-soft);
+}
+
+.ks-empty-state i {
+  font-size: 2.4rem;
+  color: var(--ks-coral);
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* ---------- Footer ---------- */
+
+.ks-footer {
+  background: #fff;
+  border-top: 3px solid transparent;
+  border-image: var(--ks-gradient-brand) 1;
+  margin-top: 40px;
+}
+
+.ks-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px 16px;
+  flex-wrap: wrap;
+}
+
+.ks-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 340px;
+}
+
+.ks-footer-brand img {
+  height: 34px;
+}
+
+.ks-footer-brand p {
+  color: var(--ks-ink-soft);
+  font-size: .88rem;
+  margin: 0;
+}
+
+.ks-footer-links {
+  display: flex;
+  gap: 18px;
+  font-weight: 600;
+}
+
+.ks-footer-links a {
+  color: var(--ks-ink-soft);
+}
+
+.ks-footer-links a:hover {
+  color: var(--ks-coral-dark);
+}
+
+.ks-footer-copy {
+  color: var(--ks-ink-soft);
+  font-size: .82rem;
+  margin: 0;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 860px) {
+  .ks-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ks-nav-collapse {
+    display: none;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding-top: 12px;
+  }
+
+  .ks-nav-collapse.show {
+    display: flex;
+  }
+
+  .ks-header-actions {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Componentes compartidos por las páginas internas (perfil, reservas,
+   chat, formularios, biometría, pagos) — todas extienden base.html.
+--------------------------------------------------------------------- */
+
+.ks-page-header {
+  background: linear-gradient(120deg, var(--ks-navy-light) 0%, var(--ks-cream) 70%);
+  padding: 40px 0;
+  margin-bottom: 32px;
+}
+
+.ks-page-header h1 {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ks-page-header p {
+  color: var(--ks-ink-soft);
+  margin: 0;
+}
+
+.ks-panel {
+  background: #fff;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-lg);
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.ks-panel h2, .ks-panel h3 {
+  margin-bottom: 16px;
+}
+
+/* ---------- Formularios ---------- */
+
+.ks-form label {
+  font-weight: 700;
+  font-size: .92rem;
+  color: var(--ks-navy-dark);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.ks-form .ks-field {
+  margin-bottom: 18px;
+}
+
+.ks-form input[type="text"],
+.ks-form input[type="email"],
+.ks-form input[type="tel"],
+.ks-form input[type="number"],
+.ks-form input[type="password"],
+.ks-form input[type="file"],
+.ks-form select,
+.ks-form textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  background: var(--ks-cream-soft);
+  color: var(--ks-ink);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.ks-form input:focus,
+.ks-form select:focus,
+.ks-form textarea:focus {
+  outline: none;
+  border-color: var(--ks-teal);
+  box-shadow: 0 0 0 3px var(--ks-teal-light);
+}
+
+.ks-form small.ks-error {
+  color: var(--ks-coral-dark);
+  font-weight: 700;
+}
+
+.ks-form .ks-help {
+  color: var(--ks-ink-soft);
+  font-size: .85rem;
+}
+
+.ks-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--ks-ink);
+  margin-bottom: 14px;
+}
+
+.ks-checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ks-teal);
+}
+
+/* ---------- Badges de estado (contrataciones) ---------- */
+
+.ks-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+.ks-badge-solicitada, .ks-badge-pendiente { background: var(--ks-coral-light); color: var(--ks-coral-dark); }
+.ks-badge-confirmada, .ks-badge-en_curso { background: var(--ks-teal-light); color: var(--ks-teal-dark); }
+.ks-badge-completada, .ks-badge-aprobada { background: var(--ks-navy-light); color: var(--ks-navy-dark); }
+.ks-badge-rechazada, .ks-badge-cancelada { background: #F1F1F1; color: #6b6b6b; }
+
+/* ---------- Timeline de contrataciones (reservas.html) ---------- */
+
+.ks-timeline-item {
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-md);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.ks-timeline-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.ks-timeline-item-head h4 {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ks-navy-dark);
+}
+
+.ks-timeline-item-head h4 a {
+  color: inherit;
+}
+
+.ks-timeline-item-head h4 a:hover {
+  color: var(--ks-teal-dark);
+  text-decoration: underline;
+}
+
+.ks-timeline-meta {
+  color: var(--ks-ink-soft);
+  font-size: .9rem;
+  margin-bottom: 12px;
+}
+
+.ks-timeline-item form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ks-timeline-item form input {
+  padding: 8px 12px;
+  border: 1.5px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+}
+
+/* ---------- Perfil ---------- */
+
+.ks-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.ks-avatar-lg {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--ks-gradient-brand);
+  color: #fff;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ks-profile-fact {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ks-border);
+  gap: 12px;
+}
+
+.ks-profile-fact:last-child { border-bottom: none; }
+
+.ks-profile-fact dt {
+  color: var(--ks-ink-soft);
+  font-weight: 600;
+}
+
+.ks-profile-fact dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.ks-verified { color: var(--ks-teal-dark); font-weight: 700; }
+.ks-unverified { color: var(--ks-coral-dark); font-weight: 700; }
+
+.ks-review {
+  border-bottom: 1px solid var(--ks-border);
+  padding: 14px 0;
+}
+.ks-review:last-child { border-bottom: none; }
+
+/* ---------- Chat ---------- */
+
+.ks-chat-list-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--ks-radius-md);
+  border: 1px solid var(--ks-border);
+  margin-bottom: 10px;
+  color: var(--ks-ink);
+}
+
+.ks-chat-list-item:hover {
+  border-color: var(--ks-teal);
+  background: var(--ks-teal-light);
+}
+
+.ks-chat-window {
+  background: var(--ks-cream);
+  border-radius: var(--ks-radius-md);
+  padding: 20px;
+  max-height: 480px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ks-bubble {
+  max-width: 70%;
+  padding: 10px 16px;
+  border-radius: var(--ks-radius-md);
+  font-size: .95rem;
+}
+
+.ks-bubble strong {
+  display: block;
+  font-size: .78rem;
+  opacity: .75;
+  margin-bottom: 2px;
+}
+
+.ks-bubble-fecha {
+  display: block;
+  font-size: .68rem;
+  opacity: .65;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.ks-bubble-mine {
+  align-self: flex-end;
+  background: var(--ks-gradient-brand);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.ks-bubble-theirs {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--ks-border);
+  border-bottom-left-radius: 4px;
+}
+
+.ks-message-form {
+  display: flex;
+  gap: 10px;
+}
+
+.ks-message-form textarea {
+  flex: 1;
+  resize: none;
+}
+
+/* ---------- Biometría (huella) ---------- */
+
+.ks-fingerprint-scanner {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  color: #fff;
+  background: var(--ks-gradient-brand);
+  box-shadow: 0 0 0 8px var(--ks-teal-light);
+  animation: ks-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes ks-pulse {
+  0%, 100% { box-shadow: 0 0 0 8px var(--ks-teal-light); }
+  50% { box-shadow: 0 0 0 16px var(--ks-teal-light); }
+}
+
+/* ---------- Alertas informativas (WIP / demo) ---------- */
+
+.ks-info-note {
+  background: var(--ks-navy-light);
+  color: var(--ks-navy-dark);
+  border-radius: var(--ks-radius-sm);
+  padding: 12px 16px;
+  font-size: .9rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- Estático (Acerca de nosotros, Contacto) ---------- */
+
+.ks-prose h2 {
+  margin-top: 28px;
+}
+
+.ks-prose p {
+  color: var(--ks-ink-soft);
+  line-height: 1.6;
+}
+
+.ks-contact-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--ks-border);
+}
+
+.ks-contact-card:last-child { border-bottom: none; }
+
+.ks-contact-card i {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.ks-contact-card .label {
+  color: var(--ks-ink-soft);
+  font-size: .85rem;
+  margin: 0;
+}
+
+.ks-contact-card .value {
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ---------- Detalle de trabajo (info + chat embebido) ---------- */
+
+.ks-detail-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.ks-detail-layout .ks-chat-window {
+  max-height: 380px;
+}
+
+@media (max-width: 900px) {
+  .ks-detail-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ks-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin: 4px 0 20px;
+}
+
+.ks-gallery img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: var(--ks-radius-sm);
+  border: 1px solid var(--ks-border);
+}
+
+.ks-progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0 24px;
+  position: relative;
+}
+
+.ks-progress-steps::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: 5%;
+  right: 5%;
+  height: 3px;
+  background: var(--ks-border);
+  z-index: 0;
+}
+
+.ks-progress-step {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--ks-ink-soft);
+}
+
+.ks-progress-step .dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--ks-border);
+  margin: 0 auto 6px;
+}
+
+.ks-progress-step.done .dot {
+  background: var(--ks-gradient-brand);
+  border-color: transparent;
+}
+
+.ks-progress-step.done {
+  color: var(--ks-navy-dark);
+}
+
+.ks-progress-step.current .dot {
+  border-color: var(--ks-coral);
+}
+
+.ks-progress-step.current {
+  color: var(--ks-coral-dark);
+}
+
+.ks-progress-fecha {
+  display: block;
+  font-weight: 600;
+  font-size: .68rem;
+  color: var(--ks-ink-soft);
+  margin-top: 2px;
+}
+
+.ks-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ks-history-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: .85rem;
+}
+
+/* ---------- Pago exitoso ---------- */
+
+.ks-success-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--ks-gradient-brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  margin: 0 auto 24px;
+}

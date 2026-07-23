@@ -1,84 +1,90 @@
+{% extends "KeyServApp/base.html" %}
 {% load static %}
-<!DOCTYPE html>
-    <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Página de inicio</title>
-  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
-</head>
-<body>
- 
- 
-  <header>
-    <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
-    </div>
-    <nav>
-      <ul class="menu">
-        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
-        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
-        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
-        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
-        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
-      </ul>
-    </nav>
-  </header>
-    <body>
-   <div class="search-container">
-  <h2>Búsqueda de servicios</h2>
-  <div class="search-form">
-    <input type="text" placeholder="Palabras clave o categorías">
-    <div class="filter-dropdown">
-      <button class="dropdown-btn">Filtros de búsqueda</button>
-      <div class="dropdown-content">
-        <label for="location">Ubicación:</label>
-        <input type="text" id="location" name="location">
-        <label for="price">Precio:</label>
-        <select id="price" name="price">
-          <option value="">Cualquier precio</option>
-          <option value="1">$</option>
-          <option value="2">$$</option>
-          <option value="3">$$$</option>
-        </select>
-        <label for="rating">Calificación:</label>
-        <select id="rating" name="rating">
-          <option value="">Cualquier calificación</option>
-          <option value="1">1 estrella</option>
-          <option value="2">2 estrellas</option>
-          <option value="3">3 estrellas</option>
-          <option value="4">4 estrellas</option>
-          <option value="5">5 estrellas</option>
-        </select>
-        <!-- Agrega más filtros según tus necesidades -->
-      </div>
-    </div>
-    <button class="search-btn">Buscar</button>
-  </div>
-  <div class="search-results">
-    <ul>
-      {% for publicacion in publicaciones %}
-      <li>
-        <a href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">{{ publicacion.titulo }}</a>
-        — {{ publicacion.sub_titulo }} (por {{ publicacion.usuario_publicador }})
-      </li>
-      {% empty %}
-      <li>Todavía no hay publicaciones aprobadas.</li>
-      {% endfor %}
-    </ul>
-  </div>
-  <div class="sort-options">
-    <label for="sort">Ordenar por:</label>
-    <select id="sort" name="sort">
-      <option value="price">Precio</option>
-      <option value="rating">Calificación</option>
-      <option value="distance">Distancia</option>
-    </select>
-    <label for="view">Vista:</label>
-    <select id="view" name="view">
-      <option value="list">Lista</option>
-      <option value="grid">Cuadrícula</option>
-    </select>
-  </div>
-</div>
 
-</body>
+{% block titulo %}KeyServ — Servicios verificados cerca de ti{% endblock %}
+
+{% block content %}
+<section class="ks-hero">
+  <div class="container">
+    <h1>Encuentra profesionales de confianza, verificados con huella digital</h1>
+    <p>Servicios del hogar cerca de ti, con proveedores verificados biométricamente.</p>
+
+    <form class="ks-search-form" method="get" action="{% url 'KeyServApp:catalogo' %}">
+      <i class="bi bi-search"></i>
+      <input type="text" name="q" placeholder="¿Qué servicio necesitas? Ej: gasfitería, jardinería...">
+      <button type="submit" class="ks-btn ks-btn-primary">Buscar</button>
+    </form>
+
+    <div class="ks-hero-tags">
+      <span>Popular:</span>
+      <a href="{% url 'KeyServApp:catalogo' %}?q=gasfiteria">Gasfitería</a>
+      <a href="{% url 'KeyServApp:catalogo' %}?q=jardineria">Jardinería</a>
+      <a href="{% url 'KeyServApp:catalogo' %}?q=electricidad">Electricidad</a>
+      <a href="{% url 'KeyServApp:catalogo' %}?q=limpieza">Limpieza</a>
+    </div>
+  </div>
+</section>
+
+<section class="ks-section container">
+  <div class="ks-card-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 8px;">
+    <div class="ks-panel" style="text-align:center; margin-bottom:0;">
+      <i class="bi bi-fingerprint" style="font-size:1.8rem; color: var(--ks-teal-dark);"></i>
+      <h3 class="mt-2 mb-1" style="font-size:1rem;">Identidad verificada</h3>
+      <p class="ks-help mb-0">Huella dactilar y reconocimiento facial antes de operar en la plataforma.</p>
+    </div>
+    <div class="ks-panel" style="text-align:center; margin-bottom:0;">
+      <i class="bi bi-star" style="font-size:1.8rem; color: var(--ks-coral);"></i>
+      <h3 class="mt-2 mb-1" style="font-size:1rem;">Calificaciones reales</h3>
+      <p class="ks-help mb-0">Cada servicio completado se califica — elige con reseñas de verdad.</p>
+    </div>
+    <div class="ks-panel" style="text-align:center; margin-bottom:0;">
+      <i class="bi bi-chat-dots" style="font-size:1.8rem; color: var(--ks-navy);"></i>
+      <h3 class="mt-2 mb-1" style="font-size:1rem;">Mensajería directa</h3>
+      <p class="ks-help mb-0">Coordina los detalles del servicio sin salir de la plataforma.</p>
+    </div>
+  </div>
+</section>
+
+<section class="ks-section container">
+  <div class="ks-section-header">
+    <h2>Servicios destacados</h2>
+    <a href="{% url 'KeyServApp:catalogo' %}" class="ks-btn ks-btn-outline">Ver todo el catálogo <i class="bi bi-arrow-right"></i></a>
+  </div>
+
+  {% if destacadas %}
+  <div class="ks-card-grid">
+    {% for publicacion in destacadas %}
+    <a class="ks-card" href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">
+      <div class="ks-card-img">
+        {% with imagen=publicacion.imagenes.first %}
+          {% if imagen %}
+            <img src="{{ imagen.url }}" alt="{{ publicacion.titulo }}">
+          {% else %}
+            <div class="ks-card-img-placeholder"><i class="bi bi-tools"></i></div>
+          {% endif %}
+        {% endwith %}
+      </div>
+      <div class="ks-card-body">
+        <h3>{{ publicacion.titulo }}</h3>
+        <p>{{ publicacion.sub_titulo }}</p>
+        <span class="ks-card-date"><i class="bi bi-clock"></i> Publicado {{ publicacion.fecha_publicacion|timesince }} atrás</span>
+        <div class="ks-card-footer">
+          <span class="ks-card-provider"><i class="bi bi-person-circle"></i> {{ publicacion.usuario_publicador.nombre_usuario }}</span>
+          {% with ranking=publicacion.usuario_publicador.ranking %}
+            {% if ranking and ranking.total_valoraciones > 0 %}
+              <span class="ks-card-rating"><i class="bi bi-star-fill"></i> {{ ranking.puntuacion_promedio }}</span>
+            {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ks-empty-state">
+    <i class="bi bi-emoji-smile"></i>
+    <p>Todavía no hay publicaciones aprobadas. ¡Vuelve pronto!</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

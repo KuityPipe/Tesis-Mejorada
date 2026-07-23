@@ -1,0 +1,130 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}{{ contratacion.publicacion.titulo }} — Trabajo #{{ contratacion.id_contratacion }} — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <p class="mb-1"><a href="{% url 'KeyServApp:reservas' %}">&larr; Mis contrataciones</a></p>
+    <h1>{{ contratacion.publicacion.titulo }}
+      <span class="ks-badge ks-badge-{{ contratacion.estado|lower }}">{{ contratacion.get_estado_display }}</span>
+    </h1>
+    <p>
+      {% if usuario == contratacion.cliente %}Proveedor: {{ contratacion.proveedor }}{% else %}Cliente: {{ contratacion.cliente }}{% endif %}
+      &nbsp;·&nbsp; Trabajo #{{ contratacion.id_contratacion }}
+    </p>
+  </div>
+</section>
+
+<section class="ks-section container">
+  <div class="ks-detail-layout">
+
+    <div>
+      <div class="ks-panel">
+        <h3>Avance del trabajo</h3>
+        <div class="ks-progress-steps">
+          <div class="ks-progress-step {% if contratacion.estado != 'CANCELADA' %}done{% endif %}">
+            <div class="dot"></div>Solicitada
+            {% if fechas_por_estado.SOLICITADA %}<span class="ks-progress-fecha">{{ fechas_por_estado.SOLICITADA|date:"d/m/Y H:i" }}</span>{% endif %}
+          </div>
+          <div class="ks-progress-step {% if contratacion.estado == 'CONFIRMADA' or contratacion.estado == 'EN_CURSO' or contratacion.estado == 'COMPLETADA' %}done{% elif contratacion.estado == 'SOLICITADA' %}current{% endif %}">
+            <div class="dot"></div>Confirmada
+            {% if fechas_por_estado.CONFIRMADA %}<span class="ks-progress-fecha">{{ fechas_por_estado.CONFIRMADA|date:"d/m/Y H:i" }}</span>{% endif %}
+          </div>
+          <div class="ks-progress-step {% if contratacion.estado == 'COMPLETADA' %}done{% elif contratacion.estado == 'CONFIRMADA' or contratacion.estado == 'EN_CURSO' %}current{% endif %}">
+            <div class="dot"></div>Completada
+            {% if fechas_por_estado.COMPLETADA %}<span class="ks-progress-fecha">{{ fechas_por_estado.COMPLETADA|date:"d/m/Y H:i" }}</span>{% endif %}
+          </div>
+        </div>
+
+        {% if contratacion.estado == 'CANCELADA' %}
+        <div class="ks-info-note"><i class="bi bi-x-circle"></i> Esta contratación fue cancelada{% if fechas_por_estado.CANCELADA %} el {{ fechas_por_estado.CANCELADA|date:"d/m/Y H:i" }}{% endif %}.</div>
+        {% endif %}
+
+        {% if historial %}
+        <h4 style="font-size:.9rem; margin-top:20px;">Línea de tiempo</h4>
+        <ul class="ks-history-list">
+          {% for h in historial %}
+          <li><span class="ks-badge ks-badge-{{ h.estado|lower }}">{{ h.get_estado_display }}</span> <span class="ks-help">{{ h.fecha|date:"d/m/Y H:i" }} ({{ h.fecha|timesince }} atrás)</span></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
+        <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" class="d-flex gap-2 flex-wrap align-items-center">
+          {% csrf_token %}
+          {{ reautenticacion_form.password }}
+          <button type="submit" class="ks-btn ks-btn-primary">Confirmar solicitud</button>
+        </form>
+        {% endif %}
+
+        {% if contratacion.estado == 'CONFIRMADA' and usuario == contratacion.cliente %}
+        <form method="post" action="{% url 'KeyServApp:contratacion_completar' contratacion.id_contratacion %}" class="d-flex gap-2 flex-wrap align-items-center">
+          {% csrf_token %}
+          {{ reautenticacion_form.password }}
+          <button type="submit" class="ks-btn ks-btn-primary">Marcar como completada</button>
+        </form>
+        {% endif %}
+
+        {% if contratacion.estado == 'COMPLETADA' and usuario == contratacion.cliente %}
+          {% if ya_valorado %}
+          <p class="ks-help mb-0"><i class="bi bi-check-circle"></i> Ya calificaste este trabajo.</p>
+          {% else %}
+          <a href="{% url 'KeyServApp:valoracion_crear' contratacion.id_contratacion %}" class="ks-btn ks-btn-outline"><i class="bi bi-star"></i> Calificar este servicio</a>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <div class="ks-panel">
+        <h3>Descripción del servicio</h3>
+        <p class="ks-help">{{ contratacion.publicacion.descripcion_publicacion|default:"Sin descripción." }}</p>
+
+        {% if imagenes %}
+        <h4 style="font-size:.95rem;">Imágenes</h4>
+        <div class="ks-gallery">
+          {% for imagen in imagenes %}
+          <img src="{{ imagen.url }}" alt="{{ contratacion.publicacion.titulo }}">
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <a href="{% url 'KeyServApp:publicacion_detalle' contratacion.publicacion.id_publicacion %}" class="ks-help">Ver la publicación completa &rarr;</a>
+      </div>
+    </div>
+
+    <div class="ks-panel">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <h3><i class="bi bi-chat-dots"></i> Chat del trabajo</h3>
+        <a href="{% url 'KeyServApp:conversacion_exportar' conversacion.id_conversacion %}" class="ks-btn ks-btn-outline" style="padding:6px 14px; font-size:.85rem;"><i class="bi bi-download"></i> Exportar chat</a>
+      </div>
+      <p class="ks-help" style="margin-top:-8px;">Coordina detalles o resuelve cualquier problema directamente con
+        {% if usuario == contratacion.cliente %}el proveedor{% else %}el cliente{% endif %}.</p>
+
+      {% if conversacion.exportado_en %}
+        <div class="ks-info-note"><i class="bi bi-shield-check"></i> Exportado el {{ conversacion.exportado_en|date:"d/m/Y H:i" }} — este chat queda a salvo del borrado automático.</div>
+      {% elif contratacion.estado == 'COMPLETADA' or contratacion.estado == 'CANCELADA' %}
+        <div class="ks-info-note"><i class="bi bi-clock-history"></i> Este trabajo ya terminó — si no exportas el chat, se borra automáticamente pasado un tiempo.</div>
+      {% endif %}
+
+      <div class="ks-chat-window">
+        {% for mensaje in mensajes %}
+        <div class="ks-bubble {% if mensaje.usuario == usuario %}ks-bubble-mine{% else %}ks-bubble-theirs{% endif %}">
+          <strong>{{ mensaje.usuario }}</strong>
+          {{ mensaje.contenido }}
+          <span class="ks-bubble-fecha">{{ mensaje.fecha_envio|date:"d/m H:i" }}</span>
+        </div>
+        {% empty %}
+        <p class="ks-help">Todavía no hay mensajes — escribe el primero.</p>
+        {% endfor %}
+      </div>
+
+      <form method="post" class="ks-message-form">
+        {% csrf_token %}
+        {{ form.contenido }}
+        <button type="submit" class="ks-btn ks-btn-primary"><i class="bi bi-send"></i></button>
+      </form>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

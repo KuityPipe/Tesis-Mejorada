@@ -1,42 +1,74 @@
-{% load static %}
+{% extends "KeyServApp/base.html" %}
 
-<!DOCTYPE html>
-    <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Contacto</title>
-  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
-</head>
-  <header>
-    <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
-    </div>
-    <nav>
-      <ul class="menu">
-        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
-        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
-        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
-        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
-        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
-      </ul>
-    </nav>
-  </header>
-        
-        
-        ---------------
-        
-        
-        
-        
-<link rel="stylesheet" href="{% static 'KeyServApp/css/contacto.css' %}">
- <section class="contact-section">
-  <h2 class="section-title">Contacto</h2>
-  <div class="contact-info">
-    <p class="contact-label">Ingeniero Soporte:</p>
-    <p class="contact-value">Felipe Salinas</p>
-    <p class="contact-label">Teléfono:</p>
-    <p class="contact-value">+56955162348</p>
-    <p class="contact-label">Correo Empresa:</p>
-    <p class="contact-value">keyserv@gmail.com</p>
+{% block titulo %}Contacto — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-headset"></i> Contacto</h1>
+    <p>¿Necesitas ayuda? Este es el canal directo con el equipo de soporte.</p>
   </div>
 </section>
+
+<section class="ks-section container" style="max-width: 620px;">
+  <div class="ks-panel">
+    <div class="ks-contact-card">
+      <i class="bi bi-person-badge"></i>
+      <div>
+        <p class="label">Ingeniero de soporte</p>
+        <p class="value">Felipe Salinas</p>
+      </div>
+    </div>
+    <div class="ks-contact-card">
+      <i class="bi bi-telephone"></i>
+      <div>
+        <p class="label">Teléfono</p>
+        <p class="value"><a href="tel:+56955162348">+56 9 5516 2348</a></p>
+      </div>
+    </div>
+    <div class="ks-contact-card">
+      <i class="bi bi-envelope"></i>
+      <div>
+        <p class="label">Correo</p>
+        <p class="value"><a href="mailto:keyserv@gmail.com">keyserv@gmail.com</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ks-panel">
+    <h3><i class="bi bi-chat-square-text"></i> ¿Tienes un problema o una consulta?</h3>
+    <p class="ks-help">Cuéntanos qué pasó — nuestro equipo lo revisa y te responde.</p>
+    <form method="post" class="ks-form">
+      {% csrf_token %}
+      <div class="ks-field">
+        <label for="{{ form.asunto_consulta.id_for_label }}">Asunto</label>
+        {{ form.asunto_consulta }}
+        {% if form.asunto_consulta.errors %}<small class="ks-error">{{ form.asunto_consulta.errors }}</small>{% endif %}
+      </div>
+      <div class="ks-field">
+        <label for="{{ form.descripcion.id_for_label }}">Cuéntanos qué pasó</label>
+        {{ form.descripcion }}
+        {% if form.descripcion.errors %}<small class="ks-error">{{ form.descripcion.errors }}</small>{% endif %}
+      </div>
+      {% if form.nombre_contacto.field.widget.input_type != 'hidden' %}
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.nombre_contacto.id_for_label }}">Tu nombre</label>
+          {{ form.nombre_contacto }}
+          {% if form.nombre_contacto.errors %}<small class="ks-error">{{ form.nombre_contacto.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.email_contacto.id_for_label }}">Tu correo</label>
+          {{ form.email_contacto }}
+          {% if form.email_contacto.errors %}<small class="ks-error">{{ form.email_contacto.errors }}</small>{% endif %}
+        </div>
+      </div>
+      {% else %}
+        {{ form.nombre_contacto }}
+        {{ form.email_contacto }}
+      {% endif %}
+      <button type="submit" class="ks-btn ks-btn-primary">Enviar consulta</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

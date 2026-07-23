@@ -1,48 +1,30 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Acerca de nosotros</title>
-  <style>
-    body {
-      background: linear-gradient(150deg, #FEFEFE, #3998BC);
-      height: 100vh;   
-    }
+{% extends "KeyServApp/base.html" %}
 
-    .container {
-      max-width: 600px;
-      margin: 0px auto;
-      padding: 20px;
-      background-color: #ffffff;
-      border: 1px solid #cccccc;
-      border-radius: 5px;
-      font-family: sans-serif;
-      
-    }
+{% block titulo %}Acerca de nosotros — KeyServ{% endblock %}
 
-    h1, h2 {
-      color: #3998BC;
-    }
-      
-  </style>
-</head>
-<body>
+{% block content %}
+<section class="ks-page-header">
   <div class="container">
-    <h1>Acerca de nosotros</h1>
-    <p>Somos una empresa comprometida con la satisfacción de nuestros clientes, especializada en ofrecer soluciones innovadoras en el ámbito XYZ.</p>
-    
-    <h2>Nuestra misión</h2>
-    <p>Nuestra misión es proporcionar productos/servicios de alta calidad que superen las expectativas de nuestros clientes y contribuyan a su éxito.</p>
-    
-    <h2>Nuestra visión</h2>
-    <p>Queremos ser líderes en nuestro sector, reconocidos por nuestra excelencia, integridad y compromiso con la innovación.</p>
-    
-    <h2>Nuestro equipo</h2>
-    <p>Contamos con un equipo altamente capacitado y apasionado que trabaja en conjunto para ofrecer soluciones personalizadas y orientadas a resultados.</p>
-    
-    <h2>Contacto</h2>
-    <p>No dudes en contactarnos para cualquier consulta o solicitud. Estamos aquí para ayudarte.</p>
-    <p>Teléfono: <a href="tel:+123456789">+123456789</a></p>
-    <p>Email: <a href="mailto:info@ejemplo.com">info@ejemplo.com</a></p>
+    <h1><i class="bi bi-fingerprint"></i> Acerca de nosotros</h1>
+    <p>Conectamos personas con profesionales de confianza, verificados con biometría.</p>
   </div>
-</body>
-</html>
+</section>
+
+<section class="ks-section container" style="max-width: 760px;">
+  <div class="ks-panel ks-prose">
+    <p>KeyServ es una plataforma chilena que conecta a personas que necesitan un servicio con proveedores verificados mediante huella dactilar y reconocimiento facial — para que sepas exactamente con quién estás tratando.</p>
+
+    <h2>Nuestra misión</h2>
+    <p>Facilitar la contratación de servicios del hogar y profesionales, con la confianza que da una identidad verificada biométricamente en cada extremo de la conexión.</p>
+
+    <h2>Nuestra visión</h2>
+    <p>Ser la plataforma de referencia en Chile para contratar servicios de confianza, reconocida por su seguridad, transparencia y cercanía con las personas.</p>
+
+    <h2>Nuestro equipo</h2>
+    <p>Un equipo comprometido con construir tecnología de verificación de identidad accesible, aplicada a un problema muy cotidiano: encontrar a la persona correcta para el trabajo correcto.</p>
+
+    <h2>Contacto</h2>
+    <p>¿Tienes dudas o sugerencias? Escríbenos en <a href="{% url 'KeyServApp:contacto' %}">nuestra página de contacto</a>.</p>
+  </div>
+</section>
+{% endblock %}

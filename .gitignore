@@ -18,3 +18,8 @@ TesisAntigua/
 # Cache regenerable (ej. texto extraído de PDFs para análisis) — no versionar
 .sistema/cache/*
 !.sistema/cache/.gitkeep
+
+# Archivos subidos por usuarios (MEDIA_ROOT) — contenido en tiempo de ejecución,
+# no código fuente; puede incluir datos personales (ej. CV/documentos subidos
+# al probar la creación de publicaciones), nunca debe versionarse.
+codigo/backend/django/media/

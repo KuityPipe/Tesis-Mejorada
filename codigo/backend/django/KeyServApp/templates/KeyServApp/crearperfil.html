@@ -1,99 +1,42 @@
+{% extends "KeyServApp/base.html" %}
 
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Registro de Perfiles</title>
-  <style>
-    form {
-      max-width: 400px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+{% block titulo %}Perfil de proveedor — KeyServ{% endblock %}
 
-    label {
-      display: block;
-      margin-bottom: 5px;
-    }
+{% block content %}
+<section class="ks-section container" style="max-width: 640px;">
+  <div class="ks-panel">
+    <h1 class="mb-4"><i class="bi bi-briefcase"></i> Perfil de proveedor</h1>
 
-    input[type="text"],
-    input[type="email"],
-    input[type="tel"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
-    }
+    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Esta sección está en construcción — por ahora los cambios no se guardan todavía.</div>
 
-    input[type="file"] {
-      margin-bottom: 10px;
-    }
-
-    input[type="checkbox"] {
-      margin-top: 10px;
-    }
-
-    button {
-      background-color: #0099cc;
-      color: #fff;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #0077b3;
-    }
-  </style>
-</head>
-<body>
-  <form method="post">
-    {% csrf_token %}
-    <h2>Registro de Perfiles</h2>
-
-    <label for="nombre">Nombre:</label>
-    <input type="text" id="nombre" name="nombre" required>
-
-    <label for="apellido">Apellido:</label>
-    <input type="text" id="apellido" name="apellido" required>
-
-    <label for="direccion">Dirección:</label>
-    <input type="text" id="direccion" name="direccion" required>
-
-    <label for="correo">Correo Electrónico:</label>
-    <input type="email" id="correo" name="correo" required>
-
-    <label for="telefono">Número de Teléfono:</label>
-    <input type="tel" id="telefono" name="telefono" required>
-
-    <label for="perfil">Tipo de Perfil:</label>
-    <select id="perfil" name="perfil">
-      <option value="proveedor">Proveedor</option>
-      <option value="buscador">Buscador</option>
-    </select>
-
-    <label for="habilidades">Habilidades:</label>
-    <textarea id="habilidades" name="habilidades" rows="4"></textarea>
-
-    <label for="experiencia">Experiencia:</label>
-    <textarea id="experiencia" name="experiencia" rows="4"></textarea>
-
-    <label for="preferencias">Preferencias:</label>
-    <textarea id="preferencias" name="preferencias" rows="4"></textarea>
-
-    <label for="foto">Foto de Perfil:</label>
-    <input type="file" id="foto" name="foto">
-
-    <label for="aceptar">Acepto los términos y condiciones:</label>
-    <input type="checkbox" id="aceptar" name="aceptar" required>
-
-    <button type="submit">Registrarse</button>
-      <a href="{% url 'KeyServApp:sesion' %}">  o inicie sesion</a>
-  </form>
-</body>
-</html>
+    <form method="post" class="ks-form">
+      {% csrf_token %}
+      <div class="ks-field">
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" name="nombre" value="{{ usuario.nombre_usuario }}">
+      </div>
+      <div class="ks-field">
+        <label for="direccion">Dirección</label>
+        <input type="text" id="direccion" name="direccion">
+      </div>
+      <div class="ks-field">
+        <label for="habilidades">Habilidades</label>
+        <textarea id="habilidades" name="habilidades" rows="3"></textarea>
+      </div>
+      <div class="ks-field">
+        <label for="experiencia">Experiencia</label>
+        <textarea id="experiencia" name="experiencia" rows="3"></textarea>
+      </div>
+      <div class="ks-field">
+        <label for="foto">Foto de perfil</label>
+        <input type="file" id="foto" name="foto">
+      </div>
+      <label class="ks-checkbox">
+        <input type="checkbox" id="aceptar" name="aceptar" required>
+        Acepto los <a href="{% url 'KeyServApp:preferencias_cuenta' %}">términos y condiciones</a>
+      </label>
+      <button type="submit" class="ks-btn ks-btn-primary">Guardar</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

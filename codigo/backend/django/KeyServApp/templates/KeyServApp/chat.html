@@ -1,59 +1,57 @@
-{% load static %}
+{% extends "KeyServApp/base.html" %}
 
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Mensajería</title>
-  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
-  <link rel="stylesheet" href="{% static 'KeyServApp/css/chat.css' %}">
-</head>
-<body>
-  <header>
-    <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web">
-    </div>
-    <nav>
-      <ul class="menu">
-        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
-        <li><a href="{% url 'KeyServApp:reservas' %}">Mis reservas</a></li>
-        <li><a href="{% url 'KeyServApp:logout' %}">Cerrar sesión</a></li>
-      </ul>
-    </nav>
-  </header>
+{% block titulo %}Mensajería — KeyServ{% endblock %}
 
-  <section class="messaging-section">
-    {% if conversacion %}
-      <h2 class="section-title">{{ conversacion.nombre_conversacion }}</h2>
-      <p><a href="{% url 'KeyServApp:chat' %}">&larr; Volver a mensajes</a></p>
-      <div class="chat-container">
+{% block content %}
+<section class="ks-section container" style="max-width: 700px;">
+  {% if conversacion %}
+    <p><a href="{% url 'KeyServApp:chat' %}">&larr; Volver a mensajes</a></p>
+    <div class="ks-panel">
+      <h2>{{ conversacion.nombre_conversacion }}</h2>
+
+      <div class="ks-chat-window">
         {% for mensaje in mensajes %}
-        <div class="chat-message">
-          <div class="message-bubble {% if mensaje.usuario == usuario %}message-sender-b{% else %}message-sender-a{% endif %}">
-            <strong>{{ mensaje.usuario }}:</strong> {{ mensaje.contenido }}
-          </div>
+        <div class="ks-bubble {% if mensaje.usuario == usuario %}ks-bubble-mine{% else %}ks-bubble-theirs{% endif %}">
+          <strong>{{ mensaje.usuario }}</strong>
+          {{ mensaje.contenido }}
+          <span class="ks-bubble-fecha">{{ mensaje.fecha_envio|date:"d/m H:i" }}</span>
         </div>
         {% empty %}
-        <p>Todavía no hay mensajes en esta conversación.</p>
+        <p class="ks-help">Todavía no hay mensajes en esta conversación.</p>
         {% endfor %}
       </div>
-      <form method="post" class="message-input">
+
+      <form method="post" class="ks-message-form">
         {% csrf_token %}
         {{ form.contenido }}
-        <button type="submit" class="send-button">Enviar</button>
+        <button type="submit" class="ks-btn ks-btn-primary"><i class="bi bi-send"></i></button>
       </form>
-    {% else %}
-      <h2 class="section-title">Mensajería</h2>
-      <div class="chat-container">
-        <ul>
-          {% for conv in conversaciones %}
-          <li><a href="{% url 'KeyServApp:conversacion_detalle' conv.id_conversacion %}">{{ conv.nombre_conversacion }}</a></li>
-          {% empty %}
-          <li>No tenés conversaciones todavía — se crean automáticamente al solicitar la contratación de un servicio.</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-  </section>
-</body>
-</html>
+    </div>
+  {% else %}
+    <div class="ks-page-header" style="margin: 0 0 24px; border-radius: var(--ks-radius-lg);">
+      <h1 class="mb-0"><i class="bi bi-chat-dots"></i> Bandeja de entrada</h1>
+      <p class="mb-0">Un chat por cada trabajo — así no se mezclan conversaciones de contrataciones distintas.</p>
+    </div>
+    <div class="ks-panel">
+      {% for conv in conversaciones %}
+      <a class="ks-chat-list-item" href="{% if conv.contratacion_id %}{% url 'KeyServApp:contratacion_detalle' conv.contratacion_id %}{% else %}{% url 'KeyServApp:conversacion_detalle' conv.id_conversacion %}{% endif %}">
+        <i class="bi bi-chat-left-text" style="font-size:1.4rem; color: var(--ks-teal-dark);"></i>
+        <span style="flex:1;">
+          {% if conv.contratacion %}
+            <strong>{{ conv.contratacion.publicacion.titulo }}</strong>
+            <span class="ks-badge ks-badge-{{ conv.contratacion.estado|lower }}" style="margin-left:8px;">{{ conv.contratacion.get_estado_display }}</span>
+            <br><span class="ks-help">{% if usuario_actual == conv.contratacion.cliente %}Proveedor: {{ conv.contratacion.proveedor }}{% else %}Cliente: {{ conv.contratacion.cliente }}{% endif %}</span>
+          {% else %}
+            {{ conv.nombre_conversacion }}
+          {% endif %}
+          {% if conv.ultimo_mensaje %}<br><span class="ks-help">Último mensaje: {{ conv.ultimo_mensaje.fecha_envio|timesince }} atrás</span>{% endif %}
+        </span>
+        {% if conv.no_leidos %}<span class="ks-icon-badge" style="position:static;">{{ conv.no_leidos }}</span>{% endif %}
+      </a>
+      {% empty %}
+      <p class="ks-help">No tenés chats todavía — se crean automáticamente al solicitar la contratación de un servicio.</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

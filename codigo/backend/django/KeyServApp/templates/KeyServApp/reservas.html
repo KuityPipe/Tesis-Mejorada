@@ -1,80 +1,71 @@
-{% load static %}
+{% extends "KeyServApp/base.html" %}
 
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Reservas y Solicitudes</title>
-  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
-  <link rel="stylesheet" href="{% static 'KeyServApp/css/reservas.css' %}">
-</head>
-<body>
-  <header>
-    <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web">
-    </div>
-    <nav>
-      <ul class="menu">
-        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
-        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
-        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
-        <li><a href="{% url 'KeyServApp:chat' %}">Mensajes</a></li>
-        <li><a href="{% url 'KeyServApp:logout' %}">Cerrar sesión</a></li>
-      </ul>
-    </nav>
-  </header>
+{% block titulo %}Mis reservas — KeyServ{% endblock %}
 
-  <div class="reservation">
-    <h2>Mis Contrataciones</h2>
+{% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-calendar-check"></i> Mis contrataciones</h1>
+    <p>Solicitudes, confirmaciones y servicios completados.</p>
+  </div>
+</section>
 
-    <div class="history">
-      <h3>Historial</h3>
-      <ul>
-        {% for contratacion in contrataciones %}
-        <li>
-          <strong>{{ contratacion.publicacion.titulo }}</strong> —
-          Cliente: {{ contratacion.cliente }} | Proveedor: {{ contratacion.proveedor }} |
-          Estado: <strong>{{ contratacion.get_estado_display }}</strong>
+<section class="ks-section container" style="max-width: 780px;">
 
-          {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
-          <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" style="margin-top:8px;">
-            {% csrf_token %}
-            {{ reautenticacion_form.password }}
-            <button type="submit">Confirmar (proveedor)</button>
-          </form>
-          {% endif %}
-
-          {% if contratacion.estado == 'CONFIRMADA' and usuario == contratacion.cliente %}
-          <form method="post" action="{% url 'KeyServApp:contratacion_completar' contratacion.id_contratacion %}" style="margin-top:8px;">
-            {% csrf_token %}
-            {{ reautenticacion_form.password }}
-            <button type="submit">Marcar completada (cliente)</button>
-          </form>
-          {% endif %}
-
-          {% if contratacion.estado == 'COMPLETADA' and usuario == contratacion.cliente %}
-          <p><a href="{% url 'KeyServApp:valoracion_crear' contratacion.id_contratacion %}">Calificar este servicio</a></p>
-          {% endif %}
-        </li>
-        {% empty %}
-        <li>Todavía no tenés contrataciones — <a href="{% url 'KeyServApp:paginicio' %}">buscá un servicio</a> para empezar.</li>
-        {% endfor %}
-      </ul>
-    </div>
-
-    {% if form %}
-    <div class="confirmation">
-      <h3>Calificar contratación #{{ contratacion.id_contratacion }}</h3>
-      <form method="post">
-        {% csrf_token %}
+  {% if form %}
+  <div class="ks-panel">
+    <h3>Calificar contratación #{{ contratacion.id_contratacion }}</h3>
+    <form method="post" class="ks-form">
+      {% csrf_token %}
+      <div class="ks-field">
         <label for="{{ form.puntuacion.id_for_label }}">Puntuación (1-5)</label>
         {{ form.puntuacion }}
+      </div>
+      <div class="ks-field">
         <label for="{{ form.comentario.id_for_label }}">Comentario</label>
         {{ form.comentario }}
-        <button type="submit">Enviar calificación</button>
-      </form>
-    </div>
-    {% endif %}
+      </div>
+      <button type="submit" class="ks-btn ks-btn-primary">Enviar calificación</button>
+    </form>
   </div>
-</body>
-</html>
+  {% endif %}
+
+  <div class="ks-panel">
+    <h3>Historial</h3>
+    {% for contratacion in contrataciones %}
+      <div class="ks-timeline-item">
+        <div class="ks-timeline-item-head">
+          <h4><a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}">{{ contratacion.publicacion.titulo }}</a></h4>
+          <span class="ks-badge ks-badge-{{ contratacion.estado|lower }}">{{ contratacion.get_estado_display }}</span>
+        </div>
+        <p class="ks-timeline-meta">
+          Cliente: {{ contratacion.cliente }} &nbsp;·&nbsp; Proveedor: {{ contratacion.proveedor }}
+          &nbsp;·&nbsp; Solicitado el {{ contratacion.fecha_creacion|date:"d/m/Y" }} ({{ contratacion.fecha_creacion|timesince }} atrás)
+        </p>
+
+        {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
+        <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}">
+          {% csrf_token %}
+          {{ reautenticacion_form.password }}
+          <button type="submit" class="ks-btn ks-btn-primary">Confirmar (proveedor)</button>
+        </form>
+        {% endif %}
+
+        {% if contratacion.estado == 'CONFIRMADA' and usuario == contratacion.cliente %}
+        <form method="post" action="{% url 'KeyServApp:contratacion_completar' contratacion.id_contratacion %}">
+          {% csrf_token %}
+          {{ reautenticacion_form.password }}
+          <button type="submit" class="ks-btn ks-btn-primary">Marcar completada (cliente)</button>
+        </form>
+        {% endif %}
+
+        {% if contratacion.estado == 'COMPLETADA' and usuario == contratacion.cliente %}
+        <a href="{% url 'KeyServApp:valoracion_crear' contratacion.id_contratacion %}" class="ks-btn ks-btn-outline"><i class="bi bi-star"></i> Calificar este servicio</a>
+        {% endif %}
+      </div>
+    {% empty %}
+      <p class="ks-help">Todavía no tenés contrataciones — <a href="{% url 'KeyServApp:paginicio' %}">buscá un servicio</a> para empezar.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

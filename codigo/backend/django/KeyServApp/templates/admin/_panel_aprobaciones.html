@@ -1,0 +1,54 @@
+{% load i18n %}
+<div class="app-ks_panel module" id="ks-panel-aprobaciones">
+  <table>
+    <caption>
+      <a href="{% url 'admin:KeyServApp_publicaciones_changelist' %}?estado_moderacion__exact=PENDIENTE" class="section" title="{% translate 'Ver todas' %}">
+        📋 Publicaciones pendientes de aprobación{% if total_pendientes %} ({{ total_pendientes }}){% endif %}
+      </a>
+    </caption>
+    {% for pub in publicaciones_pendientes %}
+    <tr>
+      <th scope="row"><a href="{% url 'admin:KeyServApp_publicaciones_change' pub.pk %}">{{ pub.titulo }}</a></th>
+      <td>{{ pub.usuario_publicador }}</td>
+      <td>{{ pub.categoria|default:"—" }}</td>
+      <td>{{ pub.fecha_publicacion|date:"d/m/Y" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td>No hay publicaciones pendientes 🎉</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="app-ks_panel module" id="ks-panel-incidencias">
+  <table>
+    <caption>
+      <a href="{% url 'admin:KeyServApp_consulta_changelist' %}?estado_consulta__exact=1" class="section" title="{% translate 'Ver todas' %}">
+        🛎️ Incidencias abiertas{% if total_abiertas %} ({{ total_abiertas }}){% endif %}
+      </a>
+    </caption>
+    {% for consulta in consultas_abiertas %}
+    <tr>
+      <th scope="row"><a href="{% url 'admin:KeyServApp_consulta_change' consulta.pk %}">{{ consulta.asunto_consulta }}</a></th>
+      <td>{{ consulta.nombre_contacto }}</td>
+      <td>{{ consulta.fecha_consulta|date:"d/m/Y" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td>No hay incidencias abiertas 🎉</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if es_superuser %}
+<div class="app-ks_panel module">
+  <table>
+    <caption><a href="{% url 'admin:admin_logentry_changelist' %}" class="section">🕓 Auditoría — registro de acciones (solo admin)</a></caption>
+  </table>
+</div>
+
+<div class="app-ks_panel module">
+  <table>
+    <caption><a href="{% url 'admin:auth_user_add' %}" class="section">➕ Crear usuario del sistema (solo admin)</a></caption>
+    <tr><td>Al crearlo, asígnalo al grupo <strong>Moderador</strong> (acceso acotado) o márcalo como superuser (acceso total) según corresponda.</td></tr>
+  </table>
+</div>
+{% endif %}

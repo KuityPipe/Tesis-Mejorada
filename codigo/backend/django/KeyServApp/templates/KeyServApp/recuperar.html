@@ -1,33 +1,29 @@
-{% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Recuperar Contraseña</title>
-  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/recuperar.css' %}">
-</head>
-<body>
-  <div class="container">
-    <h1 style="color: black">Recuperar Contraseña</h1>
-    <form method="post">
-    {% csrf_token %}
-      <div class="form-group">
-        <label style="color: black" for="correo">Correo Electrónico:</label>
-        <input type="email" id="correo" name="correo" placeholder="Ingrese su correo electrónico" required 
-               
-               >
-          
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}Recuperar contraseña — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-section container" style="max-width: 460px;">
+  <div class="ks-panel">
+    <h1 class="text-center mb-1">Recuperar contraseña</h1>
+    <p class="text-center ks-help mb-4">Te ayudamos a recuperar el acceso a tu cuenta.</p>
+
+    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Demo: el envío de instrucciones por correo todavía no está implementado.</div>
+
+    <form method="post" class="ks-form">
+      {% csrf_token %}
+      <div class="ks-field">
+        <label for="correo">Correo electrónico</label>
+        <input type="email" id="correo" name="correo" placeholder="tu@correo.com" required>
       </div>
-      <div class="form-group">
-        <label style="color: black" for="telefono">Número de Teléfono:</label>
-        <input type="tel" id="telefono" name="telefono" placeholder="Ingrese su número de teléfono" required>
+      <div class="ks-field">
+        <label for="telefono">Número de teléfono</label>
+        <input type="tel" id="telefono" name="telefono" placeholder="912345678" required>
       </div>
-      <div class="form-group">
-        <label style="color: black" for="huella">Confirmar Huella:</label>
-    
-      </div>
-      <button type="submit">Recuperar Contraseña</button>
+      <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center">Recuperar contraseña</button>
     </form>
+
+    <p class="text-center mt-4"><a href="{% url 'KeyServApp:sesion' %}">&larr; Volver a iniciar sesión</a></p>
   </div>
-</body>
-</html>
+</section>
+{% endblock %}

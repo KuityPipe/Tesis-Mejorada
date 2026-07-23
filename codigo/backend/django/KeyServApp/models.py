@@ -13,6 +13,7 @@ manuales.
 
 Ver codigo/viejo/backup_fase3/KeyServApp/models.py para la versión previa.
 """
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 
@@ -228,27 +229,52 @@ class Autentificacion(models.Model):
 
 
 class Consulta(models.Model):
-    """Ticket de soporte/consulta que un Usuario levanta hacia el equipo administrativo."""
+    """
+    Ticket de soporte/incidencia que alguien levanta hacia el equipo
+    administrativo (panel de moderación/admin — "incidencias o problemas
+    con el servicio"). Existía en el esquema desde la tesis pero nunca se
+    usaba: no tenía cuerpo de mensaje (`descripcion`, nuevo) ni datos de
+    contacto para quien escribe sin sesión iniciada (`nombre_contacto`/
+    `email_contacto`, nuevos) — hoy se conecta de verdad desde /contacto/.
+    """
     id_consulta = models.BigAutoField(primary_key=True, db_column='ID_CONSULTA')
     asunto_consulta = models.CharField(max_length=120, null=True, db_column='ASUNTO_CONSULTA')
+    descripcion = models.TextField(null=True, blank=True, db_column='DESCRIPCION')
+    nombre_contacto = models.CharField(max_length=80, null=True, blank=True, db_column='NOMBRE_CONTACTO')
+    email_contacto = models.CharField(max_length=80, null=True, blank=True, db_column='EMAIL_CONTACTO')
     fecha_consulta = models.DateTimeField(auto_now_add=True, db_column='FECHA_CONSULTA')
     fecha_termino_consulta = models.DateTimeField(null=True, blank=True, db_column='FECHA_TERMINO_CONSULTA')
     estado_consulta = models.ForeignKey(EstadoConsulta, on_delete=models.PROTECT, null=True, db_column='FK_ESTADO_CONSULTA')
-    usuario_consulta = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, db_column='FK_USUARIO_CONSULTA')
-    usuario_administrativo = models.ForeignKey(UsuarioAdministrativo, on_delete=models.SET_NULL, null=True, db_column='FK_USUARIO_ADMINISTRATIVO')
+    usuario_consulta = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True, db_column='FK_USUARIO_CONSULTA')
+    usuario_administrativo = models.ForeignKey(UsuarioAdministrativo, on_delete=models.SET_NULL, null=True, blank=True, db_column='FK_USUARIO_ADMINISTRATIVO')
 
     class Meta:
         db_table = 'CONSULTA'
 
     def __str__(self):
-        return str(self.id_consulta)
+        return self.asunto_consulta or str(self.id_consulta)
 
 
 class Conversacion(models.Model):
-    """Hilo de mensajería entre dos o más Usuarios (ver UsuarioConversacion para los participantes)."""
+    """
+    Hilo de mensajería (ver UsuarioConversacion para los participantes).
+
+    NUEVO: antes era una conversación por PAR DE USUARIOS, compartida entre
+    todos sus trabajos (poco ordenado — mezclaba mensajes de contrataciones
+    distintas). Ahora es 1:1 con una Contratacion puntual ("chat del
+    trabajo"), decisión tomada con el usuario para que quede más ordenado.
+    """
     id_conversacion = models.BigAutoField(primary_key=True, db_column='ID_CONVERSACION')
     nombre_conversacion = models.CharField(max_length=255, null=True, db_column='NOMBRE_CONVERSACION')
     fecha_creacion = models.DateTimeField(auto_now_add=True, db_column='FECHA_CREACION')
+    contratacion = models.OneToOneField(
+        'Contratacion', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='conversacion', db_column='FK_CONTRATACION',
+    )
+    # Backup/retención de mensajes: exportar marca esta fecha, y el comando
+    # `limpiar_mensajes_antiguos` NUNCA borra una conversación ya exportada
+    # (ver KeyServApp/management/commands/limpiar_mensajes_antiguos.py).
+    exportado_en = models.DateTimeField(null=True, blank=True, db_column='EXPORTADO_EN')
 
     class Meta:
         db_table = 'CONVERSACION'
@@ -262,6 +288,9 @@ class UsuarioConversacion(models.Model):
     id_usuario_conversacion = models.BigAutoField(primary_key=True, db_column='ID_USUARIO_CONVERSACION')
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column='FK_USUARIO_C')
     conversacion = models.ForeignKey(Conversacion, on_delete=models.CASCADE, db_column='FK_CONVERSACION')
+    # NUEVO: marca hasta cuándo este usuario leyó la conversación — permite
+    # calcular mensajes no leídos para las alertas del dashboard (/inicio/).
+    ultimo_leido = models.DateTimeField(null=True, blank=True, db_column='ULTIMO_LEIDO')
 
     class Meta:
         db_table = 'USUARIO_CONVERSACION'
@@ -293,6 +322,11 @@ class Publicaciones(models.Model):
     titulo = models.CharField(max_length=255, null=True, db_column='TITULO')
     sub_titulo = models.CharField(max_length=255, null=True, blank=True, db_column='SUB_TITULO')
     descripcion_publicacion = models.TextField(null=True, db_column='DESCRIPCION_PUBLICACION')
+    # NUEVO: categoría del servicio — el form ofrece una lista predefinida
+    # (ver forms.CATEGORIAS_PUBLICACION) más una opción "Otra" de texto libre;
+    # este campo queda como texto plano para admitir ambos casos. El
+    # moderador ve la categoría (incluida la escrita a mano) al aprobar.
+    categoria = models.CharField(max_length=60, null=True, blank=True, db_column='CATEGORIA')
     fecha_publicacion = models.DateTimeField(auto_now_add=True, db_column='FECHA_PUBLICACION')
     actualizado_en = models.DateTimeField(auto_now=True, db_column='ACTUALIZADO_EN')
     # Flujo de moderación descrito en el BPMN "Crear publicación" del PDF (PAGE 135-136):
@@ -304,6 +338,16 @@ class Publicaciones(models.Model):
         (RECHAZADA, 'Rechazada'),
     ]
     estado_moderacion = models.CharField(max_length=10, choices=ESTADOS_MODERACION, default=PENDIENTE, db_column='ESTADO_MODERACION')
+    # NUEVO: constancia de quién aprobó/rechazó la publicación y cuándo —
+    # pedido explícito del usuario ("dejar constancia de qué moderador hizo
+    # un cambio de estado"). Se autocompletan en PublicacionesAdmin.save_model,
+    # nunca a mano — por eso no aparecen en PublicacionForm (el proveedor no
+    # los toca).
+    aprobado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='publicaciones_moderadas', db_column='FK_APROBADO_POR',
+    )
+    fecha_moderacion = models.DateTimeField(null=True, blank=True, db_column='FECHA_MODERACION')
 
     class Meta:
         db_table = 'PUBLICACIONES'
@@ -316,7 +360,11 @@ class Imagenes(models.Model):
     """Imagen asociada a una Publicacion."""
     id_imagen = models.BigAutoField(primary_key=True, db_column='ID_IMAGEN')
     publicacion = models.ForeignKey(Publicaciones, on_delete=models.CASCADE, null=True, related_name='imagenes', db_column='FK_PUBLICACION')
-    url_imagen = models.TextField(null=True, db_column='URL_IMAGEN')
+    # `url_imagen` se mantiene para las imágenes sembradas como URL externa
+    # (fixtures/demo); `archivo` es el campo real para lo que suba un
+    # proveedor desde el formulario de creación de publicación.
+    url_imagen = models.TextField(null=True, blank=True, db_column='URL_IMAGEN')
+    archivo = models.ImageField(upload_to='publicaciones/imagenes/', null=True, blank=True, db_column='ARCHIVO')
     fecha_subida = models.DateTimeField(auto_now_add=True, db_column='FECHA_SUBIDA')
     actualizado_en = models.DateTimeField(auto_now=True, db_column='ACTUALIZADO_EN')
 
@@ -325,6 +373,13 @@ class Imagenes(models.Model):
 
     def __str__(self):
         return str(self.id_imagen)
+
+    @property
+    def url(self):
+        """URL a mostrar sea cual sea el origen de la imagen (archivo subido o URL externa sembrada)."""
+        if self.archivo:
+            return self.archivo.url
+        return self.url_imagen
 
 
 class Contratacion(models.Model):
@@ -365,6 +420,29 @@ class Contratacion(models.Model):
         return f'Contratación #{self.id_contratacion} ({self.estado})'
 
 
+class HistorialEstadoContratacion(models.Model):
+    """
+    NUEVO: registro de cada cambio de estado de una Contratacion, con fecha.
+    `fecha_actualizacion` de Contratacion se pisa en cada save() y no alcanza
+    para mostrar una línea de tiempo real (cuándo se solicitó, cuándo se
+    confirmó, cuándo se completó/canceló) — pedido explícito del usuario para
+    dejar claro el tiempo del trabajo. Se agrega una fila cada vez que
+    contratacion_crear_view / contratacion_confirmar_view /
+    contratacion_completar_view cambian el estado.
+    """
+    id_historial = models.BigAutoField(primary_key=True, db_column='ID_HISTORIAL')
+    contratacion = models.ForeignKey(Contratacion, on_delete=models.CASCADE, related_name='historial_estados', db_column='FK_CONTRATACION')
+    estado = models.CharField(max_length=12, choices=Contratacion.ESTADOS_CONTRATACION, db_column='ESTADO')
+    fecha = models.DateTimeField(auto_now_add=True, db_column='FECHA')
+
+    class Meta:
+        db_table = 'HISTORIAL_ESTADO_CONTRATACION'
+        ordering = ['fecha']
+
+    def __str__(self):
+        return f'Contratación #{self.contratacion_id}: {self.estado} ({self.fecha:%Y-%m-%d %H:%M})'
+
+
 class Valoracion(models.Model):
     """Calificación por estrellas + comentario que un Usuario deja sobre otro tras un servicio."""
     id_valoracion = models.BigAutoField(primary_key=True, db_column='ID_VALORACION')
@@ -397,12 +475,17 @@ class Ranking(models.Model):
 
 
 class Documento(models.Model):
-    """Documento subido por un Usuario (ej. certificado de antecedentes, título)."""
+    """Documento subido por un Usuario (ej. certificado de antecedentes, título) — o, desde Fase 5, adjunto a una Publicacion (ej. certificación del servicio)."""
     id_documento = models.BigAutoField(primary_key=True, db_column='ID_DOCUMENTO')
     nombre_documento = models.CharField(max_length=60, null=True, db_column='NOMBRE_DOCUMENTO')
     archivo = models.BinaryField(null=True, db_column='ARCHIVO')
+    # NUEVO: archivo real subido (el campo `archivo` de arriba es legado —
+    # BinaryField en la fila de la BD, del diseño original de la tesis; los
+    # documentos nuevos van a `archivo_subido`, en filesystem via MEDIA_ROOT).
+    archivo_subido = models.FileField(upload_to='publicaciones/documentos/', null=True, blank=True, db_column='ARCHIVO_SUBIDO')
     fecha_subida_documento = models.DateTimeField(auto_now_add=True, db_column='FECHA_SUBIDA_DOCUMENTO')
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, db_column='FK_USUARIO')
+    publicacion = models.ForeignKey(Publicaciones, on_delete=models.CASCADE, null=True, blank=True, related_name='documentos', db_column='FK_PUBLICACION')
     estado_documento = models.ForeignKey(EstadoDocumento, on_delete=models.PROTECT, null=True, db_column='FK_ESTADO_DOCUMENTO')
 
     class Meta:

@@ -1,0 +1,43 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}Mis tarjetas — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-credit-card-2-front"></i> Mis tarjetas</h1>
+    <p>Administra los métodos de pago asociados a tu cuenta.</p>
+  </div>
+</section>
+
+<section class="ks-section container" style="max-width: 520px;">
+  <div class="ks-panel">
+    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Demo: la integración con Transbank todavía no está activa — las tarjetas agregadas aquí no se guardan.</div>
+
+    <p class="ks-help">Todavía no tienes tarjetas guardadas.</p>
+
+    <form method="post" class="ks-form">
+      {% csrf_token %}
+      <div class="ks-field">
+        <label for="card-number">Número de tarjeta</label>
+        <input type="text" id="card-number" name="card-number" placeholder="0000 0000 0000 0000" required>
+      </div>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="expiry-date">Fecha de vencimiento</label>
+          <input type="text" id="expiry-date" name="expiry-date" placeholder="MM/AA" required>
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="cvv">CVV</label>
+          <input type="text" id="cvv" name="cvv" required>
+        </div>
+      </div>
+      <div class="ks-field">
+        <label for="cardholder-name">Nombre del titular</label>
+        <input type="text" id="cardholder-name" name="cardholder-name" required>
+      </div>
+      <button type="submit" class="ks-btn ks-btn-primary"><i class="bi bi-plus-lg"></i> Agregar tarjeta</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -29,6 +29,7 @@ urlpatterns = [
     path('sesion/', views.sesion_view, name='sesion'),
     path('logout/', views.logout_view, name='logout'),
     path('ajax/load-comunas/', views.load_comunas, name='ajax_load_comunas'),
+    path('ajax/mensajes-no-leidos/', views.mensajes_no_leidos_ajax, name='ajax_mensajes_no_leidos'),
 
     # Perfil
     path('perfil/', views.perfil_view, name='perfil'),
@@ -36,12 +37,14 @@ urlpatterns = [
     path('perfil/editar/', views.editar_perfil_view, name='editar_perfil'),
 
     # Publicaciones / servicios
+    path('servicios/', views.catalogo_view, name='catalogo'),
     path('servicios/crear/', views.publicacion_crear_view, name='publicacion_crear'),
     path('servicios/<int:pk>/', views.publicacion_detalle_view, name='publicacion_detalle'),
     path('servicios/<int:publicacion_id>/contratar/', views.contratacion_crear_view, name='contratacion_crear'),
 
     # Contrataciones / reservas / valoraciones
     path('reservas/', views.reservas_view, name='reservas'),
+    path('contrataciones/<int:contratacion_id>/', views.contratacion_detalle_view, name='contratacion_detalle'),
     path('contrataciones/<int:contratacion_id>/confirmar/', views.contratacion_confirmar_view, name='contratacion_confirmar'),
     path('contrataciones/<int:contratacion_id>/completar/', views.contratacion_completar_view, name='contratacion_completar'),
     path('contrataciones/<int:contratacion_id>/valorar/', views.valoracion_crear_view, name='valoracion_crear'),
@@ -53,6 +56,7 @@ urlpatterns = [
     # Mensajería
     path('chat/', views.chat_view, name='chat'),
     path('chat/<int:conversacion_id>/', views.conversacion_detalle_view, name='conversacion_detalle'),
+    path('chat/<int:conversacion_id>/exportar/', views.conversacion_exportar_view, name='conversacion_exportar'),
 
     # Pagos
     path('pago/', views.pago_view, name='pago'),

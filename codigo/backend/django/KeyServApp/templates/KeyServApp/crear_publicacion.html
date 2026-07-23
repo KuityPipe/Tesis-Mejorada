@@ -1,55 +1,79 @@
-{% load static %}
+{% extends "KeyServApp/base.html" %}
 
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Crear Publicación</title>
-  <link rel="stylesheet" href="{% static 'KeyServApp/css/stylecrearperfil.css' %}">
-  <link rel="stylesheet" href="{% static 'KeyServApp/css/styleinicio.css' %}">
-</head>
-<body>
-  <header>
-    <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web">
-    </div>
-    <nav>
-      <ul class="menu">
-        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
-        <li><a href="{% url 'KeyServApp:perfil' %}">Mi perfil</a></li>
-        <li><a href="{% url 'KeyServApp:reservas' %}">Mis reservas</a></li>
-        <li><a href="{% url 'KeyServApp:logout' %}">Cerrar sesión</a></li>
-      </ul>
-    </nav>
-  </header>
+{% block titulo %}Publicar un servicio — KeyServ{% endblock %}
 
-  <form class="profile-form" method="post">
-    {% csrf_token %}
-    <h1>Publicar un servicio</h1>
+{% block content %}
+<section class="ks-section container" style="max-width: 620px;">
+  <div class="ks-panel">
+    <h1 class="mb-4"><i class="bi bi-megaphone"></i> Publicar un servicio</h1>
 
     {% if form.non_field_errors %}
-      <p style="color:#ff8080;">{{ form.non_field_errors }}</p>
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
     {% endif %}
 
-    <div class="form-group">
-      <label for="{{ form.titulo.id_for_label }}">Título</label>
-      {{ form.titulo }}
-      {% if form.titulo.errors %}<small style="color:#ff8080;">{{ form.titulo.errors }}</small>{% endif %}
-    </div>
+    <form method="post" enctype="multipart/form-data" class="ks-form">
+      {% csrf_token %}
+      <div class="ks-field">
+        <label for="{{ form.titulo.id_for_label }}">Título</label>
+        {{ form.titulo }}
+        {% if form.titulo.errors %}<small class="ks-error">{{ form.titulo.errors }}</small>{% endif %}
+      </div>
+      <div class="ks-field">
+        <label for="{{ form.sub_titulo.id_for_label }}">Subtítulo</label>
+        {{ form.sub_titulo }}
+      </div>
 
-    <div class="form-group">
-      <label for="{{ form.sub_titulo.id_for_label }}">Subtítulo</label>
-      {{ form.sub_titulo }}
-    </div>
+      <div class="ks-field">
+        <label for="{{ form.categoria.id_for_label }}">Categoría</label>
+        {{ form.categoria }}
+        {% if form.categoria.errors %}<small class="ks-error">{{ form.categoria.errors }}</small>{% endif %}
+      </div>
+      <div class="ks-field" id="ks-categoria-otra-wrap">
+        <label for="{{ form.categoria_otra.id_for_label }}">Especifica la categoría</label>
+        {{ form.categoria_otra }}
+        <span class="ks-help">Solo si elegiste "Otra" arriba — el moderador la revisa igual que el resto de la publicación.</span>
+        {% if form.categoria_otra.errors %}<small class="ks-error">{{ form.categoria_otra.errors }}</small>{% endif %}
+      </div>
 
-    <div class="form-group">
-      <label for="{{ form.descripcion_publicacion.id_for_label }}">Descripción</label>
-      {{ form.descripcion_publicacion }}
-    </div>
+      <div class="ks-field">
+        <label for="{{ form.descripcion_publicacion.id_for_label }}">Descripción</label>
+        {{ form.descripcion_publicacion }}
+      </div>
 
-    <small>Tu publicación queda pendiente de aprobación antes de aparecer en el listado (moderación).</small>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.imagen.id_for_label }}"><i class="bi bi-image"></i> Imagen del servicio</label>
+          {{ form.imagen }}
+          <span class="ks-help">Opcional — se ve en las tarjetas del catálogo.</span>
+          {% if form.imagen.errors %}<small class="ks-error">{{ form.imagen.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.documento.id_for_label }}"><i class="bi bi-file-earmark-text"></i> Documento de respaldo</label>
+          {{ form.documento }}
+          <span class="ks-help">Opcional — certificación, licencia, etc.</span>
+          {% if form.documento.errors %}<small class="ks-error">{{ form.documento.errors }}</small>{% endif %}
+        </div>
+      </div>
 
-    <button type="submit">Publicar</button>
-  </form>
-</body>
-</html>
+      <p class="ks-help">Tu publicación (con imagen, documento y categoría) queda pendiente de aprobación por un moderador antes de aparecer en el catálogo.</p>
+
+      <button type="submit" class="ks-btn ks-btn-primary">Publicar</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var select = document.getElementById('{{ form.categoria.id_for_label }}');
+    var wrap = document.getElementById('ks-categoria-otra-wrap');
+    if (!select || !wrap) return;
+    function actualizar() {
+      wrap.style.display = select.value === 'Otra' ? 'block' : 'none';
+    }
+    select.addEventListener('change', actualizar);
+    actualizar();
+  })();
+</script>
+{% endblock %}

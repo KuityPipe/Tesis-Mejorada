@@ -1,69 +1,44 @@
-{% load static %}
+{% extends "KeyServApp/base.html" %}
 
-<!DOCTYPE html>
-    <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Contacto</title>
-  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
-</head>
-  <header>
-    <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
-    </div>
-    <nav>
-      <ul class="menu">
-        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
-        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
-        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
-        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
-        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
-      </ul>
-    </nav>
-  </header>
-        
-        
-        ---------------
-        
-        
- <body>       
-        
-<link rel="stylesheet" href="{% static 'KeyServApp/css/pago.css' %}">
+{% block titulo %}Pago — KeyServ{% endblock %}
 
-<form id="payment-form" method="post">
-    {% csrf_token %}
-  <h2>Detalles de Pago</h2>
-  <div class="form-group">
-   
-    <label for="card-number">Número de Tarjeta:</label>
-    <input type="text" id="card-number" name="card-number" required number>
-    
-  </div>
-  <div class="form-group">
-    <label for="expiry-date">Fecha de Vencimiento:</label>
-    <input type="text" id="expiry-date" name="expiry-date" required>
-  </div>
-  <div class="form-group">
-    <label for="cvv">CVV:</label>
-    <input type="text" id="cvv" name="cvv" required>
-  </div>
-  <div class="form-group">
-    <label for="cardholder-name">Nombre del Titular:</label>
-    <input type="text" id="cardholder-name" name="cardholder-name" required>
-  </div>
-  <div class="form-group">
-    <label for="bank">Banco:</label>
-    <select id="bank" name="bank">
-      <option value="bank1">Banco 1</option>
-      <option value="bank2">Banco 2</option>
-      <option value="bank3">Banco 3</option>
-    </select>
-  </div>
-  <div class="form-group">
-    <input type="submit" value="Pagar">
-  </div>
-</form>
+{% block content %}
+<section class="ks-section container" style="max-width: 520px;">
+  <div class="ks-panel">
+    <h1 class="mb-3"><i class="bi bi-credit-card"></i> Detalles de pago</h1>
 
+    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Demo: la integración con Transbank todavía no está activa — este formulario no procesa pagos reales.</div>
 
-</body>
-
+    <form method="post" class="ks-form">
+      {% csrf_token %}
+      <div class="ks-field">
+        <label for="card-number">Número de tarjeta</label>
+        <input type="text" id="card-number" name="card-number" placeholder="0000 0000 0000 0000" required>
+      </div>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="expiry-date">Fecha de vencimiento</label>
+          <input type="text" id="expiry-date" name="expiry-date" placeholder="MM/AA" required>
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="cvv">CVV</label>
+          <input type="text" id="cvv" name="cvv" required>
+        </div>
+      </div>
+      <div class="ks-field">
+        <label for="cardholder-name">Nombre del titular</label>
+        <input type="text" id="cardholder-name" name="cardholder-name" required>
+      </div>
+      <div class="ks-field">
+        <label for="bank">Banco</label>
+        <select id="bank" name="bank">
+          <option value="bank1">Banco 1</option>
+          <option value="bank2">Banco 2</option>
+          <option value="bank3">Banco 3</option>
+        </select>
+      </div>
+      <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center">Pagar</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

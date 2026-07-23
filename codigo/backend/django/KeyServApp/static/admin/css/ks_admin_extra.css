@@ -1,0 +1,38 @@
+/* Buscador y filtro colapsables en los listados de /admin/ — pedido del
+   usuario: que esas "ventanas pequeñas" se puedan desplegar/esconder en
+   vez de ocupar espacio siempre. Colapsados por defecto. */
+
+#toolbar, #changelist-filter {
+  display: none;
+}
+
+#toolbar.ks-show, #changelist-filter.ks-show {
+  display: block;
+}
+
+.ks-admin-toggle-bar {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.ks-admin-toggle-btn {
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color, #ccc);
+  background: var(--darkened-bg, #f8f8f8);
+  color: var(--body-fg, #333);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ks-admin-toggle-btn:hover {
+  background: var(--selected-bg, #e8e8e8);
+}
+
+.ks-admin-toggle-btn.ks-active {
+  background: var(--primary, #79aec8);
+  color: var(--header-link-color, #fff);
+  border-color: transparent;
+}

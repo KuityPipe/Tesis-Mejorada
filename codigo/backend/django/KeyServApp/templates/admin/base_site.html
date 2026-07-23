@@ -1,0 +1,8 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/ks_admin_extra.css' %}">
+<script src="{% static 'admin/js/ks_admin_toggle.js' %}" defer></script>
+{% endblock %}

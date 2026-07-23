@@ -1,32 +1,14 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Pago Exitoso</title>
-  <style>
-    .payment-success {
-      text-align: center;
-    }
+{% extends "KeyServApp/base.html" %}
 
-    .circle {
-      display: inline-block;
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      background-color: #4caf50;
-      color: #fff;
-      line-height: 200px;
-    }
+{% block titulo %}Pago exitoso — KeyServ{% endblock %}
 
-    .text {
-      font-size: 36px;
-    }
-  </style>
-</head>
-<body>
-  <div class="payment-success">
-    <div class="circle">
-      <span class="text">Exitoso!</span>
-    </div>
+{% block content %}
+<section class="ks-section container" style="max-width: 480px; text-align: center;">
+  <div class="ks-panel">
+    <div class="ks-success-circle"><i class="bi bi-check-lg"></i></div>
+    <h1>¡Pago exitoso!</h1>
+    <p class="ks-help">Tu transacción se procesó correctamente.</p>
+    <a href="{% url 'KeyServApp:reservas' %}" class="ks-btn ks-btn-primary mt-3">Ver mis reservas</a>
   </div>
-</body>
-</html>
+</section>
+{% endblock %}

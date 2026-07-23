@@ -1,0 +1,102 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}Catálogo de servicios — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-grid"></i> Catálogo de servicios</h1>
+    <p>Busca y filtra entre todos los proveedores verificados de KeyServ.</p>
+
+    <form class="ks-search-form" method="get" action="{% url 'KeyServApp:catalogo' %}">
+      <i class="bi bi-search"></i>
+      <input type="text" name="q" value="{{ query }}" placeholder="¿Qué servicio necesitas? Ej: gasfitería, jardinería...">
+      <button type="submit" class="ks-btn ks-btn-primary">Buscar</button>
+    </form>
+
+    <form method="get" action="{% url 'KeyServApp:catalogo' %}" class="ks-filter-bar">
+      {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+      <div class="ks-filter-field">
+        <label for="filtro-region"><i class="bi bi-geo-alt"></i> Región</label>
+        <select name="region" id="filtro-region">
+          <option value="">Todas</option>
+          {% for region in regiones %}
+          <option value="{{ region.id_region }}" {% if region.id_region|stringformat:"s" == region_seleccionada %}selected{% endif %}>{{ region.nombre_region }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="ks-filter-field">
+        <label for="filtro-calificacion"><i class="bi bi-star"></i> Calificación mínima</label>
+        <select name="calificacion" id="filtro-calificacion">
+          <option value="">Cualquiera</option>
+          {% for n in "12345" %}
+          <option value="{{ n }}" {% if n == calificacion_seleccionada %}selected{% endif %}>{{ n }}+ estrellas</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="ks-filter-field">
+        <label for="filtro-orden"><i class="bi bi-sort-down"></i> Ordenar por</label>
+        <select name="orden" id="filtro-orden">
+          <option value="recientes" {% if orden_seleccionado == "recientes" %}selected{% endif %}>Más recientes</option>
+          <option value="calificacion" {% if orden_seleccionado == "calificacion" %}selected{% endif %}>Mejor calificados</option>
+        </select>
+      </div>
+      <button type="submit" class="ks-btn ks-btn-outline">Aplicar filtros</button>
+    </form>
+  </div>
+</section>
+
+<section class="ks-section container">
+  <div class="ks-section-header">
+    <h2>{% if query %}Resultados para "{{ query }}"{% else %}Todos los servicios{% endif %}</h2>
+    <span>
+      {{ publicaciones|length }} publicación{{ publicaciones|length|pluralize:"es" }}
+      {% if region_seleccionada or calificacion_seleccionada %}
+        &nbsp;·&nbsp; <a href="{% url 'KeyServApp:catalogo' %}{% if query %}?q={{ query }}{% endif %}">Quitar filtros</a>
+      {% endif %}
+    </span>
+  </div>
+
+  {% if publicaciones %}
+  <div class="ks-card-grid">
+    {% for publicacion in publicaciones %}
+    <a class="ks-card" href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">
+      <div class="ks-card-img">
+        {% with imagen=publicacion.imagenes.first %}
+          {% if imagen %}
+            <img src="{{ imagen.url }}" alt="{{ publicacion.titulo }}">
+          {% else %}
+            <div class="ks-card-img-placeholder"><i class="bi bi-tools"></i></div>
+          {% endif %}
+        {% endwith %}
+      </div>
+      <div class="ks-card-body">
+        <h3>{{ publicacion.titulo }}</h3>
+        <p>{{ publicacion.sub_titulo }}</p>
+        <span class="ks-card-date"><i class="bi bi-clock"></i> Publicado {{ publicacion.fecha_publicacion|timesince }} atrás</span>
+        <div class="ks-card-footer">
+          <span class="ks-card-provider"><i class="bi bi-person-circle"></i> {{ publicacion.usuario_publicador.nombre_usuario }}</span>
+          {% with ranking=publicacion.usuario_publicador.ranking %}
+            {% if ranking and ranking.total_valoraciones > 0 %}
+              <span class="ks-card-rating"><i class="bi bi-star-fill"></i> {{ ranking.puntuacion_promedio }}</span>
+            {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ks-empty-state">
+    <i class="bi bi-emoji-smile"></i>
+    <p>
+      {% if query or region_seleccionada or calificacion_seleccionada %}
+        No encontramos publicaciones con estos filtros. Prueba ajustándolos o <a href="{% url 'KeyServApp:catalogo' %}">quítalos</a>.
+      {% else %}
+        Todavía no hay publicaciones aprobadas. ¡Vuelve pronto!
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,77 +1,77 @@
-{% load static %}
-<!DOCTYPE html>
-    <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Perfil</title>
-  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
-</head>
-  <header>
-    <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
-    </div>
-    <nav>
-      <ul class="menu">
-        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
-        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
-        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
-        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
-        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
-      </ul>
-    </nav>
-  </header>
+{% extends "KeyServApp/base.html" %}
 
+{% block titulo %}Mi perfil — KeyServ{% endblock %}
 
-
-<link rel="stylesheet" href="{% static 'KeyServApp/css/perfil.css' %}">
-<section class="user-profile-section">
-  <h2 class="section-title">Perfil de usuario</h2>
-  <div class="user-profile">
-    <div class="profile-info">
-      <div class="personal-info">
-        <h3 class="info-title">Información personal</h3>
-        <p class="info-label">Nombre:</p>
-        <p class="info-value">{{ usuario.nombre_usuario }} {{ usuario.apellido_usuario }}</p>
-        <p class="info-label">Ubicación:</p>
-        <p class="info-value">{{ usuario.comuna.nombre_comuna }}, {{ usuario.comuna.region.nombre_region }}</p>
-        <p class="info-label">Verificación biométrica:</p>
-        <p class="info-value">
-          {% if usuario.verificado_biometricamente %}✅ Verificado{% else %}⚠️ Sin verificar — <a href="{% url 'KeyServApp:huella' %}">verificar ahora</a>{% endif %}
-        </p>
-        {% if ranking %}
-        <p class="info-label">Calificación como proveedor:</p>
-        <p class="info-value">{{ ranking.puntuacion_promedio }} ⭐ ({{ ranking.total_valoraciones }} valoraciones)</p>
-        {% endif %}
-      </div>
-    </div>
-    {% if usuario.es_proveedor %}
-    <div class="services-list">
-      <h3 class="info-title">Mis publicaciones</h3>
-      <ul>
-        {% for publicacion in publicaciones %}
-        <li><a href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">{{ publicacion.titulo }}</a> — {{ publicacion.get_estado_moderacion_display }}</li>
-        {% empty %}
-        <li>Todavía no publicaste ningún servicio.</li>
-        {% endfor %}
-      </ul>
-      <p><a href="{% url 'KeyServApp:publicacion_crear' %}">+ Publicar un nuevo servicio</a></p>
-    </div>
-    {% endif %}
-    <div class="reviews-section">
-      <h3 class="info-title">Reseñas y calificaciones recibidas</h3>
-      {% for resena in resenas_recibidas %}
-      <div class="review">
-        <p class="review-text">{{ resena.usuario_emisor }}: {{ resena.comentario }}</p>
-        <p class="review-rating">Calificación: {{ resena.puntuacion }} estrellas</p>
-      </div>
-      {% empty %}
-      <p>Todavía no recibiste reseñas.</p>
-      {% endfor %}
-    </div>
-    <div class="profile-actions">
-     <a href="{% url 'KeyServApp:editar_perfil' %}">Editar perfil</a>
-    </div>
+{% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-person-circle"></i> Mi perfil</h1>
   </div>
 </section>
 
+<section class="ks-section container" style="max-width: 780px;">
 
+  <div class="ks-panel">
+    <div class="ks-profile-head">
+      <span class="ks-avatar-lg">{{ usuario.nombre_usuario|first|upper }}</span>
+      <div>
+        <h2 class="mb-0">{{ usuario.nombre_usuario }} {{ usuario.apellido_usuario }}</h2>
+        {% if usuario.verificado_biometricamente %}
+          <span class="ks-verified"><i class="bi bi-patch-check-fill"></i> Verificado biométricamente</span>
+        {% else %}
+          <span class="ks-unverified"><i class="bi bi-exclamation-triangle-fill"></i> Sin verificar — <a href="{% url 'KeyServApp:huella' %}">verificar ahora</a></span>
+        {% endif %}
+      </div>
+    </div>
+
+    <dl class="mt-4">
+      <div class="ks-profile-fact">
+        <dt>Ubicación</dt>
+        <dd>{{ usuario.comuna.nombre_comuna }}, {{ usuario.comuna.region.nombre_region }}</dd>
+      </div>
+      <div class="ks-profile-fact">
+        <dt>Correo</dt>
+        <dd>{{ usuario.email }}</dd>
+      </div>
+      {% if ranking %}
+      <div class="ks-profile-fact">
+        <dt>Calificación como proveedor</dt>
+        <dd><i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ ranking.puntuacion_promedio }} ({{ ranking.total_valoraciones }} valoraciones)</dd>
+      </div>
+      {% endif %}
+    </dl>
+
+    <a href="{% url 'KeyServApp:editar_perfil' %}" class="ks-btn ks-btn-outline mt-3">Editar perfil</a>
+  </div>
+
+  {% if usuario.es_proveedor %}
+  <div class="ks-panel">
+    <h3>Mis publicaciones</h3>
+    {% for publicacion in publicaciones %}
+      <div class="ks-timeline-item">
+        <div class="ks-timeline-item-head">
+          <h4><a href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">{{ publicacion.titulo }}</a></h4>
+          <span class="ks-badge ks-badge-{{ publicacion.estado_moderacion|lower }}">{{ publicacion.get_estado_moderacion_display }}</span>
+        </div>
+        <p class="ks-timeline-meta mb-0">Publicado {{ publicacion.fecha_publicacion|timesince }} atrás</p>
+      </div>
+    {% empty %}
+      <p class="ks-help">Todavía no publicaste ningún servicio.</p>
+    {% endfor %}
+    <a href="{% url 'KeyServApp:publicacion_crear' %}" class="ks-btn ks-btn-primary mt-2"><i class="bi bi-plus-lg"></i> Publicar un nuevo servicio</a>
+  </div>
+  {% endif %}
+
+  <div class="ks-panel">
+    <h3>Reseñas y calificaciones recibidas</h3>
+    {% for resena in resenas_recibidas %}
+      <div class="ks-review">
+        <strong>{{ resena.usuario_emisor }}</strong> — <i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ resena.puntuacion }}/5
+        <p class="mb-0 ks-help">{{ resena.comentario }}</p>
+      </div>
+    {% empty %}
+      <p class="ks-help">Todavía no recibiste reseñas.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

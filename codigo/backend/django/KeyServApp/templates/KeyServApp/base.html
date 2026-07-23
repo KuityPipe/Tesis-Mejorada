@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}KeyServ{% endblock %}</title>
+<link rel="icon" href="{% static 'KeyServApp/imagenes/logokeyserv_v2.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{% static 'KeyServApp/css/base.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<header class="ks-header">
+  <div class="container ks-header-inner">
+    <a class="ks-logo" href="{% url 'KeyServApp:paginicio' %}">
+      <img src="{% static 'KeyServApp/imagenes/logokeyserv_v2.png' %}" alt="KeyServ">
+    </a>
+
+    <button class="ks-nav-toggle" type="button" id="ksNavToggle" aria-expanded="false" aria-controls="ksNav" aria-label="Abrir menú">
+      <i class="bi bi-list"></i>
+    </button>
+
+    <div class="ks-nav-collapse" id="ksNav">
+      <nav class="ks-nav">
+        <a href="{% url 'KeyServApp:paginicio' %}">Inicio</a>
+        <a href="{% url 'KeyServApp:catalogo' %}">Servicios</a>
+        <a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a>
+        <a href="{% url 'KeyServApp:contacto' %}">Contacto</a>
+      </nav>
+    </div>
+
+    <!-- Las acciones de cuenta quedan SIEMPRE visibles (no dependen de JS ni
+         del toggle móvil) — son lo primero que alguien recién logueado
+         necesita encontrar: mensajes, reservas, perfil, salir. -->
+    <div class="ks-header-actions">
+      {% if usuario_actual %}
+        <a class="ks-icon-link" href="{% url 'KeyServApp:sesion_iniciada' %}" title="Inicio"><i class="bi bi-house-door"></i></a>
+        <a class="ks-icon-link" href="{% url 'KeyServApp:chat' %}" title="Bandeja de entrada" id="ks-chat-icon-link">
+          <i class="bi bi-chat-dots"></i>
+          <span id="ks-chat-badge" class="ks-icon-badge" {% if not mensajes_no_leidos %}style="display:none;"{% endif %}>{{ mensajes_no_leidos }}</span>
+        </a>
+        <a class="ks-icon-link" href="{% url 'KeyServApp:reservas' %}" title="Reservas"><i class="bi bi-calendar-check"></i></a>
+        <a class="ks-user-chip" href="{% url 'KeyServApp:perfil' %}">
+          <span class="ks-avatar">{{ usuario_actual.nombre_usuario|first|upper }}</span>
+          <span>{{ usuario_actual.nombre_usuario }}</span>
+        </a>
+        <a class="ks-btn ks-btn-outline" href="{% url 'KeyServApp:logout' %}">Salir</a>
+      {% else %}
+        <a class="ks-btn ks-btn-outline" href="{% url 'KeyServApp:sesion' %}">Ingresar</a>
+        <a class="ks-btn ks-btn-primary" href="{% url 'KeyServApp:registro' %}">Registrarse</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+{% if messages %}
+<div class="container ks-messages">
+  {% for message in messages %}
+    <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} alert-dismissible fade show ks-alert" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<main class="ks-main">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="ks-footer">
+  <div class="container ks-footer-inner">
+    <div class="ks-footer-brand">
+      <img src="{% static 'KeyServApp/imagenes/logokeyserv_v2.png' %}" alt="KeyServ">
+      <p>Servicios de confianza, verificados con biometría, cerca de ti.</p>
+    </div>
+    <nav class="ks-footer-links">
+      <a href="{% url 'KeyServApp:paginicio' %}">Inicio</a>
+      <a href="{% url 'KeyServApp:catalogo' %}">Servicios</a>
+      <a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a>
+      <a href="{% url 'KeyServApp:contacto' %}">Contacto</a>
+    </nav>
+    <p class="ks-footer-copy">© {% now "Y" %} KeyServ</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Toggle del menú móvil implementado en JS puro (sin depender del bundle de
+  // Bootstrap por CDN) para que funcione aunque ese script no cargue.
+  (function () {
+    var boton = document.getElementById('ksNavToggle');
+    var menu = document.getElementById('ksNav');
+    if (!boton || !menu) return;
+    boton.addEventListener('click', function () {
+      var abierto = menu.classList.toggle('show');
+      boton.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    });
+  })();
+</script>
+{% if usuario_actual %}
+<script>
+  // Notificaciones "en tiempo real" de mensajes nuevos vía polling liviano
+  // (sin WebSockets/Channels — no hay servidor ASGI en este entorno; este es
+  // el patrón estándar para esto, el mismo que usan libs como
+  // django-notifications-hq con su live_notify_badge).
+  (function () {
+    var URL_NO_LEIDOS = '{% url "KeyServApp:ajax_mensajes_no_leidos" %}';
+    var INTERVALO_MS = 15000;
+    var badge = document.getElementById('ks-chat-badge');
+    var tituloOriginal = document.title;
+    var ultimoConteo = {{ mensajes_no_leidos|default:0 }};
+
+    function sonarAlerta() {
+      // Beep sintetizado con Web Audio API — sin archivo de audio externo.
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } catch (e) { /* navegador sin soporte de Web Audio: fallamos en silencio */ }
+    }
+
+    function actualizarBadge(conteo) {
+      if (!badge) return;
+      if (conteo > 0) {
+        badge.textContent = conteo;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+      document.title = conteo > 0 ? '(' + conteo + ') ' + tituloOriginal : tituloOriginal;
+    }
+
+    function consultar() {
+      fetch(URL_NO_LEIDOS, {credentials: 'same-origin'})
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          if (data.no_leidos > ultimoConteo) {
+            sonarAlerta();
+          }
+          ultimoConteo = data.no_leidos;
+          actualizarBadge(ultimoConteo);
+        })
+        .catch(function () { /* si falla una consulta, se reintenta en el siguiente intervalo */ });
+    }
+
+    setInterval(consultar, INTERVALO_MS);
+  })();
+</script>
+{% endif %}
+{% block extra_js %}{% endblock %}
+</body>
+</html>

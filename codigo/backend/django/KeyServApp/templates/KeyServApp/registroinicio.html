@@ -1,88 +1,153 @@
+{% extends "KeyServApp/base.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <link rel="stylesheet" href="{% static 'KeyServApp/css/styleregistro.css' %}">
-  <title>Formulario Registro</title>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script>
-    $(document).ready(function () {
-        $("#id_region").change(function () {
-          var url = "{% url 'KeyServApp:ajax_load_comunas' %}"; 
-            var regionId = $(this).val();
+{% block titulo %}Crear cuenta — KeyServ{% endblock %}
 
-            $.ajax({
-                url: url,
-                data: {
-                    'region_id': regionId
-                },
-                success: function (data) {
-                    var options = '<option selected disabled>Seleccione su Comuna</option>';
-                    for (var i = 0; i < data.length; i++) {
-                        options += '<option value="' + data[i].id + '">' + data[i].nombre_comuna + '</option>';
-                    }
-                    $("#id_comuna").html(options);
-                }
-            });
-        });
-    });
-  </script>
-</head>
-<body>
-  <section class="form-register">
-    <form action="{% url 'KeyServApp:registro' %}" method="post" id="usuarioForm" data-comunas-url="{% url 'KeyServApp:ajax_load_comunas' %}">
+{% block content %}
+<section class="ks-section container" style="max-width: 640px;">
+  <div class="ks-panel">
+    <h1 class="text-center mb-1">Crear cuenta</h1>
+    <p class="text-center ks-help mb-4">Únete a KeyServ como cliente o como proveedor de servicios.</p>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'KeyServApp:registro' %}" id="usuarioForm" class="ks-form" data-comunas-url="{% url 'KeyServApp:ajax_load_comunas' %}">
       {% csrf_token %}
-      <!-- El resto de tu formulario -->
-      <h1>Formulario Registro</h1><br>
-      <input class="controls" type="text" name="rut" id="rut" placeholder="Ingrese su Rut" required>
-      <input class="controls" type="text" name="nombre1" id="nombre1" placeholder="Ingrese su primer nombre" required>
-      <input class="controls" type="text" name="nombre2" id="nombre2" placeholder="Ingrese su segundo nombre" required>
-      <input class="controls" type="text" name="apellido1" id="apellido1" placeholder="Ingrese su primer apellido" required><br>
-      <input class="controls" type="text" name="apellido2" id="apellido2" placeholder="Ingrese su segundo apellido" required>
-      <input class="controls" type="number" name="edad" id="edad" placeholder="Ingrese su Edad" required>
-      <input class="controls" type="number" name="telefono" id="telefono" placeholder="Ingrese su Numero Celular" required><br>
-      <input class="controls" type="email" name="email" id="email" placeholder="Ingrese su email" required>
-      
-      <!-- Para los selectores, REGION (arreglado en Fase 3: faltaba id="id_region",
-           que es lo que engancha el script jQuery de arriba para cargar comunas) -->
-      <select class="controls" name="region" id="id_region" required>
-        <option selected disabled>Seleccione su Region</option>
-        {% for region in regiones %}
-        <option value="{{ region.id_region }}">{{ region.nombre_region }}</option>
-        {% endfor %}
-      </select>
 
-      <!-- Para los selectores, COMUNA -->
-      <select class="controls" name="comuna" id="id_comuna" required>
-        <option selected disabled>Seleccione su Comuna</option>
-      </select>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="rut">RUT</label>
+          <input type="text" name="rut" id="rut" placeholder="12345678-9" required>
+          {% if form.rut.errors %}<small class="ks-error">{{ form.rut.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="telefono">Teléfono</label>
+          <input type="number" name="telefono" id="telefono" placeholder="912345678" required>
+          {% if form.telefono.errors %}<small class="ks-error">{{ form.telefono.errors }}</small>{% endif %}
+        </div>
+      </div>
 
-      <!-- El resto de tu formulario -->
-      <input class="controls" type="text" name="direccion" id="direccion" placeholder="Ingrese su direccion completa" required><br>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="nombre1">Primer nombre</label>
+          <input type="text" name="nombre1" id="nombre1" required>
+          {% if form.nombre1.errors %}<small class="ks-error">{{ form.nombre1.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="nombre2">Segundo nombre</label>
+          <input type="text" name="nombre2" id="nombre2">
+        </div>
+      </div>
 
-       <!-- Para los selectores, TIPO_CUENTA -->
-       <select class="controls" name="tipo_cuenta" id="tipo_cuenta" required>
-        <option selected disabled>Seleccione el tipo de cuenta</option>
-        {% for tipo in tipos_cuenta %}
-        <option value="{{ tipo.id_tipo_cuenta }}">{{ tipo.nombre_tipo_cuenta }}</option>
-        {% endfor %}
-      </select>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="apellido1">Primer apellido</label>
+          <input type="text" name="apellido1" id="apellido1" required>
+          {% if form.apellido1.errors %}<small class="ks-error">{{ form.apellido1.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="apellido2">Segundo apellido</label>
+          <input type="text" name="apellido2" id="apellido2">
+        </div>
+      </div>
 
-      <label><input class="controls" type="checkbox" name="es_proveedor" id="es_proveedor"> ¿Ofreces servicios como proveedor?</label><br>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="edad">Edad</label>
+          <input type="number" name="edad" id="edad" required>
+          {% if form.edad.errors %}<small class="ks-error">{{ form.edad.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="email">Correo electrónico</label>
+          <input type="email" name="email" id="email" required>
+          {% if form.email.errors %}<small class="ks-error">{{ form.email.errors }}</small>{% endif %}
+        </div>
+      </div>
 
-      <!-- El resto de tu formulario -->
-      <input class="controls" type="password" name="password" id="password" placeholder="Ingrese su contraseña" required>
-      <input class="controls" type="password" name="password_confirm" id="password_confirm" placeholder="Vuelva a ingresar su contraseña" required><br>
-      <a href="{% url 'KeyServApp:huella' %}">Registrar Huella</a><br><br>
-      
-      <p1>Estoy de acuerdo con <a href="{% url 'KeyServApp:preferencias_cuenta' %}">Terminos y Condiciones</a></p1>
-      
-      <input class="botons" type="submit" value="Registrar">
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="id_region">Región</label>
+          <select name="region" id="id_region" required>
+            <option value="" selected disabled>Selecciona tu región</option>
+            {% for region in regiones %}
+            <option value="{{ region.id_region }}">{{ region.nombre_region }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="id_comuna">Comuna</label>
+          <select name="comuna" id="id_comuna" required>
+            <option value="" selected disabled>Selecciona primero tu región</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ks-field">
+        <label for="direccion">Dirección</label>
+        <input type="text" name="direccion" id="direccion">
+      </div>
+
+      <div class="ks-field">
+        <label for="tipo_cuenta">Tipo de cuenta</label>
+        <select name="tipo_cuenta" id="tipo_cuenta" required>
+          <option value="" selected disabled>Selecciona el tipo de cuenta</option>
+          {% for tipo in tipos_cuenta %}
+          <option value="{{ tipo.id_tipo_cuenta }}">{{ tipo.nombre_tipo_cuenta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <label class="ks-checkbox">
+        <input type="checkbox" name="es_proveedor" id="es_proveedor">
+        ¿Ofreces servicios como proveedor?
+      </label>
+
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="password">Contraseña</label>
+          <input type="password" name="password" id="password" required>
+          {% if form.password.errors %}<small class="ks-error">{{ form.password.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="password_confirm">Confirmar contraseña</label>
+          <input type="password" name="password_confirm" id="password_confirm" required>
+          {% if form.password_confirm.errors %}<small class="ks-error">{{ form.password_confirm.errors }}</small>{% endif %}
+        </div>
+      </div>
+
+      <p class="ks-help">Estoy de acuerdo con los <a href="{% url 'KeyServApp:preferencias_cuenta' %}">Términos y condiciones</a>.</p>
+
+      <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center">Registrarse</button>
+      <p class="text-center mt-3"><a href="{% url 'KeyServApp:huella' %}">Registrar huella dactilar</a> (opcional por ahora)</p>
     </form>
-  </section>
-</body>
-</html>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+  $(document).ready(function () {
+      $("#id_region").change(function () {
+        var url = "{% url 'KeyServApp:ajax_load_comunas' %}";
+          var regionId = $(this).val();
+
+          $.ajax({
+              url: url,
+              data: {
+                  'region_id': regionId
+              },
+              success: function (data) {
+                  var options = '<option value="" selected disabled>Selecciona tu comuna</option>';
+                  for (var i = 0; i < data.length; i++) {
+                      options += '<option value="' + data[i].id + '">' + data[i].nombre_comuna + '</option>';
+                  }
+                  $("#id_comuna").html(options);
+              }
+          });
+      });
+  });
+</script>
+{% endblock %}

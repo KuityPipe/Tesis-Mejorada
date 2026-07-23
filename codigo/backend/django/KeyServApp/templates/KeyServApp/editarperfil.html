@@ -1,72 +1,58 @@
-{% load static %}
+{% extends "KeyServApp/base.html" %}
 
-<!DOCTYPE html>
-    <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Contacto</title>
-  <link rel="stylesheet" type="text/css" href="{% static 'KeyServApp/css/styleinicio.css' %}">
-</head>
-  <header>
-    <div class="logo">
-      <img src="{% static 'KeyServApp/imagenes/logokeyserv.png' %}" alt="Logo de mi web" >
-    </div>
-    <nav>
-      <ul class="menu">
-        <li><a href="{% url 'KeyServApp:paginicio' %}">Inicio</a></li>
-        <li><a href="{% url 'KeyServApp:acerca_de_nosotros' %}">Acerca de nosotros</a></li>
-        <li><a href="{% url 'KeyServApp:contacto' %}">Contacto</a></li>
-        <li><a href="{% url 'KeyServApp:sesion' %}">Inicio sesión</a></li>
-        <li><a href="{% url 'KeyServApp:registro' %}">Registrarse</a></li>
-      </ul>
-    </nav>
-  </header>
-        
-       
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Edición de Perfiles</title>
-  <link rel="stylesheet" href="{% static 'KeyServApp/css/editarperfil.css' %}">
-</head>
-<body>
-  <form method="post">
-    {% csrf_token %}
-    <h2>Edición de Perfil</h2>
+{% block titulo %}Editar perfil — KeyServ{% endblock %}
 
-    <div class="profile-info">
-      <h3>Información Personal</h3>
-      <label for="name">Nombre:</label>
-      <input type="text" id="name" name="name" placeholder="Ingrese su nombre">
+{% block content %}
+<section class="ks-section container" style="max-width: 640px;">
+  <div class="ks-panel">
+    <h1 class="mb-4"><i class="bi bi-pencil-square"></i> Editar perfil</h1>
 
-      <label for="skills">Habilidades:</label>
-      <textarea id="skills" name="skills" placeholder="Ingrese sus habilidades"></textarea>
+    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Esta sección está en construcción — por ahora los cambios no se guardan todavía.</div>
 
-      <label for="experience">Experiencia Laboral:</label>
-      <textarea id="experience" name="experience" placeholder="Ingrese su experiencia laboral"></textarea>
+    <form method="post" class="ks-form" enctype="multipart/form-data">
+      {% csrf_token %}
 
-      <label for="certifications">Certificaciones:</label>
-      <textarea id="certifications" name="certifications" placeholder="Ingrese sus certificaciones"></textarea>
-    </div>
+      <h3>Información personal</h3>
+      <div class="ks-field">
+        <label for="name">Nombre</label>
+        <input type="text" id="name" name="name" value="{{ usuario.nombre_usuario }}">
+      </div>
+      <div class="ks-field">
+        <label for="skills">Habilidades</label>
+        <textarea id="skills" name="skills" rows="3"></textarea>
+      </div>
+      <div class="ks-field">
+        <label for="experience">Experiencia laboral</label>
+        <textarea id="experience" name="experience" rows="3"></textarea>
+      </div>
+      <div class="ks-field">
+        <label for="certifications">Certificaciones</label>
+        <textarea id="certifications" name="certifications" rows="3"></textarea>
+      </div>
 
-    <div class="profile-settings">
-      <h3>Configuraciones de Perfil</h3>
-      <label for="price">Precio:</label>
-      <input type="text" id="price" name="price" placeholder="Ingrese su precio">
+      <h3>Configuración de perfil</h3>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="price">Precio</label>
+          <input type="text" id="price" name="price">
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="availability">Disponibilidad</label>
+          <input type="text" id="availability" name="availability">
+        </div>
+      </div>
+      <div class="ks-field">
+        <label for="preferences">Preferencias</label>
+        <textarea id="preferences" name="preferences" rows="3"></textarea>
+      </div>
 
-      <label for="availability">Disponibilidad:</label>
-      <input type="text" id="availability" name="availability" placeholder="Ingrese su disponibilidad">
+      <h3>Galería de trabajos realizados</h3>
+      <div class="ks-field">
+        <input type="file" name="images" multiple>
+      </div>
 
-      <label for="preferences">Preferencias:</label>
-      <textarea id="preferences" name="preferences" placeholder="Ingrese sus preferencias"></textarea>
-    </div>
-
-    <div class="gallery">
-      <h3>Galería de Trabajos Realizados</h3>
-      <input type="file" name="images" multiple>
-    </div>
-
-    <button type="submit">Guardar Cambios</button>
-  </form>
-</body>
-</html>
+      <button type="submit" class="ks-btn ks-btn-primary">Guardar cambios</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
