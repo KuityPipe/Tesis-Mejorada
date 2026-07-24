@@ -24,8 +24,9 @@ nunca automático.
 | 9 | 2026-07-24 09:48 | `169cb66` | Agregar toggle de tema claro/oscuro y poner CLAUDE.md al día con Fase 5 | — (otro día) |
 | 10 | 2026-07-24 12:55 | `c184930` | Fase 6: carrusel y calificaciones moderadas, admin reorganizado, endurecimiento de seguridad | 3 h 7 min |
 | 11 | 2026-07-24 14:10 | `fcd4b90` | Previsualización en vivo al crear publicación + selector de fotos/documentos acumulativo | 1 h 15 min |
+| 12 | 2026-07-24 15:27 | `4ceb7af` | Rediseño de reservas con filtros + perfil editable, recuperación de contraseña y paginación del catálogo | 1 h 15 min |
 
-**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min.
+**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #12**: ~12 h 15 min.
 
 ---
 
