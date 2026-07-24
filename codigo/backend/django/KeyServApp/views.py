@@ -42,10 +42,10 @@ from .forms import (
 )
 from .models import (
     Comuna, Contratacion, Conversacion, Documento, EstadoConsulta,
-    HistorialEstadoContratacion, Imagenes, IntentoAccesoSospechoso,
-    ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region,
-    TipoCuenta, Transaccion, Usuario, UsuarioConversacion, Valoracion,
-    ValoracionImagen,
+    EstadoDocumento, HistorialEstadoContratacion, Imagenes,
+    IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
+    Ranking, Region, TipoCuenta, Transaccion, Usuario, UsuarioConversacion,
+    Valoracion, ValoracionImagen,
 )
 from . import biometria, geolocalizacion, pagos
 from . import validators
@@ -584,20 +584,51 @@ def alternar_proveedor_view(request):
 @login_requerido
 def crear_perfil_view(request):
     """
-    Perfil de proveedor extendido (áreas de servicio, experiencia — RF002).
-    Antes era estático y no guardaba nada; ahora es un CrearPerfilForm real
-    sobre los campos nuevos de Usuario (ver models.py).
+    Perfil de proveedor extendido (áreas de servicio, experiencia,
+    certificados/documentos — RF002). Antes era estático y no guardaba
+    nada; ahora es un CrearPerfilForm real sobre los campos nuevos de
+    Usuario (ver models.py), más certificados subidos como `Documento` sin
+    `publicacion` asociada — mismo patrón que publicacion_crear_view.
+    A diferencia de los documentos de una Publicacion (públicos),
+    `documento_descargar_view` trata estos como privados: solo el dueño o
+    un moderador/staff puede verlos, no un cliente cualquiera navegando el
+    catálogo — no hay todavía una página de perfil público de proveedor
+    donde mostrarlos como credenciales.
     """
     usuario = obtener_usuario_actual(request)
     if request.method == 'POST':
         form = CrearPerfilForm(request.POST, request.FILES, instance=usuario)
         if form.is_valid():
             form.save()
+            rechazados = []
+            estado_no_firmado = EstadoDocumento.objects.filter(pk=2).first()  # 2 = No firmado (ver fixture catalogos_iniciales)
+            for archivo in request.FILES.getlist('documentos')[:MAX_DOCUMENTOS_PUBLICACION]:
+                documento = Documento(usuario=usuario, nombre_documento=archivo.name[:60], archivo_subido=archivo, estado_documento=estado_no_firmado)
+                try:
+                    documento.full_clean()
+                except ValidationError:
+                    rechazados.append(archivo.name)
+                    continue
+                documento.save()
+            if rechazados:
+                messages.warning(request, f'No se pudieron subir estos archivos (formato, tamaño o contenido no válido): {", ".join(rechazados)}.')
             messages.success(request, 'Perfil de proveedor actualizado.')
             return redirect('KeyServApp:perfil')
     else:
         form = CrearPerfilForm(instance=usuario)
-    return render(request, 'KeyServApp/crearperfil.html', {'usuario': usuario, 'form': form})
+    documentos = Documento.objects.filter(usuario=usuario, publicacion__isnull=True).order_by('-fecha_subida_documento')
+    return render(request, 'KeyServApp/crearperfil.html', {'usuario': usuario, 'form': form, 'documentos': documentos})
+
+
+@login_requerido
+@require_POST
+def documento_perfil_eliminar_view(request, documento_id):
+    """Elimina un certificado/documento del perfil de proveedor — solo su dueño, y solo si no quedó ligado a ninguna Publicacion."""
+    usuario = obtener_usuario_actual(request)
+    documento = get_object_or_404(Documento, pk=documento_id, usuario=usuario, publicacion__isnull=True)
+    documento.delete()
+    messages.success(request, 'Documento eliminado.')
+    return redirect('KeyServApp:crear_perfil')
 
 
 @login_requerido
@@ -695,8 +726,9 @@ def publicacion_crear_view(request):
                     continue
                 imagen.save()
 
+            estado_no_firmado = EstadoDocumento.objects.filter(pk=2).first()  # 2 = No firmado (ver fixture catalogos_iniciales)
             for archivo in request.FILES.getlist('documentos')[:MAX_DOCUMENTOS_PUBLICACION]:
-                documento = Documento(publicacion=publicacion, usuario=usuario, nombre_documento=archivo.name[:60], archivo_subido=archivo)
+                documento = Documento(publicacion=publicacion, usuario=usuario, nombre_documento=archivo.name[:60], archivo_subido=archivo, estado_documento=estado_no_firmado)
                 try:
                     documento.full_clean()
                 except ValidationError:

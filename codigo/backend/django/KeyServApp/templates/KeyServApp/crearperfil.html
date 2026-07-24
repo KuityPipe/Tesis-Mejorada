@@ -16,11 +16,21 @@
       {% csrf_token %}
       <div class="ks-field">
         <label>{{ form.areas_servicio.label }}</label>
-        <div class="ks-areas-servicio-grid">
+        <div class="ks-areas-buscador">
+          <i class="bi bi-search"></i>
+          <input type="text" id="ks-areas-buscar" placeholder="Buscar un área de servicio...">
+        </div>
+        <div class="ks-areas-servicio-grid" id="ks-areas-grid">
           {% for checkbox in form.areas_servicio %}
-          <label class="ks-checkbox">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
+          <label class="ks-checkbox" data-texto="{{ checkbox.choice_label|lower }}">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
           {% endfor %}
         </div>
+        <p class="ks-help mb-0" id="ks-areas-sin-resultados" style="display:none;">Ningún área coincide con esa búsqueda.</p>
+      </div>
+      <div class="ks-field">
+        <label for="{{ form.otra_area_servicio.id_for_label }}">{{ form.otra_area_servicio.label }}</label>
+        {{ form.otra_area_servicio }}
+        <small class="ks-help">Si trabajas en más de una que no esté en la lista, sepáralas con comas.</small>
       </div>
       <div class="ks-field">
         <label for="{{ form.experiencia.id_for_label }}">{{ form.experiencia.label }}</label>
@@ -32,8 +42,53 @@
         {{ form.foto_perfil }}
         {% if form.foto_perfil.errors %}<small class="ks-error">{{ form.foto_perfil.errors }}</small>{% endif %}
       </div>
+      <div class="ks-field">
+        <label for="documentos">Certificados y documentos de respaldo</label>
+        <input type="file" id="documentos" name="documentos" multiple>
+        <small class="ks-help">Certificaciones, títulos o licencias — solo vos y el equipo de KeyServ pueden verlos, todavía no se muestran públicamente en tu perfil.</small>
+      </div>
       <button type="submit" class="ks-btn ks-btn-primary">Guardar</button>
     </form>
   </div>
+
+  {% if documentos %}
+  <div class="ks-panel">
+    <h3><i class="bi bi-file-earmark-check"></i> Tus certificados y documentos</h3>
+    <ul class="ks-doc-list">
+      {% for documento in documentos %}
+      <li class="ks-doc-item">
+        <a href="{% url 'KeyServApp:documento_descargar' documento.id_documento %}" target="_blank" rel="noopener">
+          <i class="bi bi-file-earmark-text"></i>
+          <span>{{ documento.nombre_documento }}<small>Subido el {{ documento.fecha_subida_documento|date:"d/m/Y" }}</small></span>
+        </a>
+        <form method="post" action="{% url 'KeyServApp:documento_perfil_eliminar' documento.id_documento %}" onsubmit="return confirm('¿Eliminar este documento?');">
+          {% csrf_token %}
+          <button type="submit" class="ks-doc-item-eliminar" title="Eliminar"><i class="bi bi-trash"></i></button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 </section>
+
+<script>
+(function () {
+  var campoBuscar = document.getElementById('ks-areas-buscar');
+  var etiquetas = document.querySelectorAll('#ks-areas-grid .ks-checkbox');
+  var sinResultados = document.getElementById('ks-areas-sin-resultados');
+  if (!campoBuscar) return;
+
+  campoBuscar.addEventListener('input', function () {
+    var texto = campoBuscar.value.trim().toLowerCase();
+    var visibles = 0;
+    etiquetas.forEach(function (etiqueta) {
+      var coincide = !texto || etiqueta.dataset.texto.indexOf(texto) !== -1;
+      etiqueta.style.display = coincide ? '' : 'none';
+      if (coincide) visibles++;
+    });
+    sinResultados.style.display = visibles === 0 ? '' : 'none';
+  });
+})();
+</script>
 {% endblock %}

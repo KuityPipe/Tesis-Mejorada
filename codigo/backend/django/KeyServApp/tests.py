@@ -22,9 +22,10 @@ from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
 from .models import (
-    Comuna, Contratacion, Documento, HistorialEstadoContratacion,
-    IntentoAccesoSospechoso, ItemPresupuesto, Pago, Publicaciones, Ranking,
-    Region, TipoCuenta, Usuario, Valoracion, ValoracionImagen,
+    Comuna, Contratacion, Documento, EstadoDocumento,
+    HistorialEstadoContratacion, IntentoAccesoSospechoso, ItemPresupuesto,
+    Pago, Publicaciones, Ranking, Region, TipoCuenta, Usuario, Valoracion,
+    ValoracionImagen,
 )
 from . import biometria, geolocalizacion, validators
 
@@ -332,11 +333,15 @@ class CrearPerfilTests(TestCase):
     """
     /perfil/crear/ (perfil de proveedor extendido, RF002) antes era un
     formulario estático que no guardaba nada. Ahora es un CrearPerfilForm
-    real sobre Usuario.areas_servicio/experiencia.
+    real sobre Usuario.areas_servicio/experiencia, más certificados
+    (Documento). `EstadoDocumento` normalmente viene del fixture
+    catalogos_iniciales (no se carga solo en la base de datos de test) —
+    se crea acá a mano, mismo criterio que `_crear_region_comuna_tipo`.
     """
 
     def setUp(self):
         _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        EstadoDocumento.objects.get_or_create(id_estado_documento=2, defaults={'nombre_estado_documento': 'No firmado'})
         self.proveedor = _crear_usuario('proveedor_crearperfil@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
         self.client = Client()
         session = self.client.session
@@ -357,6 +362,61 @@ class CrearPerfilTests(TestCase):
         self.proveedor.save(update_fields=['areas_servicio'])
         resp = self.client.get(reverse('KeyServApp:crear_perfil'))
         self.assertContains(resp, 'checked', count=2)
+
+    def test_post_agrega_un_area_libre_no_predefinida(self):
+        self.client.post(reverse('KeyServApp:crear_perfil'), {
+            'areas_servicio': ['Gasfitería'],
+            'otra_area_servicio': 'Reparación de piscinas, Poda de árboles altos',
+        })
+        self.proveedor.refresh_from_db()
+        self.assertEqual(self.proveedor.areas_servicio, 'Gasfitería, Reparación de piscinas, Poda de árboles altos')
+
+    def test_get_precarga_el_area_libre_por_separado_de_las_predefinidas(self):
+        self.proveedor.areas_servicio = 'Gasfitería, Reparación de piscinas'
+        self.proveedor.save(update_fields=['areas_servicio'])
+        resp = self.client.get(reverse('KeyServApp:crear_perfil'))
+        self.assertContains(resp, 'checked', count=1)
+        self.assertContains(resp, 'Reparación de piscinas')
+
+    def test_post_sube_un_certificado_valido(self):
+        pdf = SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 contenido de prueba', content_type='application/pdf')
+        self.client.post(reverse('KeyServApp:crear_perfil'), {'areas_servicio': ['Gasfitería'], 'documentos': [pdf]})
+        documentos = Documento.objects.filter(usuario=self.proveedor, publicacion__isnull=True)
+        self.assertEqual(documentos.count(), 1)
+        self.assertEqual(documentos.first().nombre_documento, 'certificado.pdf')
+
+    def test_post_certificado_disfrazado_se_rechaza(self):
+        falso = SimpleUploadedFile('script.pdf', b'<script>alert(1)</script>', content_type='application/pdf')
+        resp = self.client.post(reverse('KeyServApp:crear_perfil'), {'areas_servicio': [], 'documentos': [falso]}, follow=True)
+        self.assertEqual(Documento.objects.filter(usuario=self.proveedor).count(), 0)
+        mensajes = [str(m) for m in resp.context['messages']]
+        self.assertTrue(any('script.pdf' in m for m in mensajes))
+
+    def test_get_muestra_los_certificados_ya_subidos(self):
+        Documento.objects.create(
+            usuario=self.proveedor, nombre_documento='certificado.pdf',
+            archivo_subido=SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 x', content_type='application/pdf'),
+        )
+        resp = self.client.get(reverse('KeyServApp:crear_perfil'))
+        self.assertContains(resp, 'certificado.pdf')
+
+    def test_puede_eliminar_su_propio_certificado(self):
+        documento = Documento.objects.create(
+            usuario=self.proveedor, nombre_documento='certificado.pdf',
+            archivo_subido=SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 x', content_type='application/pdf'),
+        )
+        self.client.post(reverse('KeyServApp:documento_perfil_eliminar', args=[documento.id_documento]))
+        self.assertFalse(Documento.objects.filter(pk=documento.id_documento).exists())
+
+    def test_no_puede_eliminar_el_certificado_de_otro_proveedor(self):
+        otro_proveedor = _crear_usuario('otro_proveedor_doc@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        documento = Documento.objects.create(
+            usuario=otro_proveedor, nombre_documento='certificado.pdf',
+            archivo_subido=SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 x', content_type='application/pdf'),
+        )
+        resp = self.client.post(reverse('KeyServApp:documento_perfil_eliminar', args=[documento.id_documento]))
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Documento.objects.filter(pk=documento.id_documento).exists())
 
 
 class PreferenciasCuentaTests(TestCase):
@@ -625,6 +685,29 @@ class PublicacionYModeracionTests(TestCase):
         session.save()
         resp = client.get(reverse('KeyServApp:publicacion_crear'))
         self.assertRedirects(resp, reverse('KeyServApp:perfil'))
+
+    def test_crear_publicacion_con_documento_lo_guarda_de_verdad(self):
+        """
+        Regresión real: `Documento.full_clean()` requiere `estado_documento`
+        (campo obligatorio en el modelo) pero nunca se seteaba acá — todo
+        documento adjunto a una publicación se rechazaba en silencio, sin
+        importar que el archivo fuera válido. Ver el fix en
+        publicacion_crear_view/crear_perfil_view (estado_no_firmado).
+        """
+        EstadoDocumento.objects.get_or_create(id_estado_documento=2, defaults={'nombre_estado_documento': 'No firmado'})
+        client = Client()
+        session = client.session
+        session['usuario_id'] = self.proveedor.id_usuario
+        session.save()
+        pdf = SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 contenido de prueba', content_type='application/pdf')
+        resp = client.post(reverse('KeyServApp:publicacion_crear'), {
+            'titulo': 'Gasfitería', 'sub_titulo': 'Reparaciones', 'descripcion_publicacion': 'Descripción',
+            'categoria': 'Gasfitería', 'precio': 15000, 'documentos': [pdf],
+        }, follow=True)
+        publicacion = Publicaciones.objects.get(titulo='Gasfitería')
+        self.assertEqual(publicacion.documentos.count(), 1)
+        mensajes = [str(m) for m in resp.context['messages']]
+        self.assertFalse(any('no se pudieron subir' in m.lower() for m in mensajes))
 
 
 class DocumentoAccesoTests(TestCase):

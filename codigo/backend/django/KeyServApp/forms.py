@@ -184,6 +184,14 @@ class CrearPerfilForm(forms.ModelForm):
         choices=[], required=False, widget=forms.CheckboxSelectMultiple,
         label='Áreas de servicio en las que trabajas',
     )
+    # Mismo criterio que PublicacionForm.categoria_otra: si no está en la
+    # lista predefinida, se agrega tal cual como texto libre (separado por
+    # comas si son varias) — no hay moderación aparte para esto, es solo
+    # descriptivo del perfil, no filtra el catálogo.
+    otra_area_servicio = forms.CharField(
+        max_length=120, required=False,
+        label='¿Trabajas en algo que no está en la lista? Agrégalo acá',
+    )
 
     class Meta:
         model = Usuario
@@ -195,11 +203,15 @@ class CrearPerfilForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['areas_servicio'].choices = [(c, c) for c in CATEGORIAS_PUBLICACION]
         if self.instance and self.instance.areas_servicio:
-            self.initial['areas_servicio'] = [a.strip() for a in self.instance.areas_servicio.split(',') if a.strip()]
+            actuales = [a.strip() for a in self.instance.areas_servicio.split(',') if a.strip()]
+            self.initial['areas_servicio'] = [a for a in actuales if a in CATEGORIAS_PUBLICACION]
+            self.initial['otra_area_servicio'] = ', '.join(a for a in actuales if a not in CATEGORIAS_PUBLICACION)
 
     def save(self, commit=True):
         usuario = super().save(commit=False)
-        usuario.areas_servicio = ', '.join(self.cleaned_data.get('areas_servicio', []))
+        areas = list(self.cleaned_data.get('areas_servicio', []))
+        areas += [a.strip() for a in (self.cleaned_data.get('otra_area_servicio') or '').split(',') if a.strip()]
+        usuario.areas_servicio = ', '.join(areas)
         if commit:
             usuario.save()
         return usuario

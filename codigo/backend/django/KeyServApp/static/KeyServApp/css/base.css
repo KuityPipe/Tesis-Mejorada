@@ -950,6 +950,29 @@ a {
   accent-color: var(--ks-teal);
 }
 
+.ks-areas-buscador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background: var(--ks-cream-soft);
+}
+
+.ks-areas-buscador i { color: var(--ks-ink-soft); }
+
+.ks-areas-buscador input {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  font-family: 'Nunito', sans-serif;
+  font-size: .95rem;
+  color: var(--ks-ink);
+}
+
 .ks-areas-servicio-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1799,6 +1822,41 @@ a {
   color: var(--ks-ink-soft);
   font-weight: 500;
   font-size: .78rem;
+}
+
+.ks-doc-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ks-doc-item a { flex: 1; }
+
+.ks-doc-item-eliminar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--ks-border);
+  background: var(--ks-surface);
+  color: var(--ks-ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color .12s ease, color .12s ease;
+}
+
+.ks-doc-item-eliminar:hover {
+  border-color: var(--ks-coral);
+  color: var(--ks-coral-dark);
+}
+
+.ks-doc-item-eliminar i {
+  background: none;
+  width: auto;
+  height: auto;
+  font-size: 1rem;
 }
 
 .ks-progress-steps {
