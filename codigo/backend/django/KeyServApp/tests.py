@@ -18,13 +18,13 @@ from unittest import mock
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
 from .models import (
     Comuna, Contratacion, Documento, HistorialEstadoContratacion,
-    IntentoAccesoSospechoso, Pago, Publicaciones, Ranking, Region,
-    TipoCuenta, Usuario, Valoracion, ValoracionImagen,
+    IntentoAccesoSospechoso, ItemPresupuesto, Pago, Publicaciones, Ranking,
+    Region, TipoCuenta, Usuario, Valoracion, ValoracionImagen,
 )
 from . import biometria, geolocalizacion, validators
 
@@ -776,6 +776,103 @@ class MontoAcordadoConfirmarTests(TestCase):
         self.contratacion.refresh_from_db()
         self.assertEqual(self.contratacion.estado, Contratacion.CONFIRMADA)
         self.assertEqual(self.contratacion.monto_acordado, 15000)
+
+
+class ItemPresupuestoTests(TestCase):
+    """
+    Hoja de presupuesto opcional (ItemPresupuesto, ver
+    _parsear_items_presupuesto/contratacion_confirmar_view): filas libres
+    que el proveedor puede cargar al confirmar en vez de un monto único —
+    si carga al menos un ítem válido, la suma reemplaza tanto el precio de
+    la publicación como el campo "monto" simple.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_item@test.com', 'clave_prov', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_item@test.com', 'clave_cli', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(
+            usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000,
+        )
+        self.contratacion = Contratacion.objects.create(
+            publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=Contratacion.SOLICITADA,
+        )
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.proveedor.id_usuario
+        session.save()
+
+    def test_confirmar_con_items_suma_el_monto_acordado(self):
+        self.client.post(reverse('KeyServApp:contratacion_confirmar', args=[self.contratacion.id_contratacion]), {
+            'password': 'clave_prov',
+            'item_descripcion': ['Cañería PVC', 'Mano de obra'],
+            'item_categoria': [ItemPresupuesto.MATERIAL, ItemPresupuesto.MANO_DE_OBRA],
+            'item_monto': ['8000', '12000'],
+        })
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.CONFIRMADA)
+        self.assertEqual(self.contratacion.monto_acordado, 20000)
+        items = list(self.contratacion.items_presupuesto.all())
+        self.assertEqual(len(items), 2)
+        self.assertEqual([item.descripcion for item in items], ['Cañería PVC', 'Mano de obra'])
+        self.assertEqual([item.orden for item in items], [0, 1])
+
+    def test_confirmar_con_items_ignora_el_monto_unico(self):
+        self.client.post(reverse('KeyServApp:contratacion_confirmar', args=[self.contratacion.id_contratacion]), {
+            'password': 'clave_prov', 'monto': '99999',
+            'item_descripcion': ['Viaje'], 'item_categoria': [ItemPresupuesto.VIAJE], 'item_monto': ['5000'],
+        })
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.monto_acordado, 5000)
+
+    def test_confirmar_descarta_filas_vacias_o_con_monto_invalido(self):
+        self.client.post(reverse('KeyServApp:contratacion_confirmar', args=[self.contratacion.id_contratacion]), {
+            'password': 'clave_prov',
+            'item_descripcion': ['', 'Materiales', 'Sin monto'],
+            'item_categoria': [ItemPresupuesto.OTRO, ItemPresupuesto.MATERIAL, ItemPresupuesto.OTRO],
+            'item_monto': ['1000', '-500', 'no-es-un-numero'],
+        })
+        self.contratacion.refresh_from_db()
+        # Las tres filas son inválidas (descripción vacía, monto negativo, monto no numérico)
+        # -> se descartan todas y se cae al precio de la publicación, como si no se hubiera cargado nada.
+        self.assertEqual(self.contratacion.monto_acordado, 15000)
+        self.assertEqual(self.contratacion.items_presupuesto.count(), 0)
+
+    def test_confirmar_con_categoria_desconocida_usa_otro(self):
+        self.client.post(reverse('KeyServApp:contratacion_confirmar', args=[self.contratacion.id_contratacion]), {
+            'password': 'clave_prov',
+            'item_descripcion': ['Gasto raro'], 'item_categoria': ['NO_EXISTE'], 'item_monto': ['3000'],
+        })
+        item = self.contratacion.items_presupuesto.get()
+        self.assertEqual(item.categoria, ItemPresupuesto.OTRO)
+
+    def test_confirmar_sin_items_conserva_el_comportamiento_del_monto_unico(self):
+        self.client.post(reverse('KeyServApp:contratacion_confirmar', args=[self.contratacion.id_contratacion]), {
+            'password': 'clave_prov', 'monto': '18000',
+        })
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.monto_acordado, 18000)
+        self.assertEqual(self.contratacion.items_presupuesto.count(), 0)
+
+    @override_settings(COMISION_PLATAFORMA_PORCENTAJE=5.0)
+    def test_detalle_muestra_desglose_y_comision_estimada(self):
+        self.contratacion.monto_acordado = 20000
+        self.contratacion.estado = Contratacion.CONFIRMADA
+        self.contratacion.save()
+        ItemPresupuesto.objects.create(contratacion=self.contratacion, descripcion='Cañería', categoria=ItemPresupuesto.MATERIAL, monto=8000, orden=0)
+        ItemPresupuesto.objects.create(contratacion=self.contratacion, descripcion='Mano de obra', categoria=ItemPresupuesto.MANO_DE_OBRA, monto=12000, orden=1)
+
+        resp = self.client.get(reverse('KeyServApp:contratacion_detalle', args=[self.contratacion.id_contratacion]))
+
+        self.assertEqual(len(resp.context['items_presupuesto']), 2)
+        self.assertEqual(resp.context['comision_porcentaje'], 5.0)
+        self.assertEqual(resp.context['comision_estimada'], 1000)
+        self.assertEqual(resp.context['neto_proveedor_estimado'], 19000)
+
+    def test_detalle_sin_monto_acordado_no_calcula_comision(self):
+        resp = self.client.get(reverse('KeyServApp:contratacion_detalle', args=[self.contratacion.id_contratacion]))
+        self.assertIsNone(resp.context['comision_estimada'])
+        self.assertIsNone(resp.context['neto_proveedor_estimado'])
 
 
 class PagoTests(TestCase):

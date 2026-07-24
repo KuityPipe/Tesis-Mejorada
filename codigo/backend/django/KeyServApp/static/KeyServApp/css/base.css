@@ -1894,6 +1894,83 @@ a {
   color: #fff;
 }
 
+/* ---------- Hoja de presupuesto (opcional, al confirmar) ---------- */
+
+.ks-presupuesto-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ks-presupuesto-fila input[name="item_descripcion"] {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  background: var(--ks-cream-soft);
+  color: var(--ks-ink);
+}
+
+.ks-presupuesto-fila select {
+  padding: 8px 10px;
+  border: 1.5px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  background: var(--ks-cream-soft);
+  color: var(--ks-ink);
+}
+
+.ks-presupuesto-fila input[name="item_monto"] {
+  width: 110px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  background: var(--ks-cream-soft);
+  color: var(--ks-ink);
+}
+
+.ks-presupuesto-fila .ks-archivo-quitar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.ks-presupuesto-total {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--ks-border);
+  font-size: .92rem;
+}
+
+.ks-presupuesto-desglose {
+  background: var(--ks-teal-light);
+  border-radius: var(--ks-radius-md);
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.ks-presupuesto-lista {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 12px;
+}
+
+.ks-presupuesto-lista li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, .08);
+  font-size: .9rem;
+}
+
+.ks-presupuesto-lista li span:first-child {
+  flex: 1;
+}
+
 /* ---------- Pago exitoso ---------- */
 
 .ks-success-circle {

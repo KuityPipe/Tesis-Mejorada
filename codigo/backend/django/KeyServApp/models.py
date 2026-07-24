@@ -481,6 +481,42 @@ class Contratacion(models.Model):
         return f'Contratación #{self.id_contratacion} ({self.estado})'
 
 
+class ItemPresupuesto(models.Model):
+    """
+    NUEVO: hoja de presupuesto totalmente opcional — el proveedor puede
+    desglosar en qué se compone el monto acordado (materiales, mano de
+    obra, viaje, etc.) en vez de acordar un número pelado. Filas libres,
+    no una cantidad fija de campos: el proveedor agrega las que necesite.
+    Si se completa, la suma de estos ítems reemplaza lo que se haya escrito
+    en el campo "monto" simple al confirmar (ver contratacion_confirmar_view).
+    Puramente informativo/de transparencia con el cliente — no mueve
+    plata por separado ni reemplaza a Pago.
+    """
+    id_item_presupuesto = models.BigAutoField(primary_key=True, db_column='ID_ITEM_PRESUPUESTO')
+    contratacion = models.ForeignKey(Contratacion, on_delete=models.CASCADE, related_name='items_presupuesto', db_column='FK_CONTRATACION')
+    descripcion = models.CharField(max_length=200, db_column='DESCRIPCION')
+
+    MATERIAL, MANO_DE_OBRA, VIAJE, OTRO = 'MATERIAL', 'MANO_DE_OBRA', 'VIAJE', 'OTRO'
+    CATEGORIAS_ITEM = [
+        (MATERIAL, 'Materiales'),
+        (MANO_DE_OBRA, 'Tiempo y esfuerzo'),
+        (VIAJE, 'Gasto de viaje'),
+        (OTRO, 'Otro'),
+    ]
+    categoria = models.CharField(max_length=12, choices=CATEGORIAS_ITEM, default=OTRO, db_column='CATEGORIA')
+    monto = models.PositiveIntegerField(db_column='MONTO')
+    orden = models.PositiveSmallIntegerField(default=0, db_column='ORDEN')
+
+    class Meta:
+        db_table = 'ITEM_PRESUPUESTO'
+        ordering = ['orden', 'id_item_presupuesto']
+        verbose_name = 'Ítem de presupuesto'
+        verbose_name_plural = 'Ítems de presupuesto'
+
+    def __str__(self):
+        return f'{self.descripcion} — ${self.monto}'
+
+
 class HistorialEstadoContratacion(models.Model):
     """
     NUEVO: registro de cada cambio de estado de una Contratacion, con fecha.

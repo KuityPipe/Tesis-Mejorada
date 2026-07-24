@@ -241,6 +241,14 @@ else:
     EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='KeyServ <no-responder@keyserv.cl>')
 
+# Comisión de la plataforma sobre cada Contratacion (RF012, hoja de
+# presupuesto opcional — ver ItemPresupuesto en models.py). Puramente
+# informativo por ahora: se muestra al proveedor como referencia al armar
+# el presupuesto, no descuenta nada de verdad todavía (el pago le cobra el
+# 100% al cliente; la liquidación al proveedor sigue siendo manual, fuera
+# del sistema — ver docs/RECOMMENDED_ARCHITECTURE.md).
+COMISION_PLATAFORMA_PORCENTAJE = env.float('COMISION_PLATAFORMA_PORCENTAJE', default=5.0)
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

@@ -15,9 +15,10 @@ from .models import (
     AreaAdministrativa, Autentificacion, Comuna, Consulta, Contratacion,
     Conversacion, Documento, EstadoAutentificacion, EstadoConsulta,
     EstadoDocumento, Firma, Gasto, HistorialEstadoContratacion, Imagenes,
-    IntentoAccesoSospechoso, Mensaje, Pago, Publicaciones, Ranking, Region,
-    RolCuentaAdministrativa, TipoCuenta, TipoFirma, Transaccion, Usuario,
-    UsuarioAdministrativo, UsuarioConversacion, Valoracion, ValoracionImagen,
+    IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
+    Ranking, Region, RolCuentaAdministrativa, TipoCuenta, TipoFirma,
+    Transaccion, Usuario, UsuarioAdministrativo, UsuarioConversacion,
+    Valoracion, ValoracionImagen,
 )
 from .views import _recalcular_ranking
 
@@ -114,13 +115,32 @@ class PublicacionesAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
+class ItemPresupuestoInline(admin.TabularInline):
+    """
+    Hoja de presupuesto opcional que haya cargado el proveedor al confirmar
+    — de solo lectura, se arma una sola vez desde contratacion_confirmar_view,
+    nadie la edita a mano desde acá.
+    """
+    model = ItemPresupuesto
+    extra = 0
+    fields = ('descripcion', 'categoria', 'monto')
+    readonly_fields = ('descripcion', 'categoria', 'monto')
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Contratacion)
 class ContratacionAdmin(admin.ModelAdmin):
     """`fecha_creacion` (inicio del trabajo) y `fecha_actualizacion` son de solo lectura — timestamps fijos por integridad, no se puede reescribir cuándo empezó un trabajo."""
-    list_display = ('id_contratacion', 'publicacion', 'cliente', 'proveedor', 'estado', 'fecha_creacion')
+    list_display = ('id_contratacion', 'publicacion', 'cliente', 'proveedor', 'estado', 'monto_acordado', 'fecha_creacion')
     list_filter = ('estado',)
     search_fields = ('publicacion__titulo', 'cliente__nombre_usuario', 'proveedor__nombre_usuario')
     readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
+    inlines = [ItemPresupuestoInline]
 
 
 @admin.register(HistorialEstadoContratacion)

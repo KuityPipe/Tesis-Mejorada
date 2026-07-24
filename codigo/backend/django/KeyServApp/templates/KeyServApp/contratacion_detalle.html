@@ -55,16 +55,48 @@
         {% endif %}
 
         {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
-        <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" class="d-flex gap-2 flex-wrap align-items-end">
+        <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" id="formConfirmar">
           {% csrf_token %}
-          <div class="ks-field mb-0">
+          <div class="ks-field mb-2">
             <label for="id_monto_confirmar" class="ks-help" style="font-weight:700;">Monto acordado con el cliente (CLP)</label>
             <input type="number" name="monto" id="id_monto_confirmar" min="1" value="{{ contratacion.publicacion.precio|default:'' }}" placeholder="Precio de la publicación: ${{ contratacion.publicacion.precio|default:'0' }}">
+            <span class="ks-help" style="font-size:.82rem;">Si ya hablaron por el chat y quedaron en otro monto, ajustalo acá — si lo dejás como está, se cobra el precio de la publicación.</span>
           </div>
+
+          <button type="button" class="ks-btn ks-btn-outline mb-2" id="btnTogglePresupuesto"><i class="bi bi-receipt"></i> Armar hoja de presupuesto (opcional)</button>
+
+          <div id="hojaPresupuesto" style="display:none;">
+            <p class="ks-help">Desglosá en qué se compone el monto — materiales, tiempo, viaje, lo que necesites. Es totalmente opcional; si cargás al menos un ítem, la suma reemplaza el monto de arriba.</p>
+            <div id="filasPresupuesto"></div>
+            <button type="button" class="ks-btn ks-btn-outline ks-btn-sm" id="btnAgregarItem"><i class="bi bi-plus-lg"></i> Agregar ítem</button>
+            <div class="ks-presupuesto-total">
+              Total presupuesto: <strong id="totalPresupuesto">$0</strong>
+              <span class="ks-help" id="comisionPresupuesto"></span>
+            </div>
+          </div>
+
           {{ reautenticacion_form.password }}
-          <button type="submit" class="ks-btn ks-btn-primary">Confirmar solicitud</button>
+          <button type="submit" class="ks-btn ks-btn-primary mt-2">Confirmar solicitud</button>
         </form>
-        <p class="ks-help mb-0" style="font-size:.82rem;">Si ya hablaron por el chat y quedaron en otro monto, ajustalo acá — si lo dejás como está, se cobra el precio de la publicación.</p>
+        {% endif %}
+
+        {% if items_presupuesto %}
+        <div class="ks-presupuesto-desglose">
+          <h4 style="font-size:.9rem;">Desglose del presupuesto acordado</h4>
+          <ul class="ks-presupuesto-lista">
+            {% for item in items_presupuesto %}
+            <li>
+              <span>{{ item.descripcion }}</span>
+              <span class="ks-help">{{ item.get_categoria_display }}</span>
+              <strong>${{ item.monto }}</strong>
+            </li>
+            {% endfor %}
+          </ul>
+          <p class="mb-0"><strong>Total acordado: ${{ contratacion.monto_acordado }} CLP</strong></p>
+          {% if usuario == contratacion.proveedor %}
+          <p class="ks-help mb-0" style="font-size:.82rem;">Comisión de la plataforma (referencial, {{ comision_porcentaje }}%): ${{ comision_estimada }} CLP — recibirías aproximadamente ${{ neto_proveedor_estimado }} CLP.</p>
+          {% endif %}
+        </div>
         {% endif %}
 
         {% if contratacion.estado == 'CONFIRMADA' and usuario == contratacion.cliente %}
@@ -212,4 +244,64 @@
 
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var btnToggle = document.getElementById('btnTogglePresupuesto');
+  var hoja = document.getElementById('hojaPresupuesto');
+  var filas = document.getElementById('filasPresupuesto');
+  var btnAgregar = document.getElementById('btnAgregarItem');
+  var totalEl = document.getElementById('totalPresupuesto');
+  var comisionEl = document.getElementById('comisionPresupuesto');
+  if (!btnToggle) return;
+
+  var COMISION_PORCENTAJE = {{ comision_porcentaje|default:5 }};
+
+  btnToggle.addEventListener('click', function () {
+    var abierta = hoja.style.display !== 'none';
+    hoja.style.display = abierta ? 'none' : 'block';
+    if (!abierta && filas.children.length === 0) agregarFila();
+  });
+
+  function recalcular() {
+    var total = 0;
+    filas.querySelectorAll('input[name="item_monto"]').forEach(function (input) {
+      var valor = parseInt(input.value, 10);
+      if (!isNaN(valor) && valor > 0) total += valor;
+    });
+    totalEl.textContent = '$' + total.toLocaleString('es-CL');
+    if (total > 0) {
+      var comision = Math.round(total * COMISION_PORCENTAJE / 100);
+      comisionEl.textContent = ' — comisión de la plataforma referencial (' + COMISION_PORCENTAJE + '%): $' + comision.toLocaleString('es-CL');
+    } else {
+      comisionEl.textContent = '';
+    }
+  }
+
+  function agregarFila() {
+    var fila = document.createElement('div');
+    fila.className = 'ks-presupuesto-fila';
+    fila.innerHTML =
+      '<input type="text" name="item_descripcion" placeholder="Descripción (ej: cañería PVC 3m)" maxlength="200">' +
+      '<select name="item_categoria">' +
+      '<option value="MATERIAL">Materiales</option>' +
+      '<option value="MANO_DE_OBRA" selected>Tiempo y esfuerzo</option>' +
+      '<option value="VIAJE">Gasto de viaje</option>' +
+      '<option value="OTRO">Otro</option>' +
+      '</select>' +
+      '<input type="number" name="item_monto" min="1" placeholder="Monto $">' +
+      '<button type="button" class="ks-archivo-quitar" aria-label="Quitar ítem">&times;</button>';
+    fila.querySelector('input[name="item_monto"]').addEventListener('input', recalcular);
+    fila.querySelector('.ks-archivo-quitar').addEventListener('click', function () {
+      fila.remove();
+      recalcular();
+    });
+    filas.appendChild(fila);
+  }
+
+  btnAgregar.addEventListener('click', agregarFila);
+})();
+</script>
 {% endblock %}

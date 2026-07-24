@@ -41,9 +41,10 @@ from .forms import (
 )
 from .models import (
     Comuna, Contratacion, Conversacion, Documento, EstadoConsulta,
-    HistorialEstadoContratacion, Imagenes, IntentoAccesoSospechoso, Mensaje,
-    Pago, Publicaciones, Ranking, Region, TipoCuenta, Transaccion, Usuario,
-    UsuarioConversacion, Valoracion, ValoracionImagen,
+    HistorialEstadoContratacion, Imagenes, IntentoAccesoSospechoso,
+    ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region,
+    TipoCuenta, Transaccion, Usuario, UsuarioConversacion, Valoracion,
+    ValoracionImagen,
 )
 from . import biometria, geolocalizacion, pagos
 from . import validators
@@ -770,6 +771,16 @@ def contratacion_detalle_view(request, contratacion_id):
     historial = contratacion.historial_estados.all()
     fechas_por_estado = {h.estado: h.fecha for h in historial}
 
+    # Desglose del presupuesto (opcional, solo existe si el proveedor cargó
+    # ítems al confirmar) + comisión de referencia de la plataforma sobre
+    # el monto acordado — puramente informativo, ver settings.COMISION_PLATAFORMA_PORCENTAJE.
+    items_presupuesto = contratacion.items_presupuesto.all()
+    comision_estimada = None
+    neto_proveedor_estimado = None
+    if contratacion.monto_acordado:
+        comision_estimada = round(contratacion.monto_acordado * settings.COMISION_PLATAFORMA_PORCENTAJE / 100)
+        neto_proveedor_estimado = contratacion.monto_acordado - comision_estimada
+
     return render(request, 'KeyServApp/contratacion_detalle.html', {
         'contratacion': contratacion,
         'usuario': usuario,
@@ -782,6 +793,10 @@ def contratacion_detalle_view(request, contratacion_id):
         'reautenticacion_form': ReautenticacionForm(),
         'valoracion': valoracion,
         'valoracion_form': valoracion_form,
+        'items_presupuesto': items_presupuesto,
+        'comision_estimada': comision_estimada,
+        'neto_proveedor_estimado': neto_proveedor_estimado,
+        'comision_porcentaje': settings.COMISION_PLATAFORMA_PORCENTAJE,
     })
 
 
@@ -855,6 +870,40 @@ def _registrar_intento_reautenticacion(usuario, contratacion_id, exito):
 
 @login_requerido
 @require_POST
+def _parsear_items_presupuesto(request):
+    """
+    Lee las filas libres de la hoja de presupuesto opcional (name="item_descripcion"/
+    "item_categoria"/"item_monto" repetidos, uno por fila — ver
+    contratacion_detalle.html) y devuelve solo las filas válidas como
+    tuplas (descripcion, categoria, monto). Filas vacías o con un monto no
+    numérico/negativo se descartan en silencio (es un ítem que el
+    proveedor dejó a medio llenar, no un error que deba bloquear todo el
+    formulario de confirmación).
+    """
+    descripciones = request.POST.getlist('item_descripcion')
+    categorias = request.POST.getlist('item_categoria')
+    montos = request.POST.getlist('item_monto')
+    categorias_validas = dict(ItemPresupuesto.CATEGORIAS_ITEM)
+
+    items = []
+    for descripcion, categoria, monto_bruto in zip(descripciones, categorias, montos):
+        descripcion = descripcion.strip()[:200]
+        if not descripcion:
+            continue
+        try:
+            monto = int(monto_bruto)
+        except (TypeError, ValueError):
+            continue
+        if monto <= 0:
+            continue
+        if categoria not in categorias_validas:
+            categoria = ItemPresupuesto.OTRO
+        items.append((descripcion, categoria, monto))
+    return items
+
+
+@login_requerido
+@require_POST
 def contratacion_confirmar_view(request, contratacion_id):
     """
     El PROVEEDOR confirma que acepta la solicitud (SOLICITADA -> CONFIRMADA).
@@ -863,11 +912,16 @@ def contratacion_confirmar_view(request, contratacion_id):
 
     También es el momento donde se fija `monto_acordado`: el precio de la
     publicación es solo un punto de partida, cliente y proveedor pueden
-    haber acordado otro por chat antes de esto — si el proveedor manda un
-    monto válido en el form, se usa ese; si no, se usa el precio de la
-    publicación tal cual. Ese es el monto que se cobra después (ver
-    pago_webpay_iniciar_view/pago_khipu_iniciar_view), nunca se vuelve a
-    leer el precio de la publicación pasado este punto.
+    haber acordado otro por chat antes de esto. Dos formas de fijarlo,
+    ambas opcionales — si no se usa ninguna, se cae al precio de la
+    publicación tal cual:
+      1. Hoja de presupuesto libre (`ItemPresupuesto`, ver
+         _parsear_items_presupuesto): si el proveedor cargó al menos un
+         ítem válido, el monto acordado es la suma de todos.
+      2. Un monto único a mano (`MontoAcordadoForm`), si no cargó ítems.
+    Ese monto es lo que se cobra después (ver pago_webpay_iniciar_view/
+    pago_khipu_iniciar_view), nunca se vuelve a leer el precio de la
+    publicación pasado este punto.
 
     Límite de intentos por (usuario, contratación) — mismo criterio que el
     login: sin esto, alguien con una sesión ya abierta (ej. una computadora
@@ -890,15 +944,24 @@ def contratacion_confirmar_view(request, contratacion_id):
     form = ReautenticacionForm(request.POST)
     if form.is_valid() and usuario.check_password(form.cleaned_data['password']):
         _registrar_intento_reautenticacion(usuario, contratacion_id, exito=True)
-        monto_form = MontoAcordadoForm(request.POST)
+        items_presupuesto = _parsear_items_presupuesto(request)
         monto_acordado = contratacion.publicacion.precio
-        if monto_form.is_valid() and monto_form.cleaned_data.get('monto'):
-            monto_acordado = monto_form.cleaned_data['monto']
+        if items_presupuesto:
+            monto_acordado = sum(monto for _, _, monto in items_presupuesto)
+        else:
+            monto_form = MontoAcordadoForm(request.POST)
+            if monto_form.is_valid() and monto_form.cleaned_data.get('monto'):
+                monto_acordado = monto_form.cleaned_data['monto']
         contratacion.monto_acordado = monto_acordado
         contratacion.estado = Contratacion.CONFIRMADA
         contratacion.save()
         HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.CONFIRMADA)
-        logger.info('Contratación confirmada por el proveedor: id=%s monto_acordado=%s', contratacion.id_contratacion, monto_acordado)
+        if items_presupuesto:
+            ItemPresupuesto.objects.bulk_create([
+                ItemPresupuesto(contratacion=contratacion, descripcion=descripcion, categoria=categoria, monto=monto, orden=indice)
+                for indice, (descripcion, categoria, monto) in enumerate(items_presupuesto)
+            ])
+        logger.info('Contratación confirmada por el proveedor: id=%s monto_acordado=%s items_presupuesto=%s', contratacion.id_contratacion, monto_acordado, len(items_presupuesto))
         messages.success(request, f'Contratación confirmada — monto acordado: ${monto_acordado} CLP.' if monto_acordado else 'Contratación confirmada.')
     else:
         _registrar_intento_reautenticacion(usuario, contratacion_id, exito=False)
