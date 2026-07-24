@@ -10,34 +10,34 @@
   </div>
 </section>
 
-<section class="ks-section container" style="max-width: 620px;">
-  <div class="ks-panel">
-    <div class="ks-contact-card">
+<section class="ks-section container" style="max-width: 700px;">
+
+  <div class="ks-card-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 24px;">
+    <div class="ks-contact-tile">
       <i class="bi bi-person-badge"></i>
-      <div>
-        <p class="label">Ingeniero de soporte</p>
-        <p class="value">Felipe Salinas</p>
-      </div>
+      <p class="label">Ingeniero de soporte</p>
+      <p class="value">Felipe Salinas</p>
     </div>
-    <div class="ks-contact-card">
+    <a href="tel:+56955162348" class="ks-contact-tile">
       <i class="bi bi-telephone"></i>
-      <div>
-        <p class="label">Teléfono</p>
-        <p class="value"><a href="tel:+56955162348">+56 9 5516 2348</a></p>
-      </div>
-    </div>
-    <div class="ks-contact-card">
+      <p class="label">Teléfono</p>
+      <p class="value">+56 9 5516 2348</p>
+    </a>
+    <a href="mailto:keyserv@gmail.com" class="ks-contact-tile">
       <i class="bi bi-envelope"></i>
-      <div>
-        <p class="label">Correo</p>
-        <p class="value"><a href="mailto:keyserv@gmail.com">keyserv@gmail.com</a></p>
-      </div>
-    </div>
+      <p class="label">Correo</p>
+      <p class="value">keyserv@gmail.com</p>
+    </a>
   </div>
 
   <div class="ks-panel">
-    <h3><i class="bi bi-chat-square-text"></i> ¿Tienes un problema o una consulta?</h3>
-    <p class="ks-help">Cuéntanos qué pasó — nuestro equipo lo revisa y te responde.</p>
+    <h3 class="mb-1"><i class="bi bi-chat-square-text"></i> ¿Tienes un problema o una consulta?</h3>
+    <p class="ks-help mb-3">Cuéntanos qué pasó — nuestro equipo lo revisa y te responde apenas puede.</p>
+
+    <div class="ks-info-note ks-info-note-teal">
+      <i class="bi bi-emoji-smile"></i> Nada de respuestas automáticas — una persona de verdad lee cada consulta.
+    </div>
+
     <form method="post" class="ks-form">
       {% csrf_token %}
       <div class="ks-field">
@@ -67,7 +67,7 @@
         {{ form.nombre_contacto }}
         {{ form.email_contacto }}
       {% endif %}
-      <button type="submit" class="ks-btn ks-btn-primary">Enviar consulta</button>
+      <button type="submit" class="ks-btn ks-btn-primary"><i class="bi bi-send"></i> Enviar consulta</button>
     </form>
   </div>
 </section>

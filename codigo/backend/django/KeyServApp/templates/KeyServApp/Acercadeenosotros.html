@@ -6,25 +6,128 @@
 <section class="ks-page-header">
   <div class="container">
     <h1><i class="bi bi-fingerprint"></i> Acerca de nosotros</h1>
-    <p>Conectamos personas con profesionales de confianza, verificados con biometría.</p>
+    <p>La historia detrás de KeyServ, sin rodeos.</p>
   </div>
 </section>
 
-<section class="ks-section container" style="max-width: 760px;">
-  <div class="ks-panel ks-prose">
-    <p>KeyServ es una plataforma chilena que conecta a personas que necesitan un servicio con proveedores verificados mediante huella dactilar y reconocimiento facial — para que sepas exactamente con quién estás tratando.</p>
+<section class="ks-section container" style="max-width: 780px;">
 
-    <h2>Nuestra misión</h2>
-    <p>Facilitar la contratación de servicios del hogar y profesionales, con la confianza que da una identidad verificada biométricamente en cada extremo de la conexión.</p>
+  <div class="ks-panel">
+    <p class="ks-quote mb-3">"Contratar un servicio para tu casa no debería sentirse como una apuesta."</p>
+    <p class="mb-0" style="color: var(--ks-ink-soft); line-height:1.7;">Esa es la idea que le dio partida a KeyServ. Somos una plataforma chilena que conecta a personas que necesitan un servicio — gasfitería, electricidad, jardinería, limpieza y más — con proveedores que verificamos de verdad: huella dactilar y reconocimiento facial, no solo un formulario marcado con un check. Para que sepas exactamente con quién estás tratando antes de dejarlo entrar a tu casa.</p>
+  </div>
 
-    <h2>Nuestra visión</h2>
-    <p>Ser la plataforma de referencia en Chile para contratar servicios de confianza, reconocida por su seguridad, transparencia y cercanía con las personas.</p>
+  <div class="ks-card-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom: 24px;">
+    <div class="ks-panel mb-0">
+      <i class="bi bi-bullseye" style="font-size:1.8rem; color: var(--ks-teal-dark);"></i>
+      <h3 class="mt-2 mb-1" style="font-size:1.05rem;">Nuestra misión</h3>
+      <p class="ks-help mb-0">Hacer que contratar servicios del hogar sea simple y seguro, con la tranquilidad de una identidad verificada en ambos extremos de la conexión.</p>
+    </div>
+    <div class="ks-panel mb-0">
+      <i class="bi bi-binoculars" style="font-size:1.8rem; color: var(--ks-coral);"></i>
+      <h3 class="mt-2 mb-1" style="font-size:1.05rem;">Nuestra visión</h3>
+      <p class="ks-help mb-0">Ser la plataforma de referencia en Chile para contratar con confianza — reconocida por su seguridad, su transparencia y lo cercana que se siente.</p>
+    </div>
+  </div>
 
-    <h2>Nuestro equipo</h2>
-    <p>Un equipo comprometido con construir tecnología de verificación de identidad accesible, aplicada a un problema muy cotidiano: encontrar a la persona correcta para el trabajo correcto.</p>
+  <div class="ks-panel">
+    <h2 class="mb-1">Nuestros pilares</h2>
+    <p class="ks-help mb-4">Los cuatro pilares que sostienen cada decisión que tomamos.</p>
 
-    <h2>Contacto</h2>
-    <p>¿Tienes dudas o sugerencias? Escríbenos en <a href="{% url 'KeyServApp:contacto' %}">nuestra página de contacto</a>.</p>
+    <div id="carruselPilares" class="carousel slide carousel-fade ks-pilar-carousel" data-bs-ride="carousel" data-bs-interval="8000">
+      <div class="carousel-inner">
+        <div class="carousel-item active">
+          <div class="ks-pilar-slide">
+            <div class="ks-pilar-icon" style="--ks-pilar-bg: var(--ks-navy-light); --ks-pilar-fg: var(--ks-navy-dark);">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <h3>Confianza real</h3>
+            <p>Antes de ofrecer o contratar un servicio, cada persona verifica su identidad con huella dactilar y reconocimiento facial. No es una casilla que marcas al registrarte — es una verificación real, para que sepas exactamente con quién estás tratando.</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <div class="ks-pilar-slide">
+            <div class="ks-pilar-icon" style="--ks-pilar-bg: var(--ks-coral-light); --ks-pilar-fg: var(--ks-coral-dark);">
+              <i class="bi bi-heart"></i>
+            </div>
+            <h3>Cercanía</h3>
+            <p>Cada consulta que llega a soporte la revisa una persona, no un bot con respuestas genéricas. Y detrás de cada calificación hay un trabajo que realmente se completó — nada de reseñas de relleno.</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <div class="ks-pilar-slide">
+            <div class="ks-pilar-icon" style="--ks-pilar-bg: var(--ks-teal-light); --ks-pilar-fg: var(--ks-teal-dark);">
+              <i class="bi bi-eye"></i>
+            </div>
+            <h3>Transparencia</h3>
+            <p>Ves el precio antes de contratar, el historial completo de cada trabajo y calificaciones que pasaron por moderación antes de publicarse. Nada se esconde detrás de letra chica.</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <div class="ks-pilar-slide">
+            <div class="ks-pilar-icon" style="--ks-pilar-bg: var(--ks-navy-light); --ks-pilar-fg: var(--ks-navy-dark);">
+              <i class="bi bi-cpu"></i>
+            </div>
+            <h3>Tecnología accesible</h3>
+            <p>Verificar tu identidad no debería sentirse como un trámite bancario. Usamos tecnología biométrica en serio, pero pensada para que cualquiera la use sin filas y sin papeleo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="carousel-indicators">
+        <button type="button" data-bs-target="#carruselPilares" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Confianza real"></button>
+        <button type="button" data-bs-target="#carruselPilares" data-bs-slide-to="1" aria-label="Cercanía"></button>
+        <button type="button" data-bs-target="#carruselPilares" data-bs-slide-to="2" aria-label="Transparencia"></button>
+        <button type="button" data-bs-target="#carruselPilares" data-bs-slide-to="3" aria-label="Tecnología accesible"></button>
+      </div>
+
+      <button class="carousel-control-prev" type="button" data-bs-target="#carruselPilares" data-bs-slide="prev">
+        <span class="ks-pilar-arrow"><i class="bi bi-chevron-left"></i></span>
+        <span class="visually-hidden">Anterior</span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#carruselPilares" data-bs-slide="next">
+        <span class="ks-pilar-arrow"><i class="bi bi-chevron-right"></i></span>
+        <span class="visually-hidden">Siguiente</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="ks-panel">
+    <h2 class="mb-1">Lo que no estamos dispuestos a tolerar</h2>
+    <p class="ks-help mb-4">KeyServ funciona porque todos ganamos — cliente y proveedor. Lo que le hace daño a ese equilibrio no tiene espacio acá.</p>
+    <div class="ks-value-grid">
+      <div class="ks-value-card text-center" style="--ks-value-accent: var(--ks-coral);">
+        <i class="bi bi-hand-thumbs-down" style="background: var(--ks-coral-light); color: var(--ks-coral-dark);"></i>
+        <h4>Aprovechamiento</h4>
+        <p class="ks-help mb-0">Ni de un lado ni del otro — cliente y proveedor parten en igualdad de condiciones.</p>
+      </div>
+      <div class="ks-value-card text-center" style="--ks-value-accent: var(--ks-navy);">
+        <i class="bi bi-shield-x" style="background: var(--ks-navy-light); color: var(--ks-navy-dark);"></i>
+        <h4>Fraude y robos</h4>
+        <p class="ks-help mb-0">Identidad verificada con huella y reconocimiento facial en ambos lados — nadie entra a ciegas.</p>
+      </div>
+      <div class="ks-value-card text-center" style="--ks-value-accent: var(--ks-coral);">
+        <i class="bi bi-flag" style="background: var(--ks-coral-light); color: var(--ks-coral-dark);"></i>
+        <h4>Reseñas falsas</h4>
+        <p class="ks-help mb-0">Toda calificación pasa por moderación antes de publicarse — nadie compra una buena reputación.</p>
+      </div>
+      <div class="ks-value-card text-center" style="--ks-value-accent: var(--ks-navy);">
+        <i class="bi bi-slash-circle" style="background: var(--ks-navy-light); color: var(--ks-navy-dark);"></i>
+        <h4>Malos tratos</h4>
+        <p class="ks-help mb-0">Cero tolerancia al abuso — cualquier intento sospechoso queda registrado y se revisa.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ks-panel">
+    <h2><i class="bi bi-people"></i> Nuestro equipo</h2>
+    <p class="mb-0" style="color: var(--ks-ink-soft); line-height:1.7;">Partimos como un equipo pequeño con una pregunta simple: ¿por qué es tan difícil confiar en quién entra a tu casa a hacer un trabajo? De ahí salió KeyServ. Seguimos siendo un equipo chico, y preferimos resolver ese problema bien antes que rápido.</p>
+  </div>
+
+  <div class="ks-panel text-center" style="background: var(--ks-gradient-brand); border: none;">
+    <h2 style="color:#fff;">¿Tienes dudas o sugerencias?</h2>
+    <p class="mb-4" style="color: rgba(255,255,255,.85);">Nos encantaría escucharte.</p>
+    <a href="{% url 'KeyServApp:contacto' %}" class="ks-btn" style="background:#fff; color: #0B3D78;">Escríbenos <i class="bi bi-arrow-right"></i></a>
   </div>
 </section>
 {% endblock %}

@@ -1343,38 +1343,256 @@ a {
   line-height: 1.6;
 }
 
-.ks-contact-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--ks-border);
+.ks-quote {
+  border-left: 4px solid var(--ks-teal);
+  padding: 2px 0 2px 20px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ks-navy-dark);
+  line-height: 1.5;
 }
 
-.ks-contact-card:last-child { border-bottom: none; }
+.ks-value-card {
+  position: relative;
+  background: var(--ks-surface);
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-md);
+  padding: 26px 18px 20px;
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
 
-.ks-contact-card i {
-  width: 44px;
-  height: 44px;
+.ks-value-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  background: var(--ks-value-accent, var(--ks-teal));
+}
+
+.ks-value-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--ks-shadow);
+  border-color: var(--ks-value-accent, var(--ks-teal));
+}
+
+.ks-value-card i {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 4px auto 14px;
+  box-shadow: 0 8px 18px -8px rgba(11, 61, 120, 0.35);
+}
+
+.ks-value-card h4 {
+  font-size: .98rem;
+  margin-bottom: 6px;
+}
+
+.ks-value-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 720px) {
+  .ks-value-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 460px) {
+  .ks-value-grid { grid-template-columns: 1fr; }
+}
+
+@keyframes ks-value-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ks-value-card {
+  animation: ks-value-in .5s ease both;
+}
+
+.ks-value-grid .ks-value-card:nth-child(1) { animation-delay: 0s; }
+.ks-value-grid .ks-value-card:nth-child(2) { animation-delay: .08s; }
+.ks-value-grid .ks-value-card:nth-child(3) { animation-delay: .16s; }
+.ks-value-grid .ks-value-card:nth-child(4) { animation-delay: .24s; }
+
+/* ---------- Pilares: carrusel didáctico ---------- */
+
+.ks-pilar-carousel {
+  padding: 4px 52px 40px;
+}
+
+/* Bootstrap's carousel-fade keeps the outgoing and incoming .carousel-item
+   both display:block for the duration of the crossfade, laid out in normal
+   flow — with paragraphs of different lengths that reads as overlapping/
+   garbled text. Taking every item out of flow (position: absolute, stacked
+   inside a fixed-height wrapper) makes the fade a clean dissolve instead. */
+.ks-pilar-carousel .carousel-inner {
+  position: relative;
+  min-height: 320px;
+}
+
+.ks-pilar-carousel .carousel-item {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ks-pilar-slide {
+  text-align: center;
+  padding: 8px 4px 0;
+}
+
+@media (max-width: 560px) {
+  .ks-pilar-carousel .carousel-inner { min-height: 380px; }
+}
+
+.ks-pilar-icon {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.1rem;
+  margin: 0 auto 18px;
+  background: var(--ks-pilar-bg, var(--ks-teal-light));
+  color: var(--ks-pilar-fg, var(--ks-teal-dark));
+  box-shadow: 0 14px 28px -14px rgba(11, 61, 120, .45);
+}
+
+.ks-pilar-slide h3 {
+  margin-bottom: 10px;
+}
+
+.ks-pilar-slide p {
+  max-width: 520px;
+  margin: 0 auto;
+  color: var(--ks-ink-soft);
+  line-height: 1.75;
+}
+
+.ks-pilar-carousel .carousel-control-prev,
+.ks-pilar-carousel .carousel-control-next {
+  position: absolute;
+  top: 42px;
+  bottom: auto;
+  width: auto;
+  opacity: 1;
+}
+
+.ks-pilar-carousel .carousel-control-prev { left: 0; }
+.ks-pilar-carousel .carousel-control-next { right: 0; }
+
+.ks-pilar-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--ks-surface);
+  border: 1px solid var(--ks-border);
+  color: var(--ks-ink);
+  font-size: 1.1rem;
+  transition: border-color .15s ease, color .15s ease, transform .15s ease;
+}
+
+.ks-pilar-carousel .carousel-control-prev:hover .ks-pilar-arrow,
+.ks-pilar-carousel .carousel-control-next:hover .ks-pilar-arrow {
+  border-color: var(--ks-teal);
+  color: var(--ks-teal-dark);
+  transform: scale(1.06);
+}
+
+.ks-pilar-carousel .carousel-indicators {
+  position: static;
+  margin: 22px 0 0;
+}
+
+.ks-pilar-carousel .carousel-indicators [data-bs-target] {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: var(--ks-border);
+  opacity: 1;
+  border: none;
+  margin: 0 5px;
+  transition: background-color .15s ease, transform .15s ease;
+}
+
+.ks-pilar-carousel .carousel-indicators .active {
+  background-color: var(--ks-teal);
+  transform: scale(1.25);
+}
+
+@media (max-width: 560px) {
+  .ks-pilar-carousel { padding: 4px 8px 40px; }
+  .ks-pilar-carousel .carousel-control-prev,
+  .ks-pilar-carousel .carousel-control-next { position: static; display: inline-flex; margin-top: 16px; }
+  .ks-pilar-carousel .carousel-control-prev { margin-right: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-value-card { animation: none; }
+}
+
+.ks-contact-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 22px 14px;
+  background: var(--ks-surface);
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.ks-contact-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ks-shadow);
+  border-color: var(--ks-teal);
+  color: inherit;
+}
+
+.ks-contact-tile i {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: var(--ks-teal-light);
   color: var(--ks-teal-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
-  flex-shrink: 0;
+  font-size: 1.3rem;
 }
 
-.ks-contact-card .label {
+.ks-contact-tile .label {
   color: var(--ks-ink-soft);
-  font-size: .85rem;
+  font-size: .82rem;
   margin: 0;
 }
 
-.ks-contact-card .value {
-  font-weight: 700;
+.ks-contact-tile .value {
+  font-weight: 800;
   margin: 0;
+}
+
+.ks-info-note-teal {
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
 }
 
 /* ---------- Detalle de trabajo (info + chat embebido) ---------- */
