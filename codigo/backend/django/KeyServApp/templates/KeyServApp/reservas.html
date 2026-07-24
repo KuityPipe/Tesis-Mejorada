@@ -12,24 +12,6 @@
 
 <section class="ks-section container" style="max-width: 780px;">
 
-  {% if form %}
-  <div class="ks-panel">
-    <h3>Calificar contratación #{{ contratacion.id_contratacion }}</h3>
-    <form method="post" class="ks-form">
-      {% csrf_token %}
-      <div class="ks-field">
-        <label for="{{ form.puntuacion.id_for_label }}">Puntuación (1-5)</label>
-        {{ form.puntuacion }}
-      </div>
-      <div class="ks-field">
-        <label for="{{ form.comentario.id_for_label }}">Comentario</label>
-        {{ form.comentario }}
-      </div>
-      <button type="submit" class="ks-btn ks-btn-primary">Enviar calificación</button>
-    </form>
-  </div>
-  {% endif %}
-
   <div class="ks-panel">
     <h3>Historial</h3>
     {% for contratacion in contrataciones %}
@@ -60,7 +42,11 @@
         {% endif %}
 
         {% if contratacion.estado == 'COMPLETADA' and usuario == contratacion.cliente %}
-        <a href="{% url 'KeyServApp:valoracion_crear' contratacion.id_contratacion %}" class="ks-btn ks-btn-outline"><i class="bi bi-star"></i> Calificar este servicio</a>
+          {% if contratacion.valoracion %}
+          <a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}" class="ks-help"><i class="bi bi-check-circle"></i> Ya calificaste este trabajo</a>
+          {% else %}
+          <a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}" class="ks-btn ks-btn-outline"><i class="bi bi-star"></i> Calificar este servicio</a>
+          {% endif %}
         {% endif %}
       </div>
     {% empty %}

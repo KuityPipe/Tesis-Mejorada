@@ -17,6 +17,9 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 
+from .storage import almacenamiento_documentos
+from .validators import validar_documento, validar_imagen
+
 
 # ---------------------------------------------------------------------------
 # Catálogos / tablas de referencia (PK manual: se cargan con datos fijos,
@@ -30,6 +33,8 @@ class Region(models.Model):
 
     class Meta:
         db_table = 'REGION'
+        verbose_name = 'Región'
+        verbose_name_plural = 'Regiones'
 
     def __str__(self):
         return self.nombre_region or str(self.id_region)
@@ -43,6 +48,8 @@ class Comuna(models.Model):
 
     class Meta:
         db_table = 'COMUNA'
+        verbose_name = 'Comuna'
+        verbose_name_plural = 'Comunas'
 
     def __str__(self):
         return self.nombre_comuna or str(self.id_comuna)
@@ -56,6 +63,8 @@ class TipoCuenta(models.Model):
 
     class Meta:
         db_table = 'TIPO_CUENTA'
+        verbose_name = 'Tipo de cuenta'
+        verbose_name_plural = 'Tipos de cuenta'
 
     def __str__(self):
         return self.nombre_tipo_cuenta or str(self.id_tipo_cuenta)
@@ -68,6 +77,8 @@ class EstadoAutentificacion(models.Model):
 
     class Meta:
         db_table = 'ESTADO_AUTENTIFICACION'
+        verbose_name = 'Estado de autentificación'
+        verbose_name_plural = 'Estados de autentificación'
 
     def __str__(self):
         return self.nombre_estado_autentificacion or str(self.id_estado_autentificacion)
@@ -80,6 +91,8 @@ class EstadoConsulta(models.Model):
 
     class Meta:
         db_table = 'ESTADO_CONSULTA'
+        verbose_name = 'Estado de consulta'
+        verbose_name_plural = 'Estados de consulta'
 
     def __str__(self):
         return self.nombre_estado_consulta or str(self.id_estado_consulta)
@@ -92,6 +105,8 @@ class EstadoDocumento(models.Model):
 
     class Meta:
         db_table = 'ESTADO_DOCUMENTO'
+        verbose_name = 'Estado de documento'
+        verbose_name_plural = 'Estados de documento'
 
     def __str__(self):
         return self.nombre_estado_documento or str(self.id_estado_documento)
@@ -104,6 +119,8 @@ class TipoFirma(models.Model):
 
     class Meta:
         db_table = 'TIPO_FIRMA'
+        verbose_name = 'Tipo de firma'
+        verbose_name_plural = 'Tipos de firma'
 
     def __str__(self):
         return self.nombre_tipo_firma or str(self.id_tipo_firma)
@@ -116,6 +133,8 @@ class RolCuentaAdministrativa(models.Model):
 
     class Meta:
         db_table = 'ROL_CUENTA_ADMINISTRATIVA'
+        verbose_name = 'Rol de cuenta administrativa'
+        verbose_name_plural = 'Roles de cuenta administrativa'
 
     def __str__(self):
         return self.nombre_rol_cuenta_administrativa or str(self.id_rol_cuenta_administrativa)
@@ -128,6 +147,8 @@ class AreaAdministrativa(models.Model):
 
     class Meta:
         db_table = 'AREA_ADMINISTRATIVA'
+        verbose_name = 'Área administrativa'
+        verbose_name_plural = 'Áreas administrativas'
 
     def __str__(self):
         return self.nombre_area_administrativa or str(self.id_area_administrativa)
@@ -145,6 +166,8 @@ class Transaccion(models.Model):
 
     class Meta:
         db_table = 'TRANSACCION'
+        verbose_name = 'Transacción'
+        verbose_name_plural = 'Transacciones'
 
     def __str__(self):
         return str(self.id_transaccion)
@@ -180,6 +203,12 @@ class Usuario(models.Model):
 
     class Meta:
         db_table = 'USUARIO'
+        # "Usuario (cliente/proveedor)" y no solo "Usuario": en /admin/ convive
+        # con el User nativo de Django (cuentas de staff que hacen login al
+        # panel) — ambos se llamarían "Usuario(s)" a secas si no se distinguen,
+        # justo la confusión que se pidió evitar entre soporte/moderadores.
+        verbose_name = 'Usuario (cliente/proveedor)'
+        verbose_name_plural = 'Usuarios (clientes/proveedores)'
 
     def __str__(self):
         return f'{self.nombre_usuario} {self.apellido_usuario}'.strip() or str(self.id_usuario)
@@ -208,6 +237,8 @@ class UsuarioAdministrativo(models.Model):
 
     class Meta:
         db_table = 'USUARIO_ADMINISTRATIVO'
+        verbose_name = 'Usuario administrativo'
+        verbose_name_plural = 'Usuarios administrativos'
 
     def __str__(self):
         return f'{self.nombre_usuario_administrativo} {self.apellido_usuario_administrativo}'.strip() or str(self.id_usuario_administrativo)
@@ -223,6 +254,8 @@ class Autentificacion(models.Model):
 
     class Meta:
         db_table = 'AUTENTIFICACION'
+        verbose_name = 'Autentificación'
+        verbose_name_plural = 'Autentificaciones'
 
     def __str__(self):
         return str(self.id_autentificacion)
@@ -250,6 +283,8 @@ class Consulta(models.Model):
 
     class Meta:
         db_table = 'CONSULTA'
+        verbose_name = 'Consulta'
+        verbose_name_plural = 'Consultas'
 
     def __str__(self):
         return self.asunto_consulta or str(self.id_consulta)
@@ -278,6 +313,8 @@ class Conversacion(models.Model):
 
     class Meta:
         db_table = 'CONVERSACION'
+        verbose_name = 'Conversación'
+        verbose_name_plural = 'Conversaciones'
 
     def __str__(self):
         return self.nombre_conversacion or str(self.id_conversacion)
@@ -295,6 +332,8 @@ class UsuarioConversacion(models.Model):
     class Meta:
         db_table = 'USUARIO_CONVERSACION'
         unique_together = (('usuario', 'conversacion'),)
+        verbose_name = 'Participante de conversación'
+        verbose_name_plural = 'Participantes de conversación'
 
     def __str__(self):
         return str(self.id_usuario_conversacion)
@@ -310,6 +349,8 @@ class Mensaje(models.Model):
 
     class Meta:
         db_table = 'MENSAJE'
+        verbose_name = 'Mensaje'
+        verbose_name_plural = 'Mensajes'
 
     def __str__(self):
         return str(self.id_mensaje)
@@ -351,6 +392,8 @@ class Publicaciones(models.Model):
 
     class Meta:
         db_table = 'PUBLICACIONES'
+        verbose_name = 'Publicación'
+        verbose_name_plural = 'Publicaciones'
 
     def __str__(self):
         return self.titulo or str(self.id_publicacion)
@@ -364,12 +407,14 @@ class Imagenes(models.Model):
     # (fixtures/demo); `archivo` es el campo real para lo que suba un
     # proveedor desde el formulario de creación de publicación.
     url_imagen = models.TextField(null=True, blank=True, db_column='URL_IMAGEN')
-    archivo = models.ImageField(upload_to='publicaciones/imagenes/', null=True, blank=True, db_column='ARCHIVO')
+    archivo = models.ImageField(upload_to='publicaciones/imagenes/', null=True, blank=True, db_column='ARCHIVO', validators=[validar_imagen])
     fecha_subida = models.DateTimeField(auto_now_add=True, db_column='FECHA_SUBIDA')
     actualizado_en = models.DateTimeField(auto_now=True, db_column='ACTUALIZADO_EN')
 
     class Meta:
         db_table = 'IMAGENES'
+        verbose_name = 'Imagen'
+        verbose_name_plural = 'Imágenes'
 
     def __str__(self):
         return str(self.id_imagen)
@@ -415,6 +460,8 @@ class Contratacion(models.Model):
 
     class Meta:
         db_table = 'CONTRATACION'
+        verbose_name = 'Contratación'
+        verbose_name_plural = 'Contrataciones'
 
     def __str__(self):
         return f'Contratación #{self.id_contratacion} ({self.estado})'
@@ -438,6 +485,8 @@ class HistorialEstadoContratacion(models.Model):
     class Meta:
         db_table = 'HISTORIAL_ESTADO_CONTRATACION'
         ordering = ['fecha']
+        verbose_name = 'Historial de estado de contratación'
+        verbose_name_plural = 'Historial de estados de contratación'
 
     def __str__(self):
         return f'Contratación #{self.contratacion_id}: {self.estado} ({self.fecha:%Y-%m-%d %H:%M})'
@@ -452,12 +501,73 @@ class Valoracion(models.Model):
     usuario_emisor = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='valoraciones_emitidas', db_column='FK_USUARIO_EMISOR')
     usuario_receptor = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='valoraciones_recibidas', db_column='FK_USUARIO_RECEPTOR')
     publicacion = models.ForeignKey(Publicaciones, on_delete=models.CASCADE, db_column='FK_PUBLICACION')
+    # NUEVO: antes solo se sabía "el cliente X calificó la publicación Y" —
+    # no alcanzaba para saber si un trabajo PUNTUAL ya fue calificado (un
+    # mismo cliente puede recontratar el mismo servicio más adelante). Ligarla
+    # 1:1 a la Contratacion resuelve eso, mismo patrón que Conversacion.
+    contratacion = models.OneToOneField(
+        Contratacion, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='valoracion', db_column='FK_CONTRATACION',
+    )
+    # NUEVO: no solo las fotos adjuntas se moderan — la reseña completa
+    # (puntuación + comentario) puede ser difamatoria o abusiva, así que
+    # pasa por el mismo flujo que Publicaciones antes de mostrarse en
+    # público o contar para el Ranking del receptor. El emisor sigue viendo
+    # su propia reseña igual (con un aviso de "pendiente"), solo se oculta
+    # del resto de la gente hasta que un moderador la aprueba.
+    PENDIENTE, APROBADA, RECHAZADA = 'PENDIENTE', 'APROBADA', 'RECHAZADA'
+    ESTADOS_MODERACION = [
+        (PENDIENTE, 'Pendiente de revisión'),
+        (APROBADA, 'Aprobada'),
+        (RECHAZADA, 'Rechazada'),
+    ]
+    estado_moderacion = models.CharField(max_length=10, choices=ESTADOS_MODERACION, default=PENDIENTE, db_column='ESTADO_MODERACION')
+    aprobado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='valoraciones_moderadas', db_column='FK_APROBADO_POR',
+    )
+    fecha_moderacion = models.DateTimeField(null=True, blank=True, db_column='FECHA_MODERACION')
 
     class Meta:
         db_table = 'VALORACION'
+        verbose_name = 'Valoración'
+        verbose_name_plural = 'Valoraciones'
 
     def __str__(self):
         return str(self.id_valoracion)
+
+    @property
+    def imagenes_aprobadas(self):
+        """Fotos adjuntas ya moderadas — lo único que se muestra fuera del propio autor (ver ValoracionImagen)."""
+        return self.imagenes.filter(estado_moderacion=ValoracionImagen.APROBADA)
+
+
+class ValoracionImagen(models.Model):
+    """
+    Foto adjunta a una Valoracion (evidencia del trabajo realizado). Pasa por
+    moderación antes de mostrarse en público — mismo criterio que
+    Publicaciones.estado_moderacion: nadie quiere que un cliente enojado
+    pueda subir una foto dañina sin revisión.
+    """
+    PENDIENTE, APROBADA, RECHAZADA = 'PENDIENTE', 'APROBADA', 'RECHAZADA'
+    ESTADOS_MODERACION = [
+        (PENDIENTE, 'Pendiente de revisión'),
+        (APROBADA, 'Aprobada'),
+        (RECHAZADA, 'Rechazada'),
+    ]
+    id_valoracion_imagen = models.BigAutoField(primary_key=True, db_column='ID_VALORACION_IMAGEN')
+    valoracion = models.ForeignKey(Valoracion, on_delete=models.CASCADE, related_name='imagenes', db_column='FK_VALORACION')
+    archivo = models.ImageField(upload_to='valoraciones/imagenes/', db_column='ARCHIVO', validators=[validar_imagen])
+    fecha_subida = models.DateTimeField(auto_now_add=True, db_column='FECHA_SUBIDA')
+    estado_moderacion = models.CharField(max_length=10, choices=ESTADOS_MODERACION, default=PENDIENTE, db_column='ESTADO_MODERACION')
+
+    class Meta:
+        db_table = 'VALORACION_IMAGEN'
+        verbose_name = 'Imagen de valoración'
+        verbose_name_plural = 'Imágenes de valoración'
+
+    def __str__(self):
+        return f'Imagen de valoración #{self.valoracion_id}'
 
 
 class Ranking(models.Model):
@@ -469,6 +579,8 @@ class Ranking(models.Model):
 
     class Meta:
         db_table = 'RANKING'
+        verbose_name = 'Ranking'
+        verbose_name_plural = 'Rankings'
 
     def __str__(self):
         return str(self.id_ranking)
@@ -482,7 +594,7 @@ class Documento(models.Model):
     # NUEVO: archivo real subido (el campo `archivo` de arriba es legado —
     # BinaryField en la fila de la BD, del diseño original de la tesis; los
     # documentos nuevos van a `archivo_subido`, en filesystem via MEDIA_ROOT).
-    archivo_subido = models.FileField(upload_to='publicaciones/documentos/', null=True, blank=True, db_column='ARCHIVO_SUBIDO')
+    archivo_subido = models.FileField(upload_to='publicaciones/documentos/', storage=almacenamiento_documentos, null=True, blank=True, db_column='ARCHIVO_SUBIDO', validators=[validar_documento])
     fecha_subida_documento = models.DateTimeField(auto_now_add=True, db_column='FECHA_SUBIDA_DOCUMENTO')
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, db_column='FK_USUARIO')
     publicacion = models.ForeignKey(Publicaciones, on_delete=models.CASCADE, null=True, blank=True, related_name='documentos', db_column='FK_PUBLICACION')
@@ -490,6 +602,8 @@ class Documento(models.Model):
 
     class Meta:
         db_table = 'DOCUMENTO'
+        verbose_name = 'Documento'
+        verbose_name_plural = 'Documentos'
 
     def __str__(self):
         return self.nombre_documento or str(self.id_documento)
@@ -507,6 +621,8 @@ class Firma(models.Model):
 
     class Meta:
         db_table = 'FIRMA'
+        verbose_name = 'Firma'
+        verbose_name_plural = 'Firmas'
 
     def __str__(self):
         return str(self.id_firma)
@@ -521,6 +637,47 @@ class Gasto(models.Model):
 
     class Meta:
         db_table = 'GASTO'
+        verbose_name = 'Gasto'
+        verbose_name_plural = 'Gastos'
 
     def __str__(self):
         return str(self.id_gasto)
+
+
+class IntentoAccesoSospechoso(models.Model):
+    """
+    Registro de intentos de acceder a un recurso (conversación, contratación,
+    documento) del que el usuario NO es parte — se genera solo en los puntos
+    donde una vista deniega acceso por "no participás en esto", nunca en un
+    error común de la app. Sirve para notar reconocimiento manual de IDs
+    (alguien probando /chat/11/, /chat/12/, ... a ver cuál le abre) antes de
+    que se convierta en un problema real — ver views._registrar_intento_sospechoso.
+
+    `pais`/`ciudad` vienen de una base GeoIP local (DB-IP City Lite, ver
+    geolocalizacion.py) — no de un servicio externo: no se manda la IP de
+    nadie a un tercero en cada evento. Quedan en None si la base no está
+    descargada, o si la IP es privada/local (todo el desarrollo cae acá,
+    127.0.0.1 no geolocaliza a ningún lado real). `usuario` puede ser None:
+    esto también se genera para quien NO tiene sesión iniciada (ej. alguien
+    agotando los intentos de login sin ser todavía nadie identificado).
+    """
+    id_intento = models.BigAutoField(primary_key=True, db_column='ID_INTENTO')
+    usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, db_column='FK_USUARIO')
+    fecha = models.DateTimeField(auto_now_add=True, db_column='FECHA')
+    ip = models.GenericIPAddressField(null=True, blank=True, db_column='IP')
+    pais = models.CharField(max_length=100, null=True, blank=True, db_column='PAIS')
+    ciudad = models.CharField(max_length=100, null=True, blank=True, db_column='CIUDAD')
+    user_agent = models.CharField(max_length=255, null=True, blank=True, db_column='USER_AGENT')
+    ruta = models.CharField(max_length=255, db_column='RUTA')
+    recurso = models.CharField(max_length=40, db_column='RECURSO')
+    recurso_id = models.CharField(max_length=40, null=True, blank=True, db_column='RECURSO_ID')
+    detalle = models.CharField(max_length=255, null=True, blank=True, db_column='DETALLE')
+
+    class Meta:
+        db_table = 'INTENTO_ACCESO_SOSPECHOSO'
+        ordering = ['-fecha']
+        verbose_name = 'Intento de acceso sospechoso'
+        verbose_name_plural = 'Intentos de acceso sospechoso'
+
+    def __str__(self):
+        return f'{self.usuario or "anónimo"} → {self.recurso} #{self.recurso_id} ({self.fecha:%Y-%m-%d %H:%M})'

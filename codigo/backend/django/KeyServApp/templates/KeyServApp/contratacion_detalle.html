@@ -66,13 +66,6 @@
         </form>
         {% endif %}
 
-        {% if contratacion.estado == 'COMPLETADA' and usuario == contratacion.cliente %}
-          {% if ya_valorado %}
-          <p class="ks-help mb-0"><i class="bi bi-check-circle"></i> Ya calificaste este trabajo.</p>
-          {% else %}
-          <a href="{% url 'KeyServApp:valoracion_crear' contratacion.id_contratacion %}" class="ks-btn ks-btn-outline"><i class="bi bi-star"></i> Calificar este servicio</a>
-          {% endif %}
-        {% endif %}
       </div>
 
       <div class="ks-panel">
@@ -90,6 +83,67 @@
 
         <a href="{% url 'KeyServApp:publicacion_detalle' contratacion.publicacion.id_publicacion %}" class="ks-help">Ver la publicación completa &rarr;</a>
       </div>
+
+      {% if valoracion_form %}
+      <div class="ks-panel mb-0">
+        <h3><i class="bi bi-star"></i> Calificar este servicio</h3>
+        <form method="post" action="{% url 'KeyServApp:valoracion_crear' contratacion.id_contratacion %}" enctype="multipart/form-data" class="ks-form">
+          {% csrf_token %}
+          <div class="ks-field">
+            <label>Puntuación</label>
+            <div class="ks-star-rating">
+              <input type="radio" id="star5" name="puntuacion" value="5" required>
+              <label for="star5" title="5 estrellas"><i class="bi bi-star-fill"></i></label>
+              <input type="radio" id="star4" name="puntuacion" value="4" required>
+              <label for="star4" title="4 estrellas"><i class="bi bi-star-fill"></i></label>
+              <input type="radio" id="star3" name="puntuacion" value="3" required>
+              <label for="star3" title="3 estrellas"><i class="bi bi-star-fill"></i></label>
+              <input type="radio" id="star2" name="puntuacion" value="2" required>
+              <label for="star2" title="2 estrellas"><i class="bi bi-star-fill"></i></label>
+              <input type="radio" id="star1" name="puntuacion" value="1" required>
+              <label for="star1" title="1 estrella"><i class="bi bi-star-fill"></i></label>
+            </div>
+          </div>
+          <div class="ks-field">
+            <label for="id_comentario">Comentario</label>
+            <textarea name="comentario" id="id_comentario" rows="3" placeholder="¿Cómo te fue con este servicio?"></textarea>
+          </div>
+          <div class="ks-field mb-0">
+            <label for="id_imagenes">Fotos del trabajo (opcional)</label>
+            <input type="file" name="imagenes" id="id_imagenes" accept="image/*" multiple>
+            <span class="ks-help">Hasta 5 fotos — se revisan antes de mostrarse en público.</span>
+          </div>
+          <button type="submit" class="ks-btn ks-btn-primary mt-3"><i class="bi bi-send-check"></i> Enviar calificación</button>
+        </form>
+      </div>
+      {% elif valoracion %}
+      <div class="ks-panel mb-0">
+        <h3><i class="bi bi-star-fill" style="color:var(--ks-coral);"></i> {% if usuario == contratacion.cliente %}Tu calificación{% else %}Calificación recibida{% endif %}</h3>
+        {% if valoracion.estado_moderacion != 'APROBADA' %}
+        <p class="ks-info-note" style="margin-bottom:12px;">
+          <i class="bi bi-hourglass-split"></i>
+          {% if valoracion.estado_moderacion == 'RECHAZADA' %}Un moderador revisó esta reseña y no se publicará.
+          {% else %}Pendiente de revisión — todavía no se muestra en la publicación pública.{% endif %}
+        </p>
+        {% endif %}
+        <p class="mb-1">
+          {% for i in "12345" %}<i class="bi {% if forloop.counter <= valoracion.puntuacion %}bi-star-fill{% else %}bi-star{% endif %}" style="color:var(--ks-coral);"></i>{% endfor %}
+          <strong>{{ valoracion.puntuacion }}/5</strong>
+        </p>
+        {% if valoracion.comentario %}<p class="ks-help">{{ valoracion.comentario }}</p>{% endif %}
+        {% if valoracion.imagenes.all %}
+        <div class="ks-gallery mb-0">
+          {% for img in valoracion.imagenes.all %}
+            {% if img.estado_moderacion == 'APROBADA' %}
+            <img src="{{ img.archivo.url }}" alt="Foto adjunta a la calificación">
+            {% elif usuario == contratacion.cliente %}
+            <div class="ks-gallery-pending" title="Pendiente de revisión"><i class="bi bi-hourglass-split"></i></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
 
     <div class="ks-panel">

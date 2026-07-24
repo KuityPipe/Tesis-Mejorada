@@ -9,13 +9,13 @@
     <h1>Verificación de huella dactilar</h1>
     <p class="ks-help">Coloca tu huella dactilar en el sensor para validar tu identidad.</p>
 
-    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Demo: no hay lector de huella conectado en este entorno. Ingresa la ruta de una imagen de huella para probar el pipeline de procesamiento.</div>
+    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Demo: no hay lector de huella conectado en este entorno. Sube una imagen de huella para probar el pipeline de procesamiento.</div>
 
-    <form method="post" action="{% url 'KeyServApp:verificacion_huella' %}" class="ks-form text-start">
+    <form method="post" action="{% url 'KeyServApp:verificacion_huella' %}" enctype="multipart/form-data" class="ks-form text-start">
       {% csrf_token %}
       <div class="ks-field">
-        <label for="ruta_imagen">Ruta de la imagen de huella</label>
-        <input type="text" name="ruta_imagen" id="ruta_imagen" placeholder="C:\ruta\a\huella.png" required>
+        <label for="huella_imagen">Imagen de huella</label>
+        <input type="file" name="huella_imagen" id="huella_imagen" accept="image/*" required>
       </div>
       <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center"><i class="bi bi-fingerprint"></i> Verificar huella</button>
     </form>

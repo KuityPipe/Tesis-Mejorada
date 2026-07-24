@@ -13,10 +13,14 @@ qué hace (pedido explícito del usuario, para poder tocar el código a mano
 más adelante sin tener que releer todo).
 """
 import logging
+import os
+import tempfile
 
 from django.contrib import messages
-from django.db.models import Q
-from django.http import JsonResponse
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.db.models import Func, Q, Value
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -28,12 +32,63 @@ from .forms import (
 )
 from .models import (
     Comuna, Contratacion, Conversacion, Documento, EstadoConsulta,
-    HistorialEstadoContratacion, Imagenes, Mensaje, Publicaciones, Ranking,
-    Region, TipoCuenta, Transaccion, Usuario, UsuarioConversacion, Valoracion,
+    HistorialEstadoContratacion, Imagenes, IntentoAccesoSospechoso, Mensaje,
+    Publicaciones, Ranking, Region, TipoCuenta, Transaccion, Usuario,
+    UsuarioConversacion, Valoracion, ValoracionImagen,
 )
-from . import biometria, pagos
+from . import biometria, geolocalizacion, pagos
+from . import validators
 
 logger = logging.getLogger(__name__)
+
+
+def _obtener_ip_cliente(request):
+    """
+    IP real del visitante. Si hay un proxy/balanceador delante (despliegue
+    real detrás de nginx/similar), `REMOTE_ADDR` es la IP del proxy, no la
+    del cliente — `X-Forwarded-For` trae la cadena real, y el primer valor
+    es el cliente original. En este entorno de desarrollo (sin proxy) da lo
+    mismo, siempre termina cayendo a `REMOTE_ADDR`.
+    """
+    adelante = request.META.get('HTTP_X_FORWARDED_FOR')
+    if adelante:
+        return adelante.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', 'sin-ip')
+
+
+def _registrar_intento_sospechoso(request, usuario, recurso, recurso_id, detalle=''):
+    """
+    Deja constancia de un intento de acceder a algo de lo que `usuario` no es
+    parte — una conversación, contratación o documento ajenos — o de un
+    login/re-autenticación agotado a fuerza bruta (ahí `usuario` puede ser
+    None: esto también cubre a quien todavía no tiene sesión iniciada). Se
+    llama SOLO desde los puntos donde una vista deniega acceso por
+    pertenencia o bloquea por demasiados intentos, nunca en un 404 común de
+    "esto no existe": pedir el ID de otra persona no es un error de tipeo,
+    es como mínimo curiosidad y en el peor caso reconocimiento manual antes
+    de un ataque (probar /chat/1/, /chat/2/, ... a ver cuál abre).
+
+    Queda en IntentoAccesoSospechoso (visible en /admin/, incluido el panel
+    de alertas del dashboard) con IP, país/ciudad aproximados (geolocalizacion.py
+    — base local, no se manda la IP a ningún servicio externo) y user-agent,
+    y también en el logger de la consola/archivo de logs del servidor.
+    """
+    ip = _obtener_ip_cliente(request)
+    pais, ciudad = geolocalizacion.geolocalizar_ip(ip)
+    IntentoAccesoSospechoso.objects.create(
+        usuario=usuario, ip=ip, pais=pais, ciudad=ciudad,
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:255],
+        ruta=request.path, recurso=recurso, recurso_id=str(recurso_id), detalle=detalle,
+    )
+    logger.warning(
+        'ACCESO SOSPECHOSO: usuario=%s ip=%s (%s, %s) ruta=%s recurso=%s#%s %s',
+        usuario.id_usuario if usuario else 'anónimo', ip, ciudad or '?', pais or '?', request.path, recurso, recurso_id, detalle,
+    )
+
+
+class Unaccent(Func):
+    """Envuelve la función `unaccent` de Postgres (ver migración 0009_unaccent_extension)."""
+    function = 'unaccent'
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +120,19 @@ def catalogo_view(request):
 
     publicaciones = Publicaciones.objects.filter(estado_moderacion=Publicaciones.APROBADA)
     if query:
-        publicaciones = publicaciones.filter(Q(titulo__icontains=query) | Q(sub_titulo__icontains=query))
+        # Búsqueda sin distinción de tildes (RUT/dolor real reportado: nadie
+        # escribe "gasfitería" con tilde en un buscador) vía la extensión
+        # `unaccent` de Postgres — ver migración 0009_unaccent_extension.
+        query_unaccent = Unaccent(Value(query))
+        publicaciones = publicaciones.annotate(
+            titulo_unaccent=Unaccent('titulo'),
+            sub_titulo_unaccent=Unaccent('sub_titulo'),
+            categoria_unaccent=Unaccent('categoria'),
+        ).filter(
+            Q(titulo_unaccent__icontains=query_unaccent)
+            | Q(sub_titulo_unaccent__icontains=query_unaccent)
+            | Q(categoria_unaccent__icontains=query_unaccent)
+        )
     if region_id:
         publicaciones = publicaciones.filter(usuario_publicador__comuna__region_id=region_id)
     if calificacion_min:
@@ -183,7 +250,19 @@ def tarjeta_credito_view(request):
 # ---------------------------------------------------------------------------
 
 def register_view(request):
-    """Registro de un nuevo Usuario (RF001/RF002/RF008). GET muestra el formulario, POST lo procesa."""
+    """
+    Registro de un nuevo Usuario (RF001/RF002/RF008). GET muestra el
+    formulario, POST lo procesa.
+
+    Si ya hay una sesión abierta, redirige al dashboard en vez de mostrar el
+    formulario — antes se podía llegar a /registro/ con una cuenta ya
+    logueada y crear una cuenta nueva sin que quedara claro con cuál sesión
+    terminabas (ver también sesion_view, mismo criterio).
+    """
+    if obtener_usuario_actual(request):
+        messages.info(request, 'Ya tenés una sesión iniciada.')
+        return redirect('KeyServApp:sesion_iniciada')
+
     if request.method == 'POST':
         form = RegistroForm(request.POST)
         if form.is_valid():
@@ -206,23 +285,72 @@ def register_view(request):
     })
 
 
+MAX_INTENTOS_LOGIN = 5
+VENTANA_INTENTOS_LOGIN = 300  # 5 minutos
+
+
+def _clave_intentos_login(request, email):
+    """Por (IP, email) y no solo por email: así nadie puede bloquearle la cuenta a otra persona a propósito fallando su login desde una IP distinta."""
+    return f'login_intentos:{_obtener_ip_cliente(request)}:{email.strip().lower()}'
+
+
 def sesion_view(request):
-    """Login real (RF003): valida el email/password contra `Usuario.check_password()` y abre sesión."""
+    """
+    Login real (RF003): valida el email/password contra `Usuario.check_password()`
+    y abre sesión.
+
+    SEGURIDAD:
+    - `request.session.cycle_key()` antes de loguear: sin esto, un atacante
+      que le "planta" a la víctima un ID de sesión conocido (ej. por un link)
+      podía loguearse él mismo después con ESA sesión ya autenticada (fijación
+      de sesión) — Django no lo hace solo salvo que se use `contrib.auth.login`,
+      que acá no aplica porque el modelo de sesión es propio (ver decorators.py).
+    - Límite de intentos fallidos por (IP, email) — antes no había ningún
+      freno para probar contraseñas a fuerza bruta.
+    - Si ya hay una sesión abierta, redirige al dashboard en vez de mostrar
+      el formulario de login — se podía llegar acá con una cuenta ya
+      logueada (ej. Javiera en el header) y loguearte con otra encima, sin
+      que quedara claro qué sesión terminaba activa.
+    """
+    if obtener_usuario_actual(request):
+        messages.info(request, 'Ya tenés una sesión iniciada.')
+        return redirect('KeyServApp:sesion_iniciada')
+
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
-            usuario = Usuario.objects.filter(email=form.cleaned_data['email']).first()
+            email = form.cleaned_data['email']
+            clave_intentos = _clave_intentos_login(request, email)
+            if cache.get(clave_intentos, 0) >= MAX_INTENTOS_LOGIN:
+                # A propósito con usuario=None: todavía nadie se autenticó
+                # como para saber a quién corresponde de verdad — esto es
+                # justo el caso "alguien sin usuario" que también hay que
+                # poder ver en el panel de alertas, no solo a los que ya
+                # tienen sesión.
+                _registrar_intento_sospechoso(request, None, 'login_bloqueado', email, 'demasiados intentos fallidos')
+                messages.error(request, 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.')
+                return render(request, 'KeyServApp/sesion.html')
+
+            usuario = Usuario.objects.filter(email=email).first()
             if usuario and usuario.check_password(form.cleaned_data['password']):
+                cache.delete(clave_intentos)
+                request.session.cycle_key()
                 request.session['usuario_id'] = usuario.id_usuario
                 logger.info('Login exitoso: usuario_id=%s', usuario.id_usuario)
                 return redirect('KeyServApp:sesion_iniciada')
+
+            try:
+                cache.incr(clave_intentos)
+            except ValueError:
+                cache.set(clave_intentos, 1, VENTANA_INTENTOS_LOGIN)
+            logger.warning('Login fallido: email=%s ip=%s', email, request.META.get('REMOTE_ADDR', 'sin-ip'))
             messages.error(request, 'Correo o contraseña incorrectos.')
     return render(request, 'KeyServApp/sesion.html')
 
 
 def logout_view(request):
-    """Cierra la sesión actual (RF005)."""
-    request.session.pop('usuario_id', None)
+    """Cierra la sesión actual (RF005). `flush()` y no solo sacar `usuario_id`: invalida el ID de sesión entero, no solo el dato de quién estaba logueado."""
+    request.session.flush()
     messages.success(request, 'Sesión cerrada.')
     return redirect('KeyServApp:paginicio')
 
@@ -297,15 +425,30 @@ def publicacion_detalle_view(request, pk):
     """Detalle de una publicación de servicio puntual (RF004/RF010), con proveedor y reseñas reales."""
     publicacion = get_object_or_404(Publicaciones, pk=pk)
     proveedor = publicacion.usuario_publicador
-    resenas = Valoracion.objects.filter(publicacion=publicacion).select_related('usuario_emisor').order_by('-fecha_valoracion')
+    # Solo reseñas ya moderadas — igual que las publicaciones, una reseña
+    # recién enviada no es visible para el público hasta que se aprueba.
+    resenas = Valoracion.objects.filter(
+        publicacion=publicacion, estado_moderacion=Valoracion.APROBADA,
+    ).select_related('usuario_emisor').order_by('-fecha_valoracion')
     ranking = Ranking.objects.filter(usuario=proveedor).first() if proveedor else None
     usuario_actual = obtener_usuario_actual(request)
+
+    contratacion_activa = None
+    if usuario_actual:
+        # No dejar pedir el mismo servicio dos veces mientras ya hay una
+        # solicitud en curso — antes no había ningún chequeo acá.
+        contratacion_activa = Contratacion.objects.filter(
+            publicacion=publicacion, cliente=usuario_actual,
+            estado__in=[Contratacion.SOLICITADA, Contratacion.CONFIRMADA, Contratacion.EN_CURSO],
+        ).first()
+
     return render(request, 'KeyServApp/detalleserv.html', {
         'publicacion': publicacion,
         'proveedor': proveedor,
         'resenas': resenas,
         'ranking': ranking,
-        'puede_contratar': bool(usuario_actual) and usuario_actual != proveedor,
+        'puede_contratar': bool(usuario_actual) and usuario_actual != proveedor and not contratacion_activa,
+        'contratacion_activa': contratacion_activa,
     })
 
 
@@ -349,6 +492,36 @@ def publicacion_crear_view(request):
     return render(request, 'KeyServApp/crear_publicacion.html', {'form': form, 'usuario': usuario})
 
 
+def documento_descargar_view(request, documento_id):
+    """
+    Único punto de acceso a un Documento — nunca se sirve directo por
+    MEDIA_URL (ver storage.py: `archivo_subido.url` ni siquiera funciona).
+
+    Un documento de respaldo ligado a una Publicacion (certificación,
+    licencia) es público, mismo criterio que las imágenes de la
+    publicación — es el caso de uso real hoy (ver publicacion_crear_view).
+    Un documento ligado SOLO a un Usuario, sin Publicacion (documento de
+    identidad — todavía no hay ningún flujo que suba uno así, pero el
+    modelo ya lo soporta) solo lo puede ver su dueño o un miembro del staff;
+    a cualquier otro se le devuelve 404 en vez de 403, para no confirmarle
+    ni que el documento existe.
+    """
+    documento = get_object_or_404(Documento, pk=documento_id)
+    usuario_actual = obtener_usuario_actual(request)
+
+    if not documento.publicacion_id:
+        es_dueno = usuario_actual and usuario_actual.pk == documento.usuario_id
+        es_staff = request.user.is_authenticated and request.user.is_staff
+        if not (es_dueno or es_staff):
+            _registrar_intento_sospechoso(request, usuario_actual, 'documento', documento_id, 'documento de identidad ajeno')
+            raise Http404()
+
+    return FileResponse(
+        documento.archivo_subido.open('rb'),
+        filename=os.path.basename(documento.archivo_subido.name),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Contratación (BPMN "Proceso de contratación" del PDF, PAGE 136-137)
 # ---------------------------------------------------------------------------
@@ -382,6 +555,7 @@ def contratacion_detalle_view(request, contratacion_id):
     )
     usuario = obtener_usuario_actual(request)
     if usuario not in (contratacion.cliente, contratacion.proveedor):
+        _registrar_intento_sospechoso(request, usuario, 'contratacion', contratacion_id, 'contratación ajena')
         messages.error(request, 'No participás en esta contratación.')
         return redirect('KeyServApp:reservas')
 
@@ -404,11 +578,14 @@ def contratacion_detalle_view(request, contratacion_id):
         participacion.ultimo_leido = timezone.now()
         participacion.save(update_fields=['ultimo_leido'])
 
-    ya_valorado = False
-    if contratacion.estado == Contratacion.COMPLETADA:
-        ya_valorado = Valoracion.objects.filter(
-            publicacion=contratacion.publicacion, usuario_emisor=usuario,
-        ).exists()
+    # NUEVO: la calificación se hace acá mismo (antes vivía en una página
+    # aparte, /reservas/ con un form genérico) — `valoracion` es la ya
+    # enviada (si existe) para mostrarla en modo lectura; `valoracion_form`
+    # solo se arma cuando el cliente todavía puede calificar este trabajo.
+    valoracion = getattr(contratacion, 'valoracion', None)
+    valoracion_form = None
+    if contratacion.estado == Contratacion.COMPLETADA and usuario == contratacion.cliente and valoracion is None:
+        valoracion_form = ValoracionForm()
 
     historial = contratacion.historial_estados.all()
     fechas_por_estado = {h.estado: h.fecha for h in historial}
@@ -423,7 +600,8 @@ def contratacion_detalle_view(request, contratacion_id):
         'historial': historial,
         'fechas_por_estado': fechas_por_estado,
         'reautenticacion_form': ReautenticacionForm(),
-        'ya_valorado': ya_valorado,
+        'valoracion': valoracion,
+        'valoracion_form': valoracion_form,
     })
 
 
@@ -447,6 +625,14 @@ def contratacion_crear_view(request, publicacion_id):
         messages.error(request, 'No podés contratar tu propia publicación.')
         return redirect('KeyServApp:publicacion_detalle', pk=publicacion_id)
 
+    ya_activa = Contratacion.objects.filter(
+        publicacion=publicacion, cliente=cliente,
+        estado__in=[Contratacion.SOLICITADA, Contratacion.CONFIRMADA, Contratacion.EN_CURSO],
+    ).exists()
+    if ya_activa:
+        messages.error(request, 'Ya tenés una solicitud en curso para este servicio — esperá a que se complete antes de volver a pedirlo.')
+        return redirect('KeyServApp:publicacion_detalle', pk=publicacion_id)
+
     contratacion = Contratacion.objects.create(
         publicacion=publicacion,
         cliente=cliente,
@@ -464,6 +650,29 @@ def contratacion_crear_view(request, publicacion_id):
     return redirect('KeyServApp:reservas')
 
 
+MAX_INTENTOS_REAUTENTICACION = 5
+VENTANA_INTENTOS_REAUTENTICACION = 300  # 5 minutos
+
+
+def _clave_intentos_reautenticacion(usuario, contratacion_id):
+    return f'reauth_intentos:{usuario.pk}:{contratacion_id}'
+
+
+def _reautenticacion_bloqueada(usuario, contratacion_id):
+    return cache.get(_clave_intentos_reautenticacion(usuario, contratacion_id), 0) >= MAX_INTENTOS_REAUTENTICACION
+
+
+def _registrar_intento_reautenticacion(usuario, contratacion_id, exito):
+    clave = _clave_intentos_reautenticacion(usuario, contratacion_id)
+    if exito:
+        cache.delete(clave)
+        return
+    try:
+        cache.incr(clave)
+    except ValueError:
+        cache.set(clave, 1, VENTANA_INTENTOS_REAUTENTICACION)
+
+
 @login_requerido
 @require_POST
 def contratacion_confirmar_view(request, contratacion_id):
@@ -471,21 +680,33 @@ def contratacion_confirmar_view(request, contratacion_id):
     El PROVEEDOR confirma que acepta la solicitud (SOLICITADA -> CONFIRMADA).
     Exige re-autenticación (re-ingresar la contraseña) — lo pide el BPMN del
     PDF explícitamente para ambas partes del proceso de contratación.
+
+    Límite de intentos por (usuario, contratación) — mismo criterio que el
+    login: sin esto, alguien con una sesión ya abierta (ej. una computadora
+    compartida) podía intentar adivinar la contraseña sin ningún freno.
     """
     contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.SOLICITADA)
     usuario = obtener_usuario_actual(request)
     if usuario != contratacion.proveedor:
+        _registrar_intento_sospechoso(request, usuario, 'contratacion_confirmar', contratacion_id, 'no es el proveedor')
         messages.error(request, 'Solo el proveedor puede confirmar esta contratación.')
+        return redirect('KeyServApp:reservas')
+
+    if _reautenticacion_bloqueada(usuario, contratacion_id):
+        _registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_confirmar', contratacion_id, 'demasiados intentos fallidos')
+        messages.error(request, 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.')
         return redirect('KeyServApp:reservas')
 
     form = ReautenticacionForm(request.POST)
     if form.is_valid() and usuario.check_password(form.cleaned_data['password']):
+        _registrar_intento_reautenticacion(usuario, contratacion_id, exito=True)
         contratacion.estado = Contratacion.CONFIRMADA
         contratacion.save()
         HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.CONFIRMADA)
         logger.info('Contratación confirmada por el proveedor: id=%s', contratacion.id_contratacion)
         messages.success(request, 'Contratación confirmada.')
     else:
+        _registrar_intento_reautenticacion(usuario, contratacion_id, exito=False)
         messages.error(request, 'Contraseña incorrecta — no se pudo confirmar.')
     return redirect('KeyServApp:reservas')
 
@@ -501,17 +722,25 @@ def contratacion_completar_view(request, contratacion_id):
     contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.CONFIRMADA)
     usuario = obtener_usuario_actual(request)
     if usuario != contratacion.cliente:
+        _registrar_intento_sospechoso(request, usuario, 'contratacion_completar', contratacion_id, 'no es el cliente')
         messages.error(request, 'Solo el cliente puede marcar la contratación como completada.')
+        return redirect('KeyServApp:reservas')
+
+    if _reautenticacion_bloqueada(usuario, contratacion_id):
+        _registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_completar', contratacion_id, 'demasiados intentos fallidos')
+        messages.error(request, 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.')
         return redirect('KeyServApp:reservas')
 
     form = ReautenticacionForm(request.POST)
     if form.is_valid() and usuario.check_password(form.cleaned_data['password']):
+        _registrar_intento_reautenticacion(usuario, contratacion_id, exito=True)
         contratacion.estado = Contratacion.COMPLETADA
         contratacion.save()
         HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.COMPLETADA)
         logger.info('Contratación completada: id=%s', contratacion.id_contratacion)
         messages.success(request, '¡Servicio marcado como completado! Ya podés calificarlo.')
     else:
+        _registrar_intento_reautenticacion(usuario, contratacion_id, exito=False)
         messages.error(request, 'Contraseña incorrecta — no se pudo completar.')
     return redirect('KeyServApp:reservas')
 
@@ -520,35 +749,78 @@ def contratacion_completar_view(request, contratacion_id):
 # Valoraciones (calificación por estrellas tras completar un servicio)
 # ---------------------------------------------------------------------------
 
+MAX_IMAGENES_VALORACION = 5
+
+
 @login_requerido
+@require_POST
 def valoracion_crear_view(request, contratacion_id):
-    """Crea una Valoracion sobre la contraparte de una Contratacion COMPLETADA, y recalcula su Ranking agregado."""
+    """
+    Crea la Valoracion del cliente sobre el proveedor de una Contratacion
+    COMPLETADA y recalcula el Ranking agregado del proveedor. Vive embebida
+    en contratacion_detalle.html (antes era una página aparte con un form
+    genérico). Las fotos adjuntas quedan PENDIENTE de moderación —
+    ValoracionImagen.estado_moderacion, mismo criterio que las imágenes y
+    documentos de una Publicacion— y no se muestran en público hasta que un
+    moderador las apruebe desde /admin/.
+    """
     contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.COMPLETADA)
     emisor = obtener_usuario_actual(request)
-    receptor = contratacion.proveedor if emisor == contratacion.cliente else contratacion.cliente
+    if emisor != contratacion.cliente:
+        _registrar_intento_sospechoso(request, emisor, 'valoracion_crear', contratacion_id, 'no es el cliente')
+        messages.error(request, 'Solo el cliente puede calificar este trabajo.')
+        return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
+    if getattr(contratacion, 'valoracion', None) is not None:
+        messages.error(request, 'Ya calificaste este trabajo.')
+        return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
 
-    if request.method == 'POST':
-        form = ValoracionForm(request.POST)
-        if form.is_valid():
-            valoracion = form.save(commit=False)
-            valoracion.usuario_emisor = emisor
-            valoracion.usuario_receptor = receptor
-            valoracion.publicacion = contratacion.publicacion
-            valoracion.save()
-            _recalcular_ranking(receptor)
-            messages.success(request, 'Gracias por tu calificación.')
-            return redirect('KeyServApp:reservas')
+    form = ValoracionForm(request.POST)
+    if form.is_valid():
+        valoracion = form.save(commit=False)
+        valoracion.usuario_emisor = emisor
+        valoracion.usuario_receptor = contratacion.proveedor
+        valoracion.publicacion = contratacion.publicacion
+        valoracion.contratacion = contratacion
+        valoracion.save()
+
+        # `imagenes` es un <input multiple> plano (no hay soporte nativo de
+        # Django para un ModelForm con múltiples archivos) — por eso, a
+        # diferencia de PublicacionForm.imagen, esto no pasaba por ningún
+        # validador. `full_clean()` corre las mismas validaciones que
+        # ValoracionImagen.archivo tiene en su Meta (ver validators.py:
+        # tamaño, extensión, firma de bytes, Pillow) antes de guardar cada
+        # una; lo que no pasa se descarta y se avisa, no se sube igual.
+        rechazadas = []
+        for archivo in request.FILES.getlist('imagenes')[:MAX_IMAGENES_VALORACION]:
+            imagen = ValoracionImagen(valoracion=valoracion, archivo=archivo)
+            try:
+                imagen.full_clean()
+            except ValidationError:
+                rechazadas.append(archivo.name)
+                continue
+            imagen.save()
+        if rechazadas:
+            messages.warning(request, f'No se pudieron subir estas fotos (formato, tamaño o contenido no válido): {", ".join(rechazadas)}.')
+
+        _recalcular_ranking(contratacion.proveedor)
+        messages.success(request, 'Gracias por tu calificación.')
     else:
-        form = ValoracionForm()
-
-    return render(request, 'KeyServApp/reservas.html', {'form': form, 'contratacion': contratacion})
+        messages.error(request, 'No se pudo registrar la calificación — elegí una puntuación de 1 a 5 estrellas.')
+    return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
 
 
 def _recalcular_ranking(usuario):
-    """Recalcula el promedio y total de Valoracion de un usuario y actualiza (o crea) su Ranking."""
+    """
+    Recalcula el promedio y total de Valoracion de un usuario y actualiza (o
+    crea) su Ranking — solo cuenta reseñas APROBADA, para que una reseña
+    todavía sin moderar (o una rechazada) no le mueva el puntaje a nadie.
+    Se llama tanto al crear una reseña como al moderarla (ver ValoracionAdmin).
+    """
     from django.db.models import Avg, Count
 
-    agregados = Valoracion.objects.filter(usuario_receptor=usuario).aggregate(
+    agregados = Valoracion.objects.filter(
+        usuario_receptor=usuario, estado_moderacion=Valoracion.APROBADA,
+    ).aggregate(
         promedio=Avg('puntuacion'), total=Count('id_valoracion'),
     )
     Ranking.objects.update_or_create(
@@ -576,13 +848,47 @@ def verificacion_huella_view(request):
     """
     Procesa la imagen de huella subida y marca al usuario como verificado si
     el pipeline de `biometria.py` corre sin errores.
-    TODO: hoy solo confirma que el pipeline corrió (no compara contra una
-    huella previamente registrada — falta decidir dónde se guarda el hash
-    de referencia por usuario para poder comparar en logins futuros).
+
+    SEGURIDAD: esta vista aceptaba `ruta_imagen` como texto plano en el POST
+    y se lo pasaba directo a `Image.open()` dentro del pipeline — cualquier
+    usuario logueado podía mandar la ruta de CUALQUIER archivo del servidor
+    (lectura arbitraria de archivos / path traversal). Ahora exige un
+    archivo subido de verdad (`request.FILES`), validado con las mismas
+    reglas que el resto de las imágenes del sitio (validators.validar_imagen:
+    extensión, firma de bytes, que Pillow logre decodificarla), y se guarda
+    en un archivo temporal generado por el propio servidor — nunca en una
+    ruta que decide el cliente.
+
+    TODO (sin resolver, no es de seguridad): hoy solo confirma que el
+    pipeline corrió, no compara contra una huella previamente registrada —
+    falta decidir dónde se guarda el hash de referencia por usuario para
+    poder comparar en logins futuros.
     """
     usuario = obtener_usuario_actual(request)
-    ruta_imagen = request.POST.get('ruta_imagen')  # TODO: en la integración real esto viene de un <input type="file">, no de una ruta de texto
-    hash_resultado = biometria.procesar_huella_dactilar(ruta_imagen)
+    archivo = request.FILES.get('huella_imagen')
+    if not archivo:
+        messages.error(request, 'Subí una imagen de huella para verificar.')
+        return redirect('KeyServApp:huella')
+
+    try:
+        validators.validar_imagen(archivo)
+    except ValidationError as error:
+        messages.error(request, ' '.join(error.messages))
+        return redirect('KeyServApp:huella')
+
+    ruta_temporal = None
+    try:
+        extension = os.path.splitext(archivo.name)[1].lower()
+        with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as destino:
+            for fragmento in archivo.chunks():
+                destino.write(fragmento)
+            ruta_temporal = destino.name
+
+        hash_resultado = biometria.procesar_huella_dactilar(ruta_temporal)
+    finally:
+        if ruta_temporal and os.path.exists(ruta_temporal):
+            os.remove(ruta_temporal)
+
     if hash_resultado:
         usuario.verificado_biometricamente = True
         usuario.save()
@@ -673,6 +979,7 @@ def conversacion_detalle_view(request, conversacion_id):
     conversacion = get_object_or_404(Conversacion, pk=conversacion_id)
     participacion = UsuarioConversacion.objects.filter(usuario=usuario, conversacion=conversacion).first()
     if not participacion:
+        _registrar_intento_sospechoso(request, usuario, 'conversacion', conversacion_id, 'conversación ajena')
         messages.error(request, 'No participás en esta conversación.')
         return redirect('KeyServApp:chat')
 
@@ -714,6 +1021,7 @@ def conversacion_exportar_view(request, conversacion_id):
     usuario = obtener_usuario_actual(request)
     conversacion = get_object_or_404(Conversacion, pk=conversacion_id)
     if not UsuarioConversacion.objects.filter(usuario=usuario, conversacion=conversacion).exists():
+        _registrar_intento_sospechoso(request, usuario, 'conversacion_exportar', conversacion_id, 'conversación ajena')
         messages.error(request, 'No participás en esta conversación.')
         return redirect('KeyServApp:chat')
 

@@ -18,8 +18,15 @@ Un moderador puede:
   - Atender incidencias/soporte (Consulta: view, change).
   - Ver solicitudes/contrataciones y su historial de estado (Contratacion,
     HistorialEstadoContratacion: view) — "solicitudes pendientes".
-  - Revisar mensajería y valoraciones en caso de disputa (Conversacion,
-    Mensaje, Valoracion, Ranking: view).
+  - Aprobar/rechazar reseñas y sus fotos adjuntas (Valoracion,
+    ValoracionImagen: view, change) — ya no solo las fotos se moderaban,
+    la reseña completa también puede ser difamatoria/abusiva.
+  - Revisar mensajería en caso de disputa (Conversacion, Mensaje: view) y
+    ver el Ranking agregado (Ranking: view).
+  - Ver los intentos de acceso sospechoso registrados automáticamente
+    (IntentoAccesoSospechoso: view) — alguien probando conversaciones o
+    contrataciones ajenas es justo el tipo de cosa que moderación debería
+    poder notar, no solo el superuser.
 
 Un moderador NO puede (a propósito — "todo menos logs y bases de datos"):
   - Ver Usuario ni ninguna tabla de datos sensibles/catálogos/pagos
@@ -38,7 +45,8 @@ from django.core.management.base import BaseCommand
 
 from KeyServApp.models import (
     Consulta, Contratacion, Conversacion, Documento, HistorialEstadoContratacion,
-    Imagenes, Mensaje, Publicaciones, Ranking, Valoracion,
+    Imagenes, IntentoAccesoSospechoso, Mensaje, Publicaciones, Ranking,
+    Valoracion, ValoracionImagen,
 )
 
 PERMISOS_MODERADOR = {
@@ -50,8 +58,10 @@ PERMISOS_MODERADOR = {
     HistorialEstadoContratacion: ['view'],
     Conversacion: ['view'],
     Mensaje: ['view'],
-    Valoracion: ['view'],
+    Valoracion: ['view', 'change'],
+    ValoracionImagen: ['view', 'change'],
     Ranking: ['view'],
+    IntentoAccesoSospechoso: ['view'],
 }
 
 

@@ -38,6 +38,31 @@
   </table>
 </div>
 
+{% if intentos_sospechosos is not None %}
+<div class="app-ks_panel module" id="ks-panel-sospechosos">
+  <table>
+    <caption>
+      <a href="{% url 'admin:KeyServApp_intentoaccesosospechoso_changelist' %}" class="section" title="{% translate 'Ver todos' %}">
+        🚨 Intentos de acceso sospechoso (últimas 48h){% if total_sospechosos %} ({{ total_sospechosos }}){% endif %}
+      </a>
+    </caption>
+    {% for intento in intentos_sospechosos %}
+    <tr>
+      <th scope="row">{{ intento.usuario|default:"Anónimo" }}</th>
+      <td>{{ intento.recurso }} #{{ intento.recurso_id }}</td>
+      <td>{{ intento.ip }}{% if intento.ciudad %} — {{ intento.ciudad }}, {{ intento.pais }}{% endif %}</td>
+      <td>{{ intento.fecha|date:"d/m/Y H:i" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td>Sin intentos sospechosos recientes 🎉</td></tr>
+    {% endfor %}
+  </table>
+  {% if intentos_sospechosos %}
+  <p class="help" style="margin: 4px 8px;">Ubicación aproximada — <a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a>.</p>
+  {% endif %}
+</div>
+{% endif %}
+
 {% if es_superuser %}
 <div class="app-ks_panel module">
   <table>

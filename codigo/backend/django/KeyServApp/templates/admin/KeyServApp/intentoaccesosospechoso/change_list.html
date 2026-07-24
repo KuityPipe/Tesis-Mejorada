@@ -1,0 +1,10 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+{{ block.super }}
+<p class="help" style="margin: 12px 0;">
+  Geolocalización aproximada por IP —
+  <a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a>
+  (base local, licencia CC-BY 4.0; ver <code>KeyServApp/geolocalizacion.py</code>).
+</p>
+{% endblock %}

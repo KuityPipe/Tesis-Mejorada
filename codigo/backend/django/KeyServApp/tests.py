@@ -13,14 +13,30 @@ sola en Postgres) — no son mocks, así que si algo similar al bug de
 Fase 3 (nombres de campo desalineados) vuelve a aparecer, estos tests lo
 detectan igual que detectaron los bugs originales cuando se armó Fase 3.
 """
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
 from django.urls import reverse
 
 from .models import (
-    Comuna, Contratacion, Publicaciones, Ranking, Region, TipoCuenta, Usuario,
-    Valoracion,
+    Comuna, Contratacion, Documento, IntentoAccesoSospechoso, Publicaciones,
+    Ranking, Region, TipoCuenta, Usuario, Valoracion, ValoracionImagen,
 )
-from . import biometria
+from . import biometria, geolocalizacion, validators
+
+
+def _imagen_de_prueba():
+    """
+    GIF de 1x1 válido — lo más chico que Pillow (ImageField) acepta sin
+    quejarse. Función en vez de un SimpleUploadedFile compartido a propósito:
+    un POST de test (o `validar_imagen`) consume el stream del archivo, así
+    que reusar la misma instancia entre tests da fallas dependientes del
+    orden en que corren (el segundo test que la usa la recibe ya vacía).
+    """
+    return SimpleUploadedFile(
+        'foto.gif', b'GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;',
+        content_type='image/gif',
+    )
 
 
 def _crear_region_comuna_tipo():
@@ -82,7 +98,7 @@ class RegistroViewTests(TestCase):
             'rut': '11111111-1', 'nombre1': 'Test', 'nombre2': '', 'apellido1': 'Usuario', 'apellido2': '',
             'edad': 30, 'telefono': 912345678, 'email': 'nuevo@test.com',
             'region': self.region.id_region, 'comuna': self.comuna.id_comuna, 'direccion': 'Calle Falsa 123',
-            'tipo_cuenta': self.tipo_cuenta.id_tipo_cuenta, 'password': '123456', 'password_confirm': '123456',
+            'tipo_cuenta': self.tipo_cuenta.id_tipo_cuenta, 'password': 'ClaveSegura2026!', 'password_confirm': 'ClaveSegura2026!',
         }
         datos.update(overrides)
         return datos
@@ -91,7 +107,7 @@ class RegistroViewTests(TestCase):
         resp = self.client.post(reverse('KeyServApp:registro'), self._datos_validos())
         self.assertRedirects(resp, reverse('KeyServApp:sesion'))
         usuario = Usuario.objects.get(email='nuevo@test.com')
-        self.assertTrue(usuario.check_password('123456'))
+        self.assertTrue(usuario.check_password('ClaveSegura2026!'))
 
     def test_registro_con_contrasenas_distintas_falla(self):
         resp = self.client.post(reverse('KeyServApp:registro'), self._datos_validos(password_confirm='otra'))
@@ -110,6 +126,30 @@ class RegistroViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(Usuario.objects.filter(email='menor@test.com').exists())
 
+    def test_password_corta_falla(self):
+        """Mínimo subido de 6 a 8 caracteres."""
+        resp = self.client.post(reverse('KeyServApp:registro'), self._datos_validos(
+            password='Cort@1', password_confirm='Cort@1', email='corta@test.com',
+        ))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Usuario.objects.filter(email='corta@test.com').exists())
+
+    def test_password_solo_numeros_falla(self):
+        """AUTH_PASSWORD_VALIDATORS.NumericPasswordValidator, reusado desde RegistroForm.clean() — antes '123456' pasaba sin problema."""
+        resp = self.client.post(reverse('KeyServApp:registro'), self._datos_validos(
+            password='12345678', password_confirm='12345678', email='numerica@test.com',
+        ))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Usuario.objects.filter(email='numerica@test.com').exists())
+
+    def test_password_comun_falla(self):
+        """AUTH_PASSWORD_VALIDATORS.CommonPasswordValidator."""
+        resp = self.client.post(reverse('KeyServApp:registro'), self._datos_validos(
+            password='password123', password_confirm='password123', email='comun@test.com',
+        ))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Usuario.objects.filter(email='comun@test.com').exists())
+
 
 class LoginViewTests(TestCase):
     def setUp(self):
@@ -124,6 +164,36 @@ class LoginViewTests(TestCase):
     def test_login_incorrecto_no_redirige(self):
         resp = self.client.post(reverse('KeyServApp:sesion'), {'email': 'login@test.com', 'password': 'incorrecta'})
         self.assertEqual(resp.status_code, 200)
+
+    def test_con_sesion_abierta_no_muestra_el_login(self):
+        """Antes se podía llegar a /sesion/ con una cuenta ya logueada y loguear otra encima — confuso, ver también el registro."""
+        session = self.client.session
+        session['usuario_id'] = self.usuario.id_usuario
+        session.save()
+        resp = self.client.get(reverse('KeyServApp:sesion'))
+        self.assertRedirects(resp, reverse('KeyServApp:sesion_iniciada'))
+
+    def test_con_sesion_abierta_no_muestra_el_registro(self):
+        session = self.client.session
+        session['usuario_id'] = self.usuario.id_usuario
+        session.save()
+        resp = self.client.get(reverse('KeyServApp:registro'))
+        self.assertRedirects(resp, reverse('KeyServApp:sesion_iniciada'))
+
+    def test_login_bloqueado_queda_registrado_como_sospechoso(self):
+        """El bloqueo por fuerza bruta también aplica a quien no tiene usuario todavía — usuario=None a propósito."""
+        from django.core.cache import cache
+        from .models import IntentoAccesoSospechoso
+
+        for _ in range(5):
+            self.client.post(reverse('KeyServApp:sesion'), {'email': 'login@test.com', 'password': 'incorrecta'})
+
+        self.client.post(reverse('KeyServApp:sesion'), {'email': 'login@test.com', 'password': 'claveok'})
+
+        intento = IntentoAccesoSospechoso.objects.get(recurso='login_bloqueado')
+        self.assertIsNone(intento.usuario)
+        self.assertEqual(intento.recurso_id, 'login@test.com')
+        cache.clear()
 
 
 class LoadComunasTests(TestCase):
@@ -151,6 +221,41 @@ class BiometriaImportTests(TestCase):
     def test_procesar_huella_con_ruta_invalida_devuelve_none_no_excepcion(self):
         resultado = biometria.procesar_huella_dactilar('/ruta/que/no/existe.png')
         self.assertIsNone(resultado)
+
+
+class VerificacionHuellaSeguridadTests(TestCase):
+    """
+    `verificacion_huella_view` tomaba `ruta_imagen` como texto plano del
+    POST y se lo pasaba directo a Image.open() dentro del pipeline —
+    cualquier usuario logueado podía pedirle al servidor que abriera
+    cualquier archivo de su filesystem (lectura arbitraria de archivos).
+    Ahora exige un archivo subido de verdad y valida su contenido.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('huella@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+
+    def _login(self, client):
+        session = client.session
+        session['usuario_id'] = self.usuario.id_usuario
+        session.save()
+
+    def test_ya_no_acepta_una_ruta_de_archivo_como_texto(self):
+        """Aunque alguien mande `ruta_imagen` (el parámetro viejo y vulnerable), la vista lo ignora por completo."""
+        client = Client()
+        self._login(client)
+        client.post(reverse('KeyServApp:verificacion_huella'), {'ruta_imagen': '/etc/passwd'})
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.verificado_biometricamente)
+
+    def test_archivo_que_no_es_una_imagen_real_se_rechaza(self):
+        client = Client()
+        self._login(client)
+        falso = SimpleUploadedFile('huella.png', b'no es una imagen real', content_type='image/png')
+        client.post(reverse('KeyServApp:verificacion_huella'), {'huella_imagen': falso})
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.verificado_biometricamente)
 
 
 class PublicacionYModeracionTests(TestCase):
@@ -183,6 +288,53 @@ class PublicacionYModeracionTests(TestCase):
         session.save()
         resp = client.get(reverse('KeyServApp:publicacion_crear'))
         self.assertRedirects(resp, reverse('KeyServApp:perfil'))
+
+
+class DocumentoAccesoTests(TestCase):
+    """
+    Documento.archivo_subido usa storage privado (ver storage.py) — el único
+    acceso es documento_descargar_view. Uno ligado a una Publicacion es
+    público (certificación); uno ligado SOLO a un Usuario (documento de
+    identidad) es privado, solo su dueño o staff lo puede ver.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.dueno = _crear_usuario('dueno_doc@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.otro = _crear_usuario('otro_doc@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.pdf = SimpleUploadedFile('doc.pdf', b'%PDF-1.4 contenido de prueba', content_type='application/pdf')
+
+    def _login(self, client, usuario):
+        session = client.session
+        session['usuario_id'] = usuario.id_usuario
+        session.save()
+
+    def test_documento_de_identidad_no_lo_puede_ver_otro_usuario(self):
+        documento = Documento.objects.create(usuario=self.dueno, nombre_documento='cedula.pdf', archivo_subido=self.pdf)
+        client = Client()
+        self._login(client, self.otro)
+        resp = client.get(reverse('KeyServApp:documento_descargar', args=[documento.id_documento]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_documento_de_identidad_anonimo_no_lo_puede_ver(self):
+        documento = Documento.objects.create(usuario=self.dueno, nombre_documento='cedula.pdf', archivo_subido=self.pdf)
+        client = Client()
+        resp = client.get(reverse('KeyServApp:documento_descargar', args=[documento.id_documento]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_documento_de_identidad_lo_puede_ver_su_dueno(self):
+        documento = Documento.objects.create(usuario=self.dueno, nombre_documento='cedula.pdf', archivo_subido=self.pdf)
+        client = Client()
+        self._login(client, self.dueno)
+        resp = client.get(reverse('KeyServApp:documento_descargar', args=[documento.id_documento]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_documento_de_publicacion_es_publico(self):
+        publicacion = Publicaciones.objects.create(usuario_publicador=self.dueno, titulo='Servicio', estado_moderacion=Publicaciones.APROBADA)
+        documento = Documento.objects.create(publicacion=publicacion, usuario=self.dueno, nombre_documento='cert.pdf', archivo_subido=self.pdf)
+        client = Client()  # sin login
+        resp = client.get(reverse('KeyServApp:documento_descargar', args=[documento.id_documento]))
+        self.assertEqual(resp.status_code, 200)
 
 
 class ContratacionFlowTests(TestCase):
@@ -224,12 +376,88 @@ class ContratacionFlowTests(TestCase):
         contratacion.refresh_from_db()
         self.assertEqual(contratacion.estado, Contratacion.COMPLETADA)
 
-        # 4. El cliente valora al proveedor — el Ranking del proveedor debe recalcularse.
+        # 4. El cliente valora al proveedor — la reseña nace PENDIENTE y todavía
+        # no debe contar para el Ranking (recién cuenta una vez moderada).
         client.post(reverse('KeyServApp:valoracion_crear', args=[contratacion.id_contratacion]), {'puntuacion': 5, 'comentario': 'Excelente'})
-        self.assertTrue(Valoracion.objects.filter(usuario_receptor=self.proveedor, puntuacion=5).exists())
+        valoracion = Valoracion.objects.get(usuario_receptor=self.proveedor, puntuacion=5)
+        self.assertEqual(valoracion.estado_moderacion, Valoracion.PENDIENTE)
         ranking = Ranking.objects.get(usuario=self.proveedor)
+        self.assertEqual(ranking.total_valoraciones, 0)
+
+        # 5. Un moderador la aprueba — recién ahí debe reflejarse en el Ranking.
+        from .views import _recalcular_ranking
+        valoracion.estado_moderacion = Valoracion.APROBADA
+        valoracion.save()
+        _recalcular_ranking(self.proveedor)
+        ranking.refresh_from_db()
         self.assertEqual(ranking.total_valoraciones, 1)
         self.assertEqual(float(ranking.puntuacion_promedio), 5.0)
+
+    def test_no_se_puede_recontratar_mientras_hay_una_solicitud_activa(self):
+        """El cliente no puede pedir el mismo servicio dos veces mientras la primera solicitud sigue SOLICITADA/CONFIRMADA/EN_CURSO."""
+        client = Client()
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        self.assertEqual(Contratacion.objects.filter(publicacion=self.publicacion, cliente=self.cliente).count(), 1)
+
+    def test_se_puede_recontratar_una_vez_completada_la_anterior(self):
+        """Una vez COMPLETADA la contratación anterior, sí se puede volver a pedir el mismo servicio."""
+        client = Client()
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        primera = Contratacion.objects.get(publicacion=self.publicacion)
+
+        self._login_como(client, self.proveedor)
+        client.post(reverse('KeyServApp:contratacion_confirmar', args=[primera.id_contratacion]), {'password': 'clave_prov'})
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_completar', args=[primera.id_contratacion]), {'password': 'clave_cli'})
+
+        client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        self.assertEqual(Contratacion.objects.filter(publicacion=self.publicacion, cliente=self.cliente).count(), 2)
+
+    def test_valoracion_con_foto_queda_pendiente_de_moderacion(self):
+        """Las fotos adjuntas a una calificación no deben quedar visibles hasta que un moderador las apruebe."""
+        client = Client()
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        contratacion = Contratacion.objects.get(publicacion=self.publicacion)
+
+        self._login_como(client, self.proveedor)
+        client.post(reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]), {'password': 'clave_prov'})
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_completar', args=[contratacion.id_contratacion]), {'password': 'clave_cli'})
+
+        client.post(reverse('KeyServApp:valoracion_crear', args=[contratacion.id_contratacion]), {
+            'puntuacion': 5, 'comentario': 'Excelente', 'imagenes': _imagen_de_prueba(),
+        })
+
+        contratacion.refresh_from_db()
+        self.assertIsNotNone(contratacion.valoracion)
+        imagen = ValoracionImagen.objects.get(valoracion=contratacion.valoracion)
+        self.assertEqual(imagen.estado_moderacion, ValoracionImagen.PENDIENTE)
+        self.assertEqual(list(contratacion.valoracion.imagenes_aprobadas), [])
+
+        imagen.estado_moderacion = ValoracionImagen.APROBADA
+        imagen.save()
+        self.assertEqual(list(contratacion.valoracion.imagenes_aprobadas), [imagen])
+
+    def test_no_se_puede_calificar_dos_veces_el_mismo_trabajo(self):
+        client = Client()
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        contratacion = Contratacion.objects.get(publicacion=self.publicacion)
+
+        self._login_como(client, self.proveedor)
+        client.post(reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]), {'password': 'clave_prov'})
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_completar', args=[contratacion.id_contratacion]), {'password': 'clave_cli'})
+
+        client.post(reverse('KeyServApp:valoracion_crear', args=[contratacion.id_contratacion]), {'puntuacion': 5, 'comentario': 'Excelente'})
+        client.post(reverse('KeyServApp:valoracion_crear', args=[contratacion.id_contratacion]), {'puntuacion': 1, 'comentario': 'Cambié de opinión'})
+
+        self.assertEqual(Valoracion.objects.filter(contratacion=contratacion).count(), 1)
+        self.assertEqual(Valoracion.objects.get(contratacion=contratacion).puntuacion, 5)
 
     def test_confirmar_con_password_incorrecta_no_avanza_estado(self):
         client = Client()
@@ -252,6 +480,34 @@ class ContratacionFlowTests(TestCase):
         client.post(reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]), {'password': 'clave_cli'})
         contratacion.refresh_from_db()
         self.assertEqual(contratacion.estado, Contratacion.SOLICITADA)
+
+    def test_reautenticacion_se_bloquea_tras_varios_intentos_fallidos(self):
+        """Sin esto, alguien con la sesión abierta podía probar contraseñas sin ningún freno."""
+        from django.core.cache import cache
+        client = Client()
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        contratacion = Contratacion.objects.get(publicacion=self.publicacion)
+
+        self._login_como(client, self.proveedor)
+        for _ in range(5):
+            client.post(reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]), {'password': 'clave-incorrecta'})
+
+        # El sexto intento, aunque mande la contraseña CORRECTA, ya debería estar bloqueado.
+        response = client.post(
+            reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]),
+            {'password': 'clave_prov'}, follow=True,
+        )
+        contratacion.refresh_from_db()
+        self.assertEqual(contratacion.estado, Contratacion.SOLICITADA)
+        mensajes = [str(m) for m in response.context['messages']]
+        self.assertTrue(any('Demasiados intentos' in m for m in mensajes))
+
+        from .models import IntentoAccesoSospechoso
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(
+            usuario=self.proveedor, recurso='reauth_bloqueado_confirmar', recurso_id=str(contratacion.id_contratacion),
+        ).exists())
+        cache.clear()
 
 
 class MensajeriaTests(TestCase):
@@ -302,3 +558,179 @@ class MensajeriaTests(TestCase):
         session2.save()
         resp2 = client2.get(reverse('KeyServApp:conversacion_detalle', args=[conversacion.id_conversacion]))
         self.assertRedirects(resp2, reverse('KeyServApp:chat'))
+
+    def test_un_tercero_no_puede_exportar_la_conversacion_de_otros(self):
+        """Mismo chequeo que ver el chat, pero para /chat/<id>/exportar/ — es otra forma de leer el contenido completo."""
+        from .models import Contratacion
+        from .views import _obtener_o_crear_conversacion_de_contratacion
+
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+        conversacion = _obtener_o_crear_conversacion_de_contratacion(contratacion)
+
+        otro = _crear_usuario('intruso_export@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        client = Client()
+        session = client.session
+        session['usuario_id'] = otro.id_usuario
+        session.save()
+        resp = client.get(reverse('KeyServApp:conversacion_exportar', args=[conversacion.id_conversacion]))
+        self.assertRedirects(resp, reverse('KeyServApp:chat'))
+        conversacion.refresh_from_db()
+        self.assertIsNone(conversacion.exportado_en)
+
+
+class IntentoAccesoSospechosoTests(TestCase):
+    """
+    Cada punto de "no participás en esto" (conversación, contratación,
+    documento ajenos) tiene que dejar un IntentoAccesoSospechoso, no solo
+    mostrar el mensaje de error — es lo que permite a moderación/admin
+    notar reconocimiento manual de IDs antes de que sea un problema real.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.cliente = _crear_usuario('cliente_iaS@test.com', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.proveedor = _crear_usuario('proveedor_iaS@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.intruso = _crear_usuario('intruso_iaS@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Jardinería', estado_moderacion=Publicaciones.APROBADA)
+
+    def _login(self, client, usuario):
+        session = client.session
+        session['usuario_id'] = usuario.id_usuario
+        session.save()
+
+    def test_conversacion_ajena_queda_registrada(self):
+        from .views import _obtener_o_crear_conversacion_de_contratacion
+
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+        conversacion = _obtener_o_crear_conversacion_de_contratacion(contratacion)
+
+        client = Client()
+        self._login(client, self.intruso)
+        client.get(reverse('KeyServApp:conversacion_detalle', args=[conversacion.id_conversacion]))
+
+        intento = IntentoAccesoSospechoso.objects.get(recurso='conversacion', recurso_id=str(conversacion.id_conversacion))
+        self.assertEqual(intento.usuario, self.intruso)
+        self.assertEqual(intento.ip, '127.0.0.1')
+
+    def test_contratacion_ajena_queda_registrada(self):
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+
+        client = Client()
+        self._login(client, self.intruso)
+        client.get(reverse('KeyServApp:contratacion_detalle', args=[contratacion.id_contratacion]))
+
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(
+            usuario=self.intruso, recurso='contratacion', recurso_id=str(contratacion.id_contratacion),
+        ).exists())
+
+    def test_documento_ajeno_queda_registrado(self):
+        pdf = SimpleUploadedFile('doc.pdf', b'%PDF-1.4 contenido de prueba', content_type='application/pdf')
+        documento = Documento.objects.create(usuario=self.cliente, nombre_documento='cedula.pdf', archivo_subido=pdf)
+
+        client = Client()
+        self._login(client, self.intruso)
+        client.get(reverse('KeyServApp:documento_descargar', args=[documento.id_documento]))
+
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(
+            usuario=self.intruso, recurso='documento', recurso_id=str(documento.id_documento),
+        ).exists())
+
+    def test_acceso_normal_no_genera_registro(self):
+        """Que no se dispare para nadie que sí tiene permiso — solo para los rechazos reales."""
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+        client = Client()
+        self._login(client, self.cliente)
+        client.get(reverse('KeyServApp:contratacion_detalle', args=[contratacion.id_contratacion]))
+        self.assertEqual(IntentoAccesoSospechoso.objects.count(), 0)
+
+
+class GeolocalizacionIPTests(TestCase):
+    """geolocalizar_ip (base DB-IP local, ver geolocalizacion.py) degrada a (None, None) sin reventar, nunca geolocaliza IPs privadas."""
+
+    def test_ip_privada_no_geolocaliza(self):
+        self.assertEqual(geolocalizacion.geolocalizar_ip('127.0.0.1'), (None, None))
+        self.assertEqual(geolocalizacion.geolocalizar_ip('192.168.1.1'), (None, None))
+
+    def test_ip_invalida_no_revienta(self):
+        self.assertEqual(geolocalizacion.geolocalizar_ip('no-es-una-ip'), (None, None))
+
+    def test_ip_vacia_no_revienta(self):
+        self.assertEqual(geolocalizacion.geolocalizar_ip(''), (None, None))
+        self.assertEqual(geolocalizacion.geolocalizar_ip(None), (None, None))
+
+    def test_ip_publica_con_base_descargada(self):
+        import os
+        from django.conf import settings
+        if not os.path.exists(settings.GEOIP_DB_PATH):
+            self.skipTest('Base GeoIP no descargada en este entorno — correr "manage.py descargar_geoip".')
+        pais, ciudad = geolocalizacion.geolocalizar_ip('8.8.8.8')
+        self.assertEqual(pais, 'United States')
+
+
+class ValidacionArchivosTests(TestCase):
+    """
+    validators.py: la extensión y el Content-Type que manda el navegador son
+    fáciles de falsear (basta renombrar un .exe a .jpg) — estos tests
+    confirman que lo que de verdad bloquea es el contenido real del archivo.
+    """
+
+    def test_imagen_valida_pasa(self):
+        validators.validar_imagen(_imagen_de_prueba())
+
+    def test_archivo_de_texto_disfrazado_de_imagen_se_rechaza(self):
+        """Un .jpg cuyo contenido real es texto plano no es una imagen — la firma de bytes no matchea."""
+        falso = SimpleUploadedFile('foto.jpg', b'esto no es una imagen, es texto plano', content_type='image/jpeg')
+        with self.assertRaises(ValidationError):
+            validators.validar_imagen(falso)
+
+    def test_extension_no_permitida_se_rechaza(self):
+        ejecutable = SimpleUploadedFile('certificado.exe', b'MZ\x90\x00' + b'\x00' * 20, content_type='application/octet-stream')
+        with self.assertRaises(ValidationError):
+            validators.validar_documento(ejecutable)
+
+    def test_pdf_valido_pasa_como_documento(self):
+        pdf = SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 contenido de prueba', content_type='application/pdf')
+        validators.validar_documento(pdf)
+
+    def test_archivo_muy_pesado_se_rechaza(self):
+        archivo = SimpleUploadedFile('foto.jpg', b'\xff\xd8\xff' + b'0' * 1000, content_type='image/jpeg')
+        with self.assertRaises(ValidationError):
+            validators._validar_tamano(archivo, maximo=500)  # tope artificialmente bajo, no hace falta un archivo de 8 MB real para probar el chequeo
+
+
+class ValoracionConFotoMaliciosaTests(TestCase):
+    """La subida de fotos de una reseña (request.FILES.getlist, sin ModelForm de por medio) también tiene que pasar por los validadores."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor4@test.com', 'clave_prov', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente4@test.com', 'clave_cli', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Carpintería', estado_moderacion=Publicaciones.APROBADA)
+
+    def _login_como(self, client, usuario):
+        session = client.session
+        session['usuario_id'] = usuario.id_usuario
+        session.save()
+
+    def test_foto_falsa_se_descarta_pero_la_valida_se_guarda(self):
+        client = Client()
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        contratacion = Contratacion.objects.get(publicacion=self.publicacion)
+
+        self._login_como(client, self.proveedor)
+        client.post(reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]), {'password': 'clave_prov'})
+        self._login_como(client, self.cliente)
+        client.post(reverse('KeyServApp:contratacion_completar', args=[contratacion.id_contratacion]), {'password': 'clave_cli'})
+
+        falsa = SimpleUploadedFile('script.jpg', b'<script>alert(1)</script>', content_type='image/jpeg')
+        response = client.post(
+            reverse('KeyServApp:valoracion_crear', args=[contratacion.id_contratacion]),
+            {'puntuacion': 5, 'comentario': 'Buen trabajo', 'imagenes': [_imagen_de_prueba(), falsa]},
+            follow=True,
+        )
+
+        contratacion.refresh_from_db()
+        self.assertEqual(ValoracionImagen.objects.filter(valoracion=contratacion.valoracion).count(), 1)
+        mensajes = [str(m) for m in response.context['messages']]
+        self.assertTrue(any('script.jpg' in m for m in mensajes))

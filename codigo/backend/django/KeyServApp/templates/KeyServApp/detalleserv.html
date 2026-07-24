@@ -13,48 +13,136 @@
   </div>
 </section>
 
-<section class="ks-section container" style="max-width: 780px;">
+<section class="ks-section container" style="max-width: 1100px;">
 
-  {% if publicacion.imagenes.all %}
-  <div class="ks-gallery" style="margin-bottom:24px;">
-    {% for imagen in publicacion.imagenes.all %}
-    <img src="{{ imagen.url }}" alt="{{ publicacion.titulo }}">
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <div class="ks-panel">
-    <h3><i class="bi bi-person-circle"></i> Proveedor</h3>
-    <p class="mb-1"><strong>{{ proveedor }}</strong></p>
-    {% if ranking %}
-      <p class="ks-help"><i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ ranking.puntuacion_promedio }} ({{ ranking.total_valoraciones }} valoraciones)</p>
-    {% endif %}
-  </div>
-
-  <div class="ks-panel">
-    <h3>Descripción</h3>
-    <p class="ks-help">{{ publicacion.descripcion_publicacion }}</p>
-  </div>
-
-  {% if puede_contratar %}
-  <form method="post" action="{% url 'KeyServApp:contratacion_crear' publicacion.id_publicacion %}" class="mb-4">
-    {% csrf_token %}
-    <button type="submit" class="ks-btn ks-btn-primary"><i class="bi bi-calendar-check"></i> Contratar este servicio</button>
-  </form>
-  {% elif not proveedor %}
-  <div class="ks-info-note"><i class="bi bi-exclamation-triangle"></i> Este servicio no tiene proveedor asignado.</div>
-  {% endif %}
-
-  <div class="ks-panel">
-    <h3>Reseñas y calificaciones</h3>
-    {% for resena in resenas %}
-      <div class="ks-review">
-        <strong>{{ resena.usuario_emisor }}</strong> — <i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ resena.puntuacion }}/5
-        <p class="mb-0 ks-help">{{ resena.comentario }}</p>
+  <div class="ks-service-layout">
+    <div>
+      {% with imagenes=publicacion.imagenes.all %}
+      {% if imagenes %}
+      <div id="ksCarousel" class="carousel slide ks-carousel" data-bs-interval="false">
+        <div class="carousel-inner">
+          {% for imagen in imagenes %}
+          <div class="carousel-item {% if forloop.first %}active{% endif %}">
+            <img src="{{ imagen.url }}" alt="{{ publicacion.titulo }} — foto {{ forloop.counter }}">
+          </div>
+          {% endfor %}
+        </div>
+        {% if imagenes|length > 1 %}
+        <button class="carousel-control-prev" type="button" data-bs-target="#ksCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#ksCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Siguiente</span>
+        </button>
+        {% endif %}
       </div>
-    {% empty %}
-      <p class="ks-help">Todavía no hay reseñas para este servicio.</p>
-    {% endfor %}
+      {% if imagenes|length > 1 %}
+      <div class="ks-carousel-thumbs">
+        {% for imagen in imagenes %}
+        <img src="{{ imagen.url }}" alt="Ir a la foto {{ forloop.counter }}" class="{% if forloop.first %}active{% endif %}" data-bs-target="#ksCarousel" data-bs-slide-to="{{ forloop.counter0 }}">
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="ks-carousel">
+        <div class="ks-carousel-placeholder">
+          <i class="bi bi-image"></i>
+          <span>Este proveedor todavía no subió fotos</span>
+        </div>
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <div class="ks-panel">
+        <h3>Descripción</h3>
+        <p class="ks-help mb-0">{{ publicacion.descripcion_publicacion }}</p>
+      </div>
+
+      <div class="ks-panel mb-0">
+        <h3>Reseñas y calificaciones</h3>
+        {% for resena in resenas %}
+          <div class="ks-review">
+            <strong>{{ resena.usuario_emisor }}</strong> — <i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ resena.puntuacion }}/5
+            <p class="mb-0 ks-help">{{ resena.comentario }}</p>
+            {% if resena.imagenes_aprobadas %}
+            <div class="ks-gallery" style="margin-top:10px; margin-bottom:0;">
+              {% for img in resena.imagenes_aprobadas %}
+              <img src="{{ img.archivo.url }}" alt="Foto adjunta por {{ resena.usuario_emisor }}">
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        {% empty %}
+          <p class="ks-help mb-0">Todavía no hay reseñas para este servicio.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <aside class="ks-service-sidebar">
+      <div class="ks-panel mb-0">
+        <h3><i class="bi bi-person-circle"></i> Proveedor</h3>
+        <p class="mb-1"><strong>{{ proveedor }}</strong></p>
+        {% if proveedor.verificado_biometricamente %}
+          <p class="ks-verified mb-1" style="font-size:.88rem;"><i class="bi bi-patch-check-fill"></i> Identidad verificada con biometría</p>
+        {% endif %}
+        {% if ranking %}
+          <p class="ks-help mb-0"><i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ ranking.puntuacion_promedio }} ({{ ranking.total_valoraciones }} valoraciones)</p>
+        {% endif %}
+      </div>
+
+      {% if publicacion.documentos.all %}
+      <div class="ks-panel mb-0">
+        <h3><i class="bi bi-file-earmark-check"></i> Documentos y certificaciones</h3>
+        <ul class="ks-doc-list">
+          {% for documento in publicacion.documentos.all %}
+          <li class="ks-doc-item">
+            <a href="{% url 'KeyServApp:documento_descargar' documento.id_documento %}" target="_blank" rel="noopener">
+              <i class="bi bi-file-earmark-text"></i>
+              <span>{{ documento.nombre_documento }}<small>Subido el {{ documento.fecha_subida_documento|date:"d/m/Y" }}</small></span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if puede_contratar %}
+      <form method="post" action="{% url 'KeyServApp:contratacion_crear' publicacion.id_publicacion %}">
+        {% csrf_token %}
+        <button type="submit" class="ks-btn ks-btn-primary" style="width:100%; justify-content:center;"><i class="bi bi-calendar-check"></i> Contratar este servicio</button>
+      </form>
+      {% elif contratacion_activa %}
+      <div class="ks-info-note mb-2"><i class="bi bi-hourglass-split"></i> Ya tenés una solicitud <strong>{{ contratacion_activa.get_estado_display|lower }}</strong> para este servicio.</div>
+      <a href="{% url 'KeyServApp:contratacion_detalle' contratacion_activa.id_contratacion %}" class="ks-btn ks-btn-outline" style="width:100%; justify-content:center;"><i class="bi bi-arrow-right-circle"></i> Ver mi solicitud</a>
+      {% elif not proveedor %}
+      <div class="ks-info-note mb-0"><i class="bi bi-exclamation-triangle"></i> Este servicio no tiene proveedor asignado.</div>
+      {% endif %}
+    </aside>
   </div>
 </section>
+
+{% with imagenes=publicacion.imagenes.all %}
+{% if imagenes|length > 1 %}
+<script>
+(function () {
+  var carousel = document.getElementById('ksCarousel');
+  if (!carousel) return;
+  var thumbs = document.querySelectorAll('.ks-carousel-thumbs img');
+  thumbs.forEach(function (thumb) {
+    thumb.addEventListener('click', function () {
+      thumbs.forEach(function (t) { t.classList.remove('active'); });
+      thumb.classList.add('active');
+    });
+  });
+  carousel.addEventListener('slid.bs.carousel', function (event) {
+    thumbs.forEach(function (t, i) {
+      t.classList.toggle('active', i === event.to);
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endwith %}
 {% endblock %}

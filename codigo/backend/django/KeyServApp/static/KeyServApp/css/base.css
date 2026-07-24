@@ -1039,6 +1039,168 @@ a {
   border: 1px solid var(--ks-border);
 }
 
+/* ---------- Detalle de servicio (carrusel + layout de dos columnas) ---------- */
+
+.ks-service-layout {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 28px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 900px) {
+  .ks-service-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ks-service-sidebar {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ks-carousel {
+  border-radius: var(--ks-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--ks-border);
+  margin-bottom: 24px;
+  background: var(--ks-teal-light);
+}
+
+.ks-carousel .carousel-item img {
+  width: 100%;
+  height: 380px;
+  object-fit: cover;
+}
+
+.ks-carousel .carousel-control-prev,
+.ks-carousel .carousel-control-next {
+  width: 52px;
+  height: 52px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(11, 61, 120, 0.55);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+
+.ks-carousel:hover .carousel-control-prev,
+.ks-carousel:hover .carousel-control-next {
+  opacity: 1;
+}
+
+.ks-carousel .carousel-control-prev { left: 14px; }
+.ks-carousel .carousel-control-next { right: 14px; }
+
+.ks-carousel .carousel-control-prev-icon,
+.ks-carousel .carousel-control-next-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.ks-carousel-placeholder {
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--ks-teal-dark);
+}
+
+.ks-carousel-placeholder i {
+  font-size: 3rem;
+}
+
+.ks-carousel-placeholder span {
+  font-weight: 700;
+  font-size: .9rem;
+}
+
+.ks-carousel-thumbs {
+  display: flex;
+  gap: 10px;
+  margin: -14px 0 24px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.ks-carousel-thumbs img {
+  width: 72px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--ks-radius-sm);
+  border: 2px solid transparent;
+  opacity: .6;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity .12s ease, border-color .12s ease;
+}
+
+.ks-carousel-thumbs img:hover {
+  opacity: .9;
+}
+
+.ks-carousel-thumbs img.active {
+  opacity: 1;
+  border-color: var(--ks-coral);
+}
+
+.ks-doc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ks-doc-item a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-md);
+  color: var(--ks-ink);
+  transition: border-color .12s ease, background .12s ease;
+}
+
+.ks-doc-item a:hover {
+  border-color: var(--ks-teal);
+  background: var(--ks-teal-light);
+}
+
+.ks-doc-item i {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ks-coral-light);
+  color: var(--ks-coral-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.ks-doc-item span {
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.ks-doc-item small {
+  display: block;
+  color: var(--ks-ink-soft);
+  font-weight: 500;
+  font-size: .78rem;
+}
+
 .ks-progress-steps {
   display: flex;
   justify-content: space-between;
@@ -1116,6 +1278,52 @@ a {
   gap: 10px;
   flex-wrap: wrap;
   font-size: .85rem;
+}
+
+/* ---------- Calificación por estrellas (interactiva, sin JS) ---------- */
+
+.ks-star-rating {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.ks-star-rating input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.ks-star-rating label {
+  font-size: 2.1rem;
+  line-height: 1;
+  color: var(--ks-border);
+  cursor: pointer;
+  transition: color .12s ease, transform .12s ease;
+}
+
+.ks-star-rating input:checked ~ label,
+.ks-star-rating input:checked ~ label ~ label,
+.ks-star-rating label:hover,
+.ks-star-rating label:hover ~ label {
+  color: var(--ks-coral);
+}
+
+.ks-star-rating label:hover {
+  transform: scale(1.12);
+}
+
+.ks-gallery-pending {
+  height: 100px;
+  border-radius: var(--ks-radius-sm);
+  border: 1px dashed var(--ks-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ks-ink-soft);
+  font-size: 1.4rem;
 }
 
 /* ---------- Pago exitoso ---------- */

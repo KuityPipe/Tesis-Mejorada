@@ -38,6 +38,41 @@ DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
 
+# URL del panel de administración — configurable para no dejar el default
+# ("admin/") tal cual, que es el primer path que prueba cualquier bot que
+# escanea sitios Django al voleo. Solo reduce ruido automatizado, no
+# reemplaza el control de acceso real (login + permisos), que sigue intacto
+# sea cual sea la URL. Debe terminar en "/".
+ADMIN_URL = env('DJANGO_ADMIN_URL', default='admin/')
+
+# --- Endurecimiento para producción (`manage.py check --deploy` marcaba
+# estos 5 puntos) ---
+# Todo atado a `not DEBUG` por defecto a propósito: en dev (DEBUG=True, sin
+# HTTPS en localhost) forzar cookies "secure" o el redirect a HTTPS rompe
+# el login — nunca llegaría la cookie de sesión. En un despliegue real con
+# DJANGO_DEBUG=False esto se activa solo, sin tocar nada; si hiciera falta
+# ajustarlo aparte (ej. terminar TLS en un proxy en vez de en Django) hay
+# variables de entorno para eso.
+SECURE_SSL_REDIRECT = env.bool('DJANGO_SECURE_SSL_REDIRECT', default=not DEBUG)
+SESSION_COOKIE_SECURE = env.bool('DJANGO_SESSION_COOKIE_SECURE', default=not DEBUG)
+CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=not DEBUG)
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+# HSTS apagado por defecto (0) — activarlo mal (dominio que a veces se sirve
+# sin TLS) puede dejar el sitio inaccesible durante el tiempo configurado,
+# por eso NO se prende solo con `not DEBUG` como el resto: hay que decidirlo
+# a propósito una vez que el dominio real esté sirviendo HTTPS siempre.
+SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', default=0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
+SECURE_HSTS_PRELOAD = env.bool('DJANGO_SECURE_HSTS_PRELOAD', default=False)
+# Nunca dejar que el navegador adivine el tipo de un archivo servido —
+# corta de raíz los ataques de "MIME sniffing" (ej. un .txt subido que el
+# navegador decide ejecutar como HTML/JS).
+SECURE_CONTENT_TYPE_NOSNIFF = True
+# Redundante con XFrameOptionsMiddleware (ya en MIDDLEWARE) pero explícito:
+# ninguna página del sitio se puede embeber en un <iframe> ajeno (clickjacking).
+X_FRAME_OPTIONS = 'DENY'
+
 
 # Application definition
 
@@ -151,6 +186,43 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'  # destino de `collectstatic` en producci
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Almacenamiento privado para Documento (ver KeyServApp/storage.py) — vive
+# FUERA de MEDIA_ROOT/MEDIA_URL a propósito: un Documento puede ser un
+# documento de identidad ligado a un Usuario (no solo una certificación
+# pública ligada a una Publicacion), y nada bajo esta carpeta se sirve nunca
+# como archivo estático — el único acceso es documento_descargar_view, que
+# decide caso a caso si mostrarlo. Gitignored igual que MEDIA_ROOT.
+PRIVATE_MEDIA_ROOT = BASE_DIR / 'media_privado'
+
+# Archivos subidos por usuarios (Fase 5): topes duros a nivel de Django,
+# además de los validadores por campo en KeyServApp/validators.py (que dan
+# un mensaje de error legible; esto es el backstop si alguien manda un POST
+# gigante directo, sin pasar por el form). 15 MB cubre con margen el máximo
+# real (10 MB para documentos, ver validators.TAMANO_MAXIMO_DOCUMENTO).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024
+# Nunca guardar un archivo subido con permiso de ejecución, sea cual sea el
+# umask del proceso — no debería importar (nada en el sitio ejecuta archivos
+# de MEDIA_ROOT), pero es gratis y es la recomendación estándar de Django.
+FILE_UPLOAD_PERMISSIONS = 0o644
+
+# Escaneo antivirus de archivos subidos (ver KeyServApp/antivirus.py) — ver
+# ese archivo para por qué está apagado por defecto en este entorno de
+# desarrollo. Para prenderlo en un servidor con ClamAV corriendo: instalar
+# `clamav-daemon`, `pip install clamd`, y setear estas variables en el .env
+# de ese servidor.
+CLAMAV_HABILITADO = env.bool('CLAMAV_HABILITADO', default=False)
+CLAMAV_HOST = env('CLAMAV_HOST', default='localhost')
+CLAMAV_PORT = env.int('CLAMAV_PORT', default=3310)
+
+# Geolocalización aproximada por IP para IntentoAccesoSospechoso (ver
+# KeyServApp/geolocalizacion.py) — base DB-IP City Lite local, gratuita y
+# sin necesidad de cuenta. Se descarga con `manage.py descargar_geoip`; si
+# el archivo no existe todavía, geolocalizar_ip degrada solo a (None, None)
+# en vez de romper nada.
+GEOIP_HABILITADO = env.bool('GEOIP_HABILITADO', default=True)
+GEOIP_DB_PATH = env('GEOIP_DB_PATH', default=str(BASE_DIR / 'geoip' / 'dbip-city-lite.mmdb'))
 
 
 # Default primary key field type

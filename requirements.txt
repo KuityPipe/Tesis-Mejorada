@@ -17,6 +17,11 @@ django-environ>=0.11
 psycopg2-binary>=2.9.9
 Pillow>=10.3
 
+# Geolocalización aproximada por IP para IntentoAccesoSospechoso (ver
+# codigo/backend/django/KeyServApp/geolocalizacion.py) — lee una base DB-IP
+# City Lite local (`manage.py descargar_geoip`, gratuita, sin cuenta).
+geoip2>=4.8
+
 # Biometría de huella dactilar (codigo/biometria/huella/IMAGEN_HUELLA.py) —
 # solo necesita Pillow, ya declarado arriba.
 
@@ -32,3 +37,7 @@ fpdf2==2.7.9
 # Pagos (codigo/backend/django/KeyServApp/pagos.py) — se instala cuando
 # haya credenciales de comercio Transbank (ver docs/NEW_CODE_CREATED.md):
 # transbank-sdk==5.1.0
+
+# Escaneo antivirus de archivos subidos (codigo/backend/django/KeyServApp/antivirus.py)
+# — se instala cuando haya un daemon ClamAV disponible (CLAMAV_HABILITADO=True):
+# clamd>=1.0.2

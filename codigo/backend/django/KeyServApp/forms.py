@@ -6,10 +6,14 @@ a mano en `views.py` con `request.POST.get(...)` sin manejo de errores.
 Centralizar la validación acá evita, por ejemplo, que un `int()` sobre un
 input no numérico tire un error 500 sin control.
 """
+from types import SimpleNamespace
+
 from django import forms
+from django.contrib.auth import password_validation
 from django.contrib.auth.hashers import make_password
 
 from .models import Consulta, Usuario, Region, Comuna, TipoCuenta, Publicaciones, Valoracion, Mensaje
+from .validators import validar_documento, validar_imagen
 
 
 class RegistroForm(forms.Form):
@@ -28,8 +32,12 @@ class RegistroForm(forms.Form):
     comuna = forms.ModelChoiceField(queryset=Comuna.objects.all(), label='Comuna')
     tipo_cuenta = forms.ModelChoiceField(queryset=TipoCuenta.objects.all(), label='Tipo de cuenta')
     es_proveedor = forms.BooleanField(required=False, label='¿Ofreces servicios como proveedor?')
-    # RNF010 del PDF: contraseña mínima de 6 caracteres.
-    password = forms.CharField(widget=forms.PasswordInput, min_length=6, label='Contraseña')
+    # RNF010 del PDF pedía mínimo 6 — se subió a 8 (mínimo real que además
+    # aplica AUTH_PASSWORD_VALIDATORS.MinimumLengthValidator en settings.py,
+    # ver clean() más abajo) y se sumó validación de fondo: contraseñas de la
+    # lista de las más comunes, solo numéricas, o muy parecidas a tu propio
+    # nombre/correo quedan rechazadas — antes "123456a" pasaba sin problema.
+    password = forms.CharField(widget=forms.PasswordInput, min_length=8, label='Contraseña')
     password_confirm = forms.CharField(widget=forms.PasswordInput, label='Confirmar contraseña')
 
     def clean_edad(self):
@@ -47,12 +55,29 @@ class RegistroForm(forms.Form):
         return email
 
     def clean(self):
-        """Valida que las dos contraseñas ingresadas coincidan."""
+        """Valida que las dos contraseñas coincidan y que la contraseña sea real (reusa AUTH_PASSWORD_VALIDATORS de settings.py, no reglas propias)."""
         cleaned = super().clean()
         password = cleaned.get('password')
         password_confirm = cleaned.get('password_confirm')
         if password and password_confirm and password != password_confirm:
             raise forms.ValidationError('Las contraseñas no coinciden.')
+
+        if password:
+            # SimpleNamespace con los nombres de atributo que esperan los
+            # validators nativos (username/first_name/last_name/email) —
+            # Usuario no los tiene con esos nombres (nombre_usuario, etc.),
+            # por eso el mapeo a mano en vez de pasar un Usuario real.
+            usuario_para_similitud = SimpleNamespace(
+                username='',
+                email=cleaned.get('email', ''),
+                first_name=cleaned.get('nombre1', ''),
+                last_name=cleaned.get('apellido1', ''),
+            )
+            try:
+                password_validation.validate_password(password, user=usuario_para_similitud)
+            except forms.ValidationError as error:
+                self.add_error('password', error)
+
         return cleaned
 
     def crear_usuario(self, transaccion):
@@ -110,8 +135,8 @@ class PublicacionForm(forms.ModelForm):
         label='Categoría',
     )
     categoria_otra = forms.CharField(max_length=60, required=False, label='Especifica la categoría')
-    imagen = forms.ImageField(required=False, label='Imagen del servicio')
-    documento = forms.FileField(required=False, label='Documento de respaldo (certificación, licencia, etc.)')
+    imagen = forms.ImageField(required=False, label='Imagen del servicio', validators=[validar_imagen])
+    documento = forms.FileField(required=False, label='Documento de respaldo (certificación, licencia, etc.)', validators=[validar_documento])
 
     class Meta:
         model = Publicaciones

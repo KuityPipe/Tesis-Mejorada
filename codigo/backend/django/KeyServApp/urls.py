@@ -39,6 +39,7 @@ urlpatterns = [
     # Publicaciones / servicios
     path('servicios/', views.catalogo_view, name='catalogo'),
     path('servicios/crear/', views.publicacion_crear_view, name='publicacion_crear'),
+    path('documentos/<int:documento_id>/descargar/', views.documento_descargar_view, name='documento_descargar'),
     path('servicios/<int:pk>/', views.publicacion_detalle_view, name='publicacion_detalle'),
     path('servicios/<int:publicacion_id>/contratar/', views.contratacion_crear_view, name='contratacion_crear'),
 

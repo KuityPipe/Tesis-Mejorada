@@ -23,3 +23,11 @@ TesisAntigua/
 # no código fuente; puede incluir datos personales (ej. CV/documentos subidos
 # al probar la creación de publicaciones), nunca debe versionarse.
 codigo/backend/django/media/
+# Almacenamiento privado de Documento (ver KeyServApp/storage.py) — mismo
+# criterio que MEDIA_ROOT, nunca versionar contenido subido por usuarios.
+codigo/backend/django/media_privado/
+
+# Base de datos GeoIP local (~130 MB, ver KeyServApp/geolocalizacion.py) —
+# se descarga con `manage.py descargar_geoip`, no es código fuente y se
+# actualiza mensualmente sola, no tiene sentido versionarla.
+codigo/backend/django/geoip/
