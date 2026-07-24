@@ -10,48 +10,155 @@
   </div>
 </section>
 
-<section class="ks-section container" style="max-width: 780px;">
+<section class="ks-section container">
 
-  <div class="ks-panel">
-    <h3>Historial</h3>
+  {% if contrataciones %}
+  <form class="ks-reservas-toolbar" id="ks-reservas-filtros" onsubmit="return false;">
+    <div class="ks-filter-field ks-filter-field-buscar">
+      <label for="ks-reservas-buscar"><i class="bi bi-search"></i> Buscar</label>
+      <input type="text" id="ks-reservas-buscar" placeholder="Servicio o persona...">
+    </div>
+    <div class="ks-filter-field">
+      <label for="ks-reservas-desde"><i class="bi bi-calendar-event"></i> Desde</label>
+      <input type="date" id="ks-reservas-desde">
+    </div>
+    <div class="ks-filter-field">
+      <label for="ks-reservas-hasta"><i class="bi bi-calendar-event"></i> Hasta</label>
+      <input type="date" id="ks-reservas-hasta">
+    </div>
+    <button type="button" id="ks-reservas-limpiar" class="ks-btn ks-btn-outline">Limpiar filtros</button>
+  </form>
+
+  <div class="ks-filtros-chips" id="ks-filtros-reservas">
+    <button type="button" class="ks-filtro-chip is-activo" data-filtro="TODAS">Todas <span class="ks-filtro-count">{{ contrataciones|length }}</span></button>
+    <button type="button" class="ks-filtro-chip" data-filtro="SOLICITADA">Solicitadas</button>
+    <button type="button" class="ks-filtro-chip" data-filtro="CONFIRMADA">Confirmadas</button>
+    <button type="button" class="ks-filtro-chip" data-filtro="EN_CURSO">En curso</button>
+    <button type="button" class="ks-filtro-chip" data-filtro="COMPLETADA">Completadas</button>
+    <button type="button" class="ks-filtro-chip" data-filtro="CANCELADA">Canceladas</button>
+  </div>
+
+  <p class="ks-help" id="ks-reservas-sin-resultados" style="display:none;">Ningún resultado con esos filtros.</p>
+
+  <div class="ks-reservas-grid" id="ks-reservas-grid">
     {% for contratacion in contrataciones %}
-      <div class="ks-timeline-item">
-        <div class="ks-timeline-item-head">
-          <h4><a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}">{{ contratacion.publicacion.titulo }}</a></h4>
-          <span class="ks-badge ks-badge-{{ contratacion.estado|lower }}">{{ contratacion.get_estado_display }}</span>
-        </div>
-        <p class="ks-timeline-meta">
-          Cliente: {{ contratacion.cliente }} &nbsp;·&nbsp; Proveedor: {{ contratacion.proveedor }}
-          &nbsp;·&nbsp; Solicitado el {{ contratacion.fecha_creacion|date:"d/m/Y" }} ({{ contratacion.fecha_creacion|timesince }} atrás)
-        </p>
-
-        {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
-        <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}">
-          {% csrf_token %}
-          {{ reautenticacion_form.password }}
-          <button type="submit" class="ks-btn ks-btn-primary">Confirmar (proveedor)</button>
-        </form>
-        {% endif %}
-
-        {% if contratacion.estado == 'CONFIRMADA' and usuario == contratacion.cliente %}
-        <form method="post" action="{% url 'KeyServApp:contratacion_completar' contratacion.id_contratacion %}">
-          {% csrf_token %}
-          {{ reautenticacion_form.password }}
-          <button type="submit" class="ks-btn ks-btn-primary">Marcar completada (cliente)</button>
-        </form>
-        {% endif %}
-
-        {% if contratacion.estado == 'COMPLETADA' and usuario == contratacion.cliente %}
-          {% if contratacion.valoracion %}
-          <a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}" class="ks-help"><i class="bi bi-check-circle"></i> Ya calificaste este trabajo</a>
+      <div class="ks-reserva-card" data-estado="{{ contratacion.estado }}" data-titulo="{{ contratacion.publicacion.titulo|lower }}" data-contraparte="{% if usuario == contratacion.cliente %}{{ contratacion.proveedor.nombre_usuario|lower }} {{ contratacion.proveedor.apellido_usuario|lower }}{% else %}{{ contratacion.cliente.nombre_usuario|lower }} {{ contratacion.cliente.apellido_usuario|lower }}{% endif %}" data-fecha="{{ contratacion.fecha_creacion|date:'Y-m-d' }}">
+        <a class="ks-reserva-card-img" href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}">
+          {% with imagen=contratacion.publicacion.imagenes.first %}
+            {% if imagen %}
+              <img src="{{ imagen.url }}" alt="{{ contratacion.publicacion.titulo }}">
+            {% else %}
+              <div class="ks-card-img-placeholder"><i class="bi bi-tools"></i></div>
+            {% endif %}
+          {% endwith %}
+          <span class="ks-badge ks-badge-{{ contratacion.estado|lower }} ks-reserva-badge">{{ contratacion.get_estado_display }}</span>
+        </a>
+        <div class="ks-reserva-card-body">
+          {% if usuario == contratacion.cliente %}
+            <span class="ks-reserva-role-tag"><i class="bi bi-bag-check"></i> Contraté</span>
           {% else %}
-          <a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}" class="ks-btn ks-btn-outline"><i class="bi bi-star"></i> Calificar este servicio</a>
+            <span class="ks-reserva-role-tag"><i class="bi bi-briefcase"></i> Me contrataron</span>
           {% endif %}
-        {% endif %}
+          <h4><a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}">{{ contratacion.publicacion.titulo }}</a></h4>
+          <p class="ks-reserva-counterpart">
+            <i class="bi bi-person-circle"></i>
+            {% if usuario == contratacion.cliente %}{{ contratacion.proveedor }}{% else %}{{ contratacion.cliente }}{% endif %}
+          </p>
+          <span class="ks-card-date"><i class="bi bi-clock"></i> {{ contratacion.fecha_creacion|timesince }} atrás</span>
+
+          {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
+          <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" class="ks-reserva-actions">
+            {% csrf_token %}
+            {{ reautenticacion_form.password }}
+            <button type="submit" class="ks-btn ks-btn-primary ks-btn-sm">Confirmar</button>
+          </form>
+
+          {% elif contratacion.estado == 'CONFIRMADA' and usuario == contratacion.cliente %}
+          <form method="post" action="{% url 'KeyServApp:contratacion_completar' contratacion.id_contratacion %}" class="ks-reserva-actions">
+            {% csrf_token %}
+            {{ reautenticacion_form.password }}
+            <button type="submit" class="ks-btn ks-btn-primary ks-btn-sm">Marcar completada</button>
+          </form>
+
+          {% elif contratacion.estado == 'COMPLETADA' and usuario == contratacion.cliente %}
+          <div class="ks-reserva-actions">
+            {% if contratacion.valoracion %}
+            <a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}" class="ks-help"><i class="bi bi-check-circle"></i> Ya calificaste este trabajo</a>
+            {% else %}
+            <a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}" class="ks-btn ks-btn-outline ks-btn-sm"><i class="bi bi-star"></i> Calificar</a>
+            {% endif %}
+          </div>
+
+          {% else %}
+          <div class="ks-reserva-actions">
+            <a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}" class="ks-btn ks-btn-outline ks-btn-sm">Ver detalle</a>
+          </div>
+          {% endif %}
+        </div>
       </div>
-    {% empty %}
-      <p class="ks-help">Todavía no tenés contrataciones — <a href="{% url 'KeyServApp:paginicio' %}">buscá un servicio</a> para empezar.</p>
     {% endfor %}
   </div>
+  {% else %}
+    <div class="ks-panel">
+      <p class="ks-help">Todavía no tenés contrataciones — <a href="{% url 'KeyServApp:paginicio' %}">buscá un servicio</a> para empezar.</p>
+    </div>
+  {% endif %}
 </section>
+
+<script>
+(function () {
+  var chips = document.querySelectorAll('#ks-filtros-reservas .ks-filtro-chip');
+  var tarjetas = document.querySelectorAll('#ks-reservas-grid .ks-reserva-card');
+  var campoBuscar = document.getElementById('ks-reservas-buscar');
+  var campoDesde = document.getElementById('ks-reservas-desde');
+  var campoHasta = document.getElementById('ks-reservas-hasta');
+  var botonLimpiar = document.getElementById('ks-reservas-limpiar');
+  var sinResultados = document.getElementById('ks-reservas-sin-resultados');
+  var filtroEstado = 'TODAS';
+
+  function aplicarFiltros() {
+    var texto = campoBuscar.value.trim().toLowerCase();
+    var desde = campoDesde.value;
+    var hasta = campoHasta.value;
+    var visibles = 0;
+
+    tarjetas.forEach(function (tarjeta) {
+      var pasaEstado = filtroEstado === 'TODAS' || tarjeta.dataset.estado === filtroEstado;
+      var pasaTexto = !texto
+        || tarjeta.dataset.titulo.indexOf(texto) !== -1
+        || tarjeta.dataset.contraparte.indexOf(texto) !== -1;
+      var pasaDesde = !desde || tarjeta.dataset.fecha >= desde;
+      var pasaHasta = !hasta || tarjeta.dataset.fecha <= hasta;
+      var mostrar = pasaEstado && pasaTexto && pasaDesde && pasaHasta;
+      tarjeta.style.display = mostrar ? '' : 'none';
+      if (mostrar) visibles++;
+    });
+
+    sinResultados.style.display = visibles === 0 ? '' : 'none';
+  }
+
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chips.forEach(function (c) { c.classList.remove('is-activo'); });
+      chip.classList.add('is-activo');
+      filtroEstado = chip.dataset.filtro;
+      aplicarFiltros();
+    });
+  });
+
+  campoBuscar.addEventListener('input', aplicarFiltros);
+  campoDesde.addEventListener('change', aplicarFiltros);
+  campoHasta.addEventListener('change', aplicarFiltros);
+
+  botonLimpiar.addEventListener('click', function () {
+    campoBuscar.value = '';
+    campoDesde.value = '';
+    campoHasta.value = '';
+    chips.forEach(function (c) { c.classList.remove('is-activo'); });
+    chips[0].classList.add('is-activo');
+    filtroEstado = 'TODAS';
+    aplicarFiltros();
+  });
+})();
+</script>
 {% endblock %}

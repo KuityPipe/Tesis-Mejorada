@@ -12,23 +12,30 @@ Convención de esta fase: cada vista lleva un comentario corto explicando
 qué hace (pedido explícito del usuario, para poder tocar el código a mano
 más adelante sin tener que releer todo).
 """
+import hashlib
 import logging
 import os
 import tempfile
 
+from django.conf import settings
 from django.contrib import messages
+from django.core import signing
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.core.paginator import Paginator
 from django.db.models import Func, Q, Value
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .decorators import login_requerido, obtener_usuario_actual
 from .forms import (
     RegistroForm, LoginForm, PublicacionForm, ValoracionForm, MensajeForm,
-    ReautenticacionForm, ContactoForm,
+    ReautenticacionForm, ContactoForm, EditarPerfilForm, RecuperarForm,
+    NuevaPasswordForm,
 )
 from .models import (
     Comuna, Contratacion, Conversacion, Documento, EstadoConsulta,
@@ -107,11 +114,19 @@ def paginicio_view(request):
     return render(request, 'KeyServApp/paginicio.html', {'destacadas': destacadas})
 
 
+PUBLICACIONES_POR_PAGINA = 20
+
+
 def catalogo_view(request):
     """
     Catálogo completo de servicios (ventana aparte del home): búsqueda de
     texto + filtros reales por región del proveedor, calificación mínima y
     orden — pensada para una búsqueda más amplia que la barra rápida del home.
+
+    Antes tenía un tope fijo de 40 resultados sin forma de ver el resto —
+    ahora es un `Paginator` real (RF? "sin errores de enlace entre botones"
+    empieza a importar de verdad apenas hay más publicaciones aprobadas que
+    las que entran en una pantalla).
     """
     query = request.GET.get('q', '').strip()
     region_id = request.GET.get('region', '').strip()
@@ -147,8 +162,13 @@ def catalogo_view(request):
     else:
         publicaciones = publicaciones.order_by('-fecha_publicacion')
 
+    paginador = Paginator(publicaciones, PUBLICACIONES_POR_PAGINA)
+    pagina = paginador.get_page(request.GET.get('page'))
+
     return render(request, 'KeyServApp/catalogo.html', {
-        'publicaciones': publicaciones[:40],
+        'publicaciones': pagina,
+        'pagina': pagina,
+        'total_publicaciones': paginador.count,
         'query': query,
         'regiones': Region.objects.all(),
         'region_seleccionada': region_id,
@@ -230,9 +250,111 @@ def preferencias_cuenta_view(request):
     return render(request, 'KeyServApp/preferencias de la cuenta.html')
 
 
+TOKEN_SALT_RECUPERAR = 'keyserv-recuperar-password'
+TOKEN_MAX_AGE_RECUPERAR = 3600  # 1 hora
+MAX_INTENTOS_RECUPERAR = 3
+VENTANA_INTENTOS_RECUPERAR = 600  # 10 minutos
+
+
+def _huella_password(usuario):
+    """
+    Hash corto y determinístico del hash de contraseña completo — NO un
+    slice de `usuario.password` directo, porque todos los hashes PBKDF2 con
+    la misma config comparten el mismo prefijo `pbkdf2_sha256$<iteraciones>$`
+    (los primeros ~20 caracteres son idénticos para cualquier contraseña, sin
+    importar el salt). Este hash sí cambia apenas cambia la contraseña real.
+    """
+    return hashlib.sha256(usuario.password.encode()).hexdigest()[:20]
+
+
+def _generar_token_recuperacion(usuario):
+    """
+    Token firmado con expiración (django.core.signing, sin necesidad de
+    guardar nada en la base de datos). Incluye una huella de la contraseña
+    actual: apenas se usa el link (o se pide uno nuevo tras cambiar la
+    contraseña), el hash cambia y el token viejo deja de ser válido solo,
+    sin tener que llevar una lista de tokens usados.
+    """
+    return signing.dumps({'uid': usuario.id_usuario, 'h': _huella_password(usuario)}, salt=TOKEN_SALT_RECUPERAR)
+
+
+def _usuario_desde_token_recuperacion(token):
+    try:
+        datos = signing.loads(token, salt=TOKEN_SALT_RECUPERAR, max_age=TOKEN_MAX_AGE_RECUPERAR)
+    except signing.BadSignature:
+        return None
+    usuario = Usuario.objects.filter(pk=datos.get('uid')).first()
+    if not usuario or _huella_password(usuario) != datos.get('h'):
+        return None
+    return usuario
+
+
 def recuperar_view(request):
-    """Recuperación de contraseña. TODO: falta el flujo real (BPMN 'Login' del PDF menciona 'validación de contacto', ej. reenvío por email) — hoy solo muestra el formulario."""
-    return render(request, 'KeyServApp/recuperar.html')
+    """
+    Paso 1 de recuperación de contraseña (BPMN 'Login' del PDF menciona
+    'validación de contacto'). Pide correo + teléfono — no alcanza con
+    adivinar solo el correo — y, si coinciden con una cuenta real, manda un
+    enlace firmado y con expiración de 1 hora a ese correo. El mensaje que
+    ve el usuario es siempre el mismo exista o no la cuenta, para no
+    convertir este formulario en una forma de confirmar qué correos están
+    registrados (mismo criterio que login_bloqueado en sesion_view).
+    """
+    if obtener_usuario_actual(request):
+        messages.info(request, 'Ya tenés una sesión iniciada.')
+        return redirect('KeyServApp:sesion_iniciada')
+
+    if request.method == 'POST':
+        form = RecuperarForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            clave_intentos = f'recuperar_intentos:{_obtener_ip_cliente(request)}:{email.strip().lower()}'
+            if cache.get(clave_intentos, 0) >= MAX_INTENTOS_RECUPERAR:
+                messages.error(request, 'Demasiadas solicitudes. Probá de nuevo en unos minutos.')
+                return render(request, 'KeyServApp/recuperar.html', {'form': form})
+            try:
+                cache.incr(clave_intentos)
+            except ValueError:
+                cache.set(clave_intentos, 1, VENTANA_INTENTOS_RECUPERAR)
+
+            usuario = Usuario.objects.filter(email=email, telefono=form.cleaned_data['telefono']).first()
+            if usuario:
+                token = _generar_token_recuperacion(usuario)
+                url_reset = request.build_absolute_uri(reverse('KeyServApp:recuperar_confirmar', args=[token]))
+                send_mail(
+                    'Recuperar tu contraseña de KeyServ',
+                    f'Hola {usuario.nombre_usuario},\n\n'
+                    f'Para elegir una nueva contraseña entrá a este enlace (válido por 1 hora):\n{url_reset}\n\n'
+                    'Si no pediste esto, podés ignorar este correo — tu contraseña actual sigue siendo válida.',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [usuario.email],
+                    fail_silently=True,
+                )
+                logger.info('Correo de recuperación de contraseña enviado: usuario_id=%s', usuario.id_usuario)
+            messages.success(request, 'Si el correo y el teléfono coinciden con una cuenta, te enviamos un enlace para restablecer tu contraseña.')
+            return redirect('KeyServApp:recuperar')
+    else:
+        form = RecuperarForm()
+    return render(request, 'KeyServApp/recuperar.html', {'form': form})
+
+
+def recuperar_confirmar_view(request, token):
+    """Paso 2: valida el enlace firmado y, si es válido y no venció, deja elegir una contraseña nueva."""
+    usuario = _usuario_desde_token_recuperacion(token)
+    if not usuario:
+        messages.error(request, 'Este enlace no es válido o ya venció. Pedí uno nuevo.')
+        return redirect('KeyServApp:recuperar')
+
+    if request.method == 'POST':
+        form = NuevaPasswordForm(request.POST, usuario=usuario)
+        if form.is_valid():
+            usuario.set_password(form.cleaned_data['password'])
+            usuario.save(update_fields=['password'])
+            logger.info('Contraseña restablecida vía recuperación: usuario_id=%s', usuario.id_usuario)
+            messages.success(request, 'Contraseña actualizada. Ya podés iniciar sesión.')
+            return redirect('KeyServApp:sesion')
+    else:
+        form = NuevaPasswordForm(usuario=usuario)
+    return render(request, 'KeyServApp/recuperar_confirmar.html', {'form': form})
 
 
 @login_requerido
@@ -385,9 +507,9 @@ def mensajes_no_leidos_ajax(request):
 
 @login_requerido
 def perfil_view(request):
-    """Muestra el perfil del usuario logueado: sus datos, sus publicaciones (si es proveedor) y las reseñas que recibió."""
+    """Muestra el perfil del usuario logueado: sus datos, sus publicaciones (si alguna vez publicó) y las reseñas que recibió."""
     usuario = obtener_usuario_actual(request)
-    publicaciones = Publicaciones.objects.filter(usuario_publicador=usuario).order_by('-fecha_publicacion') if usuario.es_proveedor else []
+    publicaciones = Publicaciones.objects.filter(usuario_publicador=usuario).order_by('-fecha_publicacion')
     resenas_recibidas = Valoracion.objects.filter(usuario_receptor=usuario).select_related('usuario_emisor').order_by('-fecha_valoracion')
     ranking = Ranking.objects.filter(usuario=usuario).first()
     return render(request, 'KeyServApp/perfil.html', {
@@ -396,6 +518,24 @@ def perfil_view(request):
         'resenas_recibidas': resenas_recibidas,
         'ranking': ranking,
     })
+
+
+@login_requerido
+@require_POST
+def alternar_proveedor_view(request):
+    """
+    Única forma real de cambiar `es_proveedor` después del registro — antes
+    quedaba fijo para siempre según el checkbox de /registro/, porque
+    editar_perfil_view todavía no procesa datos (ver Known Issues).
+    """
+    usuario = obtener_usuario_actual(request)
+    usuario.es_proveedor = not usuario.es_proveedor
+    usuario.save(update_fields=['es_proveedor'])
+    if usuario.es_proveedor:
+        messages.success(request, 'Listo, ahora podés publicar servicios como proveedor.')
+    else:
+        messages.info(request, 'Dejaste de ofrecer servicios. Ya no podés crear nuevas publicaciones hasta que lo actives de nuevo (las que ya tenías siguen visibles).')
+    return redirect('KeyServApp:perfil')
 
 
 @login_requerido
@@ -412,9 +552,23 @@ def crear_perfil_view(request):
 
 @login_requerido
 def editar_perfil_view(request):
-    """TODO: edición real de los datos del `Usuario` — hoy solo renderiza el template."""
+    """Edita los datos reales del Usuario — antes el formulario se veía pero no guardaba nada (ver Known Issues)."""
     usuario = obtener_usuario_actual(request)
-    return render(request, 'KeyServApp/editarperfil.html', {'usuario': usuario})
+    if request.method == 'POST':
+        form = EditarPerfilForm(request.POST, request.FILES, instance=usuario)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Perfil actualizado.')
+            return redirect('KeyServApp:perfil')
+    else:
+        form = EditarPerfilForm(instance=usuario, initial={
+            'region': usuario.comuna.region_id if usuario.comuna else None,
+        })
+    return render(request, 'KeyServApp/editarperfil.html', {
+        'usuario': usuario,
+        'form': form,
+        'regiones': Region.objects.all(),
+    })
 
 
 # ---------------------------------------------------------------------------

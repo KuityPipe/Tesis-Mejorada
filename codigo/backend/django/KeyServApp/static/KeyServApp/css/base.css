@@ -284,6 +284,11 @@ a {
   color: var(--ks-teal-dark);
 }
 
+.ks-btn-sm {
+  padding: 6px 16px;
+  font-size: .85rem;
+}
+
 /* ---------- Mensajes (Django messages) ---------- */
 
 .ks-messages {
@@ -406,6 +411,23 @@ a {
 }
 
 .ks-filter-field select:focus {
+  outline: none;
+  border-color: var(--ks-teal);
+}
+
+.ks-filter-field input[type="text"],
+.ks-filter-field input[type="date"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  font-family: 'Nunito', sans-serif;
+  background: var(--ks-cream-soft);
+  color: var(--ks-ink);
+}
+
+.ks-filter-field input[type="text"]:focus,
+.ks-filter-field input[type="date"]:focus {
   outline: none;
   border-color: var(--ks-teal);
 }
@@ -533,6 +555,205 @@ a {
   color: var(--ks-coral);
   display: block;
   margin-bottom: 12px;
+}
+
+.ks-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 32px;
+}
+
+.ks-pagination-info {
+  color: var(--ks-ink-soft);
+  font-weight: 700;
+  font-size: .9rem;
+}
+
+/* ---------- Reservas (mis contrataciones) ---------- */
+
+.ks-reservas-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--ks-surface);
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-md);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.ks-reservas-toolbar .ks-filter-field {
+  flex: 1;
+  min-width: 150px;
+}
+
+.ks-reservas-toolbar .ks-filter-field-buscar {
+  flex: 2;
+  min-width: 220px;
+}
+
+.ks-reservas-toolbar .ks-btn {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .ks-reservas-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ks-reservas-toolbar .ks-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.ks-filtros-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.ks-filtro-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 2px solid var(--ks-border);
+  background: var(--ks-surface);
+  color: var(--ks-ink-soft);
+  font-weight: 700;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: border-color .12s ease, color .12s ease, background .12s ease;
+}
+
+.ks-filtro-chip:hover {
+  border-color: var(--ks-teal);
+  color: var(--ks-teal-dark);
+}
+
+.ks-filtro-chip.is-activo {
+  background: var(--ks-teal);
+  border-color: var(--ks-teal);
+  color: #fff;
+}
+
+.ks-filtro-chip .ks-filtro-count {
+  background: rgba(0, 0, 0, .12);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: .78rem;
+}
+
+.ks-filtro-chip.is-activo .ks-filtro-count {
+  background: rgba(255, 255, 255, .25);
+}
+
+.ks-reservas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.ks-reserva-card {
+  background: var(--ks-surface);
+  border-radius: var(--ks-radius-lg);
+  border: 1px solid var(--ks-border);
+  overflow: hidden;
+  transition: transform .15s ease, box-shadow .15s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.ks-reserva-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ks-shadow);
+}
+
+.ks-reserva-card-img {
+  position: relative;
+  display: block;
+  height: 130px;
+  background: var(--ks-teal-light);
+}
+
+.ks-reserva-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ks-reserva-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+}
+
+.ks-reserva-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.ks-reserva-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  color: var(--ks-teal-dark);
+  font-size: .76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.ks-reserva-card-body h4 {
+  font-size: 1.02rem;
+  margin: 2px 0 0;
+}
+
+.ks-reserva-card-body h4 a {
+  color: var(--ks-navy-dark);
+}
+
+.ks-reserva-card-body h4 a:hover {
+  color: var(--ks-teal-dark);
+}
+
+.ks-reserva-counterpart {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ks-ink-soft);
+  font-size: .88rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.ks-reserva-actions {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ks-reserva-actions input[type="password"] {
+  min-width: 0;
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: var(--ks-radius-sm);
+  border: 1px solid var(--ks-border);
+  font-size: .85rem;
 }
 
 /* ---------- Footer ---------- */
@@ -815,6 +1036,36 @@ a {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.ks-avatar-preview {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--ks-border);
+}
+
+.ks-field-foto {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.ks-profile-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ks-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
 
 .ks-profile-fact {

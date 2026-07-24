@@ -200,6 +200,9 @@ class Usuario(models.Model):
     # Un mismo Usuario puede ser ambos (no es excluyente).
     es_proveedor = models.BooleanField(default=False, db_column='ES_PROVEEDOR')
     verificado_biometricamente = models.BooleanField(default=False, db_column='VERIFICADO_BIOMETRICAMENTE')
+    # NUEVO: antes el perfil solo mostraba un avatar con la inicial del
+    # nombre — foto real, opcional, subida desde /perfil/editar/.
+    foto_perfil = models.ImageField(upload_to='perfiles/', null=True, blank=True, validators=[validar_imagen], db_column='FOTO_PERFIL')
 
     class Meta:
         db_table = 'USUARIO'

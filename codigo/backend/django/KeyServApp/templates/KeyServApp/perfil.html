@@ -13,7 +13,11 @@
 
   <div class="ks-panel">
     <div class="ks-profile-head">
-      <span class="ks-avatar-lg">{{ usuario.nombre_usuario|first|upper }}</span>
+      {% if usuario.foto_perfil %}
+        <img src="{{ usuario.foto_perfil.url }}" alt="Foto de {{ usuario.nombre_usuario }}" class="ks-avatar-preview" style="width:84px; height:84px;">
+      {% else %}
+        <span class="ks-avatar-lg">{{ usuario.nombre_usuario|first|upper }}</span>
+      {% endif %}
       <div>
         <h2 class="mb-0">{{ usuario.nombre_usuario }} {{ usuario.apellido_usuario }}</h2>
         {% if usuario.verificado_biometricamente %}
@@ -24,41 +28,74 @@
       </div>
     </div>
 
+    <div class="ks-profile-stats">
+      <span class="ks-badge ks-badge-confirmada"><i class="bi bi-geo-alt"></i> {{ usuario.comuna.nombre_comuna }}, {{ usuario.comuna.region.nombre_region }}</span>
+      {% if usuario.es_proveedor %}
+        <span class="ks-badge ks-badge-aprobada"><i class="bi bi-briefcase"></i> Proveedor</span>
+      {% endif %}
+      {% if ranking and ranking.total_valoraciones > 0 %}
+        <span class="ks-badge ks-badge-completada"><i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ ranking.puntuacion_promedio }} ({{ ranking.total_valoraciones }} valoraciones)</span>
+      {% endif %}
+    </div>
+
     <dl class="mt-4">
-      <div class="ks-profile-fact">
-        <dt>Ubicación</dt>
-        <dd>{{ usuario.comuna.nombre_comuna }}, {{ usuario.comuna.region.nombre_region }}</dd>
-      </div>
       <div class="ks-profile-fact">
         <dt>Correo</dt>
         <dd>{{ usuario.email }}</dd>
       </div>
-      {% if ranking %}
       <div class="ks-profile-fact">
-        <dt>Calificación como proveedor</dt>
-        <dd><i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ ranking.puntuacion_promedio }} ({{ ranking.total_valoraciones }} valoraciones)</dd>
+        <dt>Teléfono</dt>
+        <dd>{{ usuario.telefono }}</dd>
       </div>
-      {% endif %}
     </dl>
 
-    <a href="{% url 'KeyServApp:editar_perfil' %}" class="ks-btn ks-btn-outline mt-3">Editar perfil</a>
+    <div class="ks-profile-actions mt-3">
+      <a href="{% url 'KeyServApp:editar_perfil' %}" class="ks-btn ks-btn-outline">Editar perfil</a>
+
+      {% if usuario.es_proveedor %}
+      <form method="post" action="{% url 'KeyServApp:alternar_proveedor' %}" onsubmit="return confirm('¿Dejar de ofrecer servicios? No vas a poder crear publicaciones nuevas hasta que lo actives de nuevo.');">
+        {% csrf_token %}
+        <button type="submit" class="ks-btn ks-btn-outline"><i class="bi bi-toggle-on"></i> Dejar de ofrecer servicios</button>
+      </form>
+      {% else %}
+      <form method="post" action="{% url 'KeyServApp:alternar_proveedor' %}">
+        {% csrf_token %}
+        <button type="submit" class="ks-btn ks-btn-outline"><i class="bi bi-toggle-off"></i> Convertirme en proveedor</button>
+      </form>
+      {% endif %}
+    </div>
   </div>
 
-  {% if usuario.es_proveedor %}
+  {% if usuario.es_proveedor or publicaciones %}
   <div class="ks-panel">
     <h3>Mis publicaciones</h3>
-    {% for publicacion in publicaciones %}
-      <div class="ks-timeline-item">
-        <div class="ks-timeline-item-head">
-          <h4><a href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">{{ publicacion.titulo }}</a></h4>
-          <span class="ks-badge ks-badge-{{ publicacion.estado_moderacion|lower }}">{{ publicacion.get_estado_moderacion_display }}</span>
+    {% if publicaciones %}
+    <div class="ks-card-grid">
+      {% for publicacion in publicaciones %}
+      <a class="ks-card" href="{% url 'KeyServApp:publicacion_detalle' publicacion.id_publicacion %}">
+        <div class="ks-card-img">
+          {% with imagen=publicacion.imagenes.first %}
+            {% if imagen %}
+              <img src="{{ imagen.url }}" alt="{{ publicacion.titulo }}">
+            {% else %}
+              <div class="ks-card-img-placeholder"><i class="bi bi-tools"></i></div>
+            {% endif %}
+          {% endwith %}
+          <span class="ks-badge ks-badge-{{ publicacion.estado_moderacion|lower }} ks-reserva-badge">{{ publicacion.get_estado_moderacion_display }}</span>
         </div>
-        <p class="ks-timeline-meta mb-0">Publicado {{ publicacion.fecha_publicacion|timesince }} atrás</p>
-      </div>
-    {% empty %}
+        <div class="ks-card-body">
+          <h3>{{ publicacion.titulo }}</h3>
+          <span class="ks-card-date"><i class="bi bi-clock"></i> Publicado {{ publicacion.fecha_publicacion|timesince }} atrás</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
       <p class="ks-help">Todavía no publicaste ningún servicio.</p>
-    {% endfor %}
-    <a href="{% url 'KeyServApp:publicacion_crear' %}" class="ks-btn ks-btn-primary mt-2"><i class="bi bi-plus-lg"></i> Publicar un nuevo servicio</a>
+    {% endif %}
+    {% if usuario.es_proveedor %}
+    <a href="{% url 'KeyServApp:publicacion_crear' %}" class="ks-btn ks-btn-primary mt-3"><i class="bi bi-plus-lg"></i> Publicar un nuevo servicio</a>
+    {% endif %}
   </div>
   {% endif %}
 

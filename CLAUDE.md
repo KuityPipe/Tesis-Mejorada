@@ -61,7 +61,7 @@ cd codigo/backend/django
 python manage.py migrate
 python manage.py runserver 8000
 python manage.py createsuperuser
-python manage.py test KeyServApp   # 21 tests, all passing
+python manage.py test KeyServApp   # 72 tests, all passing
 python manage.py test KeyServApp.tests.ContratacionFlowTests            # single test class
 python manage.py test KeyServApp.tests.ContratacionFlowTests.test_flujo_completo_de_contratacion_y_valoracion  # single test method
 
@@ -91,7 +91,7 @@ PostgreSQL, credentials via environment variables (`.env`, see `.env.example`) �
 
 **The dev database is seeded with realistic demo data (Fase 5)**: 12 users, 8 publications across 8 categories, 10 contracts (all 4 states), 14 messages, 6 ratings, 4 support incidents. Demo logins: `admin`/`KeyServ2026!` (superuser), `moderador`/`Moderador2026!` (Moderador group), `cliente.demo@demo.keyserv`/`Demo1234`, `marcelo.gasfiteria@demo.keyserv`/`Demo1234` (and other demo providers/clients on the same password — this data lives only in the local Postgres instance, not in fixtures/migrations, so it doesn't reproduce on a fresh `migrate`).
 
-**`KeyServApp/tests.py` has 21 automated tests** (Fase 4 — was the empty `startapp` stub before) covering password hashing, registration, login, `load_comunas`, biometria imports, publication moderation, and the full contracting flow (request → confirm with re-auth → complete with re-auth → rate → ranking recalculation) and messaging with access control. Run with `manage.py test KeyServApp`. The messaging test was updated in Fase 5 for the new per-job chat model; no new tests were added for the rest of Fase 5 (admin roles, moderation dashboard, status history, incidents) — see Known Issues.
+**`KeyServApp/tests.py` has 72 automated tests** (Fase 4 — was the empty `startapp` stub before; grew through Fase 5/6 security hardening and the `editar_perfil`/`recuperar`/pagination fixes) covering password hashing, registration, login, `load_comunas`, biometria imports, publication moderation, the full contracting flow (request → confirm with re-auth → complete with re-auth → rate → ranking recalculation), messaging with access control, file-upload validation, suspicious-access logging, the provider toggle, real profile editing, password recovery via signed token, and catalog pagination. Run with `manage.py test KeyServApp`. No new tests were added for the admin roles/moderation dashboard/status history/incidents surface of Fase 5 — see Known Issues.
 
 ## Architecture
 
@@ -164,7 +164,8 @@ The `assets/mockups/pag_html/` HTML files are **not served by Django** — they 
 - `codigo/biometria/reconocimiento_facial/probando_face_recognition.py` was rewritten from the byte-dump it used to be, but is unverified against a real webcam (none available in this dev environment). There's also no field yet to persist a user's reference face encoding, so there's nothing real to compare against even once wired up.
 - Fingerprint verification (`verificacion_huella_view`) doesn't compare against a stored reference hash — it just confirms the pipeline ran without error and marks the user verified.
 - Payments (`pagos.py`) are a full skeleton — blocked on Transbank merchant credentials.
-- `crear_perfil_view`/`editar_perfil_view` and the password-recovery flow (`/recuperar/`) are honestly labeled "under construction" in their templates — the forms render but don't process submitted data.
-- The catalog (`/servicios/`) has no real pagination — it's a fixed cap of 40 results.
+- `crear_perfil_view` (the extended "habilidades/áreas de servicio" provider profile step) is still honestly labeled "under construction" — `Usuario` has no fields for that yet beyond `es_proveedor`.
+- `editar_perfil_view` and `/recuperar/` **now work for real** (previously "under construction" stubs that didn't process submitted data): `editar_perfil_view` is a real `EditarPerfilForm` (`ModelForm`) over the actual `Usuario` fields (name, phone, email, address, región/comuna cascade, and a new `foto_perfil` avatar upload — see `migrations/0017_usuario_foto_perfil.py`); `/recuperar/` sends a signed, expiring (1h) reset link via email (`django.core.signing`, no DB table needed — the token embeds a hash of the current password hash so it self-invalidates on use or after a real password change) to a `EMAIL_BACKEND` that's console-based in DEBUG (prints to the `runserver` terminal) and real SMTP otherwise, reusing the existing `SMTP_*` env vars. Both are rate-limited via the same `cache`-based pattern as login. `Usuario.es_proveedor` (whether you can publish services) used to be stuck at whatever the `/registro/` checkbox set forever, with no way to change it later — fixed with a dedicated `alternar_proveedor_view` (`POST /perfil/alternar-proveedor/`) and a toggle button on `perfil.html`. Past publications stay visible/contractable after opting out; only creating new ones is blocked.
+- The catalog (`/servicios/`) now has real pagination (`django.core.paginator.Paginator`, `PUBLICACIONES_POR_PAGINA = 20` in `views.py`) instead of a fixed cap of 40 results with no way to see the rest.
 - No automated tests cover the bulk of Fase 5 (per-job chat redesign beyond the one updated test, admin group/permissions, moderation dashboard, status history, incidents) — the 21 existing tests still pass but don't exercise this surface.
 - `.vscode/launch.json` still points at a stale pre-reorg path — not fixed, low priority.

@@ -22,6 +22,7 @@ urlpatterns = [
     path('inicio/', views.sesion_iniciada_view, name='sesion_iniciada'),
     path('preferencias-cuenta/', views.preferencias_cuenta_view, name='preferencias_cuenta'),
     path('recuperar/', views.recuperar_view, name='recuperar'),
+    path('recuperar/confirmar/<str:token>/', views.recuperar_confirmar_view, name='recuperar_confirmar'),
     path('tarjeta-credito/', views.tarjeta_credito_view, name='tarjeta_credito'),
 
     # Autenticación
@@ -35,6 +36,7 @@ urlpatterns = [
     path('perfil/', views.perfil_view, name='perfil'),
     path('perfil/crear/', views.crear_perfil_view, name='crear_perfil'),
     path('perfil/editar/', views.editar_perfil_view, name='editar_perfil'),
+    path('perfil/alternar-proveedor/', views.alternar_proveedor_view, name='alternar_proveedor'),
 
     # Publicaciones / servicios
     path('servicios/', views.catalogo_view, name='catalogo'),

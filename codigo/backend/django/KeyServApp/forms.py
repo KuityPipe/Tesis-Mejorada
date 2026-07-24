@@ -107,6 +107,81 @@ class LoginForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput, label='Contraseña')
 
 
+class RecuperarForm(forms.Form):
+    """Paso 1 de /recuperar/: identifica la cuenta por correo + teléfono (no solo correo, para no convertir el formulario en una forma fácil de confirmar qué correos están registrados) antes de mandar el enlace de restablecimiento."""
+    email = forms.EmailField(label='Correo electrónico')
+    telefono = forms.IntegerField(label='Número de teléfono')
+
+
+class NuevaPasswordForm(forms.Form):
+    """Paso 2 de /recuperar/: elegir la nueva contraseña, con la misma validación de fondo que RegistroForm."""
+    password = forms.CharField(widget=forms.PasswordInput, min_length=8, label='Nueva contraseña')
+    password_confirm = forms.CharField(widget=forms.PasswordInput, label='Confirmar contraseña')
+
+    def __init__(self, *args, usuario=None, **kwargs):
+        self._usuario = usuario
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        password = cleaned.get('password')
+        password_confirm = cleaned.get('password_confirm')
+        if password and password_confirm and password != password_confirm:
+            raise forms.ValidationError('Las contraseñas no coinciden.')
+        if password:
+            usuario_para_similitud = SimpleNamespace(
+                username='',
+                email=getattr(self._usuario, 'email', '') or '',
+                first_name=getattr(self._usuario, 'nombre_usuario', '') or '',
+                last_name=getattr(self._usuario, 'apellido_usuario', '') or '',
+            )
+            try:
+                password_validation.validate_password(password, user=usuario_para_similitud)
+            except forms.ValidationError as error:
+                self.add_error('password', error)
+        return cleaned
+
+
+class EditarPerfilForm(forms.ModelForm):
+    """
+    Edición real de los datos del Usuario — antes `editarperfil.html` tenía
+    campos (habilidades, precio, disponibilidad, galería...) que nunca
+    existieron en el modelo, así que el formulario no guardaba nada. Ahora
+    son solo los campos reales que ya existen en `Usuario`, más `region`
+    (no es un campo del modelo, solo maneja el cascadeo de comuna en el
+    template, igual que en `registroinicio.html`).
+    """
+    region = forms.ModelChoiceField(queryset=Region.objects.all(), label='Región')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # `direccion_usuario` no tiene `blank=True` en el modelo (a diferencia
+        # de nombre2/apellido2/foto_perfil), aunque sí acepta NULL en la base
+        # — RegistroForm ya la trata como opcional (`direccion`, required=False)
+        # y acá debe ser consistente con eso.
+        self.fields['direccion_usuario'].required = False
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'nombre_usuario', 'nombre2_usuario', 'apellido_usuario', 'apellido2_usuario',
+            'telefono', 'email', 'direccion_usuario', 'region', 'comuna', 'foto_perfil',
+        ]
+        labels = {
+            'nombre_usuario': 'Primer nombre', 'nombre2_usuario': 'Segundo nombre',
+            'apellido_usuario': 'Primer apellido', 'apellido2_usuario': 'Segundo apellido',
+            'telefono': 'Teléfono', 'email': 'Correo electrónico',
+            'direccion_usuario': 'Dirección', 'comuna': 'Comuna', 'foto_perfil': 'Foto de perfil',
+        }
+
+    def clean_email(self):
+        """Evita que dos cuentas terminen con el mismo correo (pero permite que el usuario se guarde a sí mismo sin cambiar nada)."""
+        email = self.cleaned_data['email']
+        if Usuario.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('Ya existe una cuenta con este correo.')
+        return email
+
+
 # Lista de categorías predefinida (RF002 + pedido del usuario: si el
 # servicio no encaja en ninguna, "Otra" habilita el campo de texto libre).
 # El moderador ve la categoría final (predefinida o escrita a mano) al

@@ -13,6 +13,7 @@ sola en Postgres) — no son mocks, así que si algo similar al bug de
 Fase 3 (nombres de campo desalineados) vuelve a aparecer, estos tests lo
 detectan igual que detectaron los bugs originales cuando se armó Fase 3.
 """
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
@@ -194,6 +195,214 @@ class LoginViewTests(TestCase):
         self.assertIsNone(intento.usuario)
         self.assertEqual(intento.recurso_id, 'login@test.com')
         cache.clear()
+
+
+class AlternarProveedorTests(TestCase):
+    """
+    `es_proveedor` antes solo se podía fijar una vez, en el checkbox de
+    /registro/ — no había forma de activarlo o desactivarlo después
+    (editar_perfil_view no procesa datos todavía). Ahora /perfil/alternar-proveedor/
+    es la única vía real de cambiarlo.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.cliente = _crear_usuario('cliente_alt@test.com', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.cliente.id_usuario
+        session.save()
+
+    def test_activar_proveedor(self):
+        self.client.post(reverse('KeyServApp:alternar_proveedor'))
+        self.cliente.refresh_from_db()
+        self.assertTrue(self.cliente.es_proveedor)
+
+    def test_desactivar_proveedor(self):
+        self.cliente.es_proveedor = True
+        self.cliente.save(update_fields=['es_proveedor'])
+        self.client.post(reverse('KeyServApp:alternar_proveedor'))
+        self.cliente.refresh_from_db()
+        self.assertFalse(self.cliente.es_proveedor)
+
+    def test_get_no_esta_permitido(self):
+        resp = self.client.get(reverse('KeyServApp:alternar_proveedor'))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_requiere_sesion_iniciada(self):
+        self.client.session.flush()
+        resp = self.client.post(reverse('KeyServApp:alternar_proveedor'))
+        self.assertNotEqual(resp.status_code, 200)
+        self.cliente.refresh_from_db()
+        self.assertFalse(self.cliente.es_proveedor)
+
+    def test_publicaciones_pasadas_siguen_visibles_en_perfil_tras_desactivar(self):
+        self.cliente.es_proveedor = True
+        self.cliente.save(update_fields=['es_proveedor'])
+        Publicaciones.objects.create(
+            usuario_publicador=self.cliente, titulo='Servicio viejo',
+            sub_titulo='sub', descripcion_publicacion='desc', categoria='Otra',
+        )
+        self.client.post(reverse('KeyServApp:alternar_proveedor'))
+        resp = self.client.get(reverse('KeyServApp:perfil'))
+        self.assertContains(resp, 'Servicio viejo')
+
+
+class EditarPerfilTests(TestCase):
+    """
+    `editar_perfil_view` antes solo renderizaba `editarperfil.html` con
+    campos (habilidades, precio, disponibilidad, galería...) que ni existían
+    en el modelo `Usuario` — nada de lo que se mandaba por POST se guardaba.
+    Ahora es un ModelForm real sobre los campos que sí existen.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.otra_comuna = Comuna.objects.create(id_comuna=2, nombre_comuna='Otra comuna', region=self.comuna.region)
+        self.usuario = _crear_usuario('editar@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.usuario.id_usuario
+        session.save()
+
+    def test_get_muestra_los_datos_actuales(self):
+        resp = self.client.get(reverse('KeyServApp:editar_perfil'))
+        self.assertContains(resp, self.usuario.email)
+
+    def test_post_guarda_los_cambios_reales(self):
+        self.client.post(reverse('KeyServApp:editar_perfil'), {
+            'nombre_usuario': 'NuevoNombre', 'apellido_usuario': self.usuario.apellido_usuario,
+            'telefono': 987654321, 'email': self.usuario.email,
+            'direccion_usuario': 'Calle Nueva 123', 'region': self.comuna.region_id,
+            'comuna': self.otra_comuna.id_comuna,
+        })
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.nombre_usuario, 'NuevoNombre')
+        self.assertEqual(self.usuario.telefono, 987654321)
+        self.assertEqual(self.usuario.comuna_id, self.otra_comuna.id_comuna)
+
+    def test_no_permite_repetir_el_correo_de_otro_usuario(self):
+        _crear_usuario('ocupado@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        resp = self.client.post(reverse('KeyServApp:editar_perfil'), {
+            'nombre_usuario': self.usuario.nombre_usuario, 'apellido_usuario': self.usuario.apellido_usuario,
+            'telefono': self.usuario.telefono, 'email': 'ocupado@test.com',
+            'region': self.comuna.region_id, 'comuna': self.comuna.id_comuna,
+        })
+        self.usuario.refresh_from_db()
+        self.assertNotEqual(self.usuario.email, 'ocupado@test.com')
+        self.assertContains(resp, 'Ya existe una cuenta con este correo')
+
+    def test_puede_guardar_sin_cambiar_su_propio_correo(self):
+        """El clean_email() no debe rechazar al usuario contra sí mismo."""
+        resp = self.client.post(reverse('KeyServApp:editar_perfil'), {
+            'nombre_usuario': self.usuario.nombre_usuario, 'apellido_usuario': self.usuario.apellido_usuario,
+            'telefono': self.usuario.telefono, 'email': self.usuario.email,
+            'region': self.comuna.region_id, 'comuna': self.comuna.id_comuna,
+        })
+        self.assertRedirects(resp, reverse('KeyServApp:perfil'))
+
+    def test_sube_una_foto_de_perfil_valida(self):
+        resp = self.client.post(reverse('KeyServApp:editar_perfil'), {
+            'nombre_usuario': self.usuario.nombre_usuario, 'apellido_usuario': self.usuario.apellido_usuario,
+            'telefono': self.usuario.telefono, 'email': self.usuario.email,
+            'region': self.comuna.region_id, 'comuna': self.comuna.id_comuna,
+            'foto_perfil': _imagen_de_prueba(),
+        })
+        self.usuario.refresh_from_db()
+        self.assertTrue(bool(self.usuario.foto_perfil))
+        self.assertRedirects(resp, reverse('KeyServApp:perfil'))
+
+
+class RecuperarPasswordTests(TestCase):
+    """
+    /recuperar/ antes solo mostraba un formulario que decía explícitamente
+    "el envío de instrucciones por correo todavía no está implementado".
+    Ahora manda un enlace firmado (django.core.signing) con expiración de 1
+    hora que deja elegir una contraseña nueva de verdad.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('recuperar@test.com', 'claveoriginal1', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.usuario.telefono = 912345678
+        self.usuario.save(update_fields=['telefono'])
+        self.client = Client()
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_solicitud_con_datos_correctos_manda_un_correo(self):
+        from django.core import mail
+        self.client.post(reverse('KeyServApp:recuperar'), {'email': self.usuario.email, 'telefono': self.usuario.telefono})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.usuario.email, mail.outbox[0].to)
+
+    def test_mensaje_es_igual_exista_o_no_la_cuenta(self):
+        """No debe revelar si el correo está registrado — mismo mensaje en ambos casos."""
+        resp_real = self.client.post(reverse('KeyServApp:recuperar'), {'email': self.usuario.email, 'telefono': self.usuario.telefono}, follow=True)
+        resp_falso = self.client.post(reverse('KeyServApp:recuperar'), {'email': 'nadie@test.com', 'telefono': 111111111}, follow=True)
+        mensaje_real = [str(m) for m in resp_real.context['messages']]
+        mensaje_falso = [str(m) for m in resp_falso.context['messages']]
+        self.assertEqual(mensaje_real, mensaje_falso)
+
+    def test_token_valido_permite_cambiar_la_contrasena(self):
+        from .views import _generar_token_recuperacion
+        token = _generar_token_recuperacion(self.usuario)
+        resp = self.client.post(reverse('KeyServApp:recuperar_confirmar', args=[token]), {
+            'password': 'ClaveNueva2026!', 'password_confirm': 'ClaveNueva2026!',
+        })
+        self.assertRedirects(resp, reverse('KeyServApp:sesion'))
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('ClaveNueva2026!'))
+
+    def test_token_invalido_no_deja_pasar(self):
+        resp = self.client.get(reverse('KeyServApp:recuperar_confirmar', args=['token-inventado']), follow=True)
+        self.assertRedirects(resp, reverse('KeyServApp:recuperar'))
+
+    def test_token_ya_usado_no_sirve_dos_veces(self):
+        """Cambiar la contraseña rota el hash embebido en el token — el mismo link no debería servir dos veces."""
+        from .views import _generar_token_recuperacion
+        token = _generar_token_recuperacion(self.usuario)
+        self.client.post(reverse('KeyServApp:recuperar_confirmar', args=[token]), {
+            'password': 'ClaveNueva2026!', 'password_confirm': 'ClaveNueva2026!',
+        })
+        resp = self.client.get(reverse('KeyServApp:recuperar_confirmar', args=[token]), follow=True)
+        self.assertRedirects(resp, reverse('KeyServApp:recuperar'))
+
+    def test_limite_de_intentos(self):
+        for _ in range(3):
+            self.client.post(reverse('KeyServApp:recuperar'), {'email': self.usuario.email, 'telefono': self.usuario.telefono})
+        from django.core import mail
+        mail.outbox.clear()
+        resp = self.client.post(reverse('KeyServApp:recuperar'), {'email': self.usuario.email, 'telefono': self.usuario.telefono}, follow=True)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertContains(resp, 'Demasiadas solicitudes')
+
+
+class CatalogoPaginacionTests(TestCase):
+    """Antes el catálogo tenía un tope fijo de 40 resultados sin forma de ver el resto — ahora es un Paginator real."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_pag@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        for i in range(25):
+            Publicaciones.objects.create(
+                usuario_publicador=self.proveedor, titulo=f'Servicio {i}',
+                estado_moderacion=Publicaciones.APROBADA,
+            )
+
+    def test_primera_pagina_respeta_el_tamano_de_pagina(self):
+        resp = self.client.get(reverse('KeyServApp:catalogo'))
+        self.assertEqual(len(resp.context['publicaciones']), 20)
+        self.assertEqual(resp.context['total_publicaciones'], 25)
+
+    def test_segunda_pagina_trae_el_resto(self):
+        resp = self.client.get(reverse('KeyServApp:catalogo'), {'page': 2})
+        self.assertEqual(len(resp.context['publicaciones']), 5)
+
+    def test_pagina_fuera_de_rango_devuelve_la_ultima(self):
+        resp = self.client.get(reverse('KeyServApp:catalogo'), {'page': 999})
+        self.assertEqual(resp.context['pagina'].number, 2)
 
 
 class LoadComunasTests(TestCase):

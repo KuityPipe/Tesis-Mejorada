@@ -50,7 +50,7 @@
   <div class="ks-section-header">
     <h2>{% if query %}Resultados para "{{ query }}"{% else %}Todos los servicios{% endif %}</h2>
     <span>
-      {{ publicaciones|length }} publicación{{ publicaciones|length|pluralize:"es" }}
+      {{ total_publicaciones }} publicación{{ total_publicaciones|pluralize:"es" }}
       {% if region_seleccionada or calificacion_seleccionada %}
         &nbsp;·&nbsp; <a href="{% url 'KeyServApp:catalogo' %}{% if query %}?q={{ query }}{% endif %}">Quitar filtros</a>
       {% endif %}
@@ -86,6 +86,18 @@
     </a>
     {% endfor %}
   </div>
+
+  {% if pagina.paginator.num_pages > 1 %}
+  <nav class="ks-pagination" aria-label="Paginación de resultados">
+    {% if pagina.has_previous %}
+    <a href="?{% if query %}q={{ query }}&{% endif %}{% if region_seleccionada %}region={{ region_seleccionada }}&{% endif %}{% if calificacion_seleccionada %}calificacion={{ calificacion_seleccionada }}&{% endif %}orden={{ orden_seleccionado }}&page={{ pagina.previous_page_number }}" class="ks-btn ks-btn-outline"><i class="bi bi-chevron-left"></i> Anterior</a>
+    {% endif %}
+    <span class="ks-pagination-info">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}
+    <a href="?{% if query %}q={{ query }}&{% endif %}{% if region_seleccionada %}region={{ region_seleccionada }}&{% endif %}{% if calificacion_seleccionada %}calificacion={{ calificacion_seleccionada }}&{% endif %}orden={{ orden_seleccionado }}&page={{ pagina.next_page_number }}" class="ks-btn ks-btn-outline">Siguiente <i class="bi bi-chevron-right"></i></a>
+    {% endif %}
+  </nav>
+  {% endif %}
   {% else %}
   <div class="ks-empty-state">
     <i class="bi bi-emoji-smile"></i>

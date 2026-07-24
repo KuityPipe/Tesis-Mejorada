@@ -224,6 +224,23 @@ CLAMAV_PORT = env.int('CLAMAV_PORT', default=3310)
 GEOIP_HABILITADO = env.bool('GEOIP_HABILITADO', default=True)
 GEOIP_DB_PATH = env('GEOIP_DB_PATH', default=str(BASE_DIR / 'geoip' / 'dbip-city-lite.mmdb'))
 
+# Envío de correo (recuperación de contraseña, ver views.recuperar_view) —
+# reusa las mismas variables SMTP_* de .env que ya existían para
+# codigo/biometria/huella/AUTENTIFICACION.py (legacy). En DEBUG, sin
+# SMTP_PASSWORD configurado, no tiene sentido intentar una conexión SMTP real
+# que va a fallar — el backend de consola imprime el correo en la terminal
+# de `runserver`, suficiente para probar el flujo en desarrollo.
+if DEBUG and not env('SMTP_PASSWORD', default=''):
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = env('SMTP_HOST', default='smtp.office365.com')
+    EMAIL_PORT = env.int('SMTP_PORT', default=587)
+    EMAIL_HOST_USER = env('SMTP_USER', default='')
+    EMAIL_HOST_PASSWORD = env('SMTP_PASSWORD', default='')
+    EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='KeyServ <no-responder@keyserv.cl>')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

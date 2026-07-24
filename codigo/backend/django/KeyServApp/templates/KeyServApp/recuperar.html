@@ -6,19 +6,23 @@
 <section class="ks-section container" style="max-width: 460px;">
   <div class="ks-panel">
     <h1 class="text-center mb-1">Recuperar contraseña</h1>
-    <p class="text-center ks-help mb-4">Te ayudamos a recuperar el acceso a tu cuenta.</p>
+    <p class="text-center ks-help mb-4">Te enviamos un enlace para elegir una nueva contraseña.</p>
 
-    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Demo: el envío de instrucciones por correo todavía no está implementado.</div>
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
 
     <form method="post" class="ks-form">
       {% csrf_token %}
       <div class="ks-field">
-        <label for="correo">Correo electrónico</label>
-        <input type="email" id="correo" name="correo" placeholder="tu@correo.com" required>
+        <label for="{{ form.email.id_for_label }}">Correo electrónico</label>
+        {{ form.email }}
+        {% if form.email.errors %}<small class="ks-error">{{ form.email.errors }}</small>{% endif %}
       </div>
       <div class="ks-field">
-        <label for="telefono">Número de teléfono</label>
-        <input type="tel" id="telefono" name="telefono" placeholder="912345678" required>
+        <label for="{{ form.telefono.id_for_label }}">Número de teléfono</label>
+        {{ form.telefono }}
+        {% if form.telefono.errors %}<small class="ks-error">{{ form.telefono.errors }}</small>{% endif %}
       </div>
       <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center">Recuperar contraseña</button>
     </form>

@@ -7,52 +7,116 @@
   <div class="ks-panel">
     <h1 class="mb-4"><i class="bi bi-pencil-square"></i> Editar perfil</h1>
 
-    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Esta sección está en construcción — por ahora los cambios no se guardan todavía.</div>
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
 
-    <form method="post" class="ks-form" enctype="multipart/form-data">
+    <form method="post" class="ks-form" enctype="multipart/form-data" id="editarPerfilForm" data-comunas-url="{% url 'KeyServApp:ajax_load_comunas' %}">
       {% csrf_token %}
 
-      <h3>Información personal</h3>
-      <div class="ks-field">
-        <label for="name">Nombre</label>
-        <input type="text" id="name" name="name" value="{{ usuario.nombre_usuario }}">
-      </div>
-      <div class="ks-field">
-        <label for="skills">Habilidades</label>
-        <textarea id="skills" name="skills" rows="3"></textarea>
-      </div>
-      <div class="ks-field">
-        <label for="experience">Experiencia laboral</label>
-        <textarea id="experience" name="experience" rows="3"></textarea>
-      </div>
-      <div class="ks-field">
-        <label for="certifications">Certificaciones</label>
-        <textarea id="certifications" name="certifications" rows="3"></textarea>
+      <h3>Foto de perfil</h3>
+      <div class="ks-field-foto">
+        {% if usuario.foto_perfil %}
+          <img src="{{ usuario.foto_perfil.url }}" alt="Foto de {{ usuario.nombre_usuario }}" class="ks-avatar-preview">
+        {% else %}
+          <span class="ks-avatar-lg">{{ usuario.nombre_usuario|first|upper }}</span>
+        {% endif %}
+        <div class="ks-field" style="flex:1;">
+          <label for="{{ form.foto_perfil.id_for_label }}">Cambiar foto</label>
+          {{ form.foto_perfil }}
+          {% if form.foto_perfil.errors %}<small class="ks-error">{{ form.foto_perfil.errors }}</small>{% endif %}
+        </div>
       </div>
 
-      <h3>Configuración de perfil</h3>
+      <h3>Información personal</h3>
       <div class="row">
         <div class="col-md-6 ks-field">
-          <label for="price">Precio</label>
-          <input type="text" id="price" name="price">
+          <label for="{{ form.nombre_usuario.id_for_label }}">Primer nombre</label>
+          {{ form.nombre_usuario }}
+          {% if form.nombre_usuario.errors %}<small class="ks-error">{{ form.nombre_usuario.errors }}</small>{% endif %}
         </div>
         <div class="col-md-6 ks-field">
-          <label for="availability">Disponibilidad</label>
-          <input type="text" id="availability" name="availability">
+          <label for="{{ form.nombre2_usuario.id_for_label }}">Segundo nombre</label>
+          {{ form.nombre2_usuario }}
         </div>
       </div>
-      <div class="ks-field">
-        <label for="preferences">Preferencias</label>
-        <textarea id="preferences" name="preferences" rows="3"></textarea>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.apellido_usuario.id_for_label }}">Primer apellido</label>
+          {{ form.apellido_usuario }}
+          {% if form.apellido_usuario.errors %}<small class="ks-error">{{ form.apellido_usuario.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.apellido2_usuario.id_for_label }}">Segundo apellido</label>
+          {{ form.apellido2_usuario }}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.telefono.id_for_label }}">Teléfono</label>
+          {{ form.telefono }}
+          {% if form.telefono.errors %}<small class="ks-error">{{ form.telefono.errors }}</small>{% endif %}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.email.id_for_label }}">Correo electrónico</label>
+          {{ form.email }}
+          {% if form.email.errors %}<small class="ks-error">{{ form.email.errors }}</small>{% endif %}
+        </div>
       </div>
 
-      <h3>Galería de trabajos realizados</h3>
+      <h3>Ubicación</h3>
       <div class="ks-field">
-        <input type="file" name="images" multiple>
+        <label for="{{ form.direccion_usuario.id_for_label }}">Dirección</label>
+        {{ form.direccion_usuario }}
+      </div>
+      <div class="row">
+        <div class="col-md-6 ks-field">
+          <label for="id_region">Región</label>
+          {{ form.region }}
+        </div>
+        <div class="col-md-6 ks-field">
+          <label for="{{ form.comuna.id_for_label }}">Comuna</label>
+          {{ form.comuna }}
+          {% if form.comuna.errors %}<small class="ks-error">{{ form.comuna.errors }}</small>{% endif %}
+        </div>
       </div>
 
-      <button type="submit" class="ks-btn ks-btn-primary">Guardar cambios</button>
+      <button type="submit" class="ks-btn ks-btn-primary mt-3">Guardar cambios</button>
+      <a href="{% url 'KeyServApp:perfil' %}" class="ks-btn ks-btn-outline mt-3">Cancelar</a>
     </form>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+  $(document).ready(function () {
+    var comunasUrl = $('#editarPerfilForm').data('comunas-url');
+    var comunaInicial = "{{ usuario.comuna_id|default_if_none:'' }}";
+
+    function cargarComunas(regionId, seleccionar) {
+      $.ajax({
+        url: comunasUrl,
+        data: { 'region_id': regionId },
+        success: function (data) {
+          var options = '<option value="" disabled>Selecciona tu comuna</option>';
+          for (var i = 0; i < data.length; i++) {
+            var sel = (seleccionar && String(data[i].id) === String(seleccionar)) ? 'selected' : '';
+            options += '<option value="' + data[i].id + '" ' + sel + '>' + data[i].nombre_comuna + '</option>';
+          }
+          $('#{{ form.comuna.id_for_label }}').html(options);
+        }
+      });
+    }
+
+    $('#id_region').change(function () {
+      cargarComunas($(this).val(), null);
+    });
+
+    if ($('#id_region').val()) {
+      cargarComunas($('#id_region').val(), comunaInicial);
+    }
+  });
+</script>
 {% endblock %}

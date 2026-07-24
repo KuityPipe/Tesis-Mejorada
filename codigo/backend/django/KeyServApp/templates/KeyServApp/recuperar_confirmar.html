@@ -1,0 +1,31 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}Elegir nueva contraseña — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-section container" style="max-width: 460px;">
+  <div class="ks-panel">
+    <h1 class="text-center mb-1">Elegí tu nueva contraseña</h1>
+    <p class="text-center ks-help mb-4">Ya validamos tu enlace de recuperación.</p>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" class="ks-form">
+      {% csrf_token %}
+      <div class="ks-field">
+        <label for="{{ form.password.id_for_label }}">Nueva contraseña</label>
+        {{ form.password }}
+        {% if form.password.errors %}<small class="ks-error">{{ form.password.errors }}</small>{% endif %}
+      </div>
+      <div class="ks-field">
+        <label for="{{ form.password_confirm.id_for_label }}">Confirmar contraseña</label>
+        {{ form.password_confirm }}
+        {% if form.password_confirm.errors %}<small class="ks-error">{{ form.password_confirm.errors }}</small>{% endif %}
+      </div>
+      <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center">Guardar nueva contraseña</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
