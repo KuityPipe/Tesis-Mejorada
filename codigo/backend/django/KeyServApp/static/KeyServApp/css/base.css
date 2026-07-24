@@ -23,6 +23,9 @@
   --ks-ink: #16233A;
   --ks-ink-soft: #5B6B82;
   --ks-border: #E7ECF3;
+  --ks-surface: #FFFFFF;
+  --ks-neutral-bg: #F1F1F1;
+  --ks-neutral-text: #6B6B6B;
   --ks-gradient-brand: linear-gradient(135deg, var(--ks-navy) 0%, var(--ks-teal) 55%, var(--ks-coral) 100%);
   --ks-shadow: 0 10px 30px -12px rgba(11, 61, 120, 0.25);
   --ks-radius-lg: 20px;
@@ -30,10 +33,36 @@
   --ks-radius-sm: 10px;
 }
 
+/* Tema oscuro — activado con [data-bs-theme="dark"] en <html> (mismo
+   atributo que usa Bootstrap 5.3 para sus propios componentes, así que
+   alertas/inputs/etc. de Bootstrap también cambian solos). Se elige con
+   el botón del header (ver base.html) y se recuerda en localStorage. */
+:root[data-bs-theme="dark"] {
+  --ks-cream: #10151F;
+  --ks-cream-soft: #161D29;
+  --ks-navy: #6FA8F0;
+  --ks-navy-dark: #E7F0FE;
+  --ks-navy-light: #1B2A42;
+  --ks-teal: #2BD6B8;
+  --ks-teal-dark: #8FF0DC;
+  --ks-teal-light: #123A34;
+  --ks-coral: #FF9270;
+  --ks-coral-dark: #FFC1A6;
+  --ks-coral-light: #3A2318;
+  --ks-ink: #E9EFF8;
+  --ks-ink-soft: #9FB0C7;
+  --ks-border: #29344A;
+  --ks-surface: #182231;
+  --ks-neutral-bg: #232E40;
+  --ks-neutral-text: #B7C2D6;
+  --ks-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+}
+
 body {
   font-family: 'Nunito', sans-serif;
   color: var(--ks-ink);
   background-color: var(--ks-cream);
+  transition: background-color .15s ease, color .15s ease;
 }
 
 h1, h2, h3, h4, .ks-brand-font {
@@ -139,6 +168,37 @@ a {
   color: #fff;
 }
 
+.ks-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: .85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ks-theme-toggle i {
+  font-size: 1.05rem;
+}
+
+.ks-theme-toggle:hover {
+  background: var(--ks-teal);
+  color: #fff;
+}
+
+@media (max-width: 520px) {
+  .ks-theme-toggle span { display: none; }
+  .ks-theme-toggle { width: 40px; padding: 0; justify-content: center; }
+}
+
 .ks-icon-badge {
   position: absolute;
   top: -4px;
@@ -164,7 +224,7 @@ a {
   color: var(--ks-ink);
   padding: 6px 12px 6px 6px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--ks-surface);
   border: 1px solid var(--ks-border);
 }
 
@@ -262,7 +322,7 @@ a {
   gap: 8px;
   max-width: 620px;
   margin: 0 auto;
-  background: #fff;
+  background: var(--ks-surface);
   border-radius: 999px;
   padding: 8px 8px 8px 22px;
   box-shadow: var(--ks-shadow);
@@ -311,7 +371,7 @@ a {
 .ks-filter-bar {
   max-width: 780px;
   margin: 28px auto 0;
-  background: #fff;
+  background: var(--ks-surface);
   border: 1px solid var(--ks-border);
   border-radius: var(--ks-radius-md);
   padding: 16px 20px;
@@ -378,7 +438,7 @@ a {
 
 .ks-card {
   display: block;
-  background: #fff;
+  background: var(--ks-surface);
   border-radius: var(--ks-radius-lg);
   overflow: hidden;
   border: 1px solid var(--ks-border);
@@ -478,7 +538,7 @@ a {
 /* ---------- Footer ---------- */
 
 .ks-footer {
-  background: #fff;
+  background: var(--ks-surface);
   border-top: 3px solid transparent;
   border-image: var(--ks-gradient-brand) 1;
   margin-top: 40px;
@@ -583,7 +643,7 @@ a {
 }
 
 .ks-panel {
-  background: #fff;
+  background: var(--ks-surface);
   border: 1px solid var(--ks-border);
   border-radius: var(--ks-radius-lg);
   padding: 28px;
@@ -677,7 +737,7 @@ a {
 .ks-badge-solicitada, .ks-badge-pendiente { background: var(--ks-coral-light); color: var(--ks-coral-dark); }
 .ks-badge-confirmada, .ks-badge-en_curso { background: var(--ks-teal-light); color: var(--ks-teal-dark); }
 .ks-badge-completada, .ks-badge-aprobada { background: var(--ks-navy-light); color: var(--ks-navy-dark); }
-.ks-badge-rechazada, .ks-badge-cancelada { background: #F1F1F1; color: #6b6b6b; }
+.ks-badge-rechazada, .ks-badge-cancelada { background: var(--ks-neutral-bg); color: var(--ks-neutral-text); }
 
 /* ---------- Timeline de contrataciones (reservas.html) ---------- */
 
@@ -848,7 +908,7 @@ a {
 
 .ks-bubble-theirs {
   align-self: flex-start;
-  background: #fff;
+  background: var(--ks-surface);
   border: 1px solid var(--ks-border);
   border-bottom-left-radius: 4px;
 }
@@ -1011,7 +1071,7 @@ a {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--ks-surface);
   border: 3px solid var(--ks-border);
   margin: 0 auto 6px;
 }

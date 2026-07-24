@@ -4,6 +4,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // Aplica el tema ANTES de pintar la página (evita el flash de tema
+  // incorrecto). Disponible con o sin sesión: se guarda en localStorage,
+  // no en el usuario. Si nunca se eligió, respeta la preferencia del SO.
+  (function () {
+    try {
+      var guardado = localStorage.getItem('ks-theme');
+      var tema = guardado || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-bs-theme', tema);
+    } catch (e) { /* localStorage bloqueado (modo privado, etc.): queda el tema claro por defecto */ }
+  })();
+</script>
 <title>{% block titulo %}KeyServ{% endblock %}</title>
 <link rel="icon" href="{% static 'KeyServApp/imagenes/logokeyserv_v2.png' %}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,6 +51,10 @@
          del toggle móvil) — son lo primero que alguien recién logueado
          necesita encontrar: mensajes, reservas, perfil, salir. -->
     <div class="ks-header-actions">
+      <button class="ks-theme-toggle" type="button" id="ksThemeToggle" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema claro/oscuro">
+        <i class="bi bi-moon-stars" id="ksThemeIcon"></i>
+        <span id="ksThemeLabel">Tema oscuro</span>
+      </button>
       {% if usuario_actual %}
         <a class="ks-icon-link" href="{% url 'KeyServApp:sesion_iniciada' %}" title="Inicio"><i class="bi bi-house-door"></i></a>
         <a class="ks-icon-link" href="{% url 'KeyServApp:chat' %}" title="Bandeja de entrada" id="ks-chat-icon-link">
@@ -101,6 +117,34 @@
     boton.addEventListener('click', function () {
       var abierto = menu.classList.toggle('show');
       boton.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    });
+  })();
+</script>
+<script>
+  // Toggle de tema claro/oscuro — funciona con o sin sesión iniciada
+  // (se guarda en localStorage, no en el modelo Usuario).
+  (function () {
+    var boton = document.getElementById('ksThemeToggle');
+    var icono = document.getElementById('ksThemeIcon');
+    var etiqueta = document.getElementById('ksThemeLabel');
+
+    // El texto/ícono anuncian el tema AL QUE SE CAMBIA con el próximo clic
+    // (convención habitual: luna = "pasar a oscuro", sol = "pasar a claro").
+    function pintarBoton(temaActual) {
+      var siguiente = temaActual === 'dark' ? 'light' : 'dark';
+      if (icono) icono.className = siguiente === 'dark' ? 'bi bi-moon-stars' : 'bi bi-sun';
+      if (etiqueta) etiqueta.textContent = siguiente === 'dark' ? 'Tema oscuro' : 'Tema claro';
+    }
+
+    pintarBoton(document.documentElement.getAttribute('data-bs-theme') || 'light');
+    if (!boton) return;
+
+    boton.addEventListener('click', function () {
+      var actual = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
+      var nuevo = actual === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-bs-theme', nuevo);
+      pintarBoton(nuevo);
+      try { localStorage.setItem('ks-theme', nuevo); } catch (e) { /* modo privado: el toggle sigue funcionando, solo no persiste */ }
     });
   })();
 </script>

@@ -25,9 +25,9 @@ assets/imagenes/, assets/diagramas/   Empty scaffolds for future assets
 .sistema/cache/, logs/, config/       Empty scaffolds for future cache/log/config output
 ```
 
-Not moved (stay at repo root): `venv_tesis/` (active dev virtualenv — moving it would break its absolute activation paths), `TesisAntigua/` (untracked raw GitHub export/backup containing personal emails; gitignored, not part of the codebase), `CLAUDE.md`.
+Not moved (stay at repo root): `venv_tesis/` (active dev virtualenv — moving it would break its absolute activation paths), `TesisAntigua/` (untracked raw GitHub export/backup containing personal emails; gitignored, not part of the codebase), `CLAUDE.md`. `NuevoLogo.png` and `ImagenConcepto.png` (new Fase 5 brand assets) also landed at the repo root instead of the `assets/imagenes/` scaffold that exists for exactly this — not cleaned up yet, low priority.
 
-A root `.gitignore` was added (Fase 1) and all previously-committed virtualenvs and `__pycache__`/`*.pyc` files were untracked — they still exist on disk but are no longer version-controlled. `.sistema/cache/*` is also gitignored (regenerable scratch output, e.g. PDF text extractions).
+A root `.gitignore` was added (Fase 1) and all previously-committed virtualenvs and `__pycache__`/`*.pyc` files were untracked — they still exist on disk but are no longer version-controlled. `.sistema/cache/*` is also gitignored (regenerable scratch output, e.g. PDF text extractions). `codigo/backend/django/media/` (user-uploaded files — publication images/documents) is gitignored as of Fase 5, since it can contain real personal documents uploaded while testing.
 
 ## Active Project
 
@@ -64,6 +64,10 @@ python manage.py createsuperuser
 python manage.py test KeyServApp   # 21 tests, all passing
 python manage.py test KeyServApp.tests.ContratacionFlowTests            # single test class
 python manage.py test KeyServApp.tests.ContratacionFlowTests.test_flujo_completo_de_contratacion_y_valoracion  # single test method
+
+# Fase 5 management commands
+python manage.py configurar_grupo_moderador          # (re)creates the "Moderador" admin group + scoped permissions — rerun after adding models that moderators should/shouldn't see
+python manage.py limpiar_mensajes_antiguos            # deletes chats for jobs closed 90+ days ago, never exported (--dias N, --dry-run)
 ```
 
 **PostgreSQL is installed and running** — see "Database" below. `migrate` has been run for real, not just validated dry.
@@ -79,13 +83,15 @@ Both are now proper importable modules (`procesar_huella()` / `cargar_rostro_con
 
 ### Database
 
-PostgreSQL, credentials via environment variables (`.env`, see `.env.example`) — no longer hardcoded in `settings.py`. `codigo/backend/django/KeyServApp/migrations/0001_initial.py` was regenerated from scratch against the corrected models (the old MySQL-era migration is backed up in `codigo/viejo/backup_fase3/`).
+PostgreSQL, credentials via environment variables (`.env`, see `.env.example`) — no longer hardcoded in `settings.py`. `codigo/backend/django/KeyServApp/migrations/` was regenerated from scratch against the corrected models in Fase 3 (the old MySQL-era migration is backed up in `codigo/viejo/backup_fase3/`); Fase 5 added incremental migrations `0002`–`0007` on top (chat-per-job fields, `HistorialEstadoContratacion`, `Consulta`/`EstadoConsulta` wiring, publication moderation audit fields).
 
-**PostgreSQL 17 is installed and running** as a Windows service (`postgresql-keyserv`, data dir `C:\pgsql\data`, port 5432) — installed via the portable binaries zip since the official graphical installer failed in this non-interactive environment. `manage.py migrate` has been run against it (all ~24 tables exist for real), and the full register→login→ajax-comunas flow was verified end-to-end with a real HTTP request.
+**PostgreSQL 17 is installed and running** as a Windows service (`postgresql-keyserv`, data dir `C:\pgsql\data`, port 5432) — installed via the portable binaries zip since the official graphical installer failed in this non-interactive environment. `manage.py migrate` has been run against it (all tables exist for real), and the full register→login→ajax-comunas flow was verified end-to-end with a real HTTP request.
 
 **Catalog data is loaded for real**: `KeyServApp/fixtures/catalogos_iniciales.json` (16 Chilean regions, 330 comunas, the 4 real `TipoCuenta` tiers, plus `TipoFirma`/`EstadoAutentificacion`/`EstadoDocumento`) — extracted from an old MySQL dump (`notpaper3`) the user had outside the repo, loaded via `manage.py loaddata catalogos_iniciales`. Deliberately excluded from that import: the dump's `usuario`/`autentificacion`/`documento`/`publicaciones`/`transaccion` rows — throwaway test/dummy data with SHA-256-without-salt password hashes incompatible with the Fase 3 PBKDF2 hasher.
 
-**`KeyServApp/tests.py` has 21 automated tests** (Fase 4 — was the empty `startapp` stub before) covering password hashing, registration, login, `load_comunas`, biometria imports, publication moderation, and the full contracting flow (request → confirm with re-auth → complete with re-auth → rate → ranking recalculation) and messaging with access control. Run with `manage.py test KeyServApp`.
+**The dev database is seeded with realistic demo data (Fase 5)**: 12 users, 8 publications across 8 categories, 10 contracts (all 4 states), 14 messages, 6 ratings, 4 support incidents. Demo logins: `admin`/`KeyServ2026!` (superuser), `moderador`/`Moderador2026!` (Moderador group), `cliente.demo@demo.keyserv`/`Demo1234`, `marcelo.gasfiteria@demo.keyserv`/`Demo1234` (and other demo providers/clients on the same password — this data lives only in the local Postgres instance, not in fixtures/migrations, so it doesn't reproduce on a fresh `migrate`).
+
+**`KeyServApp/tests.py` has 21 automated tests** (Fase 4 — was the empty `startapp` stub before) covering password hashing, registration, login, `load_comunas`, biometria imports, publication moderation, and the full contracting flow (request → confirm with re-auth → complete with re-auth → rate → ranking recalculation) and messaging with access control. Run with `manage.py test KeyServApp`. The messaging test was updated in Fase 5 for the new per-job chat model; no new tests were added for the rest of Fase 5 (admin roles, moderation dashboard, status history, incidents) — see Known Issues.
 
 ## Architecture
 
@@ -97,14 +103,18 @@ assets/mockups/pag_html/    Static HTML frontend prototype (no framework), super
 codigo/backend/django/      Main Django project
   ├── KeyServProject/       Settings (env-var driven), WSGI, root URL conf (DB: PostgreSQL)
   └── KeyServApp/
-      ├── models.py         ~25 ORM models incl. real ForeignKeys + new Contratacion (see Data Model section)
-      ├── views.py          Auth (real), publicaciones/contrataciones/valoraciones, biometric + payment integration points
+      ├── models.py         ~25 ORM models incl. real ForeignKeys, Contratacion, HistorialEstadoContratacion (see Data Model section)
+      ├── views.py          Auth (real), publicaciones/contrataciones/valoraciones, chat-per-job, biometric + payment integration points
       ├── forms.py          Registro/Login/Publicacion/Valoracion forms with validation
       ├── decorators.py     `login_requerido` — custom session auth (not django.contrib.auth's user model)
+      ├── context_processors.py  Injects `usuario_actual` + unread-message count into every template (custom session, not django.contrib.auth)
       ├── biometria.py      Bridges Django views to codigo/biometria/* scripts
       ├── pagos.py          TransbankService skeleton (NotImplementedError until merchant credentials exist)
-      ├── admin.py          All models registered
-      └── urls.py           27 routes — every template has a URL, plus the Fase 4 contracting/messaging routes (was 2 of ~18 before Fase 3)
+      ├── admin.py          All models registered; scoped visibility for the "Moderador" group + superuser-only LogEntry audit
+      ├── management/commands/   `configurar_grupo_moderador`, `limpiar_mensajes_antiguos` (see Commands)
+      ├── static/KeyServApp/css/base.css   Unified design system (navy/teal/coral palette, Quicksand/Nunito) — all templates extend base.html
+      ├── templates/admin/   Overrides `index.html`/`base_site.html` to add the pending-approvals dashboard (`_panel_aprobaciones.html`)
+      └── urls.py           ~31 routes — every template has a URL
 
 codigo/biometria/huella/    Fingerprint pipeline — IMAGEN_HUELLA.py is a real, working, importable module.
   ├── IMAGEN_HUELLA.py      procesar_huella(): binarize → thin → prune → hash, callable from Django
@@ -121,27 +131,31 @@ codigo/biometria/reconocimiento_facial/
 
 **User registration:** HTML form → Django `/registro/` → `RegistroForm` validation → `Usuario.set_password()` (PBKDF2 via `django.contrib.auth.hashers`) → PostgreSQL
 
-**Login/logout:** `/sesion/` validates credentials via `Usuario.check_password()` and sets `request.session['usuario_id']` — a custom lightweight session, not `django.contrib.auth`'s login system (see `docs/API_DOCUMENTATION.md` "Notas sobre autenticación").
+**Login/logout:** `/sesion/` validates credentials via `Usuario.check_password()` and sets `request.session['usuario_id']` — a custom lightweight session, not `django.contrib.auth`'s login system (see `docs/API_DOCUMENTATION.md` "Notas sobre autenticación"). A real bug fixed in Fase 5: the `sesion.html` template used to submit `username`/`password` fields while `LoginForm` expected `email`/`password`, so login via the UI never actually worked before this session — only the raw view/form did.
 
 **Fingerprint verification:** `/huella/verificar/` → `KeyServApp/biometria.py` → `IMAGEN_HUELLA.procesar_huella()` → SHA-256 hash → marks `Usuario.verificado_biometricamente` (TODO: doesn't yet compare against a stored reference hash).
 
 **Facial recognition:** skeleton only — `verificar_rostro_usuario()` exists but is unwired from any view and untested (no webcam in this environment).
 
-**Publications & moderation:** `Publicaciones.estado_moderacion` (new field) gates visibility on the home page — BPMN "Crear publicación" from the thesis PDF required this and it didn't exist before Fase 3. `paginicio_view` and `publicacion_detalle_view` are real and connected to actual data (Fase 4) — `crear_publicacion.html` is a dedicated template (was a placeholder in Fase 3).
+**Publications & moderation:** `Publicaciones.estado_moderacion` gates visibility on `/servicios/` (the catalog, split from the home page in Fase 5 — `/` is now marketing/quick-search, `/servicios/` is the full filterable listing with region/rating/order filters). Publications carry a real `categoria` (predefined list + free-text "Otra") and real uploaded image/document files (Pillow) rather than seeded URLs. Approval leaves an audit trail — `aprobado_por` + `fecha_moderacion` autofill on save, never set by hand.
 
-**Contracting (Fase 4, complete):** `Contratacion` model + full BPMN flow — `contratacion_crear_view` (SOLICITADA, notifies the provider via an auto-created `Conversacion`+`Mensaje` instead of email) → `contratacion_confirmar_view` (provider, requires re-entering password, → CONFIRMADA) → `contratacion_completar_view` (client, requires re-entering password, → COMPLETADA) → `valoracion_crear_view`. Verified end-to-end via real HTTP requests against Postgres, including rejecting a wrong re-auth password. Payment before EN_CURSO is still TODO (blocked on Transbank credentials).
+**Contracting (Fase 4, extended in Fase 5):** `Contratacion` model + full BPMN flow — `contratacion_crear_view` (SOLICITADA, notifies the provider via an auto-created `Conversacion`+`Mensaje`) → `contratacion_confirmar_view` (provider, requires re-entering password, → CONFIRMADA) → `contratacion_completar_view` (client, requires re-entering password, → COMPLETADA) → `valoracion_crear_view`. Every state transition is now recorded in `HistorialEstadoContratacion` with a real timestamp (previously only a "last updated" field existed, overwritten on every save). `contratacion_detalle_view` is a per-job page combining the embedded chat, a status timeline, and the publication's image gallery. Payment before EN_CURSO is still TODO (blocked on Transbank credentials).
 
-**Messaging (Fase 4, complete):** `chat_view`/`conversacion_detalle_view` — list conversations, view/send messages, access restricted to participants (verified with a third "intruder" user in tests).
+**Messaging (Fase 4, redesigned in Fase 5):** `Conversacion` is now 1:1 with a `Contratacion` ("chat per job") instead of 1:1 with a pair of users — previously messages from unrelated contracts between the same two people bled into a single thread. `chat_view`/`conversacion_detalle_view` list conversations and view/send messages, access restricted to participants (verified with a third "intruder" user in tests). Conversations can be exported to a `.txt` backup (`conversacion_exportar_view`); `manage.py limpiar_mensajes_antiguos` purges chats for closed jobs after 90 days, but exporting a chat sets `exportado_en` and permanently exempts it from that purge. Near-real-time notifications: the header polls `/ajax/mensajes-no-leidos/` every 15s and plays a Web Audio beep (no external sound file) when the unread badge increases.
+
+**Admin & moderation (Fase 5):** A native Django "Moderador" group (Groups/Permissions, not a custom role system — see `configurar_grupo_moderador.py`) can view/change publications, incidents (`Consulta`), and documents, and view (not change) contracts/history/messaging/ratings; it cannot see `Usuario`, payments, or other sensitive/infrastructure tables — Django's admin simply omits models with no granted permission. `/admin/` has a custom `index.html` showing a pending-approvals dashboard (unmoderated publications + open incidents). `LogEntry` (Django's native audit log) is registered but restricted to `is_superuser`. Contract start timestamps are `readonly_fields` (visible, immutable) in the admin.
+
+**Support:** `/contacto/` now writes to the real `Consulta` model (part of the original thesis schema but unused until Fase 5) instead of being a static page; moderators triage these via `/admin/`.
 
 **Payments:** `pagos.TransbankService` is a full skeleton, not wired to any real Transbank API call — blocked on merchant credentials.
 
 ### Key Data Models (`codigo/backend/django/KeyServApp/models.py`)
 
-See `docs/DATABASE_DOCUMENTATION.md` for the complete table/relationship reference. Notable Fase 3 additions: `Contratacion` (didn't exist), `Usuario.es_proveedor`/`Usuario.verificado_biometricamente`, `Publicaciones.estado_moderacion`.
+See `docs/DATABASE_DOCUMENTATION.md` for the complete table/relationship reference (predates Fase 5 additions below — treat it as a base, not exhaustive). Notable additions: `Contratacion`, `Usuario.es_proveedor`/`Usuario.verificado_biometricamente`, `Publicaciones.estado_moderacion` (Fase 3); `HistorialEstadoContratacion`, `Publicaciones.aprobado_por`/`fecha_moderacion`, `Conversacion` now FK'd to `Contratacion` instead of a user pair, `Conversacion.exportado_en` (Fase 5).
 
 ### Frontend ↔ Backend Integration
 
-The `assets/mockups/pag_html/` HTML files are **not served by Django** — they are a superseded static prototype. All 18 templates under `codigo/backend/django/KeyServApp/templates/KeyServApp/` now have a real URL (Fase 3 completed `urls.py`), use `{% static %}` for CSS/images (moved to `KeyServApp/static/KeyServApp/`), and use `{% url %}` for internal navigation instead of hardcoded `.html` filenames.
+The `assets/mockups/pag_html/` HTML files are **not served by Django** — they are a superseded static prototype. All templates under `codigo/backend/django/KeyServApp/templates/KeyServApp/` have a real URL, use `{% static %}` for CSS/images, and use `{% url %}` for internal navigation instead of hardcoded `.html` filenames. As of Fase 5 every page template extends `base.html`/`base.css` (a unified navy/teal/coral design system built for the new logo) instead of each page hand-rolling its own header/nav/CSS — that duplication used to produce inconsistent bugs (e.g. the login-field-name bug above) page by page.
 
 ## Known Issues
 
@@ -150,4 +164,7 @@ The `assets/mockups/pag_html/` HTML files are **not served by Django** — they 
 - `codigo/biometria/reconocimiento_facial/probando_face_recognition.py` was rewritten from the byte-dump it used to be, but is unverified against a real webcam (none available in this dev environment). There's also no field yet to persist a user's reference face encoding, so there's nothing real to compare against even once wired up.
 - Fingerprint verification (`verificacion_huella_view`) doesn't compare against a stored reference hash — it just confirms the pipeline ran without error and marks the user verified.
 - Payments (`pagos.py`) are a full skeleton — blocked on Transbank merchant credentials.
+- `crear_perfil_view`/`editar_perfil_view` and the password-recovery flow (`/recuperar/`) are honestly labeled "under construction" in their templates — the forms render but don't process submitted data.
+- The catalog (`/servicios/`) has no real pagination — it's a fixed cap of 40 results.
+- No automated tests cover the bulk of Fase 5 (per-job chat redesign beyond the one updated test, admin group/permissions, moderation dashboard, status history, incidents) — the 21 existing tests still pass but don't exercise this surface.
 - `.vscode/launch.json` still points at a stale pre-reorg path — not fixed, low priority.
