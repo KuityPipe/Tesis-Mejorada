@@ -67,8 +67,9 @@
           <span class="ks-card-date"><i class="bi bi-clock"></i> {{ contratacion.fecha_creacion|timesince }} atrás</span>
 
           {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
-          <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" class="ks-reserva-actions">
+          <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" class="ks-reserva-actions" title="Monto acordado con el cliente (si charlaron y quedó otro precio, ajustalo acá)">
             {% csrf_token %}
+            <input type="number" name="monto" min="1" placeholder="Monto $" value="{{ contratacion.publicacion.precio|default:'' }}">
             {{ reautenticacion_form.password }}
             <button type="submit" class="ks-btn ks-btn-primary ks-btn-sm">Confirmar</button>
           </form>

@@ -67,6 +67,7 @@
       <div class="ks-card-body">
         <h3>{{ publicacion.titulo }}</h3>
         <p>{{ publicacion.sub_titulo }}</p>
+        {% if publicacion.precio %}<p class="mb-1" style="font-weight:800; color: var(--ks-navy-dark);">${{ publicacion.precio }}</p>{% endif %}
         <span class="ks-card-date"><i class="bi bi-clock"></i> Publicado {{ publicacion.fecha_publicacion|timesince }} atrás</span>
         <div class="ks-card-footer">
           <span class="ks-card-provider"><i class="bi bi-person-circle"></i> {{ publicacion.usuario_publicador.nombre_usuario }}</span>

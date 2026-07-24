@@ -371,6 +371,10 @@ class Publicaciones(models.Model):
     # este campo queda como texto plano para admitir ambos casos. El
     # moderador ve la categoría (incluida la escrita a mano) al aprobar.
     categoria = models.CharField(max_length=60, null=True, blank=True, db_column='CATEGORIA')
+    # NUEVO: precio del servicio en pesos chilenos (CLP, sin decimales — no
+    # existía ningún campo de precio en el esquema heredado de la tesis).
+    # Requerido para poder cobrar de verdad al contratar (ver pagos.py).
+    precio = models.PositiveIntegerField(null=True, blank=True, db_column='PRECIO')
     fecha_publicacion = models.DateTimeField(auto_now_add=True, db_column='FECHA_PUBLICACION')
     actualizado_en = models.DateTimeField(auto_now=True, db_column='ACTUALIZADO_EN')
     # Flujo de moderación descrito en el BPMN "Crear publicación" del PDF (PAGE 135-136):
@@ -458,6 +462,13 @@ class Contratacion(models.Model):
         (CANCELADA, 'Cancelada'),
     ]
     estado = models.CharField(max_length=12, choices=ESTADOS_CONTRATACION, default=SOLICITADA, db_column='ESTADO')
+    # NUEVO: el precio de la Publicacion es solo un punto de partida — cliente
+    # y proveedor pueden acordar un monto distinto charlando por el chat
+    # antes de que el proveedor confirme. Se fija recién al confirmar
+    # (contratacion_confirmar_view), y es lo que se cobra de verdad en
+    # pago_webpay_iniciar_view/pago_khipu_iniciar_view — nunca se vuelve a
+    # leer publicacion.precio después de este punto.
+    monto_acordado = models.PositiveIntegerField(null=True, blank=True, db_column='MONTO_ACORDADO')
     fecha_creacion = models.DateTimeField(auto_now_add=True, db_column='FECHA_CREACION')
     fecha_actualizacion = models.DateTimeField(auto_now=True, db_column='FECHA_ACTUALIZACION')
 
@@ -493,6 +504,56 @@ class HistorialEstadoContratacion(models.Model):
 
     def __str__(self):
         return f'Contratación #{self.contratacion_id}: {self.estado} ({self.fecha:%Y-%m-%d %H:%M})'
+
+
+class Pago(models.Model):
+    """
+    NUEVO: registro de un cobro real al cliente para pasar una Contratacion
+    de CONFIRMADA a EN_CURSO (RF012 del PDF, "Api de pago asociada" — antes
+    `pagos.py` era un esqueleto que solo tiraba NotImplementedError). Dos
+    medios de pago posibles, elegidos con el usuario: Webpay Plus
+    (tarjetas, vía transbank-sdk) y Khipu (transferencia bancaria directa,
+    vía su API REST) — ver KeyServApp/pagos.py.
+    """
+    id_pago = models.BigAutoField(primary_key=True, db_column='ID_PAGO')
+    contratacion = models.OneToOneField(
+        Contratacion, on_delete=models.CASCADE, related_name='pago', db_column='FK_CONTRATACION',
+    )
+    monto = models.PositiveIntegerField(db_column='MONTO')
+
+    WEBPAY, KHIPU = 'WEBPAY', 'KHIPU'
+    METODOS_PAGO = [(WEBPAY, 'Webpay Plus'), (KHIPU, 'Khipu')]
+    metodo = models.CharField(max_length=10, choices=METODOS_PAGO, db_column='METODO')
+
+    PENDIENTE, PAGADO, RECHAZADO, ANULADO = 'PENDIENTE', 'PAGADO', 'RECHAZADO', 'ANULADO'
+    ESTADOS_PAGO = [
+        (PENDIENTE, 'Pendiente'), (PAGADO, 'Pagado'),
+        (RECHAZADO, 'Rechazado'), (ANULADO, 'Anulado/cancelado'),
+    ]
+    estado = models.CharField(max_length=10, choices=ESTADOS_PAGO, default=PENDIENTE, db_column='ESTADO')
+
+    # Identificadores del medio externo — solo se completa el que aplica
+    # según `metodo`. `orden_compra` es el "buy_order" que exige Transbank
+    # (máx. 26 caracteres, ver views._generar_orden_compra).
+    orden_compra = models.CharField(max_length=26, null=True, blank=True, db_column='ORDEN_COMPRA')
+    token_webpay = models.CharField(max_length=64, null=True, blank=True, db_column='TOKEN_WEBPAY')
+    khipu_payment_id = models.CharField(max_length=64, null=True, blank=True, db_column='KHIPU_PAYMENT_ID')
+
+    # Respuesta cruda del medio de pago (commit de Webpay / consulta de
+    # Khipu) — solo para auditoría/soporte, nunca se lee para decidir nada
+    # en el código (esa decisión ya quedó tomada en `estado`).
+    respuesta_bruta = models.JSONField(null=True, blank=True, db_column='RESPUESTA_BRUTA')
+
+    fecha_creacion = models.DateTimeField(auto_now_add=True, db_column='FECHA_CREACION')
+    fecha_confirmacion = models.DateTimeField(null=True, blank=True, db_column='FECHA_CONFIRMACION')
+
+    class Meta:
+        db_table = 'PAGO'
+        verbose_name = 'Pago'
+        verbose_name_plural = 'Pagos'
+
+    def __str__(self):
+        return f'Pago #{self.id_pago} — {self.get_metodo_display()} ({self.get_estado_display()})'
 
 
 class Valoracion(models.Model):

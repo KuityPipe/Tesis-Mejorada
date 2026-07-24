@@ -756,6 +756,15 @@ a {
   font-size: .85rem;
 }
 
+.ks-reserva-actions input[type="number"] {
+  min-width: 0;
+  width: 100px;
+  padding: 6px 10px;
+  border-radius: var(--ks-radius-sm);
+  border: 1px solid var(--ks-border);
+  font-size: .85rem;
+}
+
 /* ---------- Footer ---------- */
 
 .ks-footer {
@@ -1114,6 +1123,118 @@ a {
 .ks-chat-list-item:hover {
   border-color: var(--ks-teal);
   background: var(--ks-teal-light);
+}
+
+.ks-avatar-md {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ks-gradient-brand);
+  color: #fff;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ks-inbox-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--ks-radius-md);
+  border: 1px solid var(--ks-border);
+  margin-bottom: 10px;
+  color: var(--ks-ink);
+  position: relative;
+  transition: border-color .12s ease, background .12s ease;
+}
+
+.ks-inbox-item:hover {
+  border-color: var(--ks-teal);
+  background: var(--ks-teal-light);
+}
+
+.ks-inbox-item.no-leido {
+  border-color: var(--ks-teal);
+  background: var(--ks-teal-light);
+}
+
+.ks-inbox-item.no-leido::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 999px;
+  background: var(--ks-coral);
+}
+
+.ks-inbox-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ks-inbox-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ks-inbox-nombre {
+  font-weight: 800;
+  font-family: 'Quicksand', sans-serif;
+  color: var(--ks-navy-dark);
+}
+
+.ks-inbox-fecha {
+  font-size: .76rem;
+  color: var(--ks-ink-soft);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ks-inbox-job {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .82rem;
+  color: var(--ks-ink-soft);
+  margin-top: 1px;
+}
+
+.ks-inbox-preview {
+  font-size: .9rem;
+  color: var(--ks-ink-soft);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ks-inbox-item.no-leido .ks-inbox-preview {
+  color: var(--ks-ink);
+  font-weight: 700;
+}
+
+.ks-inbox-unread {
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--ks-coral);
+  color: #fff;
+  font-size: .76rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ks-chat-window {
@@ -1780,6 +1901,19 @@ a {
   height: 140px;
   border-radius: 50%;
   background: var(--ks-gradient-brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  margin: 0 auto 24px;
+}
+
+.ks-error-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--ks-coral);
   color: #fff;
   display: flex;
   align-items: center;

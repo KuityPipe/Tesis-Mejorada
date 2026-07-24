@@ -61,7 +61,10 @@ urlpatterns = [
     path('chat/<int:conversacion_id>/', views.conversacion_detalle_view, name='conversacion_detalle'),
     path('chat/<int:conversacion_id>/exportar/', views.conversacion_exportar_view, name='conversacion_exportar'),
 
-    # Pagos
-    path('pago/', views.pago_view, name='pago'),
-    path('pago/exitoso/', views.pago_exitoso_view, name='pago_exitoso'),
+    # Pagos (RF012 — Webpay Plus + Khipu, ver pagos.py)
+    path('contrataciones/<int:contratacion_id>/pagar/webpay/', views.pago_webpay_iniciar_view, name='pago_webpay_iniciar'),
+    path('pagos/webpay/retorno/', views.pago_webpay_retorno_view, name='pago_webpay_retorno'),
+    path('contrataciones/<int:contratacion_id>/pagar/khipu/', views.pago_khipu_iniciar_view, name='pago_khipu_iniciar'),
+    path('pagos/khipu/notificacion/', views.pago_khipu_notificacion_view, name='pago_khipu_notificacion'),
+    path('contrataciones/<int:contratacion_id>/pagar/khipu/retorno/', views.pago_khipu_retorno_view, name='pago_khipu_retorno'),
 ]

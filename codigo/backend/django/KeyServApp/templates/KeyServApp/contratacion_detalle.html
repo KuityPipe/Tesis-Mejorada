@@ -31,7 +31,11 @@
             <div class="dot"></div>Confirmada
             {% if fechas_por_estado.CONFIRMADA %}<span class="ks-progress-fecha">{{ fechas_por_estado.CONFIRMADA|date:"d/m/Y H:i" }}</span>{% endif %}
           </div>
-          <div class="ks-progress-step {% if contratacion.estado == 'COMPLETADA' %}done{% elif contratacion.estado == 'CONFIRMADA' or contratacion.estado == 'EN_CURSO' %}current{% endif %}">
+          <div class="ks-progress-step {% if contratacion.estado == 'EN_CURSO' or contratacion.estado == 'COMPLETADA' %}done{% elif contratacion.estado == 'CONFIRMADA' %}current{% endif %}">
+            <div class="dot"></div>Pagada / en curso
+            {% if fechas_por_estado.EN_CURSO %}<span class="ks-progress-fecha">{{ fechas_por_estado.EN_CURSO|date:"d/m/Y H:i" }}</span>{% endif %}
+          </div>
+          <div class="ks-progress-step {% if contratacion.estado == 'COMPLETADA' %}done{% elif contratacion.estado == 'EN_CURSO' %}current{% endif %}">
             <div class="dot"></div>Completada
             {% if fechas_por_estado.COMPLETADA %}<span class="ks-progress-fecha">{{ fechas_por_estado.COMPLETADA|date:"d/m/Y H:i" }}</span>{% endif %}
           </div>
@@ -51,19 +55,46 @@
         {% endif %}
 
         {% if contratacion.estado == 'SOLICITADA' and usuario == contratacion.proveedor %}
-        <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" class="d-flex gap-2 flex-wrap align-items-center">
+        <form method="post" action="{% url 'KeyServApp:contratacion_confirmar' contratacion.id_contratacion %}" class="d-flex gap-2 flex-wrap align-items-end">
           {% csrf_token %}
+          <div class="ks-field mb-0">
+            <label for="id_monto_confirmar" class="ks-help" style="font-weight:700;">Monto acordado con el cliente (CLP)</label>
+            <input type="number" name="monto" id="id_monto_confirmar" min="1" value="{{ contratacion.publicacion.precio|default:'' }}" placeholder="Precio de la publicación: ${{ contratacion.publicacion.precio|default:'0' }}">
+          </div>
           {{ reautenticacion_form.password }}
           <button type="submit" class="ks-btn ks-btn-primary">Confirmar solicitud</button>
         </form>
+        <p class="ks-help mb-0" style="font-size:.82rem;">Si ya hablaron por el chat y quedaron en otro monto, ajustalo acá — si lo dejás como está, se cobra el precio de la publicación.</p>
         {% endif %}
 
         {% if contratacion.estado == 'CONFIRMADA' and usuario == contratacion.cliente %}
+          {% if contratacion.monto_acordado %}
+          <div class="ks-info-note mb-2"><i class="bi bi-credit-card"></i> Falta pagar <strong>${{ contratacion.monto_acordado }} CLP</strong> para que el proveedor pueda empezar.</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <form method="post" action="{% url 'KeyServApp:pago_webpay_iniciar' contratacion.id_contratacion %}">
+              {% csrf_token %}
+              <button type="submit" class="ks-btn ks-btn-primary"><i class="bi bi-credit-card"></i> Pagar con Webpay</button>
+            </form>
+            <form method="post" action="{% url 'KeyServApp:pago_khipu_iniciar' contratacion.id_contratacion %}">
+              {% csrf_token %}
+              <button type="submit" class="ks-btn ks-btn-outline"><i class="bi bi-bank"></i> Pagar con Khipu (transferencia)</button>
+            </form>
+          </div>
+          {% else %}
+          <div class="ks-info-note mb-0"><i class="bi bi-exclamation-triangle"></i> Esta contratación no tiene un monto acordado — no se puede cobrar todavía.</div>
+          {% endif %}
+        {% endif %}
+
+        {% if contratacion.estado == 'EN_CURSO' and usuario == contratacion.cliente %}
         <form method="post" action="{% url 'KeyServApp:contratacion_completar' contratacion.id_contratacion %}" class="d-flex gap-2 flex-wrap align-items-center">
           {% csrf_token %}
           {{ reautenticacion_form.password }}
           <button type="submit" class="ks-btn ks-btn-primary">Marcar como completada</button>
         </form>
+        {% endif %}
+
+        {% if contratacion.pago and contratacion.pago.estado == 'PAGADO' %}
+        <p class="ks-help mt-2 mb-0"><i class="bi bi-check-circle" style="color: var(--ks-teal-dark);"></i> Pagado con {{ contratacion.pago.get_metodo_display }} el {{ contratacion.pago.fecha_confirmacion|date:"d/m/Y H:i" }} — ${{ contratacion.pago.monto }} CLP.</p>
         {% endif %}
 
       </div>

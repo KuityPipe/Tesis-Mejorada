@@ -15,6 +15,7 @@ más adelante sin tener que releer todo).
 import hashlib
 import logging
 import os
+import secrets
 import tempfile
 
 from django.conf import settings
@@ -29,18 +30,19 @@ from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .decorators import login_requerido, obtener_usuario_actual
 from .forms import (
     RegistroForm, LoginForm, PublicacionForm, ValoracionForm, MensajeForm,
     ReautenticacionForm, ContactoForm, EditarPerfilForm, RecuperarForm,
-    NuevaPasswordForm,
+    NuevaPasswordForm, MontoAcordadoForm,
 )
 from .models import (
     Comuna, Contratacion, Conversacion, Documento, EstadoConsulta,
     HistorialEstadoContratacion, Imagenes, IntentoAccesoSospechoso, Mensaje,
-    Publicaciones, Ranking, Region, TipoCuenta, Transaccion, Usuario,
+    Pago, Publicaciones, Ranking, Region, TipoCuenta, Transaccion, Usuario,
     UsuarioConversacion, Valoracion, ValoracionImagen,
 )
 from . import biometria, geolocalizacion, pagos
@@ -859,11 +861,21 @@ def contratacion_confirmar_view(request, contratacion_id):
     Exige re-autenticación (re-ingresar la contraseña) — lo pide el BPMN del
     PDF explícitamente para ambas partes del proceso de contratación.
 
+    También es el momento donde se fija `monto_acordado`: el precio de la
+    publicación es solo un punto de partida, cliente y proveedor pueden
+    haber acordado otro por chat antes de esto — si el proveedor manda un
+    monto válido en el form, se usa ese; si no, se usa el precio de la
+    publicación tal cual. Ese es el monto que se cobra después (ver
+    pago_webpay_iniciar_view/pago_khipu_iniciar_view), nunca se vuelve a
+    leer el precio de la publicación pasado este punto.
+
     Límite de intentos por (usuario, contratación) — mismo criterio que el
     login: sin esto, alguien con una sesión ya abierta (ej. una computadora
     compartida) podía intentar adivinar la contraseña sin ningún freno.
     """
-    contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.SOLICITADA)
+    contratacion = get_object_or_404(
+        Contratacion.objects.select_related('publicacion'), pk=contratacion_id, estado=Contratacion.SOLICITADA,
+    )
     usuario = obtener_usuario_actual(request)
     if usuario != contratacion.proveedor:
         _registrar_intento_sospechoso(request, usuario, 'contratacion_confirmar', contratacion_id, 'no es el proveedor')
@@ -878,11 +890,16 @@ def contratacion_confirmar_view(request, contratacion_id):
     form = ReautenticacionForm(request.POST)
     if form.is_valid() and usuario.check_password(form.cleaned_data['password']):
         _registrar_intento_reautenticacion(usuario, contratacion_id, exito=True)
+        monto_form = MontoAcordadoForm(request.POST)
+        monto_acordado = contratacion.publicacion.precio
+        if monto_form.is_valid() and monto_form.cleaned_data.get('monto'):
+            monto_acordado = monto_form.cleaned_data['monto']
+        contratacion.monto_acordado = monto_acordado
         contratacion.estado = Contratacion.CONFIRMADA
         contratacion.save()
         HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.CONFIRMADA)
-        logger.info('Contratación confirmada por el proveedor: id=%s', contratacion.id_contratacion)
-        messages.success(request, 'Contratación confirmada.')
+        logger.info('Contratación confirmada por el proveedor: id=%s monto_acordado=%s', contratacion.id_contratacion, monto_acordado)
+        messages.success(request, f'Contratación confirmada — monto acordado: ${monto_acordado} CLP.' if monto_acordado else 'Contratación confirmada.')
     else:
         _registrar_intento_reautenticacion(usuario, contratacion_id, exito=False)
         messages.error(request, 'Contraseña incorrecta — no se pudo confirmar.')
@@ -893,11 +910,16 @@ def contratacion_confirmar_view(request, contratacion_id):
 @require_POST
 def contratacion_completar_view(request, contratacion_id):
     """
-    El CLIENTE confirma que el servicio se completó (CONFIRMADA -> COMPLETADA).
+    El CLIENTE confirma que el servicio se completó (EN_CURSO -> COMPLETADA).
     También exige re-autenticación, mismo motivo que arriba. Una vez
     completada, el cliente puede dejar una Valoracion (ver valoracion_crear_view).
+
+    Antes esto se hacía directo desde CONFIRMADA — ahora en el medio hace
+    falta pagar (CONFIRMADA -> EN_CURSO vía pago_webpay_retorno_view /
+    pago_khipu_notificacion_view más abajo), así que esta vista exige
+    EN_CURSO en vez de CONFIRMADA.
     """
-    contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.CONFIRMADA)
+    contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.EN_CURSO)
     usuario = obtener_usuario_actual(request)
     if usuario != contratacion.cliente:
         _registrar_intento_sospechoso(request, usuario, 'contratacion_completar', contratacion_id, 'no es el cliente')
@@ -921,6 +943,262 @@ def contratacion_completar_view(request, contratacion_id):
         _registrar_intento_reautenticacion(usuario, contratacion_id, exito=False)
         messages.error(request, 'Contraseña incorrecta — no se pudo completar.')
     return redirect('KeyServApp:reservas')
+
+
+# ---------------------------------------------------------------------------
+# Pagos (RF012 — Webpay Plus + Khipu, ver pagos.py). El cliente paga entre
+# CONFIRMADA y EN_CURSO: el proveedor ya aceptó el trabajo, pero todavía no
+# arranca hasta que el pago quede aprobado.
+# ---------------------------------------------------------------------------
+
+def _generar_orden_compra(contratacion):
+    """Buy order único para Transbank (máx. 26 caracteres exigidos por Webpay Plus)."""
+    return f'KS{contratacion.id_contratacion}{secrets.token_hex(4)}'
+
+
+def _procesar_pago_aprobado(pago, respuesta_bruta):
+    """
+    Marca un Pago como pagado y hace avanzar la Contratacion de CONFIRMADA
+    a EN_CURSO. Idempotente a propósito: tanto el retorno del navegador
+    (Webpay) como el webhook async (Khipu) pueden llegar a confirmar el
+    mismo pago, y no debe duplicarse el paso de estado ni el historial.
+    """
+    if pago.estado == Pago.PAGADO:
+        return
+    pago.estado = Pago.PAGADO
+    pago.fecha_confirmacion = timezone.now()
+    pago.respuesta_bruta = respuesta_bruta
+    pago.save()
+    contratacion = pago.contratacion
+    if contratacion.estado == Contratacion.CONFIRMADA:
+        contratacion.estado = Contratacion.EN_CURSO
+        contratacion.save()
+        HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.EN_CURSO)
+    logger.info(
+        'Pago aprobado: id=%s metodo=%s contratacion=%s monto=%s',
+        pago.id_pago, pago.metodo, contratacion.id_contratacion, pago.monto,
+    )
+
+
+def _validar_pago_posible(request, contratacion_id):
+    """Chequeos comunes a iniciar un pago por cualquier medio: dueño correcto, estado correcto, precio real."""
+    contratacion = get_object_or_404(
+        Contratacion.objects.select_related('publicacion'), pk=contratacion_id, estado=Contratacion.CONFIRMADA,
+    )
+    usuario = obtener_usuario_actual(request)
+    if usuario != contratacion.cliente:
+        _registrar_intento_sospechoso(request, usuario, 'pago_iniciar', contratacion_id, 'no es el cliente')
+        messages.error(request, 'Solo el cliente puede pagar esta contratación.')
+        return None, redirect('KeyServApp:reservas')
+    if not contratacion.monto_acordado:
+        messages.error(request, 'Esta contratación no tiene un monto acordado — no se puede cobrar.')
+        return None, redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
+    return contratacion, None
+
+
+@login_requerido
+@require_POST
+def pago_webpay_iniciar_view(request, contratacion_id):
+    """
+    Crea la transacción en Transbank y muestra la página que redirige
+    (vía un formulario que hace POST automático) al Webpay real.
+    """
+    contratacion, redireccion_error = _validar_pago_posible(request, contratacion_id)
+    if redireccion_error:
+        return redireccion_error
+
+    pago, _creado = Pago.objects.get_or_create(
+        contratacion=contratacion,
+        defaults={'monto': contratacion.monto_acordado, 'metodo': Pago.WEBPAY},
+    )
+    if pago.estado == Pago.PAGADO:
+        messages.info(request, 'Esta contratación ya está pagada.')
+        return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
+    pago.metodo = Pago.WEBPAY
+    pago.monto = contratacion.monto_acordado
+    pago.estado = Pago.PENDIENTE
+
+    orden_compra = _generar_orden_compra(contratacion)
+    url_retorno = request.build_absolute_uri(reverse('KeyServApp:pago_webpay_retorno'))
+    try:
+        token, url_pago = pagos.TransbankService().iniciar_transaccion(
+            monto=pago.monto, orden_compra=orden_compra,
+            session_id=f'usuario-{contratacion.cliente_id}', url_retorno=url_retorno,
+        )
+    except Exception:
+        logger.exception('Error iniciando transacción Webpay: contratacion=%s', contratacion_id)
+        messages.error(request, 'No pudimos conectar con Webpay en este momento. Probá de nuevo en unos minutos.')
+        return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
+
+    pago.orden_compra = orden_compra
+    pago.token_webpay = token
+    pago.save()
+    return render(request, 'KeyServApp/pago_webpay_redirigir.html', {'url_pago': url_pago, 'token': token})
+
+
+@csrf_exempt
+def pago_webpay_retorno_view(request):
+    """
+    Webpay vuelve acá con el navegador del propio usuario (no es un
+    webhook servidor-a-servidor) — por eso `csrf_exempt`: quien arma esa
+    request es Transbank, no lleva el token CSRF de este sitio. En la
+    práctica se observó que el token vuelve como parámetro de query en un
+    GET (probado en vivo contra el sandbox de integración), aunque la
+    documentación de Transbank describe un POST — por las dudas se
+    aceptan los dos. Tres casos posibles, según qué campos manda Transbank:
+      - `token_ws`: flujo normal, hay que confirmar (commit) la transacción.
+      - `TBK_TOKEN` (sin `token_ws`): el usuario canceló el pago en Webpay.
+      - ninguno de los dos: se cayó por timeout antes de completar el pago.
+    """
+    datos = request.POST or request.GET
+    token_ws = datos.get('token_ws')
+    tbk_token = datos.get('TBK_TOKEN')
+
+    if not token_ws:
+        # Cancelado o timeout — buscamos el Pago por el token que sea que tengamos, si hay alguno.
+        pago = Pago.objects.filter(token_webpay=tbk_token).first() if tbk_token else None
+        if pago and pago.estado == Pago.PENDIENTE:
+            pago.estado = Pago.ANULADO
+            pago.save()
+        return render(request, 'KeyServApp/pago_resultado.html', {
+            'aprobado': False,
+            'mensaje': 'Cancelaste el pago en Webpay.' if tbk_token else 'El pago no se completó a tiempo.',
+            'contratacion': pago.contratacion if pago else None,
+        })
+
+    pago = get_object_or_404(Pago, token_webpay=token_ws)
+    try:
+        respuesta = pagos.TransbankService().confirmar_transaccion(token_ws)
+    except Exception:
+        logger.exception('Error confirmando transacción Webpay: pago=%s', pago.id_pago)
+        pago.estado = Pago.RECHAZADO
+        pago.save()
+        return render(request, 'KeyServApp/pago_resultado.html', {
+            'aprobado': False, 'mensaje': 'No pudimos confirmar el pago con Webpay.', 'contratacion': pago.contratacion,
+        })
+
+    aprobado = respuesta.get('response_code') == 0 and respuesta.get('status') == 'AUTHORIZED'
+    if aprobado:
+        _procesar_pago_aprobado(pago, respuesta)
+        mensaje = f'Pago aprobado — código de autorización {respuesta.get("authorization_code")}.'
+    else:
+        pago.estado = Pago.RECHAZADO
+        pago.respuesta_bruta = respuesta
+        pago.save()
+        logger.warning('Pago Webpay rechazado: pago=%s respuesta=%s', pago.id_pago, respuesta)
+        mensaje = 'El pago fue rechazado por el banco emisor de la tarjeta.'
+
+    return render(request, 'KeyServApp/pago_resultado.html', {
+        'aprobado': aprobado, 'mensaje': mensaje, 'contratacion': pago.contratacion,
+    })
+
+
+@login_requerido
+@require_POST
+def pago_khipu_iniciar_view(request, contratacion_id):
+    """Crea el cobro en Khipu y redirige al usuario a pagar por transferencia bancaria."""
+    contratacion, redireccion_error = _validar_pago_posible(request, contratacion_id)
+    if redireccion_error:
+        return redireccion_error
+
+    pago, _creado = Pago.objects.get_or_create(
+        contratacion=contratacion,
+        defaults={'monto': contratacion.monto_acordado, 'metodo': Pago.KHIPU},
+    )
+    if pago.estado == Pago.PAGADO:
+        messages.info(request, 'Esta contratación ya está pagada.')
+        return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
+    pago.metodo = Pago.KHIPU
+    pago.monto = contratacion.monto_acordado
+    pago.estado = Pago.PENDIENTE
+    pago.save()
+
+    url_retorno = request.build_absolute_uri(
+        reverse('KeyServApp:pago_khipu_retorno', args=[contratacion_id]),
+    )
+    url_notificacion = request.build_absolute_uri(reverse('KeyServApp:pago_khipu_notificacion'))
+    try:
+        respuesta = pagos.KhipuService().crear_pago(
+            monto=pago.monto,
+            asunto=f'KeyServ — {contratacion.publicacion.titulo}'[:250],
+            transaction_id=str(pago.id_pago),
+            url_retorno=url_retorno, url_cancelacion=url_retorno, url_notificacion=url_notificacion,
+        )
+    except RuntimeError as error:
+        # KHIPU_API_KEY no configurado — mensaje claro en vez de un 500 críptico.
+        messages.error(request, str(error))
+        return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
+    except Exception:
+        logger.exception('Error iniciando pago Khipu: contratacion=%s', contratacion_id)
+        messages.error(request, 'No pudimos conectar con Khipu en este momento. Probá de nuevo en unos minutos.')
+        return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
+
+    pago.khipu_payment_id = respuesta.get('payment_id')
+    pago.save()
+    return redirect(respuesta.get('payment_url') or respuesta.get('simplified_transfer_url'))
+
+
+@csrf_exempt
+@require_POST
+def pago_khipu_notificacion_view(request):
+    """
+    Webhook servidor-a-servidor de Khipu — nunca se confía en el cuerpo de
+    este POST para decidir que algo está pagado (recomendación explícita
+    de Khipu): siempre se reconsulta el estado real contra su API antes de
+    marcar nada como aprobado.
+    """
+    payment_id = request.POST.get('payment_id')
+    if not payment_id:
+        logger.warning('Webhook de Khipu sin payment_id: %s', dict(request.POST))
+        return JsonResponse({'ok': False}, status=400)
+
+    pago = Pago.objects.filter(khipu_payment_id=payment_id).first()
+    if not pago:
+        logger.warning('Webhook de Khipu para un payment_id desconocido: %s', payment_id)
+        return JsonResponse({'ok': False}, status=404)
+
+    try:
+        respuesta = pagos.KhipuService().consultar_pago(payment_id)
+    except Exception:
+        logger.exception('Error reconsultando pago Khipu: pago=%s payment_id=%s', pago.id_pago, payment_id)
+        return JsonResponse({'ok': False}, status=502)
+
+    if respuesta.get('status') == 'done':
+        _procesar_pago_aprobado(pago, respuesta)
+    else:
+        logger.info('Webhook de Khipu recibido, estado todavía no "done": pago=%s status=%s', pago.id_pago, respuesta.get('status'))
+    return JsonResponse({'ok': True})
+
+
+@login_requerido
+def pago_khipu_retorno_view(request, contratacion_id):
+    """
+    Página a la que Khipu redirige al usuario (aprobado o cancelado) —
+    la verdad sobre si se pagó la trae el webhook, pero acá se reconsulta
+    igual por las dudas (mejor UX: evita que alguien vea "pendiente" un
+    rato si el webhook todavía no llegó pero el pago ya está aprobado).
+    """
+    contratacion = get_object_or_404(Contratacion, pk=contratacion_id)
+    pago = getattr(contratacion, 'pago', None)
+    if pago and pago.estado == Pago.PENDIENTE and pago.khipu_payment_id:
+        try:
+            respuesta = pagos.KhipuService().consultar_pago(pago.khipu_payment_id)
+            if respuesta.get('status') == 'done':
+                _procesar_pago_aprobado(pago, respuesta)
+        except Exception:
+            logger.exception('Error reconsultando pago Khipu al volver: pago=%s', pago.id_pago)
+
+    pago.refresh_from_db() if pago else None
+    aprobado = bool(pago and pago.estado == Pago.PAGADO)
+    if aprobado:
+        mensaje = 'Pago confirmado por transferencia bancaria.'
+    elif pago and pago.estado == Pago.PENDIENTE:
+        mensaje = 'Todavía estamos esperando la confirmación de tu banco — puede tardar unos minutos.'
+    else:
+        mensaje = 'El pago no se completó.'
+    return render(request, 'KeyServApp/pago_resultado.html', {
+        'aprobado': aprobado, 'mensaje': mensaje, 'contratacion': contratacion,
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -1132,7 +1410,13 @@ def contar_mensajes_no_leidos(usuario):
 
 @login_requerido
 def chat_view(request):
-    """Lista los chats de trabajo del usuario logueado (una Conversacion por Contratacion), con badge de no leídos y fecha del último mensaje."""
+    """
+    Lista los chats de trabajo del usuario logueado (una Conversacion por
+    Contratacion), con badge de no leídos, avatar/nombre de la contraparte y
+    una vista previa del último mensaje — antes la fila solo mostraba el
+    título del trabajo con un icono genérico igual para todas, sin decir ni
+    quién escribió ni qué decía el último mensaje.
+    """
     usuario = obtener_usuario_actual(request)
     conversacion_ids = UsuarioConversacion.objects.filter(usuario=usuario).values_list('conversacion_id', flat=True)
     conversaciones = Conversacion.objects.filter(id_conversacion__in=conversacion_ids).select_related(
@@ -1141,7 +1425,10 @@ def chat_view(request):
     no_leidos = _mensajes_no_leidos_por_conversacion(usuario)
     for conv in conversaciones:
         conv.no_leidos = no_leidos.get(conv.id_conversacion, 0)
-        conv.ultimo_mensaje = Mensaje.objects.filter(conversacion=conv).order_by('-fecha_envio').first()
+        conv.ultimo_mensaje = Mensaje.objects.filter(conversacion=conv).select_related('usuario').order_by('-fecha_envio').first()
+        conv.contraparte = None
+        if conv.contratacion:
+            conv.contraparte = conv.contratacion.proveedor if usuario == conv.contratacion.cliente else conv.contratacion.cliente
     return render(request, 'KeyServApp/chat.html', {'conversaciones': conversaciones})
 
 
@@ -1216,23 +1503,3 @@ def conversacion_exportar_view(request, conversacion_id):
     respuesta['Content-Disposition'] = f'attachment; filename="chat_{conversacion.id_conversacion}.txt"'
     return respuesta
 
-
-# ---------------------------------------------------------------------------
-# Pagos (RF012) — ESQUELETO, ver pagos.py
-# ---------------------------------------------------------------------------
-
-@login_requerido
-def pago_view(request):
-    """
-    Pantalla de pago. TODO: al confirmar, debería llamar a
-    `pagos.TransbankService.iniciar_transaccion()` y redirigir a la URL de
-    pago que devuelva Transbank — hoy eso lanza NotImplementedError porque
-    no hay credenciales de comercio configuradas (ver .env.example).
-    """
-    return render(request, 'KeyServApp/pago.html')
-
-
-@login_requerido
-def pago_exitoso_view(request):
-    """Pantalla de confirmación tras un pago exitoso (redirección de retorno de Transbank, TODO)."""
-    return render(request, 'KeyServApp/pagoexitoso.html')

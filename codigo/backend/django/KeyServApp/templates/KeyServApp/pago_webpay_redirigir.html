@@ -1,0 +1,26 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}Redirigiendo a Webpay — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-section container" style="max-width: 480px; text-align: center;">
+  <div class="ks-panel">
+    <div class="ks-success-circle"><i class="bi bi-credit-card"></i></div>
+    <h1>Te estamos llevando a Webpay</h1>
+    <p class="ks-help">No cierres esta ventana — vas a volver acá apenas termines de pagar.</p>
+
+    <form method="post" action="{{ url_pago }}" id="formWebpay">
+      <input type="hidden" name="token_ws" value="{{ token }}">
+      <noscript>
+        <button type="submit" class="ks-btn ks-btn-primary mt-3">Continuar a Webpay</button>
+      </noscript>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('formWebpay').submit();
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}{% if aprobado %}Pago aprobado{% else %}Pago no completado{% endif %} — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-section container" style="max-width: 480px; text-align: center;">
+  <div class="ks-panel">
+    {% if aprobado %}
+      <div class="ks-success-circle"><i class="bi bi-check-lg"></i></div>
+      <h1>¡Pago aprobado!</h1>
+    {% else %}
+      <div class="ks-error-circle"><i class="bi bi-x-lg"></i></div>
+      <h1>Pago no completado</h1>
+    {% endif %}
+    <p class="ks-help">{{ mensaje }}</p>
+    {% if contratacion %}
+      <a href="{% url 'KeyServApp:contratacion_detalle' contratacion.id_contratacion %}" class="ks-btn ks-btn-primary mt-3">Ver el trabajo</a>
+    {% else %}
+      <a href="{% url 'KeyServApp:reservas' %}" class="ks-btn ks-btn-primary mt-3">Ver mis contrataciones</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

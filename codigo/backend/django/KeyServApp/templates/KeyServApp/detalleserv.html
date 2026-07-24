@@ -9,6 +9,7 @@
       {% if publicacion.categoria %}<span class="ks-badge ks-badge-confirmada" style="text-transform:none;">{{ publicacion.categoria }}</span>{% endif %}
     </h1>
     <p>{{ publicacion.sub_titulo }}</p>
+    {% if publicacion.precio %}<p style="font-weight:800; font-size:1.3rem; margin:6px 0 0;">${{ publicacion.precio }} CLP</p>{% endif %}
     <p class="ks-help mb-0"><i class="bi bi-clock"></i> Publicado el {{ publicacion.fecha_publicacion|date:"d/m/Y" }} ({{ publicacion.fecha_publicacion|timesince }} atrás)</p>
   </div>
 </section>
@@ -113,6 +114,7 @@
         {% csrf_token %}
         <button type="submit" class="ks-btn ks-btn-primary" style="width:100%; justify-content:center;"><i class="bi bi-calendar-check"></i> Contratar este servicio</button>
       </form>
+      {% if publicacion.precio %}<p class="ks-help mt-2 mb-0">Precio de referencia: ${{ publicacion.precio }} CLP. El monto final lo confirma el proveedor al aceptar tu solicitud (puede ajustarlo si charlaron algo distinto), y ahí se pide el pago.</p>{% endif %}
       {% elif contratacion_activa %}
       <div class="ks-info-note mb-2"><i class="bi bi-hourglass-split"></i> Ya tenés una solicitud <strong>{{ contratacion_activa.get_estado_display|lower }}</strong> para este servicio.</div>
       <a href="{% url 'KeyServApp:contratacion_detalle' contratacion_activa.id_contratacion %}" class="ks-btn ks-btn-outline" style="width:100%; justify-content:center;"><i class="bi bi-arrow-right-circle"></i> Ver mi solicitud</a>

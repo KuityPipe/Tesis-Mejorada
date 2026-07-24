@@ -13,6 +13,8 @@ sola en Postgres) — no son mocks, así que si algo similar al bug de
 Fase 3 (nombres de campo desalineados) vuelve a aparecer, estos tests lo
 detectan igual que detectaron los bugs originales cuando se armó Fase 3.
 """
+from unittest import mock
+
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -20,8 +22,9 @@ from django.test import TestCase, Client
 from django.urls import reverse
 
 from .models import (
-    Comuna, Contratacion, Documento, IntentoAccesoSospechoso, Publicaciones,
-    Ranking, Region, TipoCuenta, Usuario, Valoracion, ValoracionImagen,
+    Comuna, Contratacion, Documento, HistorialEstadoContratacion,
+    IntentoAccesoSospechoso, Pago, Publicaciones, Ranking, Region,
+    TipoCuenta, Usuario, Valoracion, ValoracionImagen,
 )
 from . import biometria, geolocalizacion, validators
 
@@ -46,6 +49,18 @@ def _crear_region_comuna_tipo():
     comuna = Comuna.objects.create(id_comuna=1, nombre_comuna='Santiago', region=region)
     tipo_cuenta = TipoCuenta.objects.create(id_tipo_cuenta=1, nombre_tipo_cuenta='CLIENTE', valor_cuenta=0)
     return region, comuna, tipo_cuenta
+
+
+def _marcar_en_curso(contratacion):
+    """
+    Simula el efecto de un pago aprobado (CONFIRMADA -> EN_CURSO) sin pasar
+    por Webpay/Khipu de verdad — la mecánica de pago en sí (Pago, las
+    vistas de pago_webpay_*/pago_khipu_*) se prueba aparte en PagoTests.
+    Los tests de flujo de contratación solo necesitan que el estado avance.
+    """
+    contratacion.estado = Contratacion.EN_CURSO
+    contratacion.save()
+    HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.EN_CURSO)
 
 
 def _crear_usuario(email, password='clave123', es_proveedor=False, comuna=None, tipo_cuenta=None):
@@ -579,7 +594,8 @@ class ContratacionFlowTests(TestCase):
         contratacion.refresh_from_db()
         self.assertEqual(contratacion.estado, Contratacion.CONFIRMADA)
 
-        # 3. El cliente marca como completada con re-autenticación correcta.
+        # 3. El pago se aprueba (CONFIRMADA -> EN_CURSO) y el cliente marca como completada con re-autenticación correcta.
+        _marcar_en_curso(contratacion)
         self._login_como(client, self.cliente)
         client.post(reverse('KeyServApp:contratacion_completar', args=[contratacion.id_contratacion]), {'password': 'clave_cli'})
         contratacion.refresh_from_db()
@@ -619,6 +635,7 @@ class ContratacionFlowTests(TestCase):
 
         self._login_como(client, self.proveedor)
         client.post(reverse('KeyServApp:contratacion_confirmar', args=[primera.id_contratacion]), {'password': 'clave_prov'})
+        _marcar_en_curso(primera)
         self._login_como(client, self.cliente)
         client.post(reverse('KeyServApp:contratacion_completar', args=[primera.id_contratacion]), {'password': 'clave_cli'})
 
@@ -634,6 +651,7 @@ class ContratacionFlowTests(TestCase):
 
         self._login_como(client, self.proveedor)
         client.post(reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]), {'password': 'clave_prov'})
+        _marcar_en_curso(contratacion)
         self._login_como(client, self.cliente)
         client.post(reverse('KeyServApp:contratacion_completar', args=[contratacion.id_contratacion]), {'password': 'clave_cli'})
 
@@ -659,6 +677,7 @@ class ContratacionFlowTests(TestCase):
 
         self._login_como(client, self.proveedor)
         client.post(reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]), {'password': 'clave_prov'})
+        _marcar_en_curso(contratacion)
         self._login_como(client, self.cliente)
         client.post(reverse('KeyServApp:contratacion_completar', args=[contratacion.id_contratacion]), {'password': 'clave_cli'})
 
@@ -717,6 +736,146 @@ class ContratacionFlowTests(TestCase):
             usuario=self.proveedor, recurso='reauth_bloqueado_confirmar', recurso_id=str(contratacion.id_contratacion),
         ).exists())
         cache.clear()
+
+
+class MontoAcordadoConfirmarTests(TestCase):
+    """
+    El precio de la Publicacion es solo un punto de partida — el proveedor
+    puede ajustar el monto final acordado con el cliente (por chat) al
+    confirmar la solicitud. Ver contratacion_confirmar_view.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_monto@test.com', 'clave_prov', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_monto@test.com', 'clave_cli', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(
+            usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000,
+        )
+        self.contratacion = Contratacion.objects.create(
+            publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=Contratacion.SOLICITADA,
+        )
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.proveedor.id_usuario
+        session.save()
+
+    def test_confirmar_sin_monto_usa_el_precio_de_la_publicacion(self):
+        self.client.post(reverse('KeyServApp:contratacion_confirmar', args=[self.contratacion.id_contratacion]), {'password': 'clave_prov'})
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.CONFIRMADA)
+        self.assertEqual(self.contratacion.monto_acordado, 15000)
+
+    def test_confirmar_permite_ajustar_el_monto_acordado(self):
+        self.client.post(reverse('KeyServApp:contratacion_confirmar', args=[self.contratacion.id_contratacion]), {'password': 'clave_prov', 'monto': 20000})
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.monto_acordado, 20000)
+
+    def test_confirmar_con_monto_invalido_usa_el_precio_de_la_publicacion(self):
+        self.client.post(reverse('KeyServApp:contratacion_confirmar', args=[self.contratacion.id_contratacion]), {'password': 'clave_prov', 'monto': -5})
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.CONFIRMADA)
+        self.assertEqual(self.contratacion.monto_acordado, 15000)
+
+
+class PagoTests(TestCase):
+    """
+    Webpay Plus + Khipu (RF012) — antes `pagos.py` era un esqueleto que
+    tiraba NotImplementedError. Acá se prueban las vistas propias
+    (creación del Pago, avance CONFIRMADA -> EN_CURSO, control de acceso)
+    con `TransbankService`/`KhipuService` mockeados — el SDK real de
+    Transbank ya se probó a mano contra el sandbox de integración (no hace
+    falta pegarle a la red real en cada corrida de tests).
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_pago@test.com', 'clave_prov', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_pago@test.com', 'clave_cli', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(
+            usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000,
+        )
+        self.contratacion = Contratacion.objects.create(
+            publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor,
+            estado=Contratacion.CONFIRMADA, monto_acordado=15000,
+        )
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.cliente.id_usuario
+        session.save()
+
+    def test_webpay_iniciar_crea_pago_pendiente(self):
+        with mock.patch('KeyServApp.pagos.TransbankService.iniciar_transaccion', return_value=('tok123', 'https://webpay.test/init')):
+            resp = self.client.post(reverse('KeyServApp:pago_webpay_iniciar', args=[self.contratacion.id_contratacion]))
+        self.assertContains(resp, 'tok123')
+        pago = Pago.objects.get(contratacion=self.contratacion)
+        self.assertEqual(pago.metodo, Pago.WEBPAY)
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
+        self.assertEqual(pago.token_webpay, 'tok123')
+
+    def test_webpay_retorno_aprobado_pasa_contratacion_a_en_curso(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        respuesta_aprobada = {'response_code': 0, 'status': 'AUTHORIZED', 'authorization_code': 'AUTH1'}
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', return_value=respuesta_aprobada):
+            self.client.post(reverse('KeyServApp:pago_webpay_retorno'), {'token_ws': 'tok123'})
+        pago.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PAGADO)
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
+        self.assertTrue(HistorialEstadoContratacion.objects.filter(contratacion=self.contratacion, estado=Contratacion.EN_CURSO).exists())
+
+    def test_webpay_retorno_rechazado_no_avanza_la_contratacion(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        respuesta_rechazada = {'response_code': 1, 'status': 'FAILED'}
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', return_value=respuesta_rechazada):
+            self.client.post(reverse('KeyServApp:pago_webpay_retorno'), {'token_ws': 'tok123'})
+        pago.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.RECHAZADO)
+        self.assertEqual(self.contratacion.estado, Contratacion.CONFIRMADA)
+
+    def test_webpay_cancelado_por_el_usuario_queda_anulado(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        self.client.post(reverse('KeyServApp:pago_webpay_retorno'), {'TBK_TOKEN': 'tok123'})
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.ANULADO)
+
+    def test_solo_el_cliente_puede_iniciar_el_pago(self):
+        session = self.client.session
+        session['usuario_id'] = self.proveedor.id_usuario
+        session.save()
+        self.client.post(reverse('KeyServApp:pago_webpay_iniciar', args=[self.contratacion.id_contratacion]))
+        self.assertFalse(Pago.objects.filter(contratacion=self.contratacion).exists())
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(recurso='pago_iniciar').exists())
+
+    def test_no_se_puede_pagar_sin_monto_acordado(self):
+        self.contratacion.monto_acordado = None
+        self.contratacion.save(update_fields=['monto_acordado'])
+        self.client.post(reverse('KeyServApp:pago_webpay_iniciar', args=[self.contratacion.id_contratacion]))
+        self.assertFalse(Pago.objects.filter(contratacion=self.contratacion).exists())
+
+    def test_khipu_iniciar_sin_api_key_da_error_claro_no_500(self):
+        resp = self.client.post(reverse('KeyServApp:pago_khipu_iniciar', args=[self.contratacion.id_contratacion]), follow=True)
+        self.assertEqual(resp.status_code, 200)
+        mensajes = [str(m) for m in resp.context['messages']]
+        self.assertTrue(any('KHIPU_API_KEY' in m for m in mensajes))
+
+    def test_khipu_notificacion_marca_pagado_tras_reconsultar(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.KHIPU, khipu_payment_id='pay123')
+        with mock.patch('KeyServApp.pagos.KhipuService.consultar_pago', return_value={'status': 'done', 'payment_id': 'pay123'}):
+            resp = self.client.post(reverse('KeyServApp:pago_khipu_notificacion'), {'payment_id': 'pay123'})
+        self.assertEqual(resp.status_code, 200)
+        pago.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PAGADO)
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
+
+    def test_khipu_notificacion_no_marca_pagado_si_todavia_no_esta_done(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.KHIPU, khipu_payment_id='pay123')
+        with mock.patch('KeyServApp.pagos.KhipuService.consultar_pago', return_value={'status': 'pending', 'payment_id': 'pay123'}):
+            self.client.post(reverse('KeyServApp:pago_khipu_notificacion'), {'payment_id': 'pay123'})
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
 
 
 class MensajeriaTests(TestCase):
@@ -929,6 +1088,7 @@ class ValoracionConFotoMaliciosaTests(TestCase):
 
         self._login_como(client, self.proveedor)
         client.post(reverse('KeyServApp:contratacion_confirmar', args=[contratacion.id_contratacion]), {'password': 'clave_prov'})
+        _marcar_en_curso(contratacion)
         self._login_como(client, self.cliente)
         client.post(reverse('KeyServApp:contratacion_completar', args=[contratacion.id_contratacion]), {'password': 'clave_cli'})
 

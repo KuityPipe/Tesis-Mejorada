@@ -211,10 +211,11 @@ class PublicacionForm(forms.ModelForm):
         label='Categoría',
     )
     categoria_otra = forms.CharField(max_length=60, required=False, label='Especifica la categoría')
+    precio = forms.IntegerField(min_value=1, label='Precio (CLP)', help_text='Lo que el cliente paga al contratar este servicio.')
 
     class Meta:
         model = Publicaciones
-        fields = ['titulo', 'sub_titulo', 'descripcion_publicacion', 'categoria']
+        fields = ['titulo', 'sub_titulo', 'descripcion_publicacion', 'categoria', 'precio']
 
     def clean(self):
         """Si eligió "Otra", la categoría real es lo que escribió en el campo de texto libre."""
@@ -260,6 +261,18 @@ class ReautenticacionForm(forms.Form):
     una Contratacion.
     """
     password = forms.CharField(widget=forms.PasswordInput, label='Confirma tu contraseña')
+
+
+class MontoAcordadoForm(forms.Form):
+    """
+    Paso opcional al confirmar una Contratacion (contratacion_confirmar_view):
+    el proveedor puede ajustar el monto final acordado con el cliente por
+    chat antes de confirmar — el precio de la publicación es solo un punto
+    de partida, no necesariamente lo que terminan cobrando. Si se deja
+    vacío o se manda algo inválido, la vista usa el precio de la
+    publicación tal cual (sin bloquear la confirmación por esto).
+    """
+    monto = forms.IntegerField(min_value=1, required=False, label='Monto acordado (CLP)')
 
 
 class ContactoForm(forms.ModelForm):

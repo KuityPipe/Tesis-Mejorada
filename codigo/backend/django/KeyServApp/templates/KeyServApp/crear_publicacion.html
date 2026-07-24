@@ -31,6 +31,13 @@
         </div>
 
         <div class="ks-field">
+          <label for="{{ form.precio.id_for_label }}">Precio (CLP)</label>
+          {{ form.precio }}
+          <span class="ks-help">{{ form.precio.help_text }}</span>
+          {% if form.precio.errors %}<small class="ks-error">{{ form.precio.errors }}</small>{% endif %}
+        </div>
+
+        <div class="ks-field">
           <label for="{{ form.categoria.id_for_label }}">Categoría</label>
           {{ form.categoria }}
           {% if form.categoria.errors %}<small class="ks-error">{{ form.categoria.errors }}</small>{% endif %}
@@ -84,6 +91,7 @@
               <span class="ks-badge ks-badge-confirmada" id="pvCategoriaBadge" style="text-transform:none; display:none;"></span>
             </h1>
             <p id="pvSubtitulo" class="mb-0">Subtítulo breve del servicio</p>
+            <p class="mb-0" id="pvPrecio" style="font-weight:800; font-size:1.2rem; margin-top:6px;"></p>
           </div>
 
           <div class="ks-carousel" id="pvCarouselWrap" style="margin-bottom:20px;">
@@ -148,9 +156,11 @@
   // ---------------------------------------------------------------------
   var campoTitulo = document.getElementById('{{ form.titulo.id_for_label }}');
   var campoSubtitulo = document.getElementById('{{ form.sub_titulo.id_for_label }}');
+  var campoPrecio = document.getElementById('{{ form.precio.id_for_label }}');
   var campoDescripcion = document.getElementById('{{ form.descripcion_publicacion.id_for_label }}');
   var pvTitulo = document.getElementById('pvTitulo');
   var pvSubtitulo = document.getElementById('pvSubtitulo');
+  var pvPrecio = document.getElementById('pvPrecio');
   var pvDescripcion = document.getElementById('pvDescripcion');
   var pvCategoriaBadge = document.getElementById('pvCategoriaBadge');
 
@@ -158,6 +168,8 @@
     pvTitulo.textContent = (campoTitulo.value.trim()) || 'Título de tu servicio';
     pvSubtitulo.textContent = (campoSubtitulo.value.trim()) || 'Subtítulo breve del servicio';
     pvDescripcion.textContent = (campoDescripcion.value.trim()) || 'Todavía no escribiste una descripción.';
+    var precio = parseInt(campoPrecio.value, 10);
+    pvPrecio.textContent = precio > 0 ? '$' + precio.toLocaleString('es-CL') : '';
   }
 
   function actualizarCategoria() {
@@ -174,7 +186,7 @@
     }
   }
 
-  [campoTitulo, campoSubtitulo, campoDescripcion].forEach(function (campo) {
+  [campoTitulo, campoSubtitulo, campoPrecio, campoDescripcion].forEach(function (campo) {
     if (campo) campo.addEventListener('input', actualizarTexto);
   });
   if (selectCategoria) selectCategoria.addEventListener('change', actualizarCategoria);

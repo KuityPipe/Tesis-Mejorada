@@ -15,7 +15,7 @@ from .models import (
     AreaAdministrativa, Autentificacion, Comuna, Consulta, Contratacion,
     Conversacion, Documento, EstadoAutentificacion, EstadoConsulta,
     EstadoDocumento, Firma, Gasto, HistorialEstadoContratacion, Imagenes,
-    IntentoAccesoSospechoso, Mensaje, Publicaciones, Ranking, Region,
+    IntentoAccesoSospechoso, Mensaje, Pago, Publicaciones, Ranking, Region,
     RolCuentaAdministrativa, TipoCuenta, TipoFirma, Transaccion, Usuario,
     UsuarioAdministrativo, UsuarioConversacion, Valoracion, ValoracionImagen,
 )
@@ -287,6 +287,21 @@ class DocumentoAdmin(admin.ModelAdmin):
         return _ver_documento(obj)
 
 
+@admin.register(Pago)
+class PagoAdmin(admin.ModelAdmin):
+    """Solo lectura de la parte financiera (nadie edita un pago a mano) — respuesta_bruta queda como referencia de auditoría/soporte."""
+    list_display = ('id_pago', 'contratacion', 'metodo', 'estado', 'monto', 'fecha_creacion', 'fecha_confirmacion')
+    list_filter = ('metodo', 'estado')
+    search_fields = ('orden_compra', 'token_webpay', 'khipu_payment_id', 'contratacion__id_contratacion')
+    readonly_fields = (
+        'contratacion', 'monto', 'metodo', 'orden_compra', 'token_webpay',
+        'khipu_payment_id', 'respuesta_bruta', 'fecha_creacion', 'fecha_confirmacion',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+
 # Catálogos y modelos sin necesidad de una vista de admin a medida —
 # se registran con la vista por defecto para poder al menos verlos/editarlos.
 for _modelo in (
@@ -327,7 +342,7 @@ _CATEGORIAS_ADMIN = [
         'region', 'comuna', 'tipocuenta', 'estadoautentificacion',
         'estadoconsulta', 'estadodocumento', 'tipofirma',
     ]),
-    ('finanzas', 'Finanzas e infraestructura', ['transaccion', 'gasto', 'autentificacion', 'firma']),
+    ('finanzas', 'Finanzas e infraestructura', ['transaccion', 'gasto', 'autentificacion', 'firma', 'pago']),
     ('auditoria', 'Auditoría', ['logentry']),
 ]
 
