@@ -3,38 +3,35 @@
 {% block titulo %}Perfil de proveedor — KeyServ{% endblock %}
 
 {% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-briefcase"></i> Perfil de proveedor</h1>
+    <p>Contale a los clientes en qué trabajas y qué experiencia tenés.</p>
+  </div>
+</section>
+
 <section class="ks-section container" style="max-width: 640px;">
   <div class="ks-panel">
-    <h1 class="mb-4"><i class="bi bi-briefcase"></i> Perfil de proveedor</h1>
-
-    <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Esta sección está en construcción — por ahora los cambios no se guardan todavía.</div>
-
-    <form method="post" class="ks-form">
+    <form method="post" enctype="multipart/form-data" class="ks-form">
       {% csrf_token %}
       <div class="ks-field">
-        <label for="nombre">Nombre</label>
-        <input type="text" id="nombre" name="nombre" value="{{ usuario.nombre_usuario }}">
+        <label>{{ form.areas_servicio.label }}</label>
+        <div class="ks-areas-servicio-grid">
+          {% for checkbox in form.areas_servicio %}
+          <label class="ks-checkbox">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
+          {% endfor %}
+        </div>
       </div>
       <div class="ks-field">
-        <label for="direccion">Dirección</label>
-        <input type="text" id="direccion" name="direccion">
+        <label for="{{ form.experiencia.id_for_label }}">{{ form.experiencia.label }}</label>
+        {{ form.experiencia }}
+        <small class="ks-help">Contá hace cuánto trabajas en esto y algún trabajo del que estés orgulloso.</small>
       </div>
       <div class="ks-field">
-        <label for="habilidades">Habilidades</label>
-        <textarea id="habilidades" name="habilidades" rows="3"></textarea>
+        <label for="{{ form.foto_perfil.id_for_label }}">{{ form.foto_perfil.label }}</label>
+        {{ form.foto_perfil }}
+        {% if form.foto_perfil.errors %}<small class="ks-error">{{ form.foto_perfil.errors }}</small>{% endif %}
       </div>
-      <div class="ks-field">
-        <label for="experiencia">Experiencia</label>
-        <textarea id="experiencia" name="experiencia" rows="3"></textarea>
-      </div>
-      <div class="ks-field">
-        <label for="foto">Foto de perfil</label>
-        <input type="file" id="foto" name="foto">
-      </div>
-      <label class="ks-checkbox">
-        <input type="checkbox" id="aceptar" name="aceptar" required>
-        Acepto los <a href="{% url 'KeyServApp:preferencias_cuenta' %}">términos y condiciones</a>
-      </label>
       <button type="submit" class="ks-btn ks-btn-primary">Guardar</button>
     </form>
   </div>

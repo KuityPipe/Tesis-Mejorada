@@ -328,6 +328,119 @@ class EditarPerfilTests(TestCase):
         self.assertRedirects(resp, reverse('KeyServApp:perfil'))
 
 
+class CrearPerfilTests(TestCase):
+    """
+    /perfil/crear/ (perfil de proveedor extendido, RF002) antes era un
+    formulario estático que no guardaba nada. Ahora es un CrearPerfilForm
+    real sobre Usuario.areas_servicio/experiencia.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_crearperfil@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.proveedor.id_usuario
+        session.save()
+
+    def test_post_guarda_areas_de_servicio_y_experiencia(self):
+        self.client.post(reverse('KeyServApp:crear_perfil'), {
+            'areas_servicio': ['Gasfitería', 'Electricidad'],
+            'experiencia': '10 años reparando cañerías y tableros eléctricos.',
+        })
+        self.proveedor.refresh_from_db()
+        self.assertEqual(self.proveedor.areas_servicio, 'Gasfitería, Electricidad')
+        self.assertIn('10 años', self.proveedor.experiencia)
+
+    def test_get_precarga_las_areas_ya_guardadas(self):
+        self.proveedor.areas_servicio = 'Jardinería, Limpieza del hogar'
+        self.proveedor.save(update_fields=['areas_servicio'])
+        resp = self.client.get(reverse('KeyServApp:crear_perfil'))
+        self.assertContains(resp, 'checked', count=2)
+
+
+class PreferenciasCuentaTests(TestCase):
+    """
+    /preferencias-cuenta/ antes no guardaba ninguno de sus tres formularios
+    (notificaciones, contraseña, términos). Ahora las notificaciones y el
+    cambio de contraseña son reales.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('preferencias@test.com', 'clave_actual', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.usuario.id_usuario
+        session.save()
+
+    def test_desactivar_notificaciones_de_sonido(self):
+        self.client.post(reverse('KeyServApp:preferencias_cuenta'), {'form': 'preferencias'})
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.notificaciones_sonido)
+
+    def test_cambiar_password_con_la_actual_correcta(self):
+        self.client.post(reverse('KeyServApp:preferencias_cuenta'), {
+            'form': 'password', 'password_actual': 'clave_actual',
+            'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        })
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('ClaveNueva123'))
+
+    def test_cambiar_password_con_la_actual_incorrecta_no_cambia_nada(self):
+        resp = self.client.post(reverse('KeyServApp:preferencias_cuenta'), {
+            'form': 'password', 'password_actual': 'clave-equivocada',
+            'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        })
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('clave_actual'))
+        self.assertContains(resp, 'no es correcta')
+
+    def test_cambiar_password_sin_confirmar_igual_no_cambia_nada(self):
+        self.client.post(reverse('KeyServApp:preferencias_cuenta'), {
+            'form': 'password', 'password_actual': 'clave_actual',
+            'password': 'ClaveNueva123', 'password_confirm': 'OtraCosa456',
+        })
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('clave_actual'))
+
+
+class HistorialPagosTests(TestCase):
+    """
+    Reemplaza lo que era "Mis tarjetas" (campos de número de tarjeta/CVV que
+    no se guardaban en ningún lado) por el historial real de Pago del
+    cliente — ver historial_pagos_view.
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_hist@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_hist@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.otro_cliente = _crear_usuario('otro_cliente_hist@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA, precio=10000)
+        self.contratacion = Contratacion.objects.create(
+            publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor,
+            estado=Contratacion.EN_CURSO, monto_acordado=10000,
+        )
+        self.pago = Pago.objects.create(contratacion=self.contratacion, monto=10000, metodo=Pago.WEBPAY, estado=Pago.PAGADO)
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.cliente.id_usuario
+        session.save()
+
+    def test_muestra_los_pagos_propios(self):
+        resp = self.client.get(reverse('KeyServApp:historial_pagos'))
+        self.assertContains(resp, 'Pintura')
+        self.assertContains(resp, '10000')
+
+    def test_no_muestra_pagos_de_otro_cliente(self):
+        session = self.client.session
+        session['usuario_id'] = self.otro_cliente.id_usuario
+        session.save()
+        resp = self.client.get(reverse('KeyServApp:historial_pagos'))
+        self.assertNotContains(resp, 'Pintura')
+
+
 class RecuperarPasswordTests(TestCase):
     """
     /recuperar/ antes solo mostraba un formulario que decía explícitamente

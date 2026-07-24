@@ -203,6 +203,17 @@ class Usuario(models.Model):
     # NUEVO: antes el perfil solo mostraba un avatar con la inicial del
     # nombre — foto real, opcional, subida desde /perfil/editar/.
     foto_perfil = models.ImageField(upload_to='perfiles/', null=True, blank=True, validators=[validar_imagen], db_column='FOTO_PERFIL')
+    # NUEVO: perfil de proveedor extendido (RF002, antes /perfil/crear/ era un
+    # formulario que no guardaba nada — ver Known Issues). `areas_servicio`
+    # guarda una lista separada por comas de las mismas categorías que usa
+    # PublicacionForm (no un modelo M2M aparte: es solo texto descriptivo del
+    # proveedor, no filtra el catálogo).
+    areas_servicio = models.CharField(max_length=300, blank=True, db_column='AREAS_SERVICIO')
+    experiencia = models.TextField(blank=True, db_column='EXPERIENCIA')
+    # NUEVO: antes /preferencias-cuenta/ tampoco guardaba nada. Este es el
+    # único toggle que controla algo real hoy — el beep de Web Audio que
+    # suena en base.html cuando llega un mensaje nuevo (ver ese template).
+    notificaciones_sonido = models.BooleanField(default=True, db_column='NOTIFICACIONES_SONIDO')
 
     class Meta:
         db_table = 'USUARIO'

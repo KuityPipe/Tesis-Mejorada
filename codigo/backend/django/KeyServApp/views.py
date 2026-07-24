@@ -37,7 +37,8 @@ from .decorators import login_requerido, obtener_usuario_actual
 from .forms import (
     RegistroForm, LoginForm, PublicacionForm, ValoracionForm, MensajeForm,
     ReautenticacionForm, ContactoForm, EditarPerfilForm, RecuperarForm,
-    NuevaPasswordForm, MontoAcordadoForm,
+    NuevaPasswordForm, MontoAcordadoForm, CambiarPasswordForm,
+    PreferenciasCuentaForm, CrearPerfilForm,
 )
 from .models import (
     Comuna, Contratacion, Conversacion, Documento, EstadoConsulta,
@@ -249,8 +250,36 @@ def sesion_iniciada_view(request):
 
 @login_requerido
 def preferencias_cuenta_view(request):
-    """Página de preferencias/Términos y condiciones de la cuenta."""
-    return render(request, 'KeyServApp/preferencias de la cuenta.html')
+    """
+    Preferencias de la cuenta + cambio de contraseña + términos y
+    condiciones — antes ninguno de los tres formularios de esta página
+    guardaba nada. Dos forms independientes en la misma página (se
+    distinguen por el campo oculto `form`), cada uno se procesa aparte.
+    """
+    usuario = obtener_usuario_actual(request)
+    prefs_form = PreferenciasCuentaForm(instance=usuario)
+    password_form = CambiarPasswordForm(usuario=usuario)
+
+    if request.method == 'POST' and request.POST.get('form') == 'preferencias':
+        prefs_form = PreferenciasCuentaForm(request.POST, instance=usuario)
+        if prefs_form.is_valid():
+            prefs_form.save()
+            messages.success(request, 'Preferencias actualizadas.')
+            return redirect('KeyServApp:preferencias_cuenta')
+    elif request.method == 'POST' and request.POST.get('form') == 'password':
+        password_form = CambiarPasswordForm(request.POST, usuario=usuario)
+        if password_form.is_valid():
+            usuario.set_password(password_form.cleaned_data['password'])
+            usuario.save(update_fields=['password'])
+            logger.info('Contraseña cambiada desde preferencias de cuenta: usuario_id=%s', usuario.id_usuario)
+            messages.success(request, 'Contraseña actualizada.')
+            return redirect('KeyServApp:preferencias_cuenta')
+
+    return render(request, 'KeyServApp/preferencias_cuenta.html', {
+        'usuario': usuario,
+        'prefs_form': prefs_form,
+        'password_form': password_form,
+    })
 
 
 TOKEN_SALT_RECUPERAR = 'keyserv-recuperar-password'
@@ -361,13 +390,24 @@ def recuperar_confirmar_view(request, token):
 
 
 @login_requerido
-def tarjeta_credito_view(request):
+def historial_pagos_view(request):
     """
-    Pantalla de ingreso de tarjeta de crédito. El template `tarjeta credito.html`
-    está vacío (0 bytes) desde antes de esta fase — falta diseñarlo; por ahora
-    esta vista solo lo renderiza tal cual para que la URL exista.
+    Reemplaza lo que antes era "Mis tarjetas" (un formulario de número de
+    tarjeta/CVV que no guardaba nada — guardar eso tal cual habría sido un
+    problema serio de PCI-DSS). Con Webpay Plus/Khipu ya funcionando de
+    verdad, lo útil de verdad acá es el historial de Pago del cliente — la
+    tarjeta en sí nunca la ve ni la guarda este sitio, la ingresa en la
+    página del banco. Tokenización real (Transbank Oneclick) queda pendiente
+    aparte, ver Known Issues.
     """
-    return render(request, 'KeyServApp/tarjeta credito.html')
+    usuario = obtener_usuario_actual(request)
+    pagos = Pago.objects.filter(contratacion__cliente=usuario).select_related(
+        'contratacion', 'contratacion__publicacion',
+    ).order_by('-fecha_creacion')
+    return render(request, 'KeyServApp/historial_pagos.html', {
+        'usuario': usuario,
+        'pagos': pagos,
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -544,13 +584,20 @@ def alternar_proveedor_view(request):
 @login_requerido
 def crear_perfil_view(request):
     """
-    Paso de registro extendido (habilidades, áreas de servicio — RF002).
-    TODO: `crearperfil.html` es estático hoy, falta un ModelForm dedicado
-    a los campos de perfil de proveedor (no existen todavía en `Usuario`
-    más allá de `es_proveedor`).
+    Perfil de proveedor extendido (áreas de servicio, experiencia — RF002).
+    Antes era estático y no guardaba nada; ahora es un CrearPerfilForm real
+    sobre los campos nuevos de Usuario (ver models.py).
     """
     usuario = obtener_usuario_actual(request)
-    return render(request, 'KeyServApp/crearperfil.html', {'usuario': usuario})
+    if request.method == 'POST':
+        form = CrearPerfilForm(request.POST, request.FILES, instance=usuario)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Perfil de proveedor actualizado.')
+            return redirect('KeyServApp:perfil')
+    else:
+        form = CrearPerfilForm(instance=usuario)
+    return render(request, 'KeyServApp/crearperfil.html', {'usuario': usuario, 'form': form})
 
 
 @login_requerido

@@ -1,0 +1,38 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}Historial de pagos — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-receipt"></i> Historial de pagos</h1>
+    <p>Los pagos que hiciste al contratar un servicio.</p>
+  </div>
+</section>
+
+<section class="ks-section container" style="max-width: 700px;">
+  <div class="ks-info-note ks-info-note-teal">
+    <i class="bi bi-shield-check"></i> Nunca guardamos tu número de tarjeta ni tu CVV — cada pago se ingresa directo en la página de Webpay o Khipu, no acá.
+  </div>
+
+  <div class="ks-panel">
+    {% if pagos %}
+      {% for pago in pagos %}
+      <a href="{% url 'KeyServApp:contratacion_detalle' pago.contratacion.id_contratacion %}" class="ks-pago-item">
+        <div class="ks-pago-item-icon">
+          <i class="bi {% if pago.metodo == 'WEBPAY' %}bi-credit-card{% else %}bi-bank{% endif %}"></i>
+        </div>
+        <div class="ks-pago-item-info">
+          <strong>{{ pago.contratacion.publicacion.titulo }}</strong>
+          <span class="ks-help">{{ pago.get_metodo_display }} — {{ pago.fecha_creacion|date:"d/m/Y H:i" }}</span>
+        </div>
+        <span class="ks-badge ks-badge-{{ pago.estado|lower }}">{{ pago.get_estado_display }}</span>
+        <span class="ks-pago-item-monto">${{ pago.monto }}</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <p class="ks-help mb-0">Todavía no tenés pagos registrados — <a href="{% url 'KeyServApp:catalogo' %}">buscá un servicio</a> para contratar.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

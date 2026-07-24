@@ -950,6 +950,16 @@ a {
   accent-color: var(--ks-teal);
 }
 
+.ks-areas-servicio-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 16px;
+}
+
+@media (max-width: 480px) {
+  .ks-areas-servicio-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- Badges de estado (contrataciones) ---------- */
 
 .ks-badge {
@@ -966,8 +976,8 @@ a {
 
 .ks-badge-solicitada, .ks-badge-pendiente { background: var(--ks-coral-light); color: var(--ks-coral-dark); }
 .ks-badge-confirmada, .ks-badge-en_curso { background: var(--ks-teal-light); color: var(--ks-teal-dark); }
-.ks-badge-completada, .ks-badge-aprobada { background: var(--ks-navy-light); color: var(--ks-navy-dark); }
-.ks-badge-rechazada, .ks-badge-cancelada { background: var(--ks-neutral-bg); color: var(--ks-neutral-text); }
+.ks-badge-completada, .ks-badge-aprobada, .ks-badge-pagado { background: var(--ks-navy-light); color: var(--ks-navy-dark); }
+.ks-badge-rechazada, .ks-badge-cancelada, .ks-badge-rechazado, .ks-badge-anulado { background: var(--ks-neutral-bg); color: var(--ks-neutral-text); }
 
 /* ---------- Timeline de contrataciones (reservas.html) ---------- */
 
@@ -1851,6 +1861,44 @@ a {
   font-size: .68rem;
   color: var(--ks-ink-soft);
   margin-top: 2px;
+}
+
+/* ---------- Historial de pagos ---------- */
+
+.ks-pago-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--ks-border);
+  text-decoration: none;
+  color: inherit;
+}
+
+.ks-pago-item:last-child { border-bottom: none; }
+.ks-pago-item:hover { background: var(--ks-cream); }
+
+.ks-pago-item-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.ks-pago-item-info { flex: 1; min-width: 0; }
+.ks-pago-item-info strong { display: block; }
+
+.ks-pago-item-monto {
+  font-weight: 800;
+  font-size: 1.05rem;
+  white-space: nowrap;
 }
 
 .ks-history-list {

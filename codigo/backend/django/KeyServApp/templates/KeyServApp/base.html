@@ -160,6 +160,8 @@
     var badge = document.getElementById('ks-chat-badge');
     var tituloOriginal = document.title;
     var ultimoConteo = {{ mensajes_no_leidos|default:0 }};
+    // Preferencia real de /preferencias-cuenta/ — ver PreferenciasCuentaForm.
+    var sonidoActivado = {{ usuario_actual.notificaciones_sonido|yesno:"true,false" }};
 
     function sonarAlerta() {
       // Beep sintetizado con Web Audio API — sin archivo de audio externo.
@@ -194,7 +196,7 @@
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
           if (!data) return;
-          if (data.no_leidos > ultimoConteo) {
+          if (data.no_leidos > ultimoConteo && sonidoActivado) {
             sonarAlerta();
           }
           ultimoConteo = data.no_leidos;

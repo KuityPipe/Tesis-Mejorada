@@ -23,7 +23,7 @@ urlpatterns = [
     path('preferencias-cuenta/', views.preferencias_cuenta_view, name='preferencias_cuenta'),
     path('recuperar/', views.recuperar_view, name='recuperar'),
     path('recuperar/confirmar/<str:token>/', views.recuperar_confirmar_view, name='recuperar_confirmar'),
-    path('tarjeta-credito/', views.tarjeta_credito_view, name='tarjeta_credito'),
+    path('historial-pagos/', views.historial_pagos_view, name='historial_pagos'),
 
     # Autenticación
     path('registro/', views.register_view, name='registro'),

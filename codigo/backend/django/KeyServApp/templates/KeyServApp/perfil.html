@@ -51,6 +51,11 @@
 
     <div class="ks-profile-actions mt-3">
       <a href="{% url 'KeyServApp:editar_perfil' %}" class="ks-btn ks-btn-outline">Editar perfil</a>
+      {% if usuario.es_proveedor %}
+      <a href="{% url 'KeyServApp:crear_perfil' %}" class="ks-btn ks-btn-outline"><i class="bi bi-briefcase"></i> Perfil de proveedor</a>
+      {% endif %}
+      <a href="{% url 'KeyServApp:historial_pagos' %}" class="ks-btn ks-btn-outline"><i class="bi bi-receipt"></i> Historial de pagos</a>
+      <a href="{% url 'KeyServApp:preferencias_cuenta' %}" class="ks-btn ks-btn-outline"><i class="bi bi-gear"></i> Preferencias</a>
 
       {% if usuario.es_proveedor %}
       <form method="post" action="{% url 'KeyServApp:alternar_proveedor' %}" onsubmit="return confirm('¿Dejar de ofrecer servicios? No vas a poder crear publicaciones nuevas hasta que lo actives de nuevo.');">

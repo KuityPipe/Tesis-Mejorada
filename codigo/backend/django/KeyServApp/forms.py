@@ -142,6 +142,69 @@ class NuevaPasswordForm(forms.Form):
         return cleaned
 
 
+class CambiarPasswordForm(NuevaPasswordForm):
+    """
+    /preferencias-cuenta/: cambiar la contraseña estando logueado — antes la
+    única forma de cambiarla era el flujo de /recuperar/ (pensado para
+    cuando *no* tenés sesión). Reusa la validación de fondo de
+    NuevaPasswordForm y le agrega el chequeo de la contraseña actual.
+    """
+    password_actual = forms.CharField(widget=forms.PasswordInput, label='Contraseña actual')
+
+    def clean_password_actual(self):
+        password_actual = self.cleaned_data['password_actual']
+        if not self._usuario.check_password(password_actual):
+            raise forms.ValidationError('La contraseña actual no es correcta.')
+        return password_actual
+
+
+class PreferenciasCuentaForm(forms.ModelForm):
+    """
+    /preferencias-cuenta/: hoy el único toggle real es si suena el beep de
+    notificación de mensajes nuevos (ver el polling en base.html) — no hay
+    todavía ningún otro comportamiento real que una preferencia de cuenta
+    pueda controlar (ver CLAUDE.md/Known Issues antes de agregar más acá).
+    """
+    class Meta:
+        model = Usuario
+        fields = ['notificaciones_sonido']
+        labels = {'notificaciones_sonido': 'Reproducir un sonido cuando llega un mensaje nuevo'}
+
+
+class CrearPerfilForm(forms.ModelForm):
+    """
+    /perfil/crear/: perfil de proveedor extendido (RF002) — antes era un
+    formulario estático que no guardaba nada. `areas_servicio` reusa las
+    mismas categorías de CATEGORIAS_PUBLICACION (definidas más abajo) para
+    que el proveedor marque en cuáles trabaja; se guarda como texto separado
+    por comas en `Usuario.areas_servicio` (no hay modelo M2M aparte porque
+    esto es solo descriptivo del perfil, no filtra el catálogo).
+    """
+    areas_servicio = forms.MultipleChoiceField(
+        choices=[], required=False, widget=forms.CheckboxSelectMultiple,
+        label='Áreas de servicio en las que trabajas',
+    )
+
+    class Meta:
+        model = Usuario
+        fields = ['areas_servicio', 'experiencia', 'foto_perfil']
+        labels = {'experiencia': 'Experiencia', 'foto_perfil': 'Foto de perfil'}
+        widgets = {'experiencia': forms.Textarea(attrs={'rows': 4})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['areas_servicio'].choices = [(c, c) for c in CATEGORIAS_PUBLICACION]
+        if self.instance and self.instance.areas_servicio:
+            self.initial['areas_servicio'] = [a.strip() for a in self.instance.areas_servicio.split(',') if a.strip()]
+
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
+        usuario.areas_servicio = ', '.join(self.cleaned_data.get('areas_servicio', []))
+        if commit:
+            usuario.save()
+        return usuario
+
+
 class EditarPerfilForm(forms.ModelForm):
     """
     Edición real de los datos del Usuario — antes `editarperfil.html` tenía
