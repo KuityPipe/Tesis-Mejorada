@@ -13,7 +13,6 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.hashers import make_password
 
 from .models import Consulta, Usuario, Region, Comuna, TipoCuenta, Publicaciones, Valoracion, Mensaje
-from .validators import validar_documento, validar_imagen
 
 
 class RegistroForm(forms.Form):
@@ -125,18 +124,18 @@ OTRA_CATEGORIA = 'Otra'
 class PublicacionForm(forms.ModelForm):
     """
     Formulario para que un proveedor cree/edite una Publicacion de servicio
-    (RF002) — incluye categoría (con opción "Otra" de texto libre) e imagen/
-    documento opcionales. `imagen` y `documento` no son campos del modelo
-    Publicaciones (viven en Imagenes/Documento); `publicacion_crear_view` los
-    procesa aparte tras guardar la publicación.
+    (RF002) — incluye categoría (con opción "Otra" de texto libre). Las
+    fotos y documentos NO son campos de este form (los <input type="file"
+    multiple> viven directo en el template, con name="imagenes"/"documentos")
+    porque Django no tiene un FileField que acepte varios archivos — se leen
+    con `request.FILES.getlist(...)` y se validan uno por uno en
+    `publicacion_crear_view`, mismo patrón que las fotos de una Valoracion.
     """
     categoria = forms.ChoiceField(
         choices=[(c, c) for c in CATEGORIAS_PUBLICACION] + [(OTRA_CATEGORIA, 'Otra (especificar abajo)')],
         label='Categoría',
     )
     categoria_otra = forms.CharField(max_length=60, required=False, label='Especifica la categoría')
-    imagen = forms.ImageField(required=False, label='Imagen del servicio', validators=[validar_imagen])
-    documento = forms.FileField(required=False, label='Documento de respaldo (certificación, licencia, etc.)', validators=[validar_documento])
 
     class Meta:
         model = Publicaciones

@@ -1,0 +1,32 @@
+# Bitácora de desarrollo — KeyServ
+
+Registro de checkpoints de trabajo (commit + push), para llevar cuenta de
+cuánto tiempo se le fue dedicando al proyecto. Cada fila corresponde a un
+commit real del repo. La columna "desde el anterior" es una aproximación
+del tiempo transcurrido entre commits consecutivos — no descuenta pausas,
+comidas o sueño dentro de una misma sesión, y se corta a "—" cuando el
+salto claramente cruza a otro día (no cuenta como tiempo de trabajo).
+
+A partir del checkpoint #11, la cadencia es un commit+push cada ~1.5 horas
+de trabajo activo — **siempre con aprobación explícita antes de commitear**,
+nunca automático.
+
+| # | Fecha/hora | Commit | Resumen | Desde el anterior |
+|---|---|---|---|---|
+| 1 | 2026-07-22 20:31 | `fd23205` | Fase 1: reorganizar estructura del repo y limpiar git | — |
+| 2 | 2026-07-22 20:46 | `4db69ff` | Fase 2: análisis de PDF/código, arquitectura y roadmap | 15 min |
+| 3 | 2026-07-22 21:36 | `bac7322` | Fase 3: refactoring, features nuevas, calidad, infraestructura y docs | 50 min |
+| 4 | 2026-07-22 22:16 | `a972dae` | Fase 4 (parcial): PostgreSQL instalado, migrado y validado end-to-end | 40 min |
+| 5 | 2026-07-22 22:28 | `008e5f4` | Fase 4: cargar catálogos reales (regiones/comunas/tipos de cuenta) | 12 min |
+| 6 | 2026-07-22 22:52 | `85e83a7` | Fase 4: crear publicación, contratación completa, mensajería y tests | 24 min |
+| 7 | 2026-07-23 16:01 | `ab7a1ec` | Documentar comandos para correr un solo test en CLAUDE.md | — (otro día) |
+| 8 | 2026-07-23 19:58 | `8c3a6dd` | Fase 5: rediseño completo, chat por trabajo, roles de admin y moderación | 3 h 57 min |
+| 9 | 2026-07-24 09:48 | `169cb66` | Agregar toggle de tema claro/oscuro y poner CLAUDE.md al día con Fase 5 | — (otro día) |
+| 10 | 2026-07-24 12:55 | `c184930` | Fase 6: carrusel y calificaciones moderadas, admin reorganizado, endurecimiento de seguridad | 3 h 7 min |
+| 11 | 2026-07-24 ~14:10 | *(pendiente)* | Previsualización en vivo al crear publicación + selector de fotos/documentos acumulativo | 1 h 15 min |
+
+**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min.
+
+---
+
+*Este archivo lo mantiene Claude Code junto con cada checkpoint — no es un timesheet exacto, es una referencia para no perder la cuenta de cuánto se ha avanzado.*

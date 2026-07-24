@@ -1326,6 +1326,202 @@ a {
   font-size: 1.4rem;
 }
 
+/* ---------- Crear publicación (previsualización en vivo) ---------- */
+
+.ks-crear-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .ks-crear-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ks-preview-col {
+  position: sticky;
+  top: 88px;
+}
+
+.ks-preview-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--ks-teal-dark);
+  font-size: .85rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 10px;
+}
+
+/* "Marco de navegador" — para que quede claro que esto es una simulación
+   de una página real y no un formulario más, sin construir un mockup
+   gráfico pesado: una barra falsa de navegador alcanza para transmitirlo. */
+.ks-preview-frame {
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-lg);
+  overflow: hidden;
+  background: var(--ks-cream);
+  box-shadow: var(--ks-shadow);
+}
+
+.ks-preview-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--ks-surface);
+  border-bottom: 1px solid var(--ks-border);
+}
+
+.ks-preview-browser-bar .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ks-border);
+}
+
+.ks-preview-browser-bar .url {
+  flex: 1;
+  background: var(--ks-cream);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: .78rem;
+  color: var(--ks-ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ks-preview-body {
+  padding: 20px;
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.ks-preview-header {
+  padding: 20px;
+  margin: -20px -20px 20px;
+  border-radius: 0;
+}
+
+.ks-preview-header h1 {
+  font-size: 1.4rem;
+}
+
+/* ---------- Selector de archivos acumulativo (crear_publicacion.html) ----------
+   El <input type="file"> real queda oculto; el botón "Agregar" lo dispara,
+   y cada archivo elegido se suma a esta grilla en vez de reemplazar lo que
+   ya había — ver crearSelectorAcumulativo() en el JS de la página. */
+
+.ks-archivos-imagen-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ks-archivo-imagen {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  border-radius: var(--ks-radius-sm);
+  overflow: hidden;
+  border: 2px solid var(--ks-border);
+  flex-shrink: 0;
+}
+
+.ks-archivo-imagen.es-portada {
+  border-color: var(--ks-coral);
+}
+
+.ks-archivo-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ks-archivo-portada-tag {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(11, 61, 120, .75);
+  color: #fff;
+  font-size: .6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  text-align: center;
+  padding: 2px 0;
+}
+
+.ks-archivos-doc-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ks-archivo-doc-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--ks-border);
+  border-radius: 999px;
+  background: var(--ks-surface);
+  font-size: .82rem;
+  max-width: 220px;
+}
+
+.ks-archivo-doc-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ks-archivo-quitar {
+  border: none;
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ks-archivo-imagen .ks-archivo-quitar {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: .9rem;
+}
+
+.ks-archivo-doc-chip .ks-archivo-quitar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: none;
+  color: var(--ks-ink-soft);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.ks-archivo-quitar:hover {
+  background: var(--ks-coral);
+  color: #fff;
+}
+
 /* ---------- Pago exitoso ---------- */
 
 .ks-success-circle {

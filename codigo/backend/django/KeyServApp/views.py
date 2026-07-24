@@ -452,13 +452,22 @@ def publicacion_detalle_view(request, pk):
     })
 
 
+MAX_IMAGENES_PUBLICACION = 8
+MAX_DOCUMENTOS_PUBLICACION = 5
+
+
 @login_requerido
 def publicacion_crear_view(request):
     """
     Crear una nueva publicación de servicio (solo proveedores) — RF002.
-    Admite categoría (predefinida u "Otra" de texto libre) e imagen/documento
-    opcionales — todo queda pendiente de aprobación por un moderador, imagen
-    y documento incluidos, junto con el resto de la publicación.
+    Admite categoría (predefinida u "Otra" de texto libre), varias fotos y
+    varios documentos de respaldo, todos opcionales — todo queda pendiente
+    de aprobación por un moderador junto con el resto de la publicación.
+
+    El template trae una previsualización en vivo (JS puro, sin subir nada
+    todavía) de cómo se va a ver la publicación una vez aprobada, reusando
+    las mismas clases CSS que la página de detalle real — pedido explícito
+    del usuario para poder ajustar texto/fotos antes de publicar.
     """
     usuario = obtener_usuario_actual(request)
     if not usuario.es_proveedor:
@@ -466,22 +475,33 @@ def publicacion_crear_view(request):
         return redirect('KeyServApp:perfil')
 
     if request.method == 'POST':
-        form = PublicacionForm(request.POST, request.FILES)
+        form = PublicacionForm(request.POST)
         if form.is_valid():
             publicacion = form.save(commit=False)
             publicacion.usuario_publicador = usuario
             publicacion.save()
 
-            imagen = form.cleaned_data.get('imagen')
-            if imagen:
-                Imagenes.objects.create(publicacion=publicacion, archivo=imagen)
+            rechazados = []
+            for archivo in request.FILES.getlist('imagenes')[:MAX_IMAGENES_PUBLICACION]:
+                imagen = Imagenes(publicacion=publicacion, archivo=archivo)
+                try:
+                    imagen.full_clean()
+                except ValidationError:
+                    rechazados.append(archivo.name)
+                    continue
+                imagen.save()
 
-            documento = form.cleaned_data.get('documento')
-            if documento:
-                Documento.objects.create(
-                    publicacion=publicacion, usuario=usuario,
-                    nombre_documento=documento.name[:60], archivo_subido=documento,
-                )
+            for archivo in request.FILES.getlist('documentos')[:MAX_DOCUMENTOS_PUBLICACION]:
+                documento = Documento(publicacion=publicacion, usuario=usuario, nombre_documento=archivo.name[:60], archivo_subido=archivo)
+                try:
+                    documento.full_clean()
+                except ValidationError:
+                    rechazados.append(archivo.name)
+                    continue
+                documento.save()
+
+            if rechazados:
+                messages.warning(request, f'No se pudieron subir estos archivos (formato, tamaño o contenido no válido): {", ".join(rechazados)}.')
 
             logger.info('Publicación creada: id=%s usuario=%s', publicacion.id_publicacion, usuario.id_usuario)
             messages.success(request, 'Publicación creada, queda pendiente de aprobación.')
@@ -489,7 +509,11 @@ def publicacion_crear_view(request):
     else:
         form = PublicacionForm()
 
-    return render(request, 'KeyServApp/crear_publicacion.html', {'form': form, 'usuario': usuario})
+    return render(request, 'KeyServApp/crear_publicacion.html', {
+        'form': form,
+        'usuario': usuario,
+        'ranking': Ranking.objects.filter(usuario=usuario).first(),
+    })
 
 
 def documento_descargar_view(request, documento_id):

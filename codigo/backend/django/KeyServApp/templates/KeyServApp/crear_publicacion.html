@@ -3,77 +3,361 @@
 {% block titulo %}Publicar un servicio — KeyServ{% endblock %}
 
 {% block content %}
-<section class="ks-section container" style="max-width: 620px;">
-  <div class="ks-panel">
-    <h1 class="mb-4"><i class="bi bi-megaphone"></i> Publicar un servicio</h1>
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-megaphone"></i> Publicar un servicio</h1>
+    <p>Completá los datos — a la derecha ves en vivo cómo va a quedar tu publicación.</p>
+  </div>
+</section>
 
-    {% if form.non_field_errors %}
-      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-    {% endif %}
+<section class="ks-section container" style="max-width: 1200px;">
+  <div class="ks-crear-layout">
 
-    <form method="post" enctype="multipart/form-data" class="ks-form">
-      {% csrf_token %}
-      <div class="ks-field">
-        <label for="{{ form.titulo.id_for_label }}">Título</label>
-        {{ form.titulo }}
-        {% if form.titulo.errors %}<small class="ks-error">{{ form.titulo.errors }}</small>{% endif %}
-      </div>
-      <div class="ks-field">
-        <label for="{{ form.sub_titulo.id_for_label }}">Subtítulo</label>
-        {{ form.sub_titulo }}
-      </div>
+    <div class="ks-panel">
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
 
-      <div class="ks-field">
-        <label for="{{ form.categoria.id_for_label }}">Categoría</label>
-        {{ form.categoria }}
-        {% if form.categoria.errors %}<small class="ks-error">{{ form.categoria.errors }}</small>{% endif %}
-      </div>
-      <div class="ks-field" id="ks-categoria-otra-wrap">
-        <label for="{{ form.categoria_otra.id_for_label }}">Especifica la categoría</label>
-        {{ form.categoria_otra }}
-        <span class="ks-help">Solo si elegiste "Otra" arriba — el moderador la revisa igual que el resto de la publicación.</span>
-        {% if form.categoria_otra.errors %}<small class="ks-error">{{ form.categoria_otra.errors }}</small>{% endif %}
-      </div>
-
-      <div class="ks-field">
-        <label for="{{ form.descripcion_publicacion.id_for_label }}">Descripción</label>
-        {{ form.descripcion_publicacion }}
-      </div>
-
-      <div class="row">
-        <div class="col-md-6 ks-field">
-          <label for="{{ form.imagen.id_for_label }}"><i class="bi bi-image"></i> Imagen del servicio</label>
-          {{ form.imagen }}
-          <span class="ks-help">Opcional — se ve en las tarjetas del catálogo.</span>
-          {% if form.imagen.errors %}<small class="ks-error">{{ form.imagen.errors }}</small>{% endif %}
+      <form method="post" enctype="multipart/form-data" class="ks-form" id="ksFormPublicacion">
+        {% csrf_token %}
+        <div class="ks-field">
+          <label for="{{ form.titulo.id_for_label }}">Título</label>
+          {{ form.titulo }}
+          {% if form.titulo.errors %}<small class="ks-error">{{ form.titulo.errors }}</small>{% endif %}
         </div>
-        <div class="col-md-6 ks-field">
-          <label for="{{ form.documento.id_for_label }}"><i class="bi bi-file-earmark-text"></i> Documento de respaldo</label>
-          {{ form.documento }}
-          <span class="ks-help">Opcional — certificación, licencia, etc.</span>
-          {% if form.documento.errors %}<small class="ks-error">{{ form.documento.errors }}</small>{% endif %}
+        <div class="ks-field">
+          <label for="{{ form.sub_titulo.id_for_label }}">Subtítulo</label>
+          {{ form.sub_titulo }}
+        </div>
+
+        <div class="ks-field">
+          <label for="{{ form.categoria.id_for_label }}">Categoría</label>
+          {{ form.categoria }}
+          {% if form.categoria.errors %}<small class="ks-error">{{ form.categoria.errors }}</small>{% endif %}
+        </div>
+        <div class="ks-field" id="ks-categoria-otra-wrap">
+          <label for="{{ form.categoria_otra.id_for_label }}">Especifica la categoría</label>
+          {{ form.categoria_otra }}
+          <span class="ks-help">Solo si elegiste "Otra" arriba — el moderador la revisa igual que el resto de la publicación.</span>
+          {% if form.categoria_otra.errors %}<small class="ks-error">{{ form.categoria_otra.errors }}</small>{% endif %}
+        </div>
+
+        <div class="ks-field">
+          <label for="{{ form.descripcion_publicacion.id_for_label }}">Descripción</label>
+          {{ form.descripcion_publicacion }}
+        </div>
+
+        <div class="ks-field">
+          <label><i class="bi bi-images"></i> Fotos del servicio</label>
+          <button type="button" class="ks-btn ks-btn-outline" id="btnAgregarImagenes"><i class="bi bi-plus-lg"></i> Agregar fotos</button>
+          <input type="file" name="imagenes" id="id_imagenes" accept="image/*" multiple style="display:none;">
+          <div class="ks-archivos-imagen-grid" id="listaImagenes"></div>
+          <span class="ks-help">Hasta 8 fotos — la primera es la portada. Podés agregarlas de a una o varias juntas, y sacar las que no quieras con la ✕.</span>
+        </div>
+
+        <div class="ks-field">
+          <label><i class="bi bi-file-earmark-text"></i> Documentos de respaldo</label>
+          <button type="button" class="ks-btn ks-btn-outline" id="btnAgregarDocumentos"><i class="bi bi-plus-lg"></i> Agregar documentos</button>
+          <input type="file" name="documentos" id="id_documentos" multiple style="display:none;">
+          <div class="ks-archivos-doc-list" id="listaDocumentos"></div>
+          <span class="ks-help">Opcional — certificación, licencia, etc. Hasta 5 archivos, se agregan igual que las fotos.</span>
+        </div>
+
+        <p class="ks-help">Tu publicación (con fotos, documentos y categoría) queda pendiente de aprobación por un moderador antes de aparecer en el catálogo.</p>
+
+        <button type="submit" class="ks-btn ks-btn-primary">Publicar</button>
+      </form>
+    </div>
+
+    <aside class="ks-preview-col">
+      <p class="ks-preview-tag"><i class="bi bi-eye"></i> Así se ve tu publicación</p>
+
+      <div class="ks-preview-frame">
+        <div class="ks-preview-browser-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url">keyserv.cl/servicios/…</span>
+        </div>
+        <div class="ks-preview-body">
+          <div class="ks-page-header ks-preview-header">
+            <h1>
+              <span id="pvTitulo">Título de tu servicio</span>
+              <span class="ks-badge ks-badge-confirmada" id="pvCategoriaBadge" style="text-transform:none; display:none;"></span>
+            </h1>
+            <p id="pvSubtitulo" class="mb-0">Subtítulo breve del servicio</p>
+          </div>
+
+          <div class="ks-carousel" id="pvCarouselWrap" style="margin-bottom:20px;">
+            <div class="ks-carousel-placeholder" id="pvPlaceholder">
+              <i class="bi bi-image"></i>
+              <span>Sin fotos todavía</span>
+            </div>
+            <div id="pvCarousel" class="carousel slide" data-bs-interval="false" style="display:none;">
+              <div class="carousel-inner" id="pvCarouselInner"></div>
+            </div>
+          </div>
+          <div class="ks-carousel-thumbs" id="pvThumbs"></div>
+
+          <div class="ks-panel">
+            <h3>Descripción</h3>
+            <p class="ks-help mb-0" id="pvDescripcion">Todavía no escribiste una descripción.</p>
+          </div>
+
+          <div class="ks-panel mb-0" id="pvDocsPanel" style="display:none;">
+            <h3><i class="bi bi-file-earmark-check"></i> Documentos y certificaciones</h3>
+            <ul class="ks-doc-list" id="pvDocsList"></ul>
+          </div>
         </div>
       </div>
 
-      <p class="ks-help">Tu publicación (con imagen, documento y categoría) queda pendiente de aprobación por un moderador antes de aparecer en el catálogo.</p>
+      <div class="ks-panel mb-0" style="margin-top:16px;">
+        <h3><i class="bi bi-person-circle"></i> Proveedor</h3>
+        <p class="mb-1"><strong>{{ usuario }}</strong></p>
+        {% if usuario.verificado_biometricamente %}
+          <p class="ks-verified mb-1" style="font-size:.88rem;"><i class="bi bi-patch-check-fill"></i> Identidad verificada con biometría</p>
+        {% endif %}
+        {% if ranking %}
+          <p class="ks-help mb-0"><i class="bi bi-star-fill" style="color: var(--ks-coral);"></i> {{ ranking.puntuacion_promedio }} ({{ ranking.total_valoraciones }} valoraciones)</p>
+        {% endif %}
+      </div>
+    </aside>
 
-      <button type="submit" class="ks-btn ks-btn-primary">Publicar</button>
-    </form>
   </div>
 </section>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  (function () {
-    var select = document.getElementById('{{ form.categoria.id_for_label }}');
-    var wrap = document.getElementById('ks-categoria-otra-wrap');
-    if (!select || !wrap) return;
-    function actualizar() {
-      wrap.style.display = select.value === 'Otra' ? 'block' : 'none';
+(function () {
+  var selectCategoria = document.getElementById('{{ form.categoria.id_for_label }}');
+  var wrapOtra = document.getElementById('ks-categoria-otra-wrap');
+  var campoOtra = document.getElementById('{{ form.categoria_otra.id_for_label }}');
+
+  function mostrarOcultarOtra() {
+    if (selectCategoria && wrapOtra) {
+      wrapOtra.style.display = selectCategoria.value === 'Otra' ? 'block' : 'none';
     }
-    select.addEventListener('change', actualizar);
-    actualizar();
-  })();
+  }
+  if (selectCategoria) selectCategoria.addEventListener('change', mostrarOcultarOtra);
+  mostrarOcultarOtra();
+
+  // ---------------------------------------------------------------------
+  // Previsualización en vivo — nada de esto sube ningún archivo, solo
+  // refleja en el panel de al lado lo que el formulario tiene en este
+  // momento, con las mismas clases CSS que la página real de detalle
+  // (detalleserv.html) para que se vea igual de verdad.
+  // ---------------------------------------------------------------------
+  var campoTitulo = document.getElementById('{{ form.titulo.id_for_label }}');
+  var campoSubtitulo = document.getElementById('{{ form.sub_titulo.id_for_label }}');
+  var campoDescripcion = document.getElementById('{{ form.descripcion_publicacion.id_for_label }}');
+  var pvTitulo = document.getElementById('pvTitulo');
+  var pvSubtitulo = document.getElementById('pvSubtitulo');
+  var pvDescripcion = document.getElementById('pvDescripcion');
+  var pvCategoriaBadge = document.getElementById('pvCategoriaBadge');
+
+  function actualizarTexto() {
+    pvTitulo.textContent = (campoTitulo.value.trim()) || 'Título de tu servicio';
+    pvSubtitulo.textContent = (campoSubtitulo.value.trim()) || 'Subtítulo breve del servicio';
+    pvDescripcion.textContent = (campoDescripcion.value.trim()) || 'Todavía no escribiste una descripción.';
+  }
+
+  function actualizarCategoria() {
+    if (!selectCategoria) return;
+    var valor = selectCategoria.value;
+    if (valor === 'Otra' && campoOtra) {
+      valor = campoOtra.value.trim();
+    }
+    if (valor) {
+      pvCategoriaBadge.textContent = valor;
+      pvCategoriaBadge.style.display = 'inline-flex';
+    } else {
+      pvCategoriaBadge.style.display = 'none';
+    }
+  }
+
+  [campoTitulo, campoSubtitulo, campoDescripcion].forEach(function (campo) {
+    if (campo) campo.addEventListener('input', actualizarTexto);
+  });
+  if (selectCategoria) selectCategoria.addEventListener('change', actualizarCategoria);
+  if (campoOtra) campoOtra.addEventListener('input', actualizarCategoria);
+  actualizarTexto();
+  actualizarCategoria();
+
+  // ---------------------------------------------------------------------
+  // Selector de archivos que ACUMULA en vez de reemplazar — el <input
+  // type="file" multiple> nativo, si lo volvés a abrir para agregar una
+  // foto más, te reemplaza TODO lo que habías elegido antes (no lo suma).
+  // Confuso sobre todo para quien no está acostumbrado a formularios web.
+  // Acá se mantiene la lista de archivos a mano en JS, se le agregan los
+  // nuevos que se eligen en cada apertura del picker, y se puede sacar
+  // cualquiera con su ✕ — recién antes de enviar el form se reconstruye
+  // el input real (vía DataTransfer) con todo lo acumulado.
+  // ---------------------------------------------------------------------
+  function crearSelectorAcumulativo(opciones) {
+    // opciones: {boton, input, contenedor, max, tipo: 'imagen'|'documento', onCambio}
+    var archivos = [];
+
+    function sincronizarInputReal() {
+      var dt = new DataTransfer();
+      archivos.forEach(function (archivo) { dt.items.add(archivo); });
+      opciones.input.files = dt.files;
+    }
+
+    function actualizarBoton() {
+      var lleno = archivos.length >= opciones.max;
+      opciones.boton.disabled = lleno;
+      opciones.boton.classList.toggle('disabled', lleno);
+    }
+
+    function quitar(indice) {
+      archivos.splice(indice, 1);
+      sincronizarInputReal();
+      render();
+    }
+
+    function render() {
+      opciones.contenedor.innerHTML = '';
+      archivos.forEach(function (archivo, i) {
+        var chip = document.createElement('div');
+        chip.className = opciones.tipo === 'imagen' ? 'ks-archivo-imagen' : 'ks-archivo-doc-chip';
+        if (i === 0 && opciones.tipo === 'imagen') chip.classList.add('es-portada');
+
+        if (opciones.tipo === 'imagen') {
+          var img = document.createElement('img');
+          img.src = URL.createObjectURL(archivo);
+          chip.appendChild(img);
+          if (i === 0) {
+            var tag = document.createElement('span');
+            tag.className = 'ks-archivo-portada-tag';
+            tag.textContent = 'Portada';
+            chip.appendChild(tag);
+          }
+        } else {
+          var icono = document.createElement('i');
+          icono.className = 'bi bi-file-earmark-text';
+          chip.appendChild(icono);
+          var nombre = document.createElement('span');
+          nombre.textContent = archivo.name;
+          chip.appendChild(nombre);
+        }
+
+        var quitarBtn = document.createElement('button');
+        quitarBtn.type = 'button';
+        quitarBtn.className = 'ks-archivo-quitar';
+        quitarBtn.setAttribute('aria-label', 'Quitar ' + archivo.name);
+        quitarBtn.innerHTML = '&times;';
+        quitarBtn.addEventListener('click', function () { quitar(i); });
+        chip.appendChild(quitarBtn);
+
+        opciones.contenedor.appendChild(chip);
+      });
+      actualizarBoton();
+      opciones.onCambio(archivos);
+    }
+
+    opciones.boton.addEventListener('click', function () { opciones.input.click(); });
+    opciones.input.addEventListener('change', function () {
+      Array.prototype.forEach.call(opciones.input.files, function (archivo) {
+        if (archivos.length < opciones.max) archivos.push(archivo);
+      });
+      sincronizarInputReal();
+      render();
+    });
+
+    return { obtenerArchivos: function () { return archivos; } };
+  }
+
+  // ---------- Fotos: carrusel de la previsualización con blobs locales ----------
+  var placeholder = document.getElementById('pvPlaceholder');
+  var carouselEl = document.getElementById('pvCarousel');
+  var carouselInner = document.getElementById('pvCarouselInner');
+  var thumbs = document.getElementById('pvThumbs');
+  var bsCarousel = null;
+
+  crearSelectorAcumulativo({
+    boton: document.getElementById('btnAgregarImagenes'),
+    input: document.getElementById('id_imagenes'),
+    contenedor: document.getElementById('listaImagenes'),
+    max: 8,
+    tipo: 'imagen',
+    onCambio: function (archivos) {
+      carouselInner.innerHTML = '';
+      thumbs.innerHTML = '';
+      bsCarousel = null;
+
+      if (!archivos.length) {
+        placeholder.style.display = 'flex';
+        carouselEl.style.display = 'none';
+        return;
+      }
+      placeholder.style.display = 'none';
+      carouselEl.style.display = 'block';
+
+      archivos.forEach(function (archivo, i) {
+        var url = URL.createObjectURL(archivo);
+
+        var item = document.createElement('div');
+        item.className = 'carousel-item' + (i === 0 ? ' active' : '');
+        var img = document.createElement('img');
+        img.src = url;
+        item.appendChild(img);
+        carouselInner.appendChild(item);
+
+        if (archivos.length > 1) {
+          var thumb = document.createElement('img');
+          thumb.src = url;
+          thumb.className = i === 0 ? 'active' : '';
+          thumb.addEventListener('click', function () {
+            if (bsCarousel) bsCarousel.to(i);
+          });
+          thumbs.appendChild(thumb);
+        }
+      });
+
+      if (window.bootstrap) {
+        bsCarousel = new bootstrap.Carousel(carouselEl, {interval: false});
+        carouselEl.addEventListener('slid.bs.carousel', function (ev) {
+          Array.prototype.forEach.call(thumbs.children, function (t, i) {
+            t.classList.toggle('active', i === ev.to);
+          });
+        });
+      }
+    },
+  });
+
+  // ---------- Documentos: solo el nombre en la previsualización ----------
+  var docsPanel = document.getElementById('pvDocsPanel');
+  var docsList = document.getElementById('pvDocsList');
+
+  crearSelectorAcumulativo({
+    boton: document.getElementById('btnAgregarDocumentos'),
+    input: document.getElementById('id_documentos'),
+    contenedor: document.getElementById('listaDocumentos'),
+    max: 5,
+    tipo: 'documento',
+    onCambio: function (archivos) {
+      docsList.innerHTML = '';
+      if (!archivos.length) {
+        docsPanel.style.display = 'none';
+        return;
+      }
+      docsPanel.style.display = 'block';
+      archivos.forEach(function (archivo) {
+        var li = document.createElement('li');
+        li.className = 'ks-doc-item';
+        var a = document.createElement('a');
+        a.href = '#';
+        a.addEventListener('click', function (ev) { ev.preventDefault(); });
+        var icono = document.createElement('i');
+        icono.className = 'bi bi-file-earmark-text';
+        var span = document.createElement('span');
+        span.textContent = archivo.name;
+        a.appendChild(icono);
+        a.appendChild(span);
+        li.appendChild(a);
+        docsList.appendChild(li);
+      });
+    },
+  });
+})();
 </script>
 {% endblock %}
