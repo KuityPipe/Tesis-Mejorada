@@ -28,8 +28,9 @@ nunca automático.
 | 13 | 2026-07-24 16:43 | `371dea6` | Rediseño de bandeja de entrada del chat + pagos reales con Webpay Plus y Khipu (monto acordado ajustable) | 1 h 15 min |
 | 14 | 2026-07-24 17:31 | `4c73182` | Hoja de presupuesto opcional en la contratación (ItemPresupuesto) + CLAUDE.md al día con Fase 6 | 47 min |
 | 15 | 2026-07-24 18:08 | `f0dc2f5` | Rediseño de Acerca de nosotros y Contacto, más cercanos e intuitivos | 37 min |
+| 16 | 2026-07-24 18:33 | `426ac49` | Terminar perfil de proveedor, preferencias de cuenta e historial de pagos | 25 min |
 
-**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #15**: ~14 h 54 min.
+**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #16**: ~15 h 19 min.
 
 ---
 
