@@ -200,6 +200,17 @@ class Usuario(models.Model):
     # Un mismo Usuario puede ser ambos (no es excluyente).
     es_proveedor = models.BooleanField(default=False, db_column='ES_PROVEEDOR')
     verificado_biometricamente = models.BooleanField(default=False, db_column='VERIFICADO_BIOMETRICAMENTE')
+    # NUEVO: encoding de referencia (vector de 128 dimensiones que devuelve
+    # face_recognition) para el segundo método de verificación de RF001
+    # ("huella, Face ID o clave única" — son alternativas, no las tres a la
+    # vez, por eso comparte `verificado_biometricamente` con la huella en vez
+    # de tener su propio flag). Antes no existía ningún lugar donde guardar
+    # esto — ver Known Issues en CLAUDE.md. Se guarda como JSONField (lista
+    # de floats) en vez de un tipo binario/vector dedicado: Postgres no tiene
+    # `pgvector` instalado en este entorno, y comparar 128 floats con
+    # `face_recognition.compare_faces` no necesita búsqueda por similitud
+    # indexada, solo cargar el vector completo de un usuario a la vez.
+    encoding_facial = models.JSONField(null=True, blank=True, db_column='ENCODING_FACIAL')
     # NUEVO: antes el perfil solo mostraba un avatar con la inicial del
     # nombre — foto real, opcional, subida desde /perfil/editar/.
     foto_perfil = models.ImageField(upload_to='perfiles/', null=True, blank=True, validators=[validar_imagen], db_column='FOTO_PERFIL')

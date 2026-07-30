@@ -23,7 +23,7 @@
         {% if usuario.verificado_biometricamente %}
           <span class="ks-verified"><i class="bi bi-patch-check-fill"></i> Verificado biométricamente</span>
         {% else %}
-          <span class="ks-unverified"><i class="bi bi-exclamation-triangle-fill"></i> Sin verificar — <a href="{% url 'KeyServApp:huella' %}">verificar ahora</a></span>
+          <span class="ks-unverified"><i class="bi bi-exclamation-triangle-fill"></i> Sin verificar — <a href="{% url 'KeyServApp:huella' %}">por huella</a> o <a href="{% url 'KeyServApp:rostro' %}">por rostro</a></span>
         {% endif %}
       </div>
     </div>

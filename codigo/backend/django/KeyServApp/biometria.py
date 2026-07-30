@@ -43,19 +43,45 @@ def procesar_huella_dactilar(ruta_imagen=None):
         return None
 
 
-def verificar_rostro_usuario(ruta_imagen_referencia, mostrar_ventana=False):
+def calcular_encoding_facial(ruta_imagen):
     """
-    TODO: esqueleto — llama a `codigo/biometria/reconocimiento_facial/probando_face_recognition.py`.
-    Requiere una imagen de referencia ya guardada del usuario y una webcam
-    disponible; no se puede validar en este entorno (sin cámara). Devuelve
-    None si las dependencias (opencv-python/face_recognition) no están
-    instaladas, en vez de reventar la vista que la llama.
+    Calcula el encoding facial (128 floats) de una foto de referencia recién
+    subida, listo para guardar en `Usuario.encoding_facial`. Devuelve una
+    lista de floats (serializable en el JSONField) o None si algo falla
+    (dependencias no instaladas, o no se detectó ningún rostro en la foto) —
+    mismo patrón "None en vez de reventar la vista" que `procesar_huella_dactilar`.
     """
     try:
-        from probando_face_recognition import cargar_rostro_conocido, verificar_rostro
+        from probando_face_recognition import cargar_rostro_conocido
+        encoding = cargar_rostro_conocido(ruta_imagen)
     except ImportError:
         logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
         return None
+    except ValueError:
+        logger.exception('No se detectó ningún rostro en la imagen de referencia: %s', ruta_imagen)
+        return None
+    return list(float(valor) for valor in encoding)
 
-    encoding = cargar_rostro_conocido(ruta_imagen_referencia)
-    return verificar_rostro(encoding, mostrar_ventana=mostrar_ventana)
+
+def verificar_rostro_usuario(encoding_guardado, ruta_imagen_verificacion):
+    """
+    Compara una foto recién subida contra el encoding de referencia ya
+    guardado en `Usuario.encoding_facial`. No abre ninguna webcam — el flujo
+    real es que el navegador del cliente capture la foto y la suba como
+    archivo, igual que la huella (ver `verificacion_facial_view` en views.py).
+    `verificar_rostro()`/`cargar_rostro_conocido()` con loop de webcam en
+    `probando_face_recognition.py` quedan solo para pruebas manuales locales
+    (`python probando_face_recognition.py`), no para el servidor.
+
+    Devuelve True/False, o None si las dependencias no están instaladas o no
+    se detectó ningún rostro en la foto subida (no revienta la vista).
+    """
+    try:
+        from probando_face_recognition import verificar_rostro_en_imagen
+        return verificar_rostro_en_imagen(encoding_guardado, ruta_imagen_verificacion)
+    except ImportError:
+        logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
+        return None
+    except ValueError:
+        logger.exception('No se detectó ningún rostro en la imagen de verificación: %s', ruta_imagen_verificacion)
+        return None

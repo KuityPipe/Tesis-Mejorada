@@ -1,0 +1,45 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}Reconocimiento facial — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-section container" style="max-width: 480px; text-align: center;">
+  <div class="ks-panel">
+    <div class="ks-fingerprint-scanner"><i class="bi bi-person-bounding-box"></i></div>
+
+    {% if tiene_referencia %}
+      <h1>Verificación facial</h1>
+      <p class="ks-help">Ya registraste un rostro de referencia. Subí una foto nueva para verificar tu identidad.</p>
+
+      <div class="ks-info-note"><i class="bi bi-cone-striped"></i> Demo: no hay cámara conectada en este entorno. Sube una foto para probar la comparación contra el rostro registrado.</div>
+
+      <form method="post" action="{% url 'KeyServApp:verificacion_facial' %}" enctype="multipart/form-data" class="ks-form text-start">
+        {% csrf_token %}
+        <div class="ks-field">
+          <label for="rostro_imagen">Foto para verificar</label>
+          <input type="file" name="rostro_imagen" id="rostro_imagen" accept="image/*" required>
+        </div>
+        <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center"><i class="bi bi-person-bounding-box"></i> Verificar rostro</button>
+      </form>
+
+      <p class="ks-help mt-3">¿Cambiaste de foto de referencia? Podés <a href="#registrar-rostro">volver a registrarla</a> más abajo.</p>
+
+      <hr class="my-4">
+
+      <h2 id="registrar-rostro" class="h5">Registrar un nuevo rostro de referencia</h2>
+    {% else %}
+      <h1>Registrar rostro de referencia</h1>
+      <p class="ks-help">Antes de poder verificar tu identidad por rostro, necesitamos una foto de referencia clara, bien iluminada y de frente.</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'KeyServApp:registro_rostro' %}" enctype="multipart/form-data" class="ks-form text-start">
+      {% csrf_token %}
+      <div class="ks-field">
+        <label for="rostro_imagen_registro">Foto de referencia</label>
+        <input type="file" name="rostro_imagen" id="rostro_imagen_registro" accept="image/*" required>
+      </div>
+      <button type="submit" class="ks-btn {% if tiene_referencia %}ks-btn-outline{% else %}ks-btn-primary{% endif %} w-100 justify-content-center"><i class="bi bi-camera"></i> {% if tiene_referencia %}Reemplazar rostro de referencia{% else %}Registrar rostro{% endif %}</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

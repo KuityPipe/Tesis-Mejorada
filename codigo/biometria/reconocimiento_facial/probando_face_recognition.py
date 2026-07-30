@@ -9,17 +9,19 @@ Se reconstruyó a partir de ese volcado decodificado (comparaba una foto fija
 la etiqueta "Gaby"/"Desconocido"). Acá queda reescrito como funciones
 reutilizables e importables desde `KeyServApp/biometria.py`.
 
+Actualizado (KeyServApp/migrations/0024_usuario_encoding_facial.py): ya existe
+dónde persistir el encoding — `Usuario.encoding_facial` (JSONField, lista de
+128 floats). El flujo real de verificación web NO abre la webcam desde el
+backend (ver nota en `verificar_rostro()` más abajo) — el navegador del
+cliente captura una foto y la sube como archivo, igual que ya hace la huella;
+por eso se agregó `verificar_rostro_en_imagen()`, que compara una sola imagen
+subida contra un encoding ya guardado, sin loop ni ventana.
+
 TODO (pendiente, requiere hardware/pruebas manuales):
   - Esto sigue siendo un ESQUELETO funcional, no probado contra una cámara
-    real en este entorno (no hay webcam disponible en el entorno de
-    desarrollo actual).
-  - `cargar_rostro_conocido()` hoy espera una sola imagen de referencia por
-    archivo; en la integración real, la imagen de referencia debe salir del
-    registro biométrico del Usuario (ver modelo `Usuario`), no de un archivo
-    fijo en disco.
-  - Falta decidir dónde se persiste el encoding facial calculado (¿un campo
-    nuevo en `Usuario`? ¿una tabla aparte?) — no existe todavía en el
-    diccionario de datos de la tesis.
+    real ni contra fotos reales en este entorno (no hay webcam disponible, y
+    `opencv-python`/`face_recognition` no están instalados aquí — son
+    dependencias pesadas, ver requirements.txt).
 """
 import os
 
@@ -40,6 +42,26 @@ def cargar_rostro_conocido(ruta_imagen):
         raise ValueError(f'No se detectó ningún rostro en {ruta_imagen}')
     encoding = face_recognition.face_encodings(imagen, known_face_locations=[ubicaciones[0]])[0]
     return encoding
+
+
+def verificar_rostro_en_imagen(encoding_conocido, ruta_imagen, tolerancia=0.6):
+    """
+    Compara UNA imagen (subida por el navegador, no un feed de webcam) contra
+    `encoding_conocido`. Es la función que usa el flujo web real — a
+    diferencia de `verificar_rostro()` (más abajo), no abre ninguna cámara ni
+    ventana, así que corre igual de bien en un servidor headless.
+
+    Devuelve True/False. Lanza `ValueError` si no se detecta ningún rostro en
+    la imagen (mismo criterio que `cargar_rostro_conocido`).
+    """
+    import face_recognition
+
+    imagen = face_recognition.load_image_file(ruta_imagen)
+    ubicaciones = face_recognition.face_locations(imagen)
+    if not ubicaciones:
+        raise ValueError(f'No se detectó ningún rostro en {ruta_imagen}')
+    encoding = face_recognition.face_encodings(imagen, known_face_locations=[ubicaciones[0]])[0]
+    return bool(face_recognition.compare_faces([encoding_conocido], encoding, tolerance=tolerancia)[0])
 
 
 def verificar_rostro(encoding_conocido, mostrar_ventana=False, camara_index=0):

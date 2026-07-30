@@ -56,6 +56,9 @@ urlpatterns = [
     # Biometría
     path('huella/', views.huella_view, name='huella'),
     path('huella/verificar/', views.verificacion_huella_view, name='verificacion_huella'),
+    path('rostro/', views.rostro_view, name='rostro'),
+    path('rostro/registrar/', views.registro_rostro_view, name='registro_rostro'),
+    path('rostro/verificar/', views.verificacion_facial_view, name='verificacion_facial'),
 
     # Mensajería
     path('chat/', views.chat_view, name='chat'),

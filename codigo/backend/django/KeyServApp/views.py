@@ -1496,6 +1496,106 @@ def verificacion_huella_view(request):
     return redirect('KeyServApp:perfil')
 
 
+def _guardar_archivo_temporal(archivo):
+    """Vuelca un `UploadedFile` a un archivo temporal en disco y devuelve su ruta — mismo patrón que `verificacion_huella_view`."""
+    extension = os.path.splitext(archivo.name)[1].lower()
+    with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as destino:
+        for fragmento in archivo.chunks():
+            destino.write(fragmento)
+        return destino.name
+
+
+@login_requerido
+def rostro_view(request):
+    """
+    Muestra la pantalla de reconocimiento facial. Si el usuario todavía no
+    tiene una foto de referencia guardada (`encoding_facial`), pide
+    registrarla primero (`registro_rostro_view`); si ya la tiene, pide
+    verificar contra ella (`verificacion_facial_view`) — mismo criterio "1 de 2
+    métodos" de RF001 que la huella, pero acá sí hay una referencia real
+    contra la que comparar (ver Known Issues en CLAUDE.md sobre la huella).
+    """
+    usuario = obtener_usuario_actual(request)
+    return render(request, 'KeyServApp/rostro.html', {'tiene_referencia': bool(usuario.encoding_facial)})
+
+
+@login_requerido
+@require_POST
+def registro_rostro_view(request):
+    """
+    Sube una foto de referencia, calcula su encoding y lo guarda en
+    `Usuario.encoding_facial`. No marca al usuario como verificado todavía —
+    eso lo hace `verificacion_facial_view` en una foto posterior, igual que
+    huella exige un envío separado. Reemplaza cualquier encoding anterior si
+    el usuario vuelve a registrar su rostro.
+    """
+    usuario = obtener_usuario_actual(request)
+    archivo = request.FILES.get('rostro_imagen')
+    if not archivo:
+        messages.error(request, 'Subí una foto de tu rostro para registrarla.')
+        return redirect('KeyServApp:rostro')
+
+    try:
+        validators.validar_imagen(archivo)
+    except ValidationError as error:
+        messages.error(request, ' '.join(error.messages))
+        return redirect('KeyServApp:rostro')
+
+    ruta_temporal = _guardar_archivo_temporal(archivo)
+    try:
+        encoding = biometria.calcular_encoding_facial(ruta_temporal)
+    finally:
+        os.remove(ruta_temporal)
+
+    if encoding is not None:
+        usuario.encoding_facial = encoding
+        usuario.save()
+        messages.success(request, 'Rostro registrado. Ahora podés verificarlo.')
+    else:
+        messages.error(request, 'No se pudo detectar un rostro en la foto. Probá con otra imagen, bien iluminada y de frente.')
+    return redirect('KeyServApp:rostro')
+
+
+@login_requerido
+@require_POST
+def verificacion_facial_view(request):
+    """
+    Sube una foto y la compara contra `Usuario.encoding_facial`. Requiere
+    haber registrado un rostro de referencia antes (`registro_rostro_view`).
+    """
+    usuario = obtener_usuario_actual(request)
+    if not usuario.encoding_facial:
+        messages.error(request, 'Todavía no registraste un rostro de referencia.')
+        return redirect('KeyServApp:rostro')
+
+    archivo = request.FILES.get('rostro_imagen')
+    if not archivo:
+        messages.error(request, 'Subí una foto para verificar tu rostro.')
+        return redirect('KeyServApp:rostro')
+
+    try:
+        validators.validar_imagen(archivo)
+    except ValidationError as error:
+        messages.error(request, ' '.join(error.messages))
+        return redirect('KeyServApp:rostro')
+
+    ruta_temporal = _guardar_archivo_temporal(archivo)
+    try:
+        resultado = biometria.verificar_rostro_usuario(usuario.encoding_facial, ruta_temporal)
+    finally:
+        os.remove(ruta_temporal)
+
+    if resultado:
+        usuario.verificado_biometricamente = True
+        usuario.save()
+        messages.success(request, 'Rostro verificado correctamente.')
+    elif resultado is False:
+        messages.error(request, 'El rostro no coincide con el registrado. Intenta nuevamente.')
+    else:
+        messages.error(request, 'No se pudo procesar la foto. Intenta nuevamente.')
+    return redirect('KeyServApp:perfil')
+
+
 # ---------------------------------------------------------------------------
 # Mensajería (caso de uso UML del PDF — antes los modelos existían sin vistas)
 # ---------------------------------------------------------------------------
