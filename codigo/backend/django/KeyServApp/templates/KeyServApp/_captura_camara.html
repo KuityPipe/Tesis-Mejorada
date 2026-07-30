@@ -1,0 +1,23 @@
+{% comment %}
+Widget de captura de foto reutilizable: cámara del navegador (getUserMedia)
+con fallback a selector de archivo normal. Parámetros: input_id, input_name,
+widget_id (único por instancia, la página puede tener más de un widget),
+label. La lógica vive en el bloque `extra_js` de la plantilla que lo incluye
+(busca todos los `.ks-captura-camara` de la página).
+{% endcomment %}
+<div class="ks-field ks-captura-camara" data-input-id="{{ input_id }}" id="{{ widget_id }}">
+  <label for="{{ input_id }}">{{ label }}</label>
+  <input type="file" name="{{ input_name }}" id="{{ input_id }}" accept="image/*" required>
+
+  <div class="ks-camara-error d-none" style="color: var(--ks-coral); font-size: 0.9em; margin-top: 4px;"></div>
+
+  <div style="margin-top: 8px;">
+    <button type="button" class="ks-btn ks-btn-outline ks-camara-btn-iniciar" style="font-size: 0.9em;"><i class="bi bi-camera-video"></i> Usar la cámara</button>
+    <button type="button" class="ks-btn ks-btn-primary ks-camara-btn-capturar d-none" style="font-size: 0.9em;"><i class="bi bi-camera"></i> Capturar foto</button>
+    <button type="button" class="ks-btn ks-btn-outline ks-camara-btn-repetir d-none" style="font-size: 0.9em;"><i class="bi bi-arrow-counterclockwise"></i> Repetir foto</button>
+  </div>
+
+  <video class="ks-camara-video d-none" autoplay playsinline muted style="width: 100%; border-radius: 8px; margin-top: 8px;"></video>
+  <canvas class="ks-camara-canvas d-none" style="display: none;"></canvas>
+  <img class="ks-camara-preview d-none" alt="Foto capturada" style="width: 100%; border-radius: 8px; margin-top: 8px;">
+</div>
