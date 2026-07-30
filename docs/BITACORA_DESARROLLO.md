@@ -30,8 +30,10 @@ nunca automático.
 | 15 | 2026-07-24 18:08 | `f0dc2f5` | Rediseño de Acerca de nosotros y Contacto, más cercanos e intuitivos | 37 min |
 | 16 | 2026-07-24 18:33 | `426ac49` | Terminar perfil de proveedor, preferencias de cuenta e historial de pagos | 25 min |
 | 17 | 2026-07-24 18:55 | `2ff061a` | Buscador + área libre en perfil de proveedor, certificados/documentos + fix de bug real en Documento | 22 min |
+| 18 | 2026-07-26 17:43 | `b60e26c` | Corregir CLAUDE.md: contador de tests, estado de ItemPresupuesto y paso de venv | — (otro día) |
+| 19 | 2026-07-26 18:35 | `fb88d9a` | Aplicar migración pendiente 0023 (path de storage de Documento) tras pruebas E2E | 52 min |
 
-**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min.
+**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min.
 
 ---
 

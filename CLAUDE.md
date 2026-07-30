@@ -109,7 +109,7 @@ assets/mockups/pag_html/    Static HTML frontend prototype (no framework), super
 codigo/backend/django/      Main Django project
   ├── KeyServProject/       Settings (env-var driven), WSGI, root URL conf (DB: PostgreSQL)
   └── KeyServApp/
-      ├── models.py         ~25 ORM models incl. real ForeignKeys, Contratacion, HistorialEstadoContratacion (see Data Model section)
+      ├── models.py         30 ORM models incl. real ForeignKeys, Contratacion, HistorialEstadoContratacion (see Data Model section)
       ├── views.py          Auth (real), publicaciones/contrataciones/valoraciones, chat-per-job, biometric + payment integration points
       ├── forms.py          Registro/Login/Publicacion/Valoracion forms with validation
       ├── decorators.py     `login_requerido` — custom session auth (not django.contrib.auth's user model)
@@ -186,3 +186,4 @@ The `assets/mockups/pag_html/` HTML files are **not served by Django** — they 
 - The catalog (`/servicios/`) now has real pagination (`django.core.paginator.Paginator`, `PUBLICACIONES_POR_PAGINA = 20` in `views.py`) instead of a fixed cap of 40 results with no way to see the rest.
 - No automated tests cover the admin group/permissions scoping itself, the task-based admin grouping, or the moderation dashboard UI (`_panel_aprobaciones.html`) — the 107 existing tests exercise the underlying models/views (e.g. `PublicacionYModeracionTests` covers moderation gating) but not this admin-surface layer directly.
 - `.vscode/launch.json` still points at a stale pre-reorg path — not fixed, low priority.
+- Migration `0023_alter_documento_archivo_subido.py` bakes in a machine-specific absolute Windows path (from whichever machine ran `makemigrations`) as the `FileSystemStorage(location=...)` literal, because Django's migration serializer resolves `Documento.archivo_subido`'s `storage=almacenamiento_documentos` argument (`models.py`) to its constructor kwargs at generation time instead of preserving it as a reference. This is harmless — `FileField` storage doesn't affect the DB schema, so the migration is a schema no-op on any machine, and at runtime Django always uses `storage.py`'s `almacenamiento_documentos` (built dynamically from `settings.PRIVATE_MEDIA_ROOT`), not the migration file. If a future `makemigrations` run generates another `AlterField` on this field, expect the same cosmetic diff.
