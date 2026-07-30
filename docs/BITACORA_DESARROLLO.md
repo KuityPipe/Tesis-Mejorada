@@ -32,8 +32,10 @@ nunca automático.
 | 17 | 2026-07-24 18:55 | `2ff061a` | Buscador + área libre en perfil de proveedor, certificados/documentos + fix de bug real en Documento | 22 min |
 | 18 | 2026-07-26 17:43 | `b60e26c` | Corregir CLAUDE.md: contador de tests, estado de ItemPresupuesto y paso de venv | — (otro día) |
 | 19 | 2026-07-26 18:35 | `fb88d9a` | Aplicar migración pendiente 0023 (path de storage de Documento) tras pruebas E2E | 52 min |
+| 20 | 2026-07-30 17:36 | `5154f29` | Poner CLAUDE.md al día (conteo de modelos, nota migración 0023) y completar checkpoints 18-19 en la bitácora | — (otro día) |
+| 21 | 2026-07-30 18:07 | `501caf9` | Conectar reconocimiento facial: encoding de referencia real, vistas /rostro/ y tests | 31 min |
 
-**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min.
+**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min. **Hasta el checkpoint #21**: ~17 h 04 min.
 
 ---
 
