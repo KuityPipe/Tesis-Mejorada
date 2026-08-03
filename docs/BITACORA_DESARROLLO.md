@@ -35,6 +35,7 @@ nunca automático.
 | 20 | 2026-07-30 17:36 | `5154f29` | Poner CLAUDE.md al día (conteo de modelos, nota migración 0023) y completar checkpoints 18-19 en la bitácora | — (otro día) |
 | 21 | 2026-07-30 18:07 | `501caf9` | Conectar reconocimiento facial: encoding de referencia real, vistas /rostro/ y tests | 31 min |
 | 22 | 2026-07-30 18:50 | `6a6304c` | Agregar captura de cámara en vivo a /rostro/ y documentar intento fallido de instalar face_recognition | 43 min |
+| 23 | 2026-08-03 13:32 | `c385a5e` | Instalar opencv-python/face_recognition/dlib de verdad (reintento con red estable) y corregir manejo de errores en biometria.py | — (otro día) |
 
 **Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min. **Hasta el checkpoint #21**: ~17 h 04 min. **Hasta el checkpoint #22**: ~17 h 47 min.
 
