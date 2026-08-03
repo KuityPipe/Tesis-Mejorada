@@ -107,6 +107,23 @@ def calcular_yaw(landmarks, ancho, alto):
     return angulos[1]
 
 
+def calcular_yaw_de_imagen(ruta_imagen):
+    """
+    Carga una imagen y devuelve el yaw (grados) de su único rostro. Usado
+    para dar feedback en tiempo real por AJAX paso a paso (¿este giro ya
+    alcanza?) antes de armar la prueba de vida completa de 3 fotos — evita
+    que el usuario llegue al final de los 3 pasos para recién enterarse de
+    que uno falló. Lanza `ValueError` si detecta cero o más de un rostro
+    (mismo criterio que `verificar_prueba_de_vida`).
+    """
+    import face_recognition
+
+    imagen = face_recognition.load_image_file(ruta_imagen)
+    _, landmarks = _detectar_rostro_unico(imagen)
+    alto, ancho = imagen.shape[:2]
+    return calcular_yaw(landmarks, ancho, alto)
+
+
 def verificar_prueba_de_vida(ruta_centro, ruta_derecha, ruta_izquierda):
     """
     Valida una prueba de vida de 3 fotos (de frente, girando a la derecha,

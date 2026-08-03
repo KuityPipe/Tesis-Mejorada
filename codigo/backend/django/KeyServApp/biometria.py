@@ -102,3 +102,40 @@ def verificar_rostro_usuario(encoding_guardado, ruta_centro, ruta_derecha, ruta_
         logger.exception('La prueba de vida falló al verificar el rostro: %s', error)
         return None
     return comparar_encodings(encoding_guardado, encoding_nuevo)
+
+
+def validar_paso_prueba_de_vida(ruta_imagen, paso):
+    """
+    Valida en tiempo real UN solo paso de la prueba de vida (`'centro'`,
+    `'derecha'` o `'izquierda'`) antes de tener las 3 fotos — feedback
+    inmediato en el navegador mientras el usuario todavía está frente a la
+    cámara, en vez de recién avisarle al final que un paso falló (ver
+    `validar_paso_rostro_ajax` en views.py). Reusa los mismos umbrales que
+    `probando_face_recognition.verificar_prueba_de_vida`, pero NO hace la
+    verificación cruzada entre las 3 fotos — eso sigue ocurriendo una sola
+    vez, al enviar el formulario completo.
+
+    Devuelve `(True, None)` si el paso es válido, o `(False, motivo)` si no
+    (motivo pensado para mostrarse tal cual al usuario).
+    """
+    try:
+        from probando_face_recognition import calcular_yaw_de_imagen, UMBRAL_YAW_CENTRO, UMBRAL_YAW_GIRO
+    except ImportError:
+        logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
+        return False, 'No se pudo procesar la foto — probá de nuevo.'
+
+    try:
+        yaw = calcular_yaw_de_imagen(ruta_imagen)
+    except (FileNotFoundError, OSError):
+        logger.exception('No se pudo leer la foto del paso "%s"', paso)
+        return False, 'No se pudo leer la foto — probá de nuevo.'
+    except ValueError as error:
+        return False, str(error)
+
+    if paso == 'centro' and abs(yaw) > UMBRAL_YAW_CENTRO:
+        return False, 'Mirá de frente a la cámara, no de costado.'
+    if paso == 'derecha' and yaw > -UMBRAL_YAW_GIRO:
+        return False, 'Girá un poco más la cabeza hacia la derecha.'
+    if paso == 'izquierda' and yaw < UMBRAL_YAW_GIRO:
+        return False, 'Girá un poco más la cabeza hacia la izquierda.'
+    return True, None

@@ -1528,6 +1528,40 @@ def _obtener_fotos_prueba_de_vida(request):
 
 
 @login_requerido
+@require_POST
+def validar_paso_rostro_ajax(request):
+    """
+    Endpoint AJAX: valida en tiempo real un solo paso de la cámara guiada de
+    `/rostro/` (centro/derecha/izquierda) antes de dejar avanzar al siguiente
+    paso — así el usuario se entera al toque si el giro no alcanzó o no se
+    detectó su rostro, en vez de recién enterarse al final de los 3 pasos
+    (ver el JS de `rostro.html`). No guarda nada ni hace la verificación
+    cruzada entre las 3 fotos — eso sigue pasando una sola vez al enviar el
+    formulario completo (`registro_rostro_view`/`verificacion_facial_view`).
+    """
+    paso = request.POST.get('paso')
+    if paso not in ('centro', 'derecha', 'izquierda'):
+        return JsonResponse({'ok': False, 'motivo': 'Paso inválido.'}, status=400)
+
+    archivo = request.FILES.get('foto')
+    if not archivo:
+        return JsonResponse({'ok': False, 'motivo': 'Falta la foto.'}, status=400)
+
+    try:
+        validators.validar_imagen(archivo)
+    except ValidationError as error:
+        return JsonResponse({'ok': False, 'motivo': ' '.join(error.messages)})
+
+    ruta_temporal = _guardar_archivo_temporal(archivo)
+    try:
+        ok, motivo = biometria.validar_paso_prueba_de_vida(ruta_temporal, paso)
+    finally:
+        os.remove(ruta_temporal)
+
+    return JsonResponse({'ok': ok, 'motivo': motivo})
+
+
+@login_requerido
 def rostro_view(request):
     """
     Muestra la pantalla de reconocimiento facial. Si el usuario todavía no
