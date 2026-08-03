@@ -655,16 +655,28 @@ class VerificacionHuellaSeguridadTests(TestCase):
         self.assertFalse(self.usuario.verificado_biometricamente)
 
 
+def _fotos_prueba_de_vida():
+    """3 archivos (centro/derecha/izquierda) para postear a registro_rostro/verificacion_facial — instancias frescas cada vez, mismo motivo que `_imagen_de_prueba`."""
+    return {
+        'rostro_centro': _imagen_de_prueba(),
+        'rostro_derecha': _imagen_de_prueba(),
+        'rostro_izquierda': _imagen_de_prueba(),
+    }
+
+
 class ReconocimientoFacialTests(TestCase):
     """
     `Usuario.encoding_facial` (migración 0024) es lo que le faltaba al
     reconocimiento facial para poder comparar contra algo real (ver Known
     Issues en CLAUDE.md — a diferencia de la huella, ahora sí hay una
-    referencia guardada). `opencv-python`/`face_recognition` no están
-    instalados en este entorno (dependencias pesadas, sin cámara para probar
-    contra hardware real) — se mockean a nivel de `biometria` para probar el
-    flujo completo de las vistas, mismo patrón que TransbankService/KhipuService
-    en los tests de pagos.
+    referencia guardada). `opencv-python`/`face_recognition`/`dlib` están
+    instalados y el pipeline real se probó en vivo contra una webcam (ver
+    CLAUDE.md) — pero acá se sigue mockeando `biometria.calcular_encoding_facial`/
+    `verificar_rostro_usuario` para probar el flujo de las vistas (prueba de
+    vida de 3 fotos: centro/derecha/izquierda) de forma rápida y determinista,
+    mismo patrón que TransbankService/KhipuService en los tests de pagos —
+    ejercitar la detección real de rostro/yaw contra imágenes sintéticas no
+    es viable, eso se probó a mano con fotos reales.
     """
 
     def setUp(self):
@@ -680,15 +692,25 @@ class ReconocimientoFacialTests(TestCase):
         self.assertTrue(hasattr(biometria, 'calcular_encoding_facial'))
         self.assertTrue(hasattr(biometria, 'verificar_rostro_usuario'))
 
-    def test_calcular_encoding_sin_dependencias_instaladas_devuelve_none(self):
-        # opencv-python/face_recognition no están instalados en este entorno de pruebas.
-        resultado = biometria.calcular_encoding_facial('/ruta/que/no/existe.png')
+    def test_calcular_encoding_con_archivos_inexistentes_devuelve_none(self):
+        resultado = biometria.calcular_encoding_facial('/no/existe/1.png', '/no/existe/2.png', '/no/existe/3.png')
         self.assertIsNone(resultado)
 
-    def test_registro_requiere_archivo(self):
+    def test_registro_requiere_los_3_pasos(self):
         client = Client()
         self._login(client)
         client.post(reverse('KeyServApp:registro_rostro'), {})
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.encoding_facial)
+
+    def test_registro_con_un_paso_faltante_no_guarda_nada(self):
+        client = Client()
+        self._login(client)
+        fotos = _fotos_prueba_de_vida()
+        del fotos['rostro_izquierda']
+        with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=[0.1] * 128) as calcular:
+            client.post(reverse('KeyServApp:registro_rostro'), fotos)
+            calcular.assert_not_called()
         self.usuario.refresh_from_db()
         self.assertIsNone(self.usuario.encoding_facial)
 
@@ -697,23 +719,24 @@ class ReconocimientoFacialTests(TestCase):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=encoding_falso):
-            client.post(reverse('KeyServApp:registro_rostro'), {'rostro_imagen': _imagen_de_prueba()})
+            client.post(reverse('KeyServApp:registro_rostro'), _fotos_prueba_de_vida())
         self.usuario.refresh_from_db()
         self.assertEqual(self.usuario.encoding_facial, encoding_falso)
 
-    def test_registro_sin_deteccion_de_rostro_no_guarda_nada(self):
+    def test_registro_sin_prueba_de_vida_valida_no_guarda_nada(self):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=None):
-            client.post(reverse('KeyServApp:registro_rostro'), {'rostro_imagen': _imagen_de_prueba()})
+            client.post(reverse('KeyServApp:registro_rostro'), _fotos_prueba_de_vida())
         self.usuario.refresh_from_db()
         self.assertIsNone(self.usuario.encoding_facial)
 
     def test_archivo_que_no_es_una_imagen_real_se_rechaza_al_registrar(self):
         client = Client()
         self._login(client)
-        falso = SimpleUploadedFile('rostro.png', b'no es una imagen real', content_type='image/png')
-        client.post(reverse('KeyServApp:registro_rostro'), {'rostro_imagen': falso})
+        fotos = _fotos_prueba_de_vida()
+        fotos['rostro_centro'] = SimpleUploadedFile('rostro.png', b'no es una imagen real', content_type='image/png')
+        client.post(reverse('KeyServApp:registro_rostro'), fotos)
         self.usuario.refresh_from_db()
         self.assertIsNone(self.usuario.encoding_facial)
 
@@ -721,7 +744,7 @@ class ReconocimientoFacialTests(TestCase):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=True) as verificar:
-            client.post(reverse('KeyServApp:verificacion_facial'), {'rostro_imagen': _imagen_de_prueba()})
+            client.post(reverse('KeyServApp:verificacion_facial'), _fotos_prueba_de_vida())
             verificar.assert_not_called()
         self.usuario.refresh_from_db()
         self.assertFalse(self.usuario.verificado_biometricamente)
@@ -732,20 +755,19 @@ class ReconocimientoFacialTests(TestCase):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=True):
-            client.post(reverse('KeyServApp:verificacion_facial'), {'rostro_imagen': _imagen_de_prueba()})
+            client.post(reverse('KeyServApp:verificacion_facial'), _fotos_prueba_de_vida())
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.verificado_biometricamente)
 
-    def test_verificacion_fallida_no_marca_al_usuario(self):
+    def test_verificacion_rechazada_no_marca_al_usuario_verificado(self):
         self.usuario.encoding_facial = [0.1] * 128
         self.usuario.save()
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=False):
-            client.post(reverse('KeyServApp:verificacion_facial'), {'rostro_imagen': _imagen_de_prueba()})
+            client.post(reverse('KeyServApp:verificacion_facial'), _fotos_prueba_de_vida())
         self.usuario.refresh_from_db()
         self.assertFalse(self.usuario.verificado_biometricamente)
-
 
 class PublicacionYModeracionTests(TestCase):
     """Publicaciones.estado_moderacion (nuevo en Fase 3) — solo lo aprobado debe verse en el listado público."""

@@ -43,55 +43,62 @@ def procesar_huella_dactilar(ruta_imagen=None):
         return None
 
 
-def calcular_encoding_facial(ruta_imagen):
+def calcular_encoding_facial(ruta_centro, ruta_derecha, ruta_izquierda):
     """
-    Calcula el encoding facial (128 floats) de una foto de referencia recién
-    subida, listo para guardar en `Usuario.encoding_facial`. Devuelve una
-    lista de floats (serializable en el JSONField) o None si algo falla
-    (dependencias no instaladas, o no se detectó ningún rostro en la foto) —
-    mismo patrón "None en vez de reventar la vista" que `procesar_huella_dactilar`.
+    Valida una prueba de vida de 3 fotos (de frente, girando a la derecha,
+    girando a la izquierda — mismo patrón "challenge-response" que usan la
+    mayoría de flujos KYC) y calcula el encoding facial (128 floats) de la
+    foto central, listo para guardar en `Usuario.encoding_facial`. Devuelve
+    una lista de floats (serializable en el JSONField) o None si algo falla
+    (dependencias no instaladas, no se detectó ningún rostro o se detectó más
+    de uno en alguna foto, el giro de cabeza no fue válido, o las 3 fotos no
+    parecen ser de la misma persona) — mismo patrón "None en vez de reventar
+    la vista" que `procesar_huella_dactilar`.
     """
     try:
-        from probando_face_recognition import cargar_rostro_conocido
+        from probando_face_recognition import verificar_prueba_de_vida
     except ImportError:
         logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
         return None
 
     try:
-        encoding = cargar_rostro_conocido(ruta_imagen)
+        encoding = verificar_prueba_de_vida(ruta_centro, ruta_derecha, ruta_izquierda)
     except (FileNotFoundError, OSError):
-        logger.exception('No se pudo leer la imagen de referencia: %s', ruta_imagen)
+        logger.exception('No se pudo leer alguna de las fotos de referencia')
         return None
-    except ValueError:
-        logger.exception('No se detectó ningún rostro en la imagen de referencia: %s', ruta_imagen)
+    except ValueError as error:
+        logger.exception('La prueba de vida falló al registrar el rostro: %s', error)
         return None
     return list(float(valor) for valor in encoding)
 
 
-def verificar_rostro_usuario(encoding_guardado, ruta_imagen_verificacion):
+def verificar_rostro_usuario(encoding_guardado, ruta_centro, ruta_derecha, ruta_izquierda):
     """
-    Compara una foto recién subida contra el encoding de referencia ya
+    Repite la misma prueba de vida de 3 fotos que `calcular_encoding_facial`
+    y compara el encoding resultante contra el encoding de referencia ya
     guardado en `Usuario.encoding_facial`. No abre ninguna webcam — el flujo
-    real es que el navegador del cliente capture la foto y la suba como
-    archivo, igual que la huella (ver `verificacion_facial_view` en views.py).
-    `verificar_rostro()`/`cargar_rostro_conocido()` con loop de webcam en
-    `probando_face_recognition.py` quedan solo para pruebas manuales locales
-    (`python probando_face_recognition.py`), no para el servidor.
+    real es que el navegador del cliente capture las 3 fotos y las suba como
+    archivos, igual que la huella (ver `verificacion_facial_view` en views.py).
+    `verificar_rostro()` con loop de webcam en `probando_face_recognition.py`
+    queda solo para pruebas manuales locales (`python probando_face_recognition.py`),
+    no para el servidor.
 
-    Devuelve True/False, o None si las dependencias no están instaladas o no
-    se detectó ningún rostro en la foto subida (no revienta la vista).
+    Devuelve True/False, o None si las dependencias no están instaladas, la
+    prueba de vida falló (ver `calcular_encoding_facial`), o no se pudo leer
+    alguna foto (no revienta la vista).
     """
     try:
-        from probando_face_recognition import verificar_rostro_en_imagen
+        from probando_face_recognition import verificar_prueba_de_vida, comparar_encodings
     except ImportError:
         logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
         return None
 
     try:
-        return verificar_rostro_en_imagen(encoding_guardado, ruta_imagen_verificacion)
+        encoding_nuevo = verificar_prueba_de_vida(ruta_centro, ruta_derecha, ruta_izquierda)
     except (FileNotFoundError, OSError):
-        logger.exception('No se pudo leer la imagen de verificación: %s', ruta_imagen_verificacion)
+        logger.exception('No se pudo leer alguna de las fotos de verificación')
         return None
-    except ValueError:
-        logger.exception('No se detectó ningún rostro en la imagen de verificación: %s', ruta_imagen_verificacion)
+    except ValueError as error:
+        logger.exception('La prueba de vida falló al verificar el rostro: %s', error)
         return None
+    return comparar_encodings(encoding_guardado, encoding_nuevo)

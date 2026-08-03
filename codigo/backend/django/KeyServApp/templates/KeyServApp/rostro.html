@@ -9,12 +9,12 @@
 
     {% if tiene_referencia %}
       <h1>Verificación facial</h1>
-      <p class="ks-help">Ya registraste un rostro de referencia. Sacate una foto nueva (o subí una) para verificar tu identidad.</p>
+      <p class="ks-help">Ya registraste un rostro de referencia. Mirá a la cámara y seguí los 3 pasos (de frente, girando a la derecha y a la izquierda) para verificar tu identidad.</p>
 
       <form method="post" action="{% url 'KeyServApp:verificacion_facial' %}" enctype="multipart/form-data" class="ks-form text-start" id="form-verificar-rostro">
         {% csrf_token %}
-        {% include "KeyServApp/_captura_camara.html" with input_id="rostro_imagen" input_name="rostro_imagen" widget_id="cam-verificar" label="Foto para verificar" %}
-        <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center"><i class="bi bi-person-bounding-box"></i> Verificar rostro</button>
+        {% include "KeyServApp/_captura_camara.html" with widget_id="cam-verificar" %}
+        <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center" disabled><i class="bi bi-person-bounding-box"></i> Verificar rostro</button>
       </form>
 
       <p class="ks-help mt-3">¿Cambiaste de foto de referencia? Podés <a href="#registrar-rostro">volver a registrarla</a> más abajo.</p>
@@ -24,13 +24,13 @@
       <h2 id="registrar-rostro" class="h5">Registrar un nuevo rostro de referencia</h2>
     {% else %}
       <h1>Registrar rostro de referencia</h1>
-      <p class="ks-help">Antes de poder verificar tu identidad por rostro, necesitamos una foto de referencia clara, bien iluminada y de frente.</p>
+      <p class="ks-help">Antes de poder verificar tu identidad por rostro, necesitamos que mires a la cámara y sigas los 3 pasos (de frente, girando a la derecha y a la izquierda), con buena luz.</p>
     {% endif %}
 
     <form method="post" action="{% url 'KeyServApp:registro_rostro' %}" enctype="multipart/form-data" class="ks-form text-start" id="form-registrar-rostro">
       {% csrf_token %}
-      {% include "KeyServApp/_captura_camara.html" with input_id="rostro_imagen_registro" input_name="rostro_imagen" widget_id="cam-registrar" label="Foto de referencia" %}
-      <button type="submit" class="ks-btn {% if tiene_referencia %}ks-btn-outline{% else %}ks-btn-primary{% endif %} w-100 justify-content-center"><i class="bi bi-camera"></i> {% if tiene_referencia %}Reemplazar rostro de referencia{% else %}Registrar rostro{% endif %}</button>
+      {% include "KeyServApp/_captura_camara.html" with widget_id="cam-registrar" %}
+      <button type="submit" class="ks-btn {% if tiene_referencia %}ks-btn-outline{% else %}ks-btn-primary{% endif %} w-100 justify-content-center" disabled><i class="bi bi-camera"></i> {% if tiene_referencia %}Reemplazar rostro de referencia{% else %}Registrar rostro{% endif %}</button>
     </form>
   </div>
 </section>
@@ -38,19 +38,28 @@
 
 {% block extra_js %}
 <script>
-  // Captura de foto vía webcam (getUserMedia + canvas) para cada widget
-  // `.ks-captura-camara` de la página — no depende de nada del servidor:
-  // si el navegador no tiene cámara o el usuario no da permiso, el <input
-  // type="file"> normal sigue funcionando igual que antes (selección manual).
-  document.querySelectorAll('.ks-captura-camara').forEach(function (widget) {
-    var input = document.getElementById(widget.dataset.inputId);
-    var video = widget.querySelector('.ks-camara-video');
-    var canvas = widget.querySelector('.ks-camara-canvas');
-    var preview = widget.querySelector('.ks-camara-preview');
-    var btnUsarCamara = widget.querySelector('.ks-camara-btn-iniciar');
-    var btnCapturar = widget.querySelector('.ks-camara-btn-capturar');
-    var btnRepetir = widget.querySelector('.ks-camara-btn-repetir');
+  // Prueba de vida: captura guiada de 3 fotos por webcam (getUserMedia +
+  // canvas) para cada widget `.ks-prueba-vida` de la página. A propósito NO
+  // hay selector de archivo manual — si la cámara falla o el permiso se
+  // deniega, se muestra el error y no hay forma de continuar sin cámara
+  // (más difícil de falsear con una foto/video que un simple upload).
+  document.querySelectorAll('.ks-prueba-vida').forEach(function (widget) {
+    var pasos = [
+      { input: widget.querySelector('.ks-pv-input-centro'), preview: widget.querySelector('.ks-pv-preview-centro'), texto: 'Mirá de frente a la cámara y capturá' },
+      { input: widget.querySelector('.ks-pv-input-derecha'), preview: widget.querySelector('.ks-pv-preview-derecha'), texto: 'Girá la cabeza hacia la derecha y capturá' },
+      { input: widget.querySelector('.ks-pv-input-izquierda'), preview: widget.querySelector('.ks-pv-preview-izquierda'), texto: 'Girá la cabeza hacia la izquierda y capturá' }
+    ];
+    var video = widget.querySelector('.ks-pv-video');
+    var canvas = widget.querySelector('.ks-pv-canvas');
+    var errorEl = widget.querySelector('.ks-camara-error');
+    var pasoNumEl = widget.querySelector('.ks-pv-paso-num');
+    var pasoTextoEl = widget.querySelector('.ks-pv-paso-texto');
+    var btnIniciar = widget.querySelector('.ks-pv-btn-iniciar');
+    var btnCapturar = widget.querySelector('.ks-pv-btn-capturar');
+    var btnRepetir = widget.querySelector('.ks-pv-btn-repetir');
+    var btnSubmit = widget.closest('form').querySelector('button[type="submit"]');
     var stream = null;
+    var pasoActual = 0;
 
     function detenerCamara() {
       if (stream) {
@@ -61,10 +70,29 @@
       btnCapturar.classList.add('d-none');
     }
 
-    btnUsarCamara.addEventListener('click', function () {
+    function iniciarPaso() {
+      pasoNumEl.textContent = String(pasoActual + 1);
+      pasoTextoEl.textContent = pasos[pasoActual].texto;
+    }
+
+    function reiniciar() {
+      detenerCamara();
+      pasos.forEach(function (paso) {
+        paso.input.value = '';
+        paso.preview.classList.add('d-none');
+      });
+      pasoActual = 0;
+      iniciarPaso();
+      btnRepetir.classList.add('d-none');
+      btnIniciar.classList.remove('d-none');
+      btnIniciar.textContent = 'Iniciar cámara';
+      btnSubmit.disabled = true;
+    }
+
+    btnIniciar.addEventListener('click', function () {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        widget.querySelector('.ks-camara-error').textContent = 'Este navegador no soporta acceso a la cámara — usá el selector de archivo.';
-        widget.querySelector('.ks-camara-error').classList.remove('d-none');
+        errorEl.textContent = 'Este navegador no soporta acceso a la cámara — no se puede continuar sin ella.';
+        errorEl.classList.remove('d-none');
         return;
       }
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }).then(function (s) {
@@ -72,12 +100,11 @@
         video.srcObject = stream;
         video.classList.remove('d-none');
         btnCapturar.classList.remove('d-none');
-        btnUsarCamara.classList.add('d-none');
-        preview.classList.add('d-none');
-        btnRepetir.classList.add('d-none');
+        btnIniciar.classList.add('d-none');
+        errorEl.classList.add('d-none');
       }).catch(function () {
-        widget.querySelector('.ks-camara-error').textContent = 'No se pudo acceder a la cámara (¿denegaste el permiso?) — usá el selector de archivo.';
-        widget.querySelector('.ks-camara-error').classList.remove('d-none');
+        errorEl.textContent = 'No se pudo acceder a la cámara (¿denegaste el permiso?) — no se puede continuar sin ella.';
+        errorEl.classList.remove('d-none');
       });
     });
 
@@ -86,35 +113,28 @@
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(function (blob) {
-        var archivo = new File([blob], 'captura.jpg', { type: 'image/jpeg' });
+        var paso = pasos[pasoActual];
+        var archivo = new File([blob], 'captura-' + pasoActual + '.jpg', { type: 'image/jpeg' });
         var dt = new DataTransfer();
         dt.items.add(archivo);
-        input.files = dt.files;
+        paso.input.files = dt.files;
+        paso.preview.src = canvas.toDataURL('image/jpeg');
+        paso.preview.classList.remove('d-none');
 
-        preview.src = canvas.toDataURL('image/jpeg');
-        preview.classList.remove('d-none');
-        btnRepetir.classList.remove('d-none');
-        detenerCamara();
-        btnUsarCamara.classList.remove('d-none');
-        btnUsarCamara.textContent = 'Volver a usar la cámara';
+        pasoActual += 1;
+        if (pasoActual < pasos.length) {
+          iniciarPaso();
+        } else {
+          detenerCamara();
+          btnRepetir.classList.remove('d-none');
+          btnSubmit.disabled = false;
+        }
       }, 'image/jpeg', 0.92);
     });
 
-    btnRepetir.addEventListener('click', function () {
-      preview.classList.add('d-none');
-      btnRepetir.classList.add('d-none');
-      input.value = '';
-      btnUsarCamara.click();
-    });
+    btnRepetir.addEventListener('click', reiniciar);
 
-    // Si el usuario elige un archivo a mano después de haber capturado, la
-    // vista previa de la cámara queda desactualizada — ocultarla.
-    input.addEventListener('change', function () {
-      if (input.files.length && input.files[0].name !== 'captura.jpg') {
-        preview.classList.add('d-none');
-        btnRepetir.classList.add('d-none');
-      }
-    });
+    iniciarPaso();
   });
 </script>
 {% endblock %}
