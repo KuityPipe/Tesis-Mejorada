@@ -53,9 +53,14 @@ def calcular_encoding_facial(ruta_imagen):
     """
     try:
         from probando_face_recognition import cargar_rostro_conocido
-        encoding = cargar_rostro_conocido(ruta_imagen)
     except ImportError:
         logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
+        return None
+
+    try:
+        encoding = cargar_rostro_conocido(ruta_imagen)
+    except (FileNotFoundError, OSError):
+        logger.exception('No se pudo leer la imagen de referencia: %s', ruta_imagen)
         return None
     except ValueError:
         logger.exception('No se detectó ningún rostro en la imagen de referencia: %s', ruta_imagen)
@@ -78,9 +83,14 @@ def verificar_rostro_usuario(encoding_guardado, ruta_imagen_verificacion):
     """
     try:
         from probando_face_recognition import verificar_rostro_en_imagen
-        return verificar_rostro_en_imagen(encoding_guardado, ruta_imagen_verificacion)
     except ImportError:
         logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
+        return None
+
+    try:
+        return verificar_rostro_en_imagen(encoding_guardado, ruta_imagen_verificacion)
+    except (FileNotFoundError, OSError):
+        logger.exception('No se pudo leer la imagen de verificación: %s', ruta_imagen_verificacion)
         return None
     except ValueError:
         logger.exception('No se detectó ningún rostro en la imagen de verificación: %s', ruta_imagen_verificacion)

@@ -26,10 +26,23 @@ geoip2>=4.8
 # solo necesita Pillow, ya declarado arriba.
 
 # Reconocimiento facial (codigo/biometria/reconocimiento_facial/) — pesado
-# (dlib se compila nativamente), instalar aparte si se va a probar esa
-# funcionalidad puntual. No es necesario para levantar el resto del sitio.
-opencv-python==4.9.0.80
+# (dlib se compila nativamente, necesita el workload "Desktop development
+# with C++" de Visual Studio Build Tools instalado en la máquina), instalar
+# aparte si se va a probar esa funcionalidad puntual. No es necesario para
+# levantar el resto del sitio.
+# opencv-python==4.9.0.80 (la versión que pedía la tesis) está compilado
+# contra la ABI de NumPy 1.x y revienta con "AttributeError: _ARRAY_API not
+# found" bajo NumPy 2.x — y NumPy 1.x no tiene wheel para Python 3.14, así
+# que no se puede bajar NumPy en vez de subir opencv. Se sube opencv-python
+# a la primera versión con wheel para cp314 (>=4.10 ya soporta NumPy 2.x).
+opencv-python>=4.10
 face_recognition==1.3.0
+# face_recognition_models (dependencia de face_recognition) todavía usa
+# `pkg_resources` para ubicar sus archivos .dat, y setuptools>=81 lo quitó
+# por completo (antes solo lo marcaba deprecado) — sin este pin, importar
+# face_recognition_models revienta con "ModuleNotFoundError: No module
+# named 'pkg_resources'" pese a tener setuptools instalado.
+setuptools<81
 
 # Generación de PDF (codigo/biometria/huella/GUARDAR_DOCUMENTO.py)
 fpdf2==2.7.9
