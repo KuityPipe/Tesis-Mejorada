@@ -15,19 +15,24 @@ detectan igual que detectaron los bugs originales cuando se armó Fase 3.
 """
 from unittest import mock
 
+from django.contrib import admin
+from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, Client, override_settings
+from django.core.management import call_command
+from django.test import TestCase, Client, RequestFactory, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import (
-    Comuna, Contratacion, Documento, EstadoDocumento,
+    Comuna, Consulta, Contratacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, IntentoAccesoSospechoso, ItemPresupuesto,
     Pago, Publicaciones, Ranking, Region, TipoCuenta, Usuario, Valoracion,
     ValoracionImagen,
 )
 from . import biometria, geolocalizacion, validators
+from .templatetags.admin_extras import panel_aprobaciones
 import probando_face_recognition
 
 
@@ -1532,3 +1537,175 @@ class ValoracionConFotoMaliciosaTests(TestCase):
         self.assertEqual(ValoracionImagen.objects.filter(valoracion=contratacion.valoracion).count(), 1)
         mensajes = [str(m) for m in response.context['messages']]
         self.assertTrue(any('script.jpg' in m for m in mensajes))
+
+
+class GrupoModeradorCommandTests(TestCase):
+    """
+    `configurar_grupo_moderador` (management command, Fase 5/6) decide qué
+    puede ver/tocar un moderador en /admin/ — sin test desde que se agregó,
+    a pesar de ser la única fuente de verdad de ese alcance (ver
+    PERMISOS_MODERADOR en el propio comando).
+    """
+
+    def test_comando_crea_el_grupo(self):
+        self.assertFalse(Group.objects.filter(name='Moderador').exists())
+        call_command('configurar_grupo_moderador', verbosity=0)
+        self.assertTrue(Group.objects.filter(name='Moderador').exists())
+
+    def test_grupo_tiene_exactamente_los_permisos_esperados(self):
+        call_command('configurar_grupo_moderador', verbosity=0)
+        codenames = set(Group.objects.get(name='Moderador').permissions.values_list('codename', flat=True))
+        self.assertEqual(codenames, {
+            'view_publicaciones', 'change_publicaciones',
+            'view_imagenes',
+            'view_documento', 'change_documento',
+            'view_consulta', 'change_consulta',
+            'view_contratacion',
+            'view_historialestadocontratacion',
+            'view_conversacion',
+            'view_mensaje',
+            'view_valoracion', 'change_valoracion',
+            'view_valoracionimagen', 'change_valoracionimagen',
+            'view_ranking',
+            'view_intentoaccesosospechoso',
+        })
+
+    def test_grupo_no_tiene_permisos_sobre_modelos_sensibles(self):
+        """'Todo menos logs y bases de datos' (docstring del comando) — Usuario, pagos e infraestructura quedan afuera."""
+        call_command('configurar_grupo_moderador', verbosity=0)
+        modelos_sensibles = {'usuario', 'transaccion', 'gasto', 'autentificacion', 'firma', 'usuarioadministrativo', 'pago'}
+        modelos_con_permiso = {
+            permiso.content_type.model
+            for permiso in Group.objects.get(name='Moderador').permissions.all()
+        }
+        self.assertEqual(modelos_con_permiso & modelos_sensibles, set())
+
+    def test_comando_es_idempotente(self):
+        call_command('configurar_grupo_moderador', verbosity=0)
+        total_1 = Group.objects.get(name='Moderador').permissions.count()
+        call_command('configurar_grupo_moderador', verbosity=0)
+        total_2 = Group.objects.get(name='Moderador').permissions.count()
+        self.assertEqual(total_1, total_2)
+
+
+class AdminAgrupacionTests(TestCase):
+    """
+    `_get_app_list_agrupado` (admin.py, Fase 6) reemplaza el bloque plano
+    "Keyservapp" con ~25 modelos por categorías por tarea — sin test desde
+    que se agregó, a pesar de decidir qué ve cada rol al entrar a /admin/.
+    """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def _grupos_para(self, usuario):
+        request = self.factory.get('/admin/')
+        request.user = usuario
+        return admin.site.get_app_list(request)
+
+    def test_superuser_ve_todas_las_categorias(self):
+        superuser = User.objects.create_superuser('super_agrupacion', 'super_agrupacion@test.com', 'clave12345')
+        nombres = {grupo['name'] for grupo in self._grupos_para(superuser)}
+        self.assertEqual(nombres, {
+            'Solicitudes y moderación', 'Seguridad', 'Mensajería',
+            'Usuarios y cuentas', 'Catálogos de referencia',
+            'Finanzas e infraestructura', 'Auditoría',
+        })
+
+    def test_ningun_modelo_registrado_cae_en_otros_para_superuser(self):
+        """
+        Guarda de regresión: si alguien registra un modelo nuevo en admin.py
+        y se olvida de sumarlo a _CATEGORIAS_ADMIN, este test lo detecta acá
+        en vez de que el modelo aparezca en silencio bajo "Otros".
+        """
+        superuser = User.objects.create_superuser('super_otros', 'super_otros@test.com', 'clave12345')
+        nombres = {grupo['name'] for grupo in self._grupos_para(superuser)}
+        self.assertNotIn('Otros', nombres)
+
+    def test_moderador_solo_ve_las_categorias_que_le_corresponden(self):
+        call_command('configurar_grupo_moderador', verbosity=0)
+        moderador = User.objects.create_user('mod_agrupacion', password='ModTest1234', is_staff=True)
+        moderador.groups.add(Group.objects.get(name='Moderador'))
+        nombres = {grupo['name'] for grupo in self._grupos_para(moderador)}
+        self.assertEqual(nombres, {'Solicitudes y moderación', 'Seguridad', 'Mensajería'})
+
+
+class PanelAprobacionesTests(TestCase):
+    """
+    `panel_aprobaciones` (templatetags/admin_extras.py, Fase 5/6) arma el
+    dashboard de /admin/ (publicaciones pendientes, incidencias abiertas,
+    intentos sospechosos) — sin test desde que se agregó, pese a ser lo
+    primero que ve cualquier moderador al entrar.
+    """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('mod_panel@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+
+    def _contexto_para(self, usuario_admin):
+        request = self.factory.get('/admin/')
+        request.user = usuario_admin
+        return panel_aprobaciones({'request': request})
+
+    def test_superuser_ve_publicaciones_pendientes_pero_no_las_aprobadas(self):
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pendiente', estado_moderacion=Publicaciones.PENDIENTE)
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Aprobada', estado_moderacion=Publicaciones.APROBADA)
+        superuser = User.objects.create_superuser('super_panel', 'super_panel@test.com', 'clave12345')
+
+        contexto = self._contexto_para(superuser)
+
+        self.assertEqual(contexto['total_pendientes'], 1)
+        self.assertEqual(list(contexto['publicaciones_pendientes'])[0].titulo, 'Pendiente')
+        self.assertTrue(contexto['es_superuser'])
+
+    def test_usuario_sin_permiso_no_ve_publicaciones_pendientes(self):
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pendiente', estado_moderacion=Publicaciones.PENDIENTE)
+        sin_permisos = User.objects.create_user('sin_permisos_panel', password='clave12345', is_staff=True)
+
+        contexto = self._contexto_para(sin_permisos)
+
+        self.assertNotIn('total_pendientes', contexto)
+        self.assertNotIn('publicaciones_pendientes', contexto)
+        self.assertFalse(contexto['es_superuser'])
+
+    def test_superuser_ve_incidencias_abiertas_pero_no_las_cerradas(self):
+        Consulta.objects.create(asunto_consulta='Problema de pago', estado_consulta=EstadoConsulta.objects.get(pk=1))  # 1 = Abierta
+        Consulta.objects.create(asunto_consulta='Ya resuelto', estado_consulta=EstadoConsulta.objects.get(pk=4))  # 4 = Cerrada
+        superuser = User.objects.create_superuser('super_consultas', 'super_consultas@test.com', 'clave12345')
+
+        contexto = self._contexto_para(superuser)
+
+        self.assertEqual(contexto['total_abiertas'], 1)
+        self.assertEqual(list(contexto['consultas_abiertas'])[0].asunto_consulta, 'Problema de pago')
+
+    def test_ventana_48h_excluye_intentos_sospechosos_viejos(self):
+        reciente = IntentoAccesoSospechoso.objects.create(recurso='chat', recurso_id='1', ruta='/chat/1/')
+        viejo = IntentoAccesoSospechoso.objects.create(recurso='chat', recurso_id='2', ruta='/chat/2/')
+        IntentoAccesoSospechoso.objects.filter(pk=viejo.pk).update(fecha=timezone.now() - timezone.timedelta(hours=49))
+        superuser = User.objects.create_superuser('super_intentos', 'super_intentos@test.com', 'clave12345')
+
+        contexto = self._contexto_para(superuser)
+
+        self.assertEqual(contexto['total_sospechosos'], 1)
+        self.assertEqual(contexto['intentos_sospechosos'][0].pk, reciente.pk)
+
+    def test_dashboard_oculta_bloques_solo_admin_a_moderador(self):
+        call_command('configurar_grupo_moderador', verbosity=0)
+        moderador = User.objects.create_user('mod_dashboard', password='ModTest1234', is_staff=True)
+        moderador.groups.add(Group.objects.get(name='Moderador'))
+        client = Client()
+        client.force_login(moderador)
+
+        response = client.get(reverse('admin:index'))
+
+        self.assertNotContains(response, 'solo admin')
+
+    def test_dashboard_muestra_bloques_solo_admin_a_superuser(self):
+        superuser = User.objects.create_superuser('super_dashboard', 'super_dashboard@test.com', 'clave12345')
+        client = Client()
+        client.force_login(superuser)
+
+        response = client.get(reverse('admin:index'))
+
+        self.assertContains(response, 'solo admin')
