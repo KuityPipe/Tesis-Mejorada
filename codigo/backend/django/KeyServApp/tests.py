@@ -28,6 +28,7 @@ from .models import (
     ValoracionImagen,
 )
 from . import biometria, geolocalizacion, validators
+import probando_face_recognition
 
 
 def _imagen_de_prueba():
@@ -655,13 +656,9 @@ class VerificacionHuellaSeguridadTests(TestCase):
         self.assertFalse(self.usuario.verificado_biometricamente)
 
 
-def _fotos_prueba_de_vida():
-    """3 archivos (centro/derecha/izquierda) para postear a registro_rostro/verificacion_facial — instancias frescas cada vez, mismo motivo que `_imagen_de_prueba`."""
-    return {
-        'rostro_centro': _imagen_de_prueba(),
-        'rostro_derecha': _imagen_de_prueba(),
-        'rostro_izquierda': _imagen_de_prueba(),
-    }
+def _frames_prueba_de_vida(cantidad=8):
+    """Ráfaga de `cantidad` archivos para postear a registro_rostro/verificacion_facial (campo `rostro_frames`) — instancias frescas cada vez, mismo motivo que `_imagen_de_prueba`."""
+    return {'rostro_frames': [_imagen_de_prueba() for _ in range(cantidad)]}
 
 
 class ReconocimientoFacialTests(TestCase):
@@ -673,10 +670,11 @@ class ReconocimientoFacialTests(TestCase):
     instalados y el pipeline real se probó en vivo contra una webcam (ver
     CLAUDE.md) — pero acá se sigue mockeando `biometria.calcular_encoding_facial`/
     `verificar_rostro_usuario` para probar el flujo de las vistas (prueba de
-    vida de 3 fotos: centro/derecha/izquierda) de forma rápida y determinista,
-    mismo patrón que TransbankService/KhipuService en los tests de pagos —
-    ejercitar la detección real de rostro/yaw contra imágenes sintéticas no
-    es viable, eso se probó a mano con fotos reales.
+    vida por parpadeo sobre una ráfaga de cuadros, campo `rostro_frames`) de
+    forma rápida y determinista, mismo patrón que TransbankService/KhipuService
+    en los tests de pagos — ejercitar la detección real de rostro/parpadeo
+    contra imágenes sintéticas no es viable, eso se probó a mano con fotos
+    reales.
     """
 
     def setUp(self):
@@ -693,23 +691,22 @@ class ReconocimientoFacialTests(TestCase):
         self.assertTrue(hasattr(biometria, 'verificar_rostro_usuario'))
 
     def test_calcular_encoding_con_archivos_inexistentes_devuelve_none(self):
-        resultado = biometria.calcular_encoding_facial('/no/existe/1.png', '/no/existe/2.png', '/no/existe/3.png')
+        resultado = biometria.calcular_encoding_facial(['/no/existe/1.png'] * 8)
         self.assertIsNone(resultado)
 
-    def test_registro_requiere_los_3_pasos(self):
+    def test_registro_requiere_una_captura(self):
         client = Client()
         self._login(client)
         client.post(reverse('KeyServApp:registro_rostro'), {})
         self.usuario.refresh_from_db()
         self.assertIsNone(self.usuario.encoding_facial)
 
-    def test_registro_con_un_paso_faltante_no_guarda_nada(self):
+    def test_registro_con_captura_incompleta_no_guarda_nada(self):
         client = Client()
         self._login(client)
-        fotos = _fotos_prueba_de_vida()
-        del fotos['rostro_izquierda']
+        frames = _frames_prueba_de_vida(cantidad=2)  # menos que _FRAMES_MINIMOS_CAPTURA
         with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=[0.1] * 128) as calcular:
-            client.post(reverse('KeyServApp:registro_rostro'), fotos)
+            client.post(reverse('KeyServApp:registro_rostro'), frames)
             calcular.assert_not_called()
         self.usuario.refresh_from_db()
         self.assertIsNone(self.usuario.encoding_facial)
@@ -719,7 +716,7 @@ class ReconocimientoFacialTests(TestCase):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=encoding_falso):
-            client.post(reverse('KeyServApp:registro_rostro'), _fotos_prueba_de_vida())
+            client.post(reverse('KeyServApp:registro_rostro'), _frames_prueba_de_vida())
         self.usuario.refresh_from_db()
         self.assertEqual(self.usuario.encoding_facial, encoding_falso)
 
@@ -727,16 +724,16 @@ class ReconocimientoFacialTests(TestCase):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=None):
-            client.post(reverse('KeyServApp:registro_rostro'), _fotos_prueba_de_vida())
+            client.post(reverse('KeyServApp:registro_rostro'), _frames_prueba_de_vida())
         self.usuario.refresh_from_db()
         self.assertIsNone(self.usuario.encoding_facial)
 
     def test_archivo_que_no_es_una_imagen_real_se_rechaza_al_registrar(self):
         client = Client()
         self._login(client)
-        fotos = _fotos_prueba_de_vida()
-        fotos['rostro_centro'] = SimpleUploadedFile('rostro.png', b'no es una imagen real', content_type='image/png')
-        client.post(reverse('KeyServApp:registro_rostro'), fotos)
+        frames = _frames_prueba_de_vida()
+        frames['rostro_frames'][0] = SimpleUploadedFile('rostro.png', b'no es una imagen real', content_type='image/png')
+        client.post(reverse('KeyServApp:registro_rostro'), frames)
         self.usuario.refresh_from_db()
         self.assertIsNone(self.usuario.encoding_facial)
 
@@ -744,7 +741,7 @@ class ReconocimientoFacialTests(TestCase):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=True) as verificar:
-            client.post(reverse('KeyServApp:verificacion_facial'), _fotos_prueba_de_vida())
+            client.post(reverse('KeyServApp:verificacion_facial'), _frames_prueba_de_vida())
             verificar.assert_not_called()
         self.usuario.refresh_from_db()
         self.assertFalse(self.usuario.verificado_biometricamente)
@@ -755,7 +752,7 @@ class ReconocimientoFacialTests(TestCase):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=True):
-            client.post(reverse('KeyServApp:verificacion_facial'), _fotos_prueba_de_vida())
+            client.post(reverse('KeyServApp:verificacion_facial'), _frames_prueba_de_vida())
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.verificado_biometricamente)
 
@@ -765,9 +762,34 @@ class ReconocimientoFacialTests(TestCase):
         client = Client()
         self._login(client)
         with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=False):
-            client.post(reverse('KeyServApp:verificacion_facial'), _fotos_prueba_de_vida())
+            client.post(reverse('KeyServApp:verificacion_facial'), _frames_prueba_de_vida())
         self.usuario.refresh_from_db()
         self.assertFalse(self.usuario.verificado_biometricamente)
+
+
+class PruebaDeVidaParpadeoTests(TestCase):
+    """
+    `_hubo_parpadeo` (probando_face_recognition.py — reemplazo del giro de
+    cabeza por detección de parpadeo vía Eye Aspect Ratio, ver CLAUDE.md) es
+    lógica pura sobre una secuencia de números: no necesita opencv/
+    face_recognition ni una imagen real, así que se prueba directo con
+    secuencias de EAR sintéticas en vez de mockear todo el pipeline.
+    """
+
+    def test_secuencia_sin_ningun_cierre_no_pasa(self):
+        self.assertFalse(probando_face_recognition._hubo_parpadeo([0.30, 0.31, 0.29, 0.30]))
+
+    def test_ojos_cerrados_todo_el_tiempo_no_pasa(self):
+        # Nunca hay un "abierto" real antes del cierre, así que no cuenta como parpadeo.
+        self.assertFalse(probando_face_recognition._hubo_parpadeo([0.10, 0.09, 0.11]))
+
+    def test_parpadeo_real_abierto_cerrado_abierto_pasa(self):
+        self.assertTrue(probando_face_recognition._hubo_parpadeo([0.30, 0.29, 0.10, 0.09, 0.28, 0.31]))
+
+    def test_cierre_sin_reapertura_no_pasa(self):
+        # Se cierra al final pero nunca vuelve a abrirse — no se puede confirmar el parpadeo todavía.
+        self.assertFalse(probando_face_recognition._hubo_parpadeo([0.30, 0.29, 0.10, 0.09]))
+
 
 class PublicacionYModeracionTests(TestCase):
     """Publicaciones.estado_moderacion (nuevo en Fase 3) — solo lo aprobado debe verse en el listado público."""

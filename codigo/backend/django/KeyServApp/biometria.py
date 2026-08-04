@@ -43,41 +43,42 @@ def procesar_huella_dactilar(ruta_imagen=None):
         return None
 
 
-def calcular_encoding_facial(ruta_centro, ruta_derecha, ruta_izquierda):
+def calcular_encoding_facial(rutas_frames):
     """
-    Valida una prueba de vida de 3 fotos (de frente, girando a la derecha,
-    girando a la izquierda — mismo patrón "challenge-response" que usan la
-    mayoría de flujos KYC) y calcula el encoding facial (128 floats) de la
-    foto central, listo para guardar en `Usuario.encoding_facial`. Devuelve
-    una lista de floats (serializable en el JSONField) o None si algo falla
-    (dependencias no instaladas, no se detectó ningún rostro o se detectó más
-    de uno en alguna foto, el giro de cabeza no fue válido, o las 3 fotos no
-    parecen ser de la misma persona) — mismo patrón "None en vez de reventar
-    la vista" que `procesar_huella_dactilar`.
+    Valida una prueba de vida por parpadeo (ver
+    `probando_face_recognition.verificar_prueba_de_vida_parpadeo`) sobre una
+    ráfaga de cuadros capturados en vivo (`rutas_frames`, en orden temporal)
+    y calcula el encoding facial (128 floats) del cuadro elegido, listo para
+    guardar en `Usuario.encoding_facial`. Devuelve una lista de floats
+    (serializable en el JSONField) o None si algo falla (dependencias no
+    instaladas, no se detectó un rostro con claridad en suficientes cuadros,
+    no hubo un parpadeo real, o ningún cuadro disponible pasa el chequeo de
+    brillo/nitidez) — mismo patrón "None en vez de reventar la vista" que
+    `procesar_huella_dactilar`.
     """
     try:
-        from probando_face_recognition import verificar_prueba_de_vida
+        from probando_face_recognition import verificar_prueba_de_vida_parpadeo
     except ImportError:
         logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
         return None
 
     try:
-        encoding = verificar_prueba_de_vida(ruta_centro, ruta_derecha, ruta_izquierda)
+        encoding = verificar_prueba_de_vida_parpadeo(rutas_frames)
     except (FileNotFoundError, OSError):
-        logger.exception('No se pudo leer alguna de las fotos de referencia')
+        logger.exception('No se pudo leer alguno de los cuadros de la ráfaga')
         return None
     except ValueError as error:
-        logger.exception('La prueba de vida falló al registrar el rostro: %s', error)
+        logger.exception('La prueba de vida por parpadeo falló al registrar el rostro: %s', error)
         return None
     return list(float(valor) for valor in encoding)
 
 
-def verificar_rostro_usuario(encoding_guardado, ruta_centro, ruta_derecha, ruta_izquierda):
+def verificar_rostro_usuario(encoding_guardado, rutas_frames):
     """
-    Repite la misma prueba de vida de 3 fotos que `calcular_encoding_facial`
+    Repite la misma prueba de vida por parpadeo que `calcular_encoding_facial`
     y compara el encoding resultante contra el encoding de referencia ya
     guardado en `Usuario.encoding_facial`. No abre ninguna webcam — el flujo
-    real es que el navegador del cliente capture las 3 fotos y las suba como
+    real es que el navegador del cliente capture la ráfaga y la suba como
     archivos, igual que la huella (ver `verificacion_facial_view` en views.py).
     `verificar_rostro()` con loop de webcam en `probando_face_recognition.py`
     queda solo para pruebas manuales locales (`python probando_face_recognition.py`),
@@ -85,57 +86,20 @@ def verificar_rostro_usuario(encoding_guardado, ruta_centro, ruta_derecha, ruta_
 
     Devuelve True/False, o None si las dependencias no están instaladas, la
     prueba de vida falló (ver `calcular_encoding_facial`), o no se pudo leer
-    alguna foto (no revienta la vista).
+    algún cuadro (no revienta la vista).
     """
     try:
-        from probando_face_recognition import verificar_prueba_de_vida, comparar_encodings
+        from probando_face_recognition import verificar_prueba_de_vida_parpadeo, comparar_encodings
     except ImportError:
         logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
         return None
 
     try:
-        encoding_nuevo = verificar_prueba_de_vida(ruta_centro, ruta_derecha, ruta_izquierda)
+        encoding_nuevo = verificar_prueba_de_vida_parpadeo(rutas_frames)
     except (FileNotFoundError, OSError):
-        logger.exception('No se pudo leer alguna de las fotos de verificación')
+        logger.exception('No se pudo leer alguno de los cuadros de la ráfaga de verificación')
         return None
     except ValueError as error:
-        logger.exception('La prueba de vida falló al verificar el rostro: %s', error)
+        logger.exception('La prueba de vida por parpadeo falló al verificar el rostro: %s', error)
         return None
     return comparar_encodings(encoding_guardado, encoding_nuevo)
-
-
-def validar_paso_prueba_de_vida(ruta_imagen, paso):
-    """
-    Valida en tiempo real UN solo paso de la prueba de vida (`'centro'`,
-    `'derecha'` o `'izquierda'`) antes de tener las 3 fotos — feedback
-    inmediato en el navegador mientras el usuario todavía está frente a la
-    cámara, en vez de recién avisarle al final que un paso falló (ver
-    `validar_paso_rostro_ajax` en views.py). Reusa los mismos umbrales que
-    `probando_face_recognition.verificar_prueba_de_vida`, pero NO hace la
-    verificación cruzada entre las 3 fotos — eso sigue ocurriendo una sola
-    vez, al enviar el formulario completo.
-
-    Devuelve `(True, None)` si el paso es válido, o `(False, motivo)` si no
-    (motivo pensado para mostrarse tal cual al usuario).
-    """
-    try:
-        from probando_face_recognition import calcular_yaw_de_imagen, UMBRAL_YAW_CENTRO, UMBRAL_YAW_GIRO
-    except ImportError:
-        logger.exception('No se pudo importar el módulo de reconocimiento facial (¿faltan opencv-python/face_recognition?)')
-        return False, 'No se pudo procesar la foto — probá de nuevo.'
-
-    try:
-        yaw = calcular_yaw_de_imagen(ruta_imagen)
-    except (FileNotFoundError, OSError):
-        logger.exception('No se pudo leer la foto del paso "%s"', paso)
-        return False, 'No se pudo leer la foto — probá de nuevo.'
-    except ValueError as error:
-        return False, str(error)
-
-    if paso == 'centro' and abs(yaw) > UMBRAL_YAW_CENTRO:
-        return False, 'Mirá de frente a la cámara, no de costado.'
-    if paso == 'derecha' and yaw > -UMBRAL_YAW_GIRO:
-        return False, 'Girá un poco más la cabeza hacia la derecha.'
-    if paso == 'izquierda' and yaw < UMBRAL_YAW_GIRO:
-        return False, 'Girá un poco más la cabeza hacia la izquierda.'
-    return True, None

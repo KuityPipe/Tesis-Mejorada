@@ -1505,60 +1505,54 @@ def _guardar_archivo_temporal(archivo):
         return destino.name
 
 
-_CAMPOS_PRUEBA_DE_VIDA = ('rostro_centro', 'rostro_derecha', 'rostro_izquierda')
+_FRAMES_MINIMOS_CAPTURA = 8
 
 
-def _obtener_fotos_prueba_de_vida(request):
+def _obtener_frames_captura(request):
     """
-    Lee y valida las 3 fotos de la prueba de vida (de frente, girando a la
-    derecha, girando a la izquierda — ver `biometria.calcular_encoding_facial`)
-    del request, y devuelve sus 3 rutas temporales en ese orden. Lanza
-    `ValidationError` si falta alguna o si `validators.validar_imagen` la
-    rechaza. Solo guarda a disco (`_guardar_archivo_temporal`) si las 3 pasan
-    la validación — el caller es responsable de borrar los 3 temporales.
+    Lee y valida la ráfaga de cuadros (`rostro_frames`, campo multi-archivo
+    — ver `_captura_camara.html`) del request y devuelve sus rutas
+    temporales, en el mismo orden en que llegaron. Lanza `ValidationError`
+    si vienen menos de `_FRAMES_MINIMOS_CAPTURA` cuadros o si alguno no pasa
+    `validators.validar_imagen` — el chequeo real de parpadeo/calidad ocurre
+    después, en `biometria.calcular_encoding_facial`/`verificar_rostro_usuario`.
+    Solo guarda a disco (`_guardar_archivo_temporal`) si todos pasan la
+    validación — el caller es responsable de borrar los temporales.
     """
-    archivos = []
-    for campo in _CAMPOS_PRUEBA_DE_VIDA:
-        archivo = request.FILES.get(campo)
-        if not archivo:
-            raise ValidationError('Completá los 3 pasos de la cámara: de frente, girando a la derecha y girando a la izquierda.')
+    archivos = request.FILES.getlist('rostro_frames')
+    if len(archivos) < _FRAMES_MINIMOS_CAPTURA:
+        raise ValidationError('La captura de la cámara no se completó — volvé a intentarlo.')
+    for archivo in archivos:
         validators.validar_imagen(archivo)
-        archivos.append(archivo)
     return [_guardar_archivo_temporal(archivo) for archivo in archivos]
 
 
 @login_requerido
 @require_POST
-def validar_paso_rostro_ajax(request):
+def validar_captura_rostro_ajax(request):
     """
-    Endpoint AJAX: valida en tiempo real un solo paso de la cámara guiada de
-    `/rostro/` (centro/derecha/izquierda) antes de dejar avanzar al siguiente
-    paso — así el usuario se entera al toque si el giro no alcanzó o no se
-    detectó su rostro, en vez de recién enterarse al final de los 3 pasos
-    (ver el JS de `rostro.html`). No guarda nada ni hace la verificación
-    cruzada entre las 3 fotos — eso sigue pasando una sola vez al enviar el
-    formulario completo (`registro_rostro_view`/`verificacion_facial_view`).
+    Endpoint AJAX: corre la prueba de vida por parpadeo sobre la ráfaga
+    apenas se captura, para avisar de inmediato si falló (sin parpadeo, poca
+    luz, rostro no detectado con claridad) en vez de recién enterarse al
+    enviar el formulario completo (ver el JS de `rostro.html`). No guarda
+    nada — el encoding que calcula acá se descarta; `registro_rostro_view`/
+    `verificacion_facial_view` lo vuelven a calcular al enviar el formulario.
     """
-    paso = request.POST.get('paso')
-    if paso not in ('centro', 'derecha', 'izquierda'):
-        return JsonResponse({'ok': False, 'motivo': 'Paso inválido.'}, status=400)
-
-    archivo = request.FILES.get('foto')
-    if not archivo:
-        return JsonResponse({'ok': False, 'motivo': 'Falta la foto.'}, status=400)
-
     try:
-        validators.validar_imagen(archivo)
+        rutas = _obtener_frames_captura(request)
     except ValidationError as error:
-        return JsonResponse({'ok': False, 'motivo': ' '.join(error.messages)})
+        motivo = ' '.join(error.messages) if hasattr(error, 'messages') else str(error)
+        return JsonResponse({'ok': False, 'motivo': motivo})
 
-    ruta_temporal = _guardar_archivo_temporal(archivo)
     try:
-        ok, motivo = biometria.validar_paso_prueba_de_vida(ruta_temporal, paso)
+        encoding = biometria.calcular_encoding_facial(rutas)
     finally:
-        os.remove(ruta_temporal)
+        for ruta in rutas:
+            os.remove(ruta)
 
-    return JsonResponse({'ok': ok, 'motivo': motivo})
+    if encoding is None:
+        return JsonResponse({'ok': False, 'motivo': 'No se pudo validar la prueba de vida — mirá a la cámara, parpadeá una vez, y asegurate de tener buena luz.'})
+    return JsonResponse({'ok': True, 'motivo': None})
 
 
 @login_requerido
@@ -1579,21 +1573,22 @@ def rostro_view(request):
 @require_POST
 def registro_rostro_view(request):
     """
-    Sube una foto de referencia, calcula su encoding y lo guarda en
+    Sube una ráfaga de referencia (prueba de vida por parpadeo, ver
+    `biometria.calcular_encoding_facial`), calcula su encoding y lo guarda en
     `Usuario.encoding_facial`. No marca al usuario como verificado todavía —
-    eso lo hace `verificacion_facial_view` en una foto posterior, igual que
-    huella exige un envío separado. Reemplaza cualquier encoding anterior si
-    el usuario vuelve a registrar su rostro.
+    eso lo hace `verificacion_facial_view` en una captura posterior, igual
+    que huella exige un envío separado. Reemplaza cualquier encoding anterior
+    si el usuario vuelve a registrar su rostro.
     """
     usuario = obtener_usuario_actual(request)
     try:
-        rutas = _obtener_fotos_prueba_de_vida(request)
+        rutas = _obtener_frames_captura(request)
     except ValidationError as error:
         messages.error(request, ' '.join(error.messages) if hasattr(error, 'messages') else str(error))
         return redirect('KeyServApp:rostro')
 
     try:
-        encoding = biometria.calcular_encoding_facial(*rutas)
+        encoding = biometria.calcular_encoding_facial(rutas)
     finally:
         for ruta in rutas:
             os.remove(ruta)
@@ -1603,7 +1598,7 @@ def registro_rostro_view(request):
         usuario.save()
         messages.success(request, 'Rostro registrado. Ahora podés verificarlo.')
     else:
-        messages.error(request, 'No se pudo validar la prueba de vida — asegurate de mirar al frente y girar bien la cabeza a cada lado, con buena luz.')
+        messages.error(request, 'No se pudo validar la prueba de vida — mirá a la cámara, parpadeá una vez durante la captura, y asegurate de tener buena luz.')
     return redirect('KeyServApp:rostro')
 
 
@@ -1611,7 +1606,7 @@ def registro_rostro_view(request):
 @require_POST
 def verificacion_facial_view(request):
     """
-    Sube una foto y la compara contra `Usuario.encoding_facial`. Requiere
+    Sube una ráfaga y la compara contra `Usuario.encoding_facial`. Requiere
     haber registrado un rostro de referencia antes (`registro_rostro_view`).
     """
     usuario = obtener_usuario_actual(request)
@@ -1620,13 +1615,13 @@ def verificacion_facial_view(request):
         return redirect('KeyServApp:rostro')
 
     try:
-        rutas = _obtener_fotos_prueba_de_vida(request)
+        rutas = _obtener_frames_captura(request)
     except ValidationError as error:
         messages.error(request, ' '.join(error.messages) if hasattr(error, 'messages') else str(error))
         return redirect('KeyServApp:rostro')
 
     try:
-        resultado = biometria.verificar_rostro_usuario(usuario.encoding_facial, *rutas)
+        resultado = biometria.verificar_rostro_usuario(usuario.encoding_facial, rutas)
     finally:
         for ruta in rutas:
             os.remove(ruta)

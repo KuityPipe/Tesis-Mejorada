@@ -9,7 +9,7 @@
 
     {% if tiene_referencia %}
       <h1>Verificación facial</h1>
-      <p class="ks-help">Ya registraste un rostro de referencia. Mirá a la cámara y seguí los 3 pasos (de frente, girando a la derecha y a la izquierda) para verificar tu identidad.</p>
+      <p class="ks-help">Ya registraste un rostro de referencia. Mirá a la cámara, capturá, y parpadeá una vez durante la captura para verificar tu identidad.</p>
 
       <form method="post" action="{% url 'KeyServApp:verificacion_facial' %}" enctype="multipart/form-data" class="ks-form text-start" id="form-verificar-rostro">
         {% csrf_token %}
@@ -24,7 +24,7 @@
       <h2 id="registrar-rostro" class="h5">Registrar un nuevo rostro de referencia</h2>
     {% else %}
       <h1>Registrar rostro de referencia</h1>
-      <p class="ks-help">Antes de poder verificar tu identidad por rostro, necesitamos que mires a la cámara y sigas los 3 pasos (de frente, girando a la derecha y a la izquierda), con buena luz.</p>
+      <p class="ks-help">Antes de poder verificar tu identidad por rostro, necesitamos que mires a la cámara y captures, parpadeando una vez durante la captura, con buena luz.</p>
     {% endif %}
 
     <form method="post" action="{% url 'KeyServApp:registro_rostro' %}" enctype="multipart/form-data" class="ks-form text-start" id="form-registrar-rostro">
@@ -38,36 +38,36 @@
 
 {% block extra_js %}
 <script>
-  // Prueba de vida: captura guiada de 3 fotos por webcam (getUserMedia +
-  // canvas) para cada widget `.ks-prueba-vida` de la página. A propósito NO
-  // hay selector de archivo manual — si la cámara falla o el permiso se
-  // deniega, se muestra el error y no hay forma de continuar sin cámara
-  // (más difícil de falsear con una foto/video que un simple upload).
+  // Prueba de vida por parpadeo: una ráfaga corta de cuadros por webcam
+  // (getUserMedia + canvas) para cada widget `.ks-prueba-vida` de la
+  // página — reemplaza la versión anterior de 3 fotos posadas girando la
+  // cabeza por una sola acción del usuario (mirar a la cámara y parpadear).
+  // A propósito NO hay selector de archivo manual — si la cámara falla o el
+  // permiso se deniega, se muestra el error y no hay forma de continuar sin
+  // cámara (más difícil de falsear con una foto/video que un simple upload).
   document.querySelectorAll('.ks-prueba-vida').forEach(function (widget) {
-    var pasos = [
-      { id: 'centro', input: widget.querySelector('.ks-pv-input-centro'), preview: widget.querySelector('.ks-pv-preview-centro'), texto: 'Mirá de frente a la cámara y capturá' },
-      { id: 'derecha', input: widget.querySelector('.ks-pv-input-derecha'), preview: widget.querySelector('.ks-pv-preview-derecha'), texto: 'Girá apenas la cabeza hacia la derecha (no de perfil) y capturá' },
-      { id: 'izquierda', input: widget.querySelector('.ks-pv-input-izquierda'), preview: widget.querySelector('.ks-pv-preview-izquierda'), texto: 'Girá apenas la cabeza hacia la izquierda (no de perfil) y capturá' }
-    ];
+    var DURACION_CAPTURA_MS = 2000;
+    var INTERVALO_FRAME_MS = 120;
+    var TEXTO_INICIAL = widget.querySelector('.ks-pv-instruccion').textContent;
+
+    var input = widget.querySelector('.ks-pv-input-frames');
+    var instruccionEl = widget.querySelector('.ks-pv-instruccion');
     var video = widget.querySelector('.ks-pv-video');
     var canvas = widget.querySelector('.ks-pv-canvas');
     var errorEl = widget.querySelector('.ks-camara-error');
     var validandoEl = widget.querySelector('.ks-pv-validando');
-    var pasoNumEl = widget.querySelector('.ks-pv-paso-num');
-    var pasoTextoEl = widget.querySelector('.ks-pv-paso-texto');
+    var okEl = widget.querySelector('.ks-pv-ok');
     var btnIniciar = widget.querySelector('.ks-pv-btn-iniciar');
     var btnCapturar = widget.querySelector('.ks-pv-btn-capturar');
     var btnRepetir = widget.querySelector('.ks-pv-btn-repetir');
     var btnSubmit = widget.closest('form').querySelector('button[type="submit"]');
     var csrfToken = widget.closest('form').querySelector('[name=csrfmiddlewaretoken]').value;
     var stream = null;
-    var pasoActual = 0;
 
-    function validarPasoAjax(paso, archivo) {
+    function validarCapturaAjax(archivos) {
       var formData = new FormData();
-      formData.append('paso', paso.id);
-      formData.append('foto', archivo);
-      return fetch('{% url "KeyServApp:ajax_validar_paso_rostro" %}', {
+      archivos.forEach(function (archivo) { formData.append('rostro_frames', archivo); });
+      return fetch('{% url "KeyServApp:ajax_validar_captura_rostro" %}', {
         method: 'POST',
         headers: { 'X-CSRFToken': csrfToken },
         body: formData
@@ -83,19 +83,12 @@
       btnCapturar.classList.add('d-none');
     }
 
-    function iniciarPaso() {
-      pasoNumEl.textContent = String(pasoActual + 1);
-      pasoTextoEl.textContent = pasos[pasoActual].texto;
-    }
-
     function reiniciar() {
       detenerCamara();
-      pasos.forEach(function (paso) {
-        paso.input.value = '';
-        paso.preview.classList.add('d-none');
-      });
-      pasoActual = 0;
-      iniciarPaso();
+      input.value = '';
+      instruccionEl.textContent = TEXTO_INICIAL;
+      okEl.classList.add('d-none');
+      errorEl.classList.add('d-none');
       btnRepetir.classList.add('d-none');
       btnIniciar.classList.remove('d-none');
       btnIniciar.textContent = 'Iniciar cámara';
@@ -122,53 +115,63 @@
     });
 
     btnCapturar.addEventListener('click', function () {
+      btnCapturar.disabled = true;
+      errorEl.classList.add('d-none');
+      okEl.classList.add('d-none');
+      instruccionEl.textContent = 'Parpadeá una vez mientras se captura…';
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(function (blob) {
-        var paso = pasos[pasoActual];
-        var archivo = new File([blob], 'captura-' + paso.id + '.jpg', { type: 'image/jpeg' });
+      var contexto = canvas.getContext('2d');
+      var archivos = [];
+      var cuadrosTotales = Math.round(DURACION_CAPTURA_MS / INTERVALO_FRAME_MS);
 
-        btnCapturar.disabled = true;
-        errorEl.classList.add('d-none');
+      function capturarCuadro() {
+        contexto.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function (blob) {
+          archivos.push(new File([blob], 'captura-' + archivos.length + '.jpg', { type: 'image/jpeg' }));
+          if (archivos.length < cuadrosTotales) {
+            setTimeout(capturarCuadro, INTERVALO_FRAME_MS);
+          } else {
+            enviarCaptura();
+          }
+        }, 'image/jpeg', 0.85);
+      }
+
+      function enviarCaptura() {
+        instruccionEl.textContent = TEXTO_INICIAL;
         validandoEl.classList.remove('d-none');
 
-        validarPasoAjax(paso, archivo).then(function (resultado) {
+        validarCapturaAjax(archivos).then(function (resultado) {
           validandoEl.classList.add('d-none');
           btnCapturar.disabled = false;
 
           if (!resultado.ok) {
-            errorEl.textContent = resultado.motivo || 'No se pudo validar la foto — probá de nuevo.';
+            errorEl.textContent = resultado.motivo || 'No se pudo validar la captura — probá de nuevo.';
             errorEl.classList.remove('d-none');
-            return; // Se queda en el mismo paso para reintentar, no avanza.
+            return; // Se queda con la cámara prendida para reintentar.
           }
 
           var dt = new DataTransfer();
-          dt.items.add(archivo);
-          paso.input.files = dt.files;
-          paso.preview.src = canvas.toDataURL('image/jpeg');
-          paso.preview.classList.remove('d-none');
+          archivos.forEach(function (archivo) { dt.items.add(archivo); });
+          input.files = dt.files;
 
-          pasoActual += 1;
-          if (pasoActual < pasos.length) {
-            iniciarPaso();
-          } else {
-            detenerCamara();
-            btnRepetir.classList.remove('d-none');
-            btnSubmit.disabled = false;
-          }
+          okEl.classList.remove('d-none');
+          detenerCamara();
+          btnRepetir.classList.remove('d-none');
+          btnSubmit.disabled = false;
         }).catch(function () {
           validandoEl.classList.add('d-none');
           btnCapturar.disabled = false;
-          errorEl.textContent = 'No se pudo validar la foto (¿problema de conexión?) — probá de nuevo.';
+          errorEl.textContent = 'No se pudo validar la captura (¿problema de conexión?) — probá de nuevo.';
           errorEl.classList.remove('d-none');
         });
-      }, 'image/jpeg', 0.92);
+      }
+
+      capturarCuadro();
     });
 
     btnRepetir.addEventListener('click', reiniciar);
-
-    iniciarPaso();
   });
 </script>
 {% endblock %}
