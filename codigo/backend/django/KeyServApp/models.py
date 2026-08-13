@@ -246,6 +246,21 @@ class Usuario(models.Model):
         """Compara `raw_password` contra el hash guardado. Devuelve True/False."""
         return check_password(raw_password, self.password)
 
+    # `is_authenticated`/`is_anonymous`: Usuario pasa a ser `request.user` en
+    # las vistas de la API REST (ver KeyServApp/api/authentication.py) cuando
+    # el JWT es válido — DRF's `IsAuthenticated` (y cualquier código que siga
+    # la convención de `django.contrib.auth`) chequea estos dos atributos, que
+    # un modelo plano como este no trae por sí solo. Siempre True/False fijo
+    # (no propiedades calculadas): una instancia de `Usuario` sólo llega a
+    # `request.user` cuando la autenticación ya fue exitosa.
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
 
 class UsuarioAdministrativo(models.Model):
     """Usuario interno (staff) con acceso administrativo — distinto de Usuario (clientes/proveedores)."""
@@ -803,3 +818,39 @@ class IntentoAccesoSospechoso(models.Model):
 
     def __str__(self):
         return f'{self.usuario or "anónimo"} → {self.recurso} #{self.recurso_id} ({self.fecha:%Y-%m-%d %H:%M})'
+
+
+class TokenSesion(models.Model):
+    """
+    Sesión de refresh token de la API REST (KeyServApp/api/), una fila por
+    dispositivo/login — no por `Usuario`. `Usuario` no es AUTH_USER_MODEL
+    (ver decorators.py), así que djangorestframework-simplejwt no calza
+    limpio acá; esto es la mitad "con estado" de un esquema JWT hecho a
+    mano (ver KeyServApp/api/jwt_utils.py): el access token es un JWT
+    stateless de vida corta, pero el refresh token necesita poder
+    revocarse (logout real, "cerrar sesión en todos los dispositivos",
+    Fase 7 de "dispositivo de confianza" para el candado biométrico), algo
+    que un JWT puramente stateless no permite.
+
+    Solo se guarda el hash del refresh token, nunca el valor en texto
+    plano — mismo principio que `Usuario.password` (ver `set_password`
+    arriba): si la tabla se filtra, no sirve para nada sin poder revertir
+    el hash.
+    """
+    id_token_sesion = models.BigAutoField(primary_key=True, db_column='ID_TOKEN_SESION')
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='tokens_sesion', db_column='FK_USUARIO')
+    refresh_token_hash = models.CharField(max_length=128, unique=True, db_column='REFRESH_TOKEN_HASH')
+    dispositivo = models.CharField(max_length=255, null=True, blank=True, db_column='DISPOSITIVO')
+    creado_en = models.DateTimeField(auto_now_add=True, db_column='CREADO_EN')
+    expira_en = models.DateTimeField(db_column='EXPIRA_EN')
+    revocado_en = models.DateTimeField(null=True, blank=True, db_column='REVOCADO_EN')
+
+    class Meta:
+        db_table = 'TOKEN_SESION'
+        ordering = ['-creado_en']
+        verbose_name = 'Token de sesión'
+        verbose_name_plural = 'Tokens de sesión'
+
+    def __str__(self):
+        estado = 'revocado' if self.revocado_en else 'activo'
+        return f'{self.usuario} — {self.dispositivo or "dispositivo desconocido"} ({estado})'

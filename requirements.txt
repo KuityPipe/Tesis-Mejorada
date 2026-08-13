@@ -36,13 +36,35 @@ geoip2>=4.8
 # que no se puede bajar NumPy en vez de subir opencv. Se sube opencv-python
 # a la primera versión con wheel para cp314 (>=4.10 ya soporta NumPy 2.x).
 opencv-python>=4.10
+# dlib real no tiene wheel para cp314 y su propio CMakeLists exige compilar
+# con Visual Studio (rechaza cualquier otro compilador en Windows) — en vez
+# de instalar el workload "Desktop development with C++" de varios GB, se
+# usa `dlib-bin` (paquete no oficial con wheels precompiladas, sí tiene
+# cp314-win_amd64) en su lugar. Provee el mismo módulo `import dlib`;
+# `pip` no lo reconoce como satisfaciendo la dependencia declarada
+# `dlib>=19.7` de face_recognition (advertencia de resolver inofensiva).
+dlib-bin
+# face_recognition==1.3.0 declara `dlib>=19.7` como dependencia, lo que
+# dispara un intento de compilar el dlib real e ignora dlib-bin de arriba
+# (pip no lo reconoce como "dlib" instalado) — instalar con
+# `pip install face_recognition==1.3.0 --no-deps` y dejar que Click/
+# face_recognition_models (declaradas abajo) cubran el resto de sus
+# dependencias reales.
 face_recognition==1.3.0
+Click
+face_recognition_models
 # face_recognition_models (dependencia de face_recognition) todavía usa
 # `pkg_resources` para ubicar sus archivos .dat, y setuptools>=81 lo quitó
 # por completo (antes solo lo marcaba deprecado) — sin este pin, importar
 # face_recognition_models revienta con "ModuleNotFoundError: No module
 # named 'pkg_resources'" pese a tener setuptools instalado.
 setuptools<81
+
+# NOTA (Fase de migración a API/Ionic): todo este bloque de reconocimiento
+# facial queda en pie solo hasta que el candado biométrico nativo
+# (Capacitor, ver plan de migración) esté verificado en Android e iOS —
+# en ese momento se retira junto con codigo/biometria/reconocimiento_facial/
+# y KeyServApp/biometria.py, ver docs/FASE7_LOG.md cuando exista.
 
 # Generación de PDF (codigo/biometria/huella/GUARDAR_DOCUMENTO.py)
 fpdf2==2.7.9
@@ -57,3 +79,14 @@ transbank-sdk>=6.1.0
 # Escaneo antivirus de archivos subidos (codigo/backend/django/KeyServApp/antivirus.py)
 # — se instala cuando haya un daemon ClamAV disponible (CLAMAV_HABILITADO=True):
 # clamd>=1.0.2
+
+# API REST (migración de frontend a Ionic/Angular, ver plan de migración) —
+# KeyServApp/api/. `Usuario` no es AUTH_USER_MODEL (decisión de Fase 3, ver
+# decorators.py), así que la autenticación es JWT hecha a mano con PyJWT en
+# vez de djangorestframework-simplejwt (que asume get_user_model()), y
+# drf-spectacular genera el schema OpenAPI que consume el cliente TypeScript
+# generado en el frontend.
+djangorestframework>=3.15
+django-cors-headers>=4.4
+drf-spectacular>=0.27
+PyJWT>=2.9

@@ -14,6 +14,7 @@ The repo root was reorganized (Fase 1) out of a flat, ad-hoc layout into:
 docs/                        docs/nuevo (active thesis text), docs/plantilla (thesis PDF), docs/viejo (empty, future) — plus all Fase 2/3 analysis and reference docs
 codigo/
   backend/django/            Canonical Django app (formerly Tesis/) — see "Active Project" below
+  frontend/ionic/            New Ionic/Angular frontend (Fase 8, in progress) — see "API + Ionic migration" below
   biometria/huella/          Formerly BackHuella/ (fingerprint pipeline, now importable)
   biometria/reconocimiento_facial/  Formerly probando_face_recognition/ (rewritten, was corrupted)
   viejo/ProyectoDjango/      Legacy Django variant (superseded, kept for reference)
@@ -34,6 +35,8 @@ A root `.gitignore` was added (Fase 1) and all previously-committed virtualenvs 
 There are three Django project variants (`codigo/viejo/ProyectoDjango/`, `codigo/viejo/ProyectoKeyServ/`, `codigo/backend/django/`). **`codigo/backend/django/` is the canonical, most complete version** (formerly `Tesis/`) and should be the default target for all work.
 
 **Database engine changed in Fase 3: PostgreSQL, not MySQL.** The thesis's "MySQL + AWS" restriction only applied to the academic deliverable — the user confirmed it doesn't bind the commercial product going forward. See `docs/RECOMMENDED_ARCHITECTURE.md` for the reasoning.
+
+**Frontend migration in progress (Fase 8, current branch `api-ionic-migration`):** the product is moving from Django server-rendered templates to an Ionic/Angular app (`codigo/frontend/ionic/`) talking to a new DRF REST API (`KeyServApp/api/`). The two frontends coexist during the migration — template views are retired area by area, not all at once. See "API + Ionic migration" under Architecture below.
 
 ## Commands
 
@@ -64,9 +67,10 @@ cd codigo/backend/django
 python manage.py migrate
 python manage.py runserver 8000
 python manage.py createsuperuser
-python manage.py test KeyServApp   # 134 tests, all passing (1 skipped)
+python manage.py test KeyServApp   # 145 tests, all passing (1 skipped) — runs both tests.py (template views, 134) and tests_api.py (REST API, 11); Django's discovery picks up any test*.py in the app
 python manage.py test KeyServApp.tests.ContratacionFlowTests            # single test class
 python manage.py test KeyServApp.tests.ContratacionFlowTests.test_flujo_completo_de_contratacion_y_valoracion  # single test method
+python manage.py test KeyServApp.tests_api               # just the REST API tests (login/me/JWT)
 
 # Fase 5 management commands
 python manage.py configurar_grupo_moderador          # (re)creates the "Moderador" admin group + scoped permissions — rerun after adding models that moderators should/shouldn't see
@@ -77,6 +81,20 @@ python manage.py descargar_geoip                      # downloads the local DB-I
 ```
 
 **PostgreSQL is installed and running** — see "Database" below. `migrate` has been run for real, not just validated dry.
+
+With `runserver` up, the REST API is browsable at `http://localhost:8000/api/docs/` (Swagger UI, from `drf-spectacular`) and its OpenAPI schema at `http://localhost:8000/api/schema/` — the schema is the intended source for a generated TypeScript client on the Ionic side, though that generation step doesn't exist yet.
+
+### Ionic/Angular frontend (`codigo/frontend/ionic/`, Fase 8, in progress)
+
+```powershell
+cd codigo/frontend/ionic
+npm install            # node_modules is gitignored (codigo/frontend/ionic/.gitignore), not committed
+npm start               # = ng serve, http://localhost:8100 by default — must match CORS_ALLOWED_ORIGINS in .env
+npm test                # = ng test (Karma/Jasmine)
+npm run lint             # = ng lint
+```
+
+This is a freshly-scaffolded Ionic/Angular starter app (default `home` page only, standalone Angular modules off) — it isn't wired up to the Django API yet (no HTTP client service, no login screen, no token storage). Treat it as the intended target for the migration, not yet a working alternate frontend.
 
 ### Biometric scripts (standalone, importable)
 
@@ -121,6 +139,7 @@ codigo/backend/django/      Main Django project
       ├── geolocalizacion.py  Approximate IP geolocation for IntentoAccesoSospechoso via a local DB-IP City Lite database, no third-party lookups (`manage.py descargar_geoip`)
       ├── storage.py        Private `FileSystemStorage` (`base_url=None`) for Documento — forces every read through `documento_descargar_view` instead of a guessable public URL
       ├── admin.py          All models registered; scoped visibility for the "Moderador" group + superuser-only LogEntry audit; overrides `AdminSite.get_app_list` to group ~25 models by task (see Admin & moderation below) instead of Django's default flat per-app list
+      ├── api/                  REST API (Fase 8, DRF) — `urls.py`, `views.py`, `serializers.py`, `authentication.py` (hand-rolled JWT via PyJWT), `jwt_utils.py`; see "API + Ionic migration" below
       ├── management/commands/   `configurar_grupo_moderador`, `limpiar_mensajes_antiguos`, `descargar_geoip` (see Commands)
       ├── static/KeyServApp/css/base.css   Unified design system (navy/teal/coral palette, Quicksand/Nunito) — all templates extend base.html
       ├── templates/admin/   Overrides `index.html`/`base_site.html` to add the pending-approvals dashboard (`_panel_aprobaciones.html`)
@@ -135,9 +154,19 @@ codigo/biometria/huella/    Fingerprint pipeline — IMAGEN_HUELLA.py is a real,
 
 codigo/biometria/reconocimiento_facial/
   └── probando_face_recognition.py  verificar_prueba_de_vida_parpadeo() (blink-based liveness check over a burst of frames — used by the real web flow, see Data Flow) + _hubo_parpadeo()/_ear_de_ojo() (Eye Aspect Ratio blink state machine, pure Python, unit-tested directly) + _calidad_de_imagen_aceptable() (brightness/blur gate) + comparar_encodings() + verificar_rostro() (live webcam loop, manual/local testing only, never called from Django) — opencv-python/face_recognition/dlib are installed and the blink-based pipeline was verified live end-to-end through the actual browser UI against a real webcam (see Known Issues)
+
+codigo/frontend/ionic/       Ionic/Angular app (Fase 8, in progress) — currently the unmodified `ionic start` scaffold (src/app/home/ only), not yet talking to KeyServApp/api/. See "API + Ionic migration" below.
 ```
 
 ### Data Flow
+
+**API + Ionic migration (Fase 8, in progress):** the product is moving off server-rendered Django templates onto an Ionic/Angular frontend (`codigo/frontend/ionic/`) speaking to a new DRF REST API mounted at `/api/` (`KeyServApp/api/`, wired in `KeyServProject/urls.py`). The two frontends are meant to coexist for several phases — template views get retired area by area as the Ionic app grows, not in one cutover. Only login (`POST /api/auth/login/`) and profile (`GET /api/auth/me/`) exist so far, and the Ionic app itself is still the unmodified `ionic start` scaffold with no HTTP calls wired up yet — this is early-stage infrastructure, not a working parallel frontend. Design points worth knowing before extending it:
+- **Auth is a hand-rolled JWT scheme (PyJWT), not `djangorestframework-simplejwt`.** `Usuario` is not `AUTH_USER_MODEL` (a Fase 3 decision, see `decorators.py`) and simplejwt assumes `get_user_model()` in several places, so it doesn't fit cleanly. `api/jwt_utils.py` issues a short-lived stateless JWT access token (`settings.JWT_ACCESS_TOKEN_MINUTOS`, default 20 min) plus an opaque high-entropy refresh token whose *hash only* is persisted in the new `TokenSesion` model (one row per device/login, not per `Usuario`) — this keeps the refresh side revocable (real logout, "log out everywhere", the planned Fase-later "trusted device" flow for the biometric lock) despite the access token itself being stateless. `api/authentication.py`'s `JWTAuthentication` (registered as DRF's default in `REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES']`) reads `Authorization: Bearer <access token>`, sets `request.user` to the matching `Usuario`, and returns 401 rather than redirecting to `/sesion/` like `login_requerido` does for template views. `Usuario` gained fixed `is_authenticated`/`is_anonymous` properties (always `True`/`False`) purely so it satisfies DRF's `IsAuthenticated` check, which expects those attributes.
+- **API views deliberately reuse `views.py`'s security helpers instead of reimplementing them** — `api/views.py`'s `LoginView` imports `_clave_intentos_login`/`_registrar_intento_sospechoso`/`MAX_INTENTOS_LOGIN` straight from the template-based `views.py` so the (IP, email) brute-force lockout and `IntentoAccesoSospechoso` logging stay in exactly one place instead of two implementations that could drift.
+- **CORS** (`django-cors-headers`) is scoped to `/api/*` only via `CORS_ALLOWED_ORIGINS` (env var, defaults to `http://localhost:8100` for `ionic serve`) — the template/`/admin/` site stays same-origin and untouched by this.
+- **`drf-spectacular`** auto-generates the OpenAPI schema (`/api/schema/`) and a Swagger UI (`/api/docs/`); the schema is intended to drive a generated TypeScript client for the Ionic side, though that generation step isn't set up yet.
+- `KeyServApp/tests_api.py` is a separate test module from `tests.py` on purpose, for the duration of the migration, so template-view and API-view tests don't collide in one giant file — each API scenario mirrors an equivalent one already covered in `tests.py`'s `LoginViewTests`.
+- The face-recognition biometric stack (`codigo/biometria/reconocimiento_facial/`, `KeyServApp/biometria.py`) is expected to stay in place only until a native biometric lock (via Capacitor) is built and verified on the Ionic side — at that point it and its dependencies (`opencv-python`/`face_recognition`/`dlib-bin`, see Known Issues) get retired together, not before.
 
 **User registration:** HTML form → Django `/registro/` → `RegistroForm` validation → `Usuario.set_password()` (PBKDF2 via `django.contrib.auth.hashers`) → PostgreSQL
 
@@ -165,7 +194,7 @@ codigo/biometria/reconocimiento_facial/
 
 ### Key Data Models (`codigo/backend/django/KeyServApp/models.py`)
 
-See `docs/DATABASE_DOCUMENTATION.md` for the complete table/relationship reference (predates Fase 5+ additions below — treat it as a base, not exhaustive). Notable additions: `Contratacion`, `Usuario.es_proveedor`/`Usuario.verificado_biometricamente`, `Publicaciones.estado_moderacion` (Fase 3); `HistorialEstadoContratacion`, `Publicaciones.aprobado_por`/`fecha_moderacion`, `Conversacion` now FK'd to `Contratacion` instead of a user pair, `Conversacion.exportado_en` (Fase 5); `Usuario.foto_perfil`, `IntentoAccesoSospechoso`, `ValoracionImagen.estado_moderacion` (Fase 6, security hardening); `Publicaciones.precio`, `Pago` (Fase 6, payments); `Usuario.areas_servicio`/`experiencia`/`notificaciones_sonido` (migration `0022`, provider profile + account preferences — see Data Flow).
+See `docs/DATABASE_DOCUMENTATION.md` for the complete table/relationship reference (predates Fase 5+ additions below — treat it as a base, not exhaustive). Notable additions: `Contratacion`, `Usuario.es_proveedor`/`Usuario.verificado_biometricamente`, `Publicaciones.estado_moderacion` (Fase 3); `HistorialEstadoContratacion`, `Publicaciones.aprobado_por`/`fecha_moderacion`, `Conversacion` now FK'd to `Contratacion` instead of a user pair, `Conversacion.exportado_en` (Fase 5); `Usuario.foto_perfil`, `IntentoAccesoSospechoso`, `ValoracionImagen.estado_moderacion` (Fase 6, security hardening); `Publicaciones.precio`, `Pago` (Fase 6, payments); `Usuario.areas_servicio`/`experiencia`/`notificaciones_sonido` (migration `0022`, provider profile + account preferences — see Data Flow); `TokenSesion` (Fase 8, migration `0025`, REST API refresh-token sessions — see "API + Ionic migration" in Data Flow).
 
 **`ItemPresupuesto` (budget breakdown):** a free-form, optional line-item budget breakdown a provider can attach when confirming a `Contratacion` — materials/labor/travel/other — whose sum then replaces the single `monto_acordado` field if any valid rows are submitted, plus `settings.COMISION_PLATAFORMA_PORCENTAJE` (a purely informational platform-commission percentage shown next to it, doesn't actually deduct anything). Wired into `models.py`, `admin.py` (read-only inline on `ContratacionAdmin`), `views.py` (`_parsear_items_presupuesto`, `contratacion_confirmar_view`, `contratacion_detalle_view`), and `contratacion_detalle.html`; migration `0021_itempresupuesto` and tests (`ItemPresupuestoTests`) shipped together in commit `4c73182`.
 
@@ -178,9 +207,11 @@ The `assets/mockups/pag_html/` HTML files are **not served by Django** — they 
 - `codigo/biometria/huella/REGISTRO_BD.py`, `AUTENTIFICACION.py`, `GUARDAR_DOCUMENTO.py`, `CONEXION_BD.py` remain legacy/broken by design — the Fase 3 architecture decision was to consolidate this logic into Django (`KeyServApp/biometria.py`), not repair these standalone scripts. They still reference `CONEXION_BD.cur`, which doesn't exist.
 - The SMTP password that used to be hardcoded in `AUTENTIFICACION.py` was removed in Fase 3 (pulled into an env var) and the user has since rotated the real credential — it's still in git history from Fase 1/2 commits, but no longer valid.
 - `codigo/biometria/reconocimiento_facial/probando_face_recognition.py` was rewritten from the byte-dump it used to be and is now wired into Django (`/rostro/`, see Data Flow) with a real place to store the reference encoding (`Usuario.encoding_facial`, migration `0024`) — the piece that was missing before. `rostro.html` also got a real in-browser webcam capture widget (`_captura_camara.html`, `getUserMedia` + `<canvas>` → fills the same `<input type="file">` the server already validated) that has gone through two redesigns since: a guided 3-step capture (front/right/left, validated per-step via AJAX), then — after live use showed that flow tedious and slow — the current single ~2s burst capture with a blink-based liveness check (`verificar_prueba_de_vida_parpadeo`, see Data Flow), validated as a whole via `/ajax/validar-captura-rostro/`. **`opencv-python`/`face_recognition`/`dlib` are now installed and importable** in `venv_tesis` (a first attempt failed — see below — but a retry succeeded once the network was stable). Getting there needed three fixes beyond just retrying the download:
-  1. **C++ toolchain**: Visual Studio Build Tools 2022 with the `Microsoft.VisualStudio.Workload.VCTools` workload (+ `--includeRecommended`) installed silently via the `vs_buildtools.exe` bootstrapper (`aka.ms/vs/17/release/vs_buildtools.exe`) — needed to compile `dlib` from source, since no prebuilt wheel exists for Python 3.14.
+  1. **C++ toolchain / dlib**: real `dlib` has no prebuilt wheel for Python 3.14 and its `CMakeLists.txt` refuses any compiler but MSVC on Windows. The first pass installed Visual Studio Build Tools 2022 (`Microsoft.VisualStudio.Workload.VCTools` + `--includeRecommended`, silently via the `vs_buildtools.exe` bootstrapper from `aka.ms/vs/17/release/vs_buildtools.exe`) to compile it from source, and that worked — but **this was later replaced**: `requirements.txt` now installs `dlib-bin` (an unofficial repackaging with real `cp314-win_amd64` wheels, same `import dlib` module) instead, avoiding the multi-GB Build Tools install entirely. Two follow-on quirks from that swap: pip doesn't recognize `dlib-bin` as satisfying `face_recognition==1.3.0`'s declared `dlib>=19.7` dependency (harmless resolver warning), and `face_recognition` must be installed with `--no-deps` (`pip install face_recognition==1.3.0 --no-deps`) or pip tries to pull real `dlib` anyway — its actual runtime deps (`Click`, `face_recognition_models`) are listed separately in `requirements.txt` to cover for that.
   2. **NumPy ABI mismatch**: `requirements.txt` pinned `opencv-python==4.9.0.80` (the version the thesis originally used), but that build is compiled against the NumPy 1.x ABI and crashes with `AttributeError: _ARRAY_API not found` under NumPy 2.x — and NumPy 1.x has no wheel for Python 3.14, so downgrading NumPy isn't an option. Fix: upgraded to `opencv-python>=4.10` (first line with NumPy-2-compatible wheels for `cp314`); `requirements.txt` updated to match.
   3. **`pkg_resources` removed**: `face_recognition_models` (a `face_recognition` dependency) still calls `pkg_resources.resource_filename()` to locate its `.dat` model files; `setuptools>=81` deleted `pkg_resources` outright (previously just deprecated). Fix: pinned `setuptools<81` in `requirements.txt` (still emits a deprecation warning on import, but works).
+
+  This whole face-recognition dependency block (`opencv-python`/`dlib-bin`/`face_recognition`/`setuptools<81`) is flagged in `requirements.txt` as temporary — the plan is to retire it, along with `codigo/biometria/reconocimiento_facial/` and `KeyServApp/biometria.py`, once a native biometric lock built on Capacitor is verified on the Ionic frontend (see "API + Ionic migration" in Data Flow).
 
   With all three in place, `manage.py test KeyServApp` (134 tests) passes clean — including one real bug this surfaced: `biometria.calcular_encoding_facial`/`verificar_rostro_usuario` only caught `ImportError`/`ValueError` around the *entire* try block (import + call together), so a missing/unreadable image file raised an uncaught `FileNotFoundError`/`OSError` instead of returning `None` like their own docstrings promised (this only became reachable once the real module could actually be imported — previously `ImportError` always fired first and masked it). Fixed by splitting the import and the call into separate `try` blocks, matching the pattern `procesar_huella_dactilar` already used in the same file.
 
@@ -197,4 +228,4 @@ The `assets/mockups/pag_html/` HTML files are **not served by Django** — they 
 - The catalog (`/servicios/`) now has real pagination (`django.core.paginator.Paginator`, `PUBLICACIONES_POR_PAGINA = 20` in `views.py`) instead of a fixed cap of 40 results with no way to see the rest.
 - The admin group/permissions scoping, task-based admin grouping, and moderation dashboard UI now have automated coverage (`GrupoModeradorCommandTests`, `AdminAgrupacionTests`, `PanelAprobacionesTests` in `tests.py`) — previously only the underlying models/views were tested (e.g. `PublicacionYModeracionTests` for moderation gating), not this admin-surface layer itself. `AdminAgrupacionTests` includes a regression guard (`test_ningun_modelo_registrado_cae_en_otros_para_superuser`) that fails if a future model gets registered in `admin.py` without also being added to `_CATEGORIAS_ADMIN` — otherwise it would silently fall into the "Otros" catch-all instead of a real category.
 - `.vscode/launch.json` still points at a stale pre-reorg path — not fixed, low priority.
-- Migration `0023_alter_documento_archivo_subido.py` bakes in a machine-specific absolute Windows path (from whichever machine ran `makemigrations`) as the `FileSystemStorage(location=...)` literal, because Django's migration serializer resolves `Documento.archivo_subido`'s `storage=almacenamiento_documentos` argument (`models.py`) to its constructor kwargs at generation time instead of preserving it as a reference. This is harmless — `FileField` storage doesn't affect the DB schema, so the migration is a schema no-op on any machine, and at runtime Django always uses `storage.py`'s `almacenamiento_documentos` (built dynamically from `settings.PRIVATE_MEDIA_ROOT`), not the migration file. If a future `makemigrations` run generates another `AlterField` on this field, expect the same cosmetic diff.
+- Migration `0023_alter_documento_archivo_subido.py` bakes in a machine-specific absolute Windows path (from whichever machine ran `makemigrations`) as the `FileSystemStorage(location=...)` literal, because Django's migration serializer resolves `Documento.archivo_subido`'s `storage=almacenamiento_documentos` argument (`models.py`) to its constructor kwargs at generation time instead of preserving it as a reference. This is harmless — `FileField` storage doesn't affect the DB schema, so the migration is a schema no-op on any machine, and at runtime Django always uses `storage.py`'s `almacenamiento_documentos` (built dynamically from `settings.PRIVATE_MEDIA_ROOT`), not the migration file. If a future `makemigrations` run generates another `AlterField` on this field, expect the same cosmetic diff — migration `0025_alter_documento_archivo_subido_tokensesion.py` (adds `TokenSesion`, see "API + Ionic migration") already did, bundled with an unrelated model addition in the same file since Django groups pending changes into one migration by default.

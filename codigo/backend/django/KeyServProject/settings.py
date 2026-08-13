@@ -84,10 +84,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # API REST (migración de frontend a Ionic/Angular) — ver KeyServApp/api/.
+    'rest_framework',
+    'corsheaders',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Debe ir antes que CommonMiddleware (recomendación de django-cors-headers)
+    # para poder agregar los headers CORS a toda respuesta, incluidas las de
+    # error. Solo afecta a /api/*; el resto del sitio (templates, /admin/) no
+    # se sirve nunca cross-origin, así que esto no cambia su comportamiento.
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -248,6 +257,45 @@ DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='KeyServ <no-respo
 # 100% al cliente; la liquidación al proveedor sigue siendo manual, fuera
 # del sistema — ver docs/RECOMMENDED_ARCHITECTURE.md).
 COMISION_PLATAFORMA_PORCENTAJE = env.float('COMISION_PLATAFORMA_PORCENTAJE', default=5.0)
+
+
+# API REST (KeyServApp/api/) — para el frontend Ionic/Angular, ver plan de
+# migración. Coexiste con las vistas basadas en templates mientras dura la
+# migración (Fase 8 las retira área por área).
+
+# Orígenes permitidos a llamar /api/* con credenciales — 'ionic serve' sirve
+# por defecto en :8100; agregar acá el resto (capacitor://localhost,
+# http://localhost para builds nativos) cuando existan. Nunca incluye el
+# propio dominio del sitio Django: las vistas basadas en templates siguen
+# siendo same-origin y no necesitan CORS.
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:8100'])
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'KeyServApp.api.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'KeyServ API',
+    'DESCRIPTION': 'API REST para el frontend Ionic/Angular de KeyServ.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
+# JWT hecho a mano (PyJWT) en vez de djangorestframework-simplejwt: Usuario
+# no es AUTH_USER_MODEL (ver decorators.py), y simplejwt asume
+# get_user_model() en varios puntos (TokenObtainPairSerializer.get_token,
+# el modelo OutstandingToken del blacklist app), así que no calza limpio acá.
+# Ver KeyServApp/api/authentication.py y KeyServApp/api/jwt_utils.py.
+JWT_SECRET = env('JWT_SECRET', default=SECRET_KEY)
+JWT_ALGORITHM = 'HS256'
+JWT_ACCESS_TOKEN_MINUTOS = env.int('JWT_ACCESS_TOKEN_MINUTOS', default=20)
+JWT_REFRESH_TOKEN_DIAS = env.int('JWT_REFRESH_TOKEN_DIAS', default=30)
 
 
 # Default primary key field type
