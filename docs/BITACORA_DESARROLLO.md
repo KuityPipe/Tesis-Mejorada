@@ -42,8 +42,10 @@ nunca automático.
 | 27 | 2026-08-03 21:20 | `23bb819` | Agregar tests automatizados para el grupo Moderador, el agrupamiento de admin y el dashboard de moderación | 25 min |
 | 28 | 2026-08-13 19:49 | `c18a711` | Fase 1 (API/Ionic): API REST (DRF + JWT propio) + TokenSesion + scaffold Ionic/Angular, y CLAUDE.md al día | — (otro día) |
 | 29 | 2026-08-13 20:09 | `ef5f775` | Fase 1 (API/Ionic): login funcional en Ionic contra la API JWT, verificado en vivo por curl, y fix del puerto de npm start | 20 min |
+| 30 | 2026-08-13 20:26 | `a8d05ce` | Documentar el plan de migración a Ionic (docs/PLAN_MIGRACION_IONIC.md) y comentar el código Angular/Ionic ya escrito | 16 min |
+| 31 | 2026-08-13 20:49 | `bbf1ff7` | Fase 2 (API/Ionic): catálogo público — API (listado+detalle de publicaciones) y pantallas Ionic con scroll infinito | 24 min |
 
-**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min. **Hasta el checkpoint #21**: ~17 h 04 min. **Hasta el checkpoint #22**: ~17 h 47 min. **Hasta el checkpoint #27**: ~25 h 35 min. **Hasta el checkpoint #29**: ~25 h 55 min.
+**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min. **Hasta el checkpoint #21**: ~17 h 04 min. **Hasta el checkpoint #22**: ~17 h 47 min. **Hasta el checkpoint #27**: ~25 h 35 min. **Hasta el checkpoint #31**: ~26 h 35 min.
 
 ---
 
