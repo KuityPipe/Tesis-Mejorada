@@ -34,6 +34,13 @@
       </ion-label>
     </ion-item>
 
+    <ion-button expand="block" (click)="contratar()" [disabled]="contratando">
+      {{ contratando ? 'Enviando…' : 'Contratar' }}
+    </ion-button>
+    <ion-text color="danger" *ngIf="errorContratar">
+      <p class="ion-padding-start">{{ errorContratar }}</p>
+    </ion-text>
+
     <h3>Reseñas</h3>
     <ion-list *ngIf="pub.resenas.length; else sinResenas">
       <ion-item *ngFor="let resena of pub.resenas" lines="full">

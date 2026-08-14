@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
-from ..models import Comuna, Documento, Imagenes, Publicaciones, Region, TipoCuenta, Usuario, Valoracion
+from ..models import (
+    Comuna, Contratacion, Documento, HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje,
+    Publicaciones, Region, TipoCuenta, Usuario, Valoracion, ValoracionImagen,
+)
 
 
 class LoginSerializer(serializers.Serializer):
@@ -53,6 +56,86 @@ class DocumentoPerfilSerializer(serializers.ModelSerializer):
         model = Documento
         fields = ['id_documento', 'nombre_documento', 'fecha_subida_documento']
         read_only_fields = fields
+
+
+class HistorialEstadoSerializer(serializers.ModelSerializer):
+    """Una fila de la línea de tiempo de una Contratacion (`Contratacion.historial_estados`)."""
+    class Meta:
+        model = HistorialEstadoContratacion
+        fields = ['estado', 'fecha']
+        read_only_fields = fields
+
+
+class ItemPresupuestoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemPresupuesto
+        fields = ['id_item_presupuesto', 'descripcion', 'categoria', 'monto', 'orden']
+        read_only_fields = fields
+
+
+class ValoracionImagenSerializer(serializers.ModelSerializer):
+    """Igual que `ImagenSerializer`/`DocumentoPerfilSerializer`: solo lo necesario para mostrarla, `archivo.url` es relativo a `MEDIA_URL` (mismo criterio ya usado en `ImagenSerializer`)."""
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ValoracionImagen
+        fields = ['id_valoracion_imagen', 'url', 'estado_moderacion']
+        read_only_fields = fields
+
+    def get_url(self, imagen) -> str | None:
+        return imagen.archivo.url if imagen.archivo else None
+
+
+class ValoracionSerializer(serializers.ModelSerializer):
+    """Una reseña propia, tal como la ve su emisor/receptor desde el detalle de la Contratacion — a diferencia de `ValoracionSerializer` en el catálogo público, esta SÍ puede estar `PENDIENTE` (el emisor ve su propia reseña con ese estado, mismo criterio que `contratacion_detalle_view`)."""
+    imagenes = ValoracionImagenSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Valoracion
+        fields = ['id_valoracion', 'puntuacion', 'comentario', 'fecha_valoracion', 'estado_moderacion', 'imagenes']
+        read_only_fields = fields
+
+
+class ContratacionListSerializer(serializers.ModelSerializer):
+    """`GET /api/contrataciones/` — equivalente API de `reservas_view`. `cliente`/`proveedor` vienen como el pk plano (default de DRF para una FK) — el cliente Ionic decide su propio rol comparando contra `GET /api/auth/me/`, no hay un campo `rol` calculado acá."""
+    publicacion_titulo = serializers.CharField(source='publicacion.titulo', read_only=True)
+    publicacion_imagen = serializers.SerializerMethodField()
+    cliente_nombre = serializers.CharField(source='cliente.nombre_usuario', read_only=True)
+    proveedor_nombre = serializers.CharField(source='proveedor.nombre_usuario', read_only=True)
+
+    class Meta:
+        model = Contratacion
+        fields = [
+            'id_contratacion', 'estado', 'monto_acordado', 'fecha_creacion',
+            'publicacion', 'publicacion_titulo', 'publicacion_imagen',
+            'cliente', 'cliente_nombre', 'proveedor', 'proveedor_nombre',
+        ]
+        read_only_fields = fields
+
+    def get_publicacion_imagen(self, contratacion) -> str | None:
+        primera = contratacion.publicacion.imagenes.first()
+        return primera.url if primera else None
+
+
+class ContratacionDetailSerializer(ContratacionListSerializer):
+    """`GET /api/contrataciones/<id>/` — equivalente API de la mitad "detalle" de `contratacion_detalle_view` (todo menos el chat, ver `MensajeSerializer`/`ContratacionMensajesView`)."""
+    historial = HistorialEstadoSerializer(source='historial_estados', many=True, read_only=True)
+    items_presupuesto = ItemPresupuestoSerializer(many=True, read_only=True)
+    valoracion = ValoracionSerializer(read_only=True)
+
+    class Meta(ContratacionListSerializer.Meta):
+        fields = ContratacionListSerializer.Meta.fields + ['historial', 'items_presupuesto', 'valoracion']
+        read_only_fields = fields
+
+
+class MensajeSerializer(serializers.ModelSerializer):
+    """Un mensaje del chat de una Contratacion — `conversacion`/`usuario` los fija la vista (`ContratacionMensajesView`), nunca el cliente."""
+    usuario_nombre = serializers.CharField(source='usuario.nombre_usuario', read_only=True)
+
+    class Meta:
+        model = Mensaje
+        fields = ['id_mensaje', 'contenido', 'fecha_envio', 'usuario', 'usuario_nombre']
+        read_only_fields = ['id_mensaje', 'fecha_envio', 'usuario', 'usuario_nombre']
 
 
 class RegionSerializer(serializers.ModelSerializer):

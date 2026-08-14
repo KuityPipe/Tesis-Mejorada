@@ -178,13 +178,69 @@ depende de que el resto ya esté hecho:
   posterior usando la contraseña nueva) y rechazo con la contraseña
   actual incorrecta — todo restaurado después al valor original.
 
-### Fase 4 — Núcleo transaccional
+### Fase 4 — Núcleo transaccional (en progreso)
 
 Contrataciones (crear → confirmar → pagar → completar → valorar),
 mensajería por trabajo (`Conversacion`/`Mensaje`), pagos (Webpay/Khipu). Es
 la parte de mayor riesgo (dinero real, estado con muchas transiciones) por
-eso se deja para después de validar el patrón en fases más simples. Los
-pagos necesitan atención especial en nativo: el flujo de redirect a
+eso se deja para después de validar el patrón en fases más simples.
+Dividida en piezas, orden confirmado con el usuario (2026-08-14):
+
+1. **Contrataciones (listar/solicitar/detalle) ✅** —
+   `GET`/`POST /api/contrataciones/` (equivalentes de `reservas_view` +
+   `contratacion_crear_view`) y `GET /api/contrataciones/<id>/`
+   (equivalente de la mitad "detalle" de `contratacion_detalle_view`, sin
+   el chat). 404 — no 403 — para una contratación ajena, mismo criterio
+   que `documento_descargar_view` (no confirmarle a quien pregunta que el
+   recurso existe), con el intento registrado en `IntentoAccesoSospechoso`
+   igual que el template. Ionic: `reservas.page` (listado) + botón
+   "Contratar" en `catalogo/detalle.page` (llama a
+   `Contrataciones.solicitar` y redirige al detalle de la contratación
+   recién creada; sin sesión, manda a `/login`).
+2. **Mensajería por contratación ✅** — `GET`/`POST
+   /api/contrataciones/<id>/mensajes/`, equivalente de la parte de chat
+   embebida en `contratacion_detalle_view` (`GET` también marca
+   `ultimo_leido`, igual que el template). Ionic: embebido en
+   `contratacion/detalle/detalle.page`.
+3. **Confirmar/completar con reautenticación ✅** — `POST
+   /api/contrataciones/<id>/confirmar/` y `/completar/` reusan
+   `ReautenticacionForm`/`MontoAcordadoForm` tal cual, y el mismo
+   rate-limit por (usuario, contratación)
+   (`_reautenticacion_bloqueada`/`_registrar_intento_reautenticacion`,
+   importados de `views.py`, no reimplementados). La hoja de presupuesto
+   opcional (`ItemPresupuesto`) tiene su propio parser API
+   (`_parsear_items_presupuesto_api`, sobre una lista de objetos JSON en
+   vez de `request.POST.getlist(...)` — la única pieza de esta fase que no
+   pudo reusar el helper del template tal cual, por la forma en que llega
+   el body) pero no está en la pantalla de Ionic todavía — solo el monto
+   único. Ionic: formulario de reautenticación embebido en
+   `contratacion/detalle/detalle.page`, mismo componente para confirmar y
+   completar.
+4. **Valoraciones ✅** — `POST /api/contrataciones/<id>/valoracion/`
+   reusa `ValoracionForm`, sube fotos con el mismo `validators.py` que el
+   resto del sitio (las rechazadas se listan en `imagenes_rechazadas` sin
+   tirar un 400 — la reseña ya se guardó, mismo criterio que
+   `documentos_rechazados` en `PerfilProveedorView`) y recalcula el
+   `Ranking` del proveedor. Ionic: formulario embebido en
+   `contratacion/detalle/detalle.page`, visible solo cuando
+   `estado === 'COMPLETADA'` y todavía no hay `valoracion`.
+   Verificado en vivo por `curl` contra cuentas demo reales: flujo
+   completo solicitar → mensaje del cliente → el proveedor lee (marca
+   leído) y confirma con un monto acordado → (`EN_CURSO` fijado a mano
+   vía `manage.py shell`, ya que los pagos son la pieza 5, todavía sin
+   migrar) → el cliente completa (password incorrecta rechazada primero)
+   → valora → detalle final muestra el historial de 4 estados y la
+   reseña `PENDIENTE`. También verificado: un tercer usuario no puede ver
+   el detalle ni los mensajes ajenos (404 + `IntentoAccesoSospechoso`), no
+   se puede volver a confirmar una contratación que ya no está
+   `SOLICITADA`, y completar sin haber pasado por `EN_CURSO` da 404. La
+   contratación de prueba se borró después para no dejar datos demo
+   mutados.
+5. ⏳ **Pagos (Webpay/Khipu)** — sin empezar. Necesita el manejo especial
+   de redirect a un gateway externo mencionado abajo (`@capacitor/browser`
+   en nativo).
+
+Los pagos necesitan atención especial en nativo: el flujo de redirect a
 Transbank/Khipu no puede ser una navegación de página completa como en web
 — en Capacitor se resuelve con el plugin `@capacitor/browser` (ventana
 in-app) en vez de `window.location`.

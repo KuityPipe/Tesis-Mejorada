@@ -1,9 +1,19 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
+import { Auth } from '../../core/auth';
+import { Contrataciones } from '../../contrataciones/contrataciones';
 import { Publicaciones, PublicacionDetalle } from '../publicaciones';
 
-/** Detalle público de una publicación — equivalente Ionic de `publicacion_detalle_view`. El `puede_contratar`/botón de contratar del template no está acá todavía (llega con la fase de contrataciones del plan de migración). */
+/**
+ * Detalle público de una publicación — equivalente Ionic de
+ * `publicacion_detalle_view`. El botón "Contratar" (Fase 4 del plan de
+ * migración) llama a `Contrataciones.solicitar` y redirige al detalle de
+ * la contratación recién creada — a diferencia del template, acá no hay
+ * un `puede_contratar` precalculado por el backend: sin sesión, el botón
+ * manda a `/login` directo; logueado, el propio `POST` devuelve un 400 si
+ * ya hay una solicitud activa o es la propia publicación, mostrado tal cual.
+ */
 @Component({
   selector: 'app-detalle',
   templateUrl: './detalle.page.html',
@@ -13,10 +23,15 @@ import { Publicaciones, PublicacionDetalle } from '../publicaciones';
 export class DetallePage implements OnInit {
   publicacion: PublicacionDetalle | null = null;
   cargando = true;
+  contratando = false;
+  errorContratar: string | null = null;
 
   constructor(
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly api: Publicaciones,
+    private readonly auth: Auth,
+    private readonly contratacionesApi: Contrataciones,
   ) {}
 
   ngOnInit(): void {
@@ -33,6 +48,32 @@ export class DetallePage implements OnInit {
       },
       error: () => {
         this.cargando = false;
+      },
+    });
+  }
+
+  get estaAutenticado(): boolean {
+    return this.auth.estaAutenticado();
+  }
+
+  contratar(): void {
+    if (!this.publicacion || this.contratando) {
+      return;
+    }
+    if (!this.estaAutenticado) {
+      this.router.navigateByUrl('/login');
+      return;
+    }
+    this.contratando = true;
+    this.errorContratar = null;
+    this.contratacionesApi.solicitar(this.publicacion.id_publicacion).subscribe({
+      next: (contratacion) => {
+        this.contratando = false;
+        this.router.navigateByUrl(`/contratacion/${contratacion.id_contratacion}`);
+      },
+      error: (error) => {
+        this.contratando = false;
+        this.errorContratar = error.error?.detail ?? 'No se pudo enviar la solicitud.';
       },
     });
   }

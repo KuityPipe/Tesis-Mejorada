@@ -13,7 +13,9 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db.models import Q, Value
+from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
@@ -22,15 +24,20 @@ from rest_framework.views import APIView
 
 from .. import views as vistas_legacy
 from ..forms import (
-    CambiarPasswordForm, CATEGORIAS_PUBLICACION, CrearPerfilForm, EditarPerfilForm,
-    NuevaPasswordForm, PreferenciasCuentaForm, RecuperarForm, RegistroForm,
+    CambiarPasswordForm, CATEGORIAS_PUBLICACION, CrearPerfilForm, EditarPerfilForm, MensajeForm,
+    MontoAcordadoForm, NuevaPasswordForm, PreferenciasCuentaForm, ReautenticacionForm, RecuperarForm,
+    RegistroForm, ValoracionForm,
 )
-from ..models import Comuna, Documento, EstadoDocumento, Publicaciones, Region, Transaccion, TipoCuenta, Usuario
+from ..models import (
+    Comuna, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion, ItemPresupuesto, Mensaje,
+    Publicaciones, Region, Transaccion, TipoCuenta, Usuario, UsuarioConversacion, ValoracionImagen,
+)
 from ..views import Unaccent
 from . import jwt_utils
 from .serializers import (
-    ComunaSerializer, DocumentoPerfilSerializer, LoginSerializer, PublicacionDetailSerializer,
-    PublicacionListSerializer, RegionSerializer, TipoCuentaSerializer, UsuarioMeSerializer,
+    ComunaSerializer, ContratacionDetailSerializer, ContratacionListSerializer, DocumentoPerfilSerializer,
+    LoginSerializer, MensajeSerializer, PublicacionDetailSerializer, PublicacionListSerializer, RegionSerializer,
+    TipoCuentaSerializer, UsuarioMeSerializer, ValoracionSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -439,3 +446,253 @@ class PublicacionDetailView(generics.RetrieveAPIView):
     queryset = Publicaciones.objects.select_related(
         'usuario_publicador__ranking', 'usuario_publicador__comuna__region',
     ).prefetch_related('imagenes')
+
+
+def _parsear_items_presupuesto_api(data):
+    """
+    Equivalente API de `vistas_legacy._parsear_items_presupuesto` — misma
+    validación fila por fila (descripción no vacía, monto entero positivo,
+    categoría dentro de las válidas o `OTRO`), pero sobre `data.get('items')`
+    (una lista de objetos JSON, `[{descripcion, categoria, monto}, ...]`) en
+    vez de `request.POST.getlist('item_descripcion')`/... — el original está
+    atado a listas paralelas de un `<form>` HTML, que no es la forma en que
+    un cliente JSON manda esto, así que no se pudo reusar tal cual.
+    """
+    items = []
+    categorias_validas = dict(ItemPresupuesto.CATEGORIAS_ITEM)
+    for fila in (data.get('items') or []):
+        descripcion = (fila.get('descripcion') or '').strip()[:200]
+        if not descripcion:
+            continue
+        try:
+            monto = int(fila.get('monto'))
+        except (TypeError, ValueError):
+            continue
+        if monto <= 0:
+            continue
+        categoria = fila.get('categoria')
+        if categoria not in categorias_validas:
+            categoria = ItemPresupuesto.OTRO
+        items.append((descripcion, categoria, monto))
+    return items
+
+
+class ContratacionListCreateView(APIView):
+    """`GET`/`POST /api/contrataciones/` — equivalente API de `reservas_view` (listado) + `contratacion_crear_view` (creación, "solicitar")."""
+
+    def get(self, request):
+        contrataciones = Contratacion.objects.filter(
+            Q(cliente=request.user) | Q(proveedor=request.user),
+        ).distinct().select_related('publicacion', 'cliente', 'proveedor').prefetch_related('publicacion__imagenes').order_by('-fecha_creacion')
+        return Response(ContratacionListSerializer(contrataciones, many=True).data)
+
+    def post(self, request):
+        publicacion = get_object_or_404(Publicaciones, pk=request.data.get('publicacion'))
+        cliente = request.user
+        proveedor = publicacion.usuario_publicador
+
+        if cliente == proveedor:
+            return Response({'detail': 'No podés contratar tu propia publicación.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ya_activa = Contratacion.objects.filter(
+            publicacion=publicacion, cliente=cliente,
+            estado__in=[Contratacion.SOLICITADA, Contratacion.CONFIRMADA, Contratacion.EN_CURSO],
+        ).exists()
+        if ya_activa:
+            return Response(
+                {'detail': 'Ya tenés una solicitud en curso para este servicio — esperá a que se complete antes de volver a pedirlo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        contratacion = Contratacion.objects.create(publicacion=publicacion, cliente=cliente, proveedor=proveedor)
+        HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.SOLICITADA)
+        conversacion = vistas_legacy._obtener_o_crear_conversacion_de_contratacion(contratacion)
+        Mensaje.objects.create(
+            conversacion=conversacion, usuario=cliente,
+            contenido=f'[Sistema] {cliente} solicitó contratar "{publicacion.titulo}". Contratación #{contratacion.id_contratacion}.',
+        )
+        logger.info('Contratación solicitada (api): id=%s cliente=%s proveedor=%s', contratacion.id_contratacion, cliente.id_usuario, proveedor.id_usuario)
+        return Response(ContratacionDetailSerializer(contratacion).data, status=status.HTTP_201_CREATED)
+
+
+class ContratacionDetailView(APIView):
+    """`GET /api/contrataciones/<id>/` — equivalente API de la mitad "detalle" de `contratacion_detalle_view` (todo menos el chat, ver `ContratacionMensajesView`). 404 (no 403) para una contratación ajena, mismo criterio que `documento_descargar_view` — no confirmarle a quien pregunta que el recurso existe."""
+
+    def get(self, request, contratacion_id):
+        contratacion = get_object_or_404(
+            Contratacion.objects.select_related('publicacion', 'cliente', 'proveedor').prefetch_related(
+                'publicacion__imagenes', 'historial_estados', 'items_presupuesto', 'valoracion__imagenes',
+            ),
+            pk=contratacion_id,
+        )
+        if request.user not in (contratacion.cliente, contratacion.proveedor):
+            vistas_legacy._registrar_intento_sospechoso(request, request.user, 'contratacion', contratacion_id, 'contratación ajena (api)')
+            raise Http404()
+        return Response(ContratacionDetailSerializer(contratacion).data)
+
+
+class ContratacionMensajesView(APIView):
+    """`GET`/`POST /api/contrataciones/<id>/mensajes/` — equivalente API de la parte de chat embebida en `contratacion_detalle_view`. `GET` también marca `ultimo_leido`, igual que el template."""
+
+    def _obtener_contratacion(self, request, contratacion_id):
+        contratacion = get_object_or_404(Contratacion, pk=contratacion_id)
+        if request.user not in (contratacion.cliente, contratacion.proveedor):
+            vistas_legacy._registrar_intento_sospechoso(request, request.user, 'contratacion', contratacion_id, 'contratación ajena (api, mensajes)')
+            raise Http404()
+        return contratacion
+
+    def get(self, request, contratacion_id):
+        contratacion = self._obtener_contratacion(request, contratacion_id)
+        conversacion = vistas_legacy._obtener_o_crear_conversacion_de_contratacion(contratacion)
+        participacion = UsuarioConversacion.objects.filter(usuario=request.user, conversacion=conversacion).first()
+        if participacion:
+            participacion.ultimo_leido = timezone.now()
+            participacion.save(update_fields=['ultimo_leido'])
+        mensajes = Mensaje.objects.filter(conversacion=conversacion).select_related('usuario').order_by('fecha_envio')
+        return Response(MensajeSerializer(mensajes, many=True).data)
+
+    def post(self, request, contratacion_id):
+        contratacion = self._obtener_contratacion(request, contratacion_id)
+        form = MensajeForm(request.data)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        conversacion = vistas_legacy._obtener_o_crear_conversacion_de_contratacion(contratacion)
+        mensaje = form.save(commit=False)
+        mensaje.conversacion = conversacion
+        mensaje.usuario = request.user
+        mensaje.save()
+        return Response(MensajeSerializer(mensaje).data, status=status.HTTP_201_CREATED)
+
+
+class ContratacionConfirmarView(APIView):
+    """
+    `POST /api/contrataciones/<id>/confirmar/` — equivalente API de
+    `contratacion_confirmar_view` (el PROVEEDOR acepta, SOLICITADA ->
+    CONFIRMADA). Reusa `ReautenticacionForm`/`MontoAcordadoForm` igual que
+    el resto de la migración, y el mismo rate-limit por (usuario,
+    contratación) (`vistas_legacy._reautenticacion_bloqueada`/
+    `_registrar_intento_reautenticacion`) — importado, no reimplementado,
+    para que un límite no pueda divergir del otro.
+
+    Body esperado: `password` (re-auth), y opcionalmente `monto` (entero) o
+    `items` (lista de `{descripcion, categoria, monto}` — ver
+    `_parsear_items_presupuesto_api`); si se manda `items` con al menos una
+    fila válida, el monto acordado es la suma de esos ítems y `monto` se
+    ignora, mismo criterio que la hoja de presupuesto del template.
+    """
+
+    def post(self, request, contratacion_id):
+        contratacion = get_object_or_404(
+            Contratacion.objects.select_related('publicacion'), pk=contratacion_id, estado=Contratacion.SOLICITADA,
+        )
+        usuario = request.user
+        if usuario != contratacion.proveedor:
+            vistas_legacy._registrar_intento_sospechoso(request, usuario, 'contratacion_confirmar', contratacion_id, 'no es el proveedor (api)')
+            return Response({'detail': 'Solo el proveedor puede confirmar esta contratación.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if vistas_legacy._reautenticacion_bloqueada(usuario, contratacion_id):
+            vistas_legacy._registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_confirmar', contratacion_id, 'demasiados intentos fallidos (api)')
+            return Response({'detail': 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        form = ReautenticacionForm(request.data)
+        if not (form.is_valid() and usuario.check_password(form.cleaned_data['password'])):
+            vistas_legacy._registrar_intento_reautenticacion(usuario, contratacion_id, exito=False)
+            return Response({'detail': 'Contraseña incorrecta — no se pudo confirmar.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        vistas_legacy._registrar_intento_reautenticacion(usuario, contratacion_id, exito=True)
+        items_presupuesto = _parsear_items_presupuesto_api(request.data)
+        monto_acordado = contratacion.publicacion.precio
+        if items_presupuesto:
+            monto_acordado = sum(monto for _, _, monto in items_presupuesto)
+        else:
+            monto_form = MontoAcordadoForm({'monto': request.data.get('monto')})
+            if monto_form.is_valid() and monto_form.cleaned_data.get('monto'):
+                monto_acordado = monto_form.cleaned_data['monto']
+
+        contratacion.monto_acordado = monto_acordado
+        contratacion.estado = Contratacion.CONFIRMADA
+        contratacion.save()
+        HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.CONFIRMADA)
+        if items_presupuesto:
+            ItemPresupuesto.objects.bulk_create([
+                ItemPresupuesto(contratacion=contratacion, descripcion=descripcion, categoria=categoria, monto=monto, orden=indice)
+                for indice, (descripcion, categoria, monto) in enumerate(items_presupuesto)
+            ])
+        logger.info('Contratación confirmada por el proveedor (api): id=%s monto_acordado=%s items_presupuesto=%s', contratacion.id_contratacion, monto_acordado, len(items_presupuesto))
+        return Response(ContratacionDetailSerializer(contratacion).data)
+
+
+class ContratacionCompletarView(APIView):
+    """`POST /api/contrataciones/<id>/completar/` — equivalente API de `contratacion_completar_view` (el CLIENTE confirma que el servicio se completó, EN_CURSO -> COMPLETADA). Mismo criterio de reuso que `ContratacionConfirmarView`."""
+
+    def post(self, request, contratacion_id):
+        contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.EN_CURSO)
+        usuario = request.user
+        if usuario != contratacion.cliente:
+            vistas_legacy._registrar_intento_sospechoso(request, usuario, 'contratacion_completar', contratacion_id, 'no es el cliente (api)')
+            return Response({'detail': 'Solo el cliente puede marcar la contratación como completada.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if vistas_legacy._reautenticacion_bloqueada(usuario, contratacion_id):
+            vistas_legacy._registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_completar', contratacion_id, 'demasiados intentos fallidos (api)')
+            return Response({'detail': 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        form = ReautenticacionForm(request.data)
+        if not (form.is_valid() and usuario.check_password(form.cleaned_data['password'])):
+            vistas_legacy._registrar_intento_reautenticacion(usuario, contratacion_id, exito=False)
+            return Response({'detail': 'Contraseña incorrecta — no se pudo completar.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        vistas_legacy._registrar_intento_reautenticacion(usuario, contratacion_id, exito=True)
+        contratacion.estado = Contratacion.COMPLETADA
+        contratacion.save()
+        HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.COMPLETADA)
+        logger.info('Contratación completada (api): id=%s', contratacion.id_contratacion)
+        return Response(ContratacionDetailSerializer(contratacion).data)
+
+
+class ValoracionCrearView(APIView):
+    """
+    `POST /api/contrataciones/<id>/valoracion/` — equivalente API de
+    `valoracion_crear_view`: reusa `ValoracionForm`, sube fotos adjuntas con
+    el mismo `validators.py` (byte-signature + Pillow) que el resto del
+    sitio y recalcula el `Ranking` del proveedor. Las fotos rechazadas no
+    tiran un 400 (la reseña ya se guardó) — se listan en
+    `imagenes_rechazadas`, mismo criterio que `documentos_rechazados` en
+    `PerfilProveedorView`.
+    """
+
+    def post(self, request, contratacion_id):
+        contratacion = get_object_or_404(Contratacion, pk=contratacion_id, estado=Contratacion.COMPLETADA)
+        emisor = request.user
+        if emisor != contratacion.cliente:
+            vistas_legacy._registrar_intento_sospechoso(request, emisor, 'valoracion_crear', contratacion_id, 'no es el cliente (api)')
+            return Response({'detail': 'Solo el cliente puede calificar este trabajo.'}, status=status.HTTP_403_FORBIDDEN)
+        if getattr(contratacion, 'valoracion', None) is not None:
+            return Response({'detail': 'Ya calificaste este trabajo.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        form = ValoracionForm(request.data)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        valoracion = form.save(commit=False)
+        valoracion.usuario_emisor = emisor
+        valoracion.usuario_receptor = contratacion.proveedor
+        valoracion.publicacion = contratacion.publicacion
+        valoracion.contratacion = contratacion
+        valoracion.save()
+
+        rechazadas = []
+        for archivo in request.FILES.getlist('imagenes')[:vistas_legacy.MAX_IMAGENES_VALORACION]:
+            imagen = ValoracionImagen(valoracion=valoracion, archivo=archivo)
+            try:
+                imagen.full_clean()
+            except ValidationError:
+                rechazadas.append(archivo.name)
+                continue
+            imagen.save()
+
+        vistas_legacy._recalcular_ranking(contratacion.proveedor)
+        logger.info('Valoración creada (api): contratacion_id=%s emisor=%s', contratacion_id, emisor.id_usuario)
+        return Response(
+            {'valoracion': ValoracionSerializer(valoracion).data, 'imagenes_rechazadas': rechazadas},
+            status=status.HTTP_201_CREATED,
+        )

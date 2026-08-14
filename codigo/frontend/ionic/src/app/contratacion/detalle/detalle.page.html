@@ -1,0 +1,115 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/reservas"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ contratacion?.publicacion_titulo || 'Contratación' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <ng-container *ngIf="contratacion as c">
+    <ion-item lines="none">
+      <ion-label>
+        <h1>{{ c.publicacion_titulo }}</h1>
+        <p>Cliente: {{ c.cliente_nombre }} · Proveedor: {{ c.proveedor_nombre }}</p>
+        <p *ngIf="c.monto_acordado">Monto acordado: ${{ c.monto_acordado | number }}</p>
+      </ion-label>
+      <ion-badge slot="end">{{ c.estado }}</ion-badge>
+    </ion-item>
+
+    <ion-list *ngIf="c.items_presupuesto.length">
+      <ion-list-header><ion-label>Desglose del presupuesto</ion-label></ion-list-header>
+      <ion-item *ngFor="let item of c.items_presupuesto">
+        <ion-label>{{ item.descripcion }}</ion-label>
+        <ion-note slot="end">${{ item.monto | number }}</ion-note>
+      </ion-item>
+    </ion-list>
+
+    <ion-list>
+      <ion-list-header><ion-label>Historial</ion-label></ion-list-header>
+      <ion-item *ngFor="let h of c.historial" lines="none">
+        <ion-label>{{ h.estado }}</ion-label>
+        <ion-note slot="end">{{ h.fecha | date:'short' }}</ion-note>
+      </ion-item>
+    </ion-list>
+
+    <!-- Confirmar (proveedor, SOLICITADA) / Completar (cliente, EN_CURSO) — ambas piden reautenticación, mismo <form> reusado para las dos acciones. -->
+    <form *ngIf="puedeConfirmar || puedeCompletar" [formGroup]="formularioReauth" (ngSubmit)="puedeConfirmar ? confirmar() : completar()">
+      <ion-list>
+        <ion-list-header>
+          <ion-label>{{ puedeConfirmar ? 'Confirmar contratación' : 'Marcar como completada' }}</ion-label>
+        </ion-list-header>
+        <ion-item>
+          <ion-input label="Confirmá tu contraseña" labelPlacement="floating" type="password" formControlName="password"></ion-input>
+        </ion-item>
+        <ion-item *ngIf="puedeConfirmar">
+          <ion-input label="Monto acordado (CLP, opcional)" labelPlacement="floating" type="number" formControlName="monto"></ion-input>
+        </ion-item>
+      </ion-list>
+      <ion-text color="danger" *ngIf="errorAccion"><p class="ion-padding-start">{{ errorAccion }}</p></ion-text>
+      <ion-button expand="block" type="submit" [disabled]="procesandoAccion">
+        {{ procesandoAccion ? 'Guardando…' : (puedeConfirmar ? 'Confirmar' : 'Marcar como completada') }}
+      </ion-button>
+    </form>
+
+    <!-- Valorar (cliente, COMPLETADA, todavía sin reseña) -->
+    <form *ngIf="puedeValorar" [formGroup]="formularioValoracion" (ngSubmit)="valorar()">
+      <ion-list>
+        <ion-list-header><ion-label>Calificá este trabajo</ion-label></ion-list-header>
+        <ion-item>
+          <ion-select label="Puntuación" labelPlacement="floating" formControlName="puntuacion">
+            <ion-select-option *ngFor="let n of [1,2,3,4,5]" [value]="n">{{ n }} estrella{{ n > 1 ? 's' : '' }}</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-textarea label="Comentario (opcional)" labelPlacement="floating" formControlName="comentario"></ion-textarea>
+        </ion-item>
+        <ion-item lines="none">
+          <ion-label>Fotos (opcional)</ion-label>
+          <input type="file" accept="image/*" multiple (change)="alElegirFotos($event)" />
+        </ion-item>
+      </ion-list>
+      <ion-text color="danger" *ngIf="errorValoracion"><p class="ion-padding-start">{{ errorValoracion }}</p></ion-text>
+      <ion-button expand="block" type="submit" [disabled]="enviandoValoracion">
+        {{ enviandoValoracion ? 'Enviando…' : 'Enviar calificación' }}
+      </ion-button>
+    </form>
+
+    <ion-item lines="none" *ngIf="c.valoracion">
+      <ion-label class="ion-text-wrap">
+        <h2>Tu calificación: ★{{ c.valoracion.puntuacion }}</h2>
+        <p>{{ c.valoracion.comentario }}</p>
+        <p *ngIf="c.valoracion.estado_moderacion === 'PENDIENTE'" class="pendiente">Pendiente de revisión por un moderador.</p>
+      </ion-label>
+    </ion-item>
+
+    <!-- Chat -->
+    <ion-list>
+      <ion-list-header><ion-label>Mensajes</ion-label></ion-list-header>
+      <ion-item *ngFor="let m of mensajes" lines="full">
+        <ion-label class="ion-text-wrap">
+          <h3>{{ m.usuario_nombre }}</h3>
+          <p>{{ m.contenido }}</p>
+          <p><small>{{ m.fecha_envio | date:'short' }}</small></p>
+        </ion-label>
+      </ion-item>
+      <ion-item *ngIf="!mensajes.length" lines="none">
+        <ion-label color="medium">Todavía no hay mensajes.</ion-label>
+      </ion-item>
+    </ion-list>
+
+    <form [formGroup]="formularioMensaje" (ngSubmit)="enviarMensaje()">
+      <ion-item>
+        <ion-input label="Escribí un mensaje" labelPlacement="floating" formControlName="contenido"></ion-input>
+      </ion-item>
+      <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviandoMensaje">
+        {{ enviandoMensaje ? 'Enviando…' : 'Enviar' }}
+      </ion-button>
+    </form>
+  </ng-container>
+</ion-content>

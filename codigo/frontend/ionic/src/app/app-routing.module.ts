@@ -52,6 +52,16 @@ const routes: Routes = [
     path: 'recuperar',
     loadChildren: () => import('./recuperar/recuperar.module').then( m => m.RecuperarPageModule)
   },
+  {
+    path: 'reservas',
+    loadChildren: () => import('./reservas/reservas.module').then( m => m.ReservasPageModule),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'contratacion/:id',
+    loadChildren: () => import('./contratacion/detalle/detalle.module').then( m => m.DetallePageModule),
+    canActivate: [authGuard],
+  },
 ];
 
 @NgModule({

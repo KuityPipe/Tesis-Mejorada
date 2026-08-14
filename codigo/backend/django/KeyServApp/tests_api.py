@@ -12,10 +12,10 @@ from rest_framework.test import APITestCase
 
 from .api import jwt_utils
 from .models import (
-    Comuna, Documento, EstadoDocumento, IntentoAccesoSospechoso, Publicaciones, Region, TokenSesion, Usuario,
-    Valoracion,
+    Comuna, Contratacion, Documento, EstadoDocumento, IntentoAccesoSospechoso, ItemPresupuesto, Mensaje,
+    Publicaciones, Ranking, Region, TokenSesion, Usuario, Valoracion, ValoracionImagen,
 )
-from .tests import _crear_region_comuna_tipo, _crear_usuario, _imagen_de_prueba
+from .tests import _crear_region_comuna_tipo, _crear_usuario, _imagen_de_prueba, _marcar_en_curso
 from .views import _generar_token_recuperacion
 
 
@@ -557,3 +557,254 @@ class PreferenciasApiTests(APITestCase):
         self.assertEqual(resp.status_code, 400)
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.check_password('clave_actual'))
+
+
+class ContratacionApiTests(APITestCase):
+    """`GET`/`POST /api/contrataciones/` — espeja ContratacionFlowTests/MensajeriaTests (tests.py, la parte de "solicitar")."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_api_c@test.com', 'clave_prov', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_api_c@test.com', 'clave_cli', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Electricidad', estado_moderacion=Publicaciones.APROBADA, precio=15000)
+
+    def _autenticado_como(self, usuario):
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_sin_token_devuelve_401(self):
+        resp = self.client.get('/api/contrataciones/')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_solicitar_crea_contratacion_y_notifica_por_chat(self):
+        self._autenticado_como(self.cliente)
+
+        resp = self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.id_publicacion}, format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['estado'], Contratacion.SOLICITADA)
+        contratacion = Contratacion.objects.get(publicacion=self.publicacion)
+        self.assertEqual(contratacion.cliente, self.cliente)
+        mensaje = Mensaje.objects.get(conversacion=contratacion.conversacion)
+        self.assertIn('Electricidad', mensaje.contenido)
+        self.assertEqual(mensaje.usuario, self.cliente)
+
+    def test_no_se_puede_contratar_la_propia_publicacion(self):
+        self._autenticado_como(self.proveedor)
+        resp = self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.id_publicacion}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(Contratacion.objects.filter(publicacion=self.publicacion).exists())
+
+    def test_no_se_puede_recontratar_mientras_hay_una_solicitud_activa(self):
+        self._autenticado_como(self.cliente)
+        self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.id_publicacion}, format='json')
+        resp = self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.id_publicacion}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Contratacion.objects.filter(publicacion=self.publicacion, cliente=self.cliente).count(), 1)
+
+    def test_listado_incluye_las_del_cliente_y_las_del_proveedor(self):
+        Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+
+        self._autenticado_como(self.cliente)
+        resp_cliente = self.client.get('/api/contrataciones/')
+        self.assertEqual(len(resp_cliente.data), 1)
+
+        self._autenticado_como(self.proveedor)
+        resp_proveedor = self.client.get('/api/contrataciones/')
+        self.assertEqual(len(resp_proveedor.data), 1)
+
+        otro = _crear_usuario('otro_api_c@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self._autenticado_como(otro)
+        resp_otro = self.client.get('/api/contrataciones/')
+        self.assertEqual(len(resp_otro.data), 0)
+
+
+class ContratacionDetalleMensajesApiTests(APITestCase):
+    """`GET /api/contrataciones/<id>/` + `GET`/`POST /api/contrataciones/<id>/mensajes/` — espeja la parte de detalle+chat de `contratacion_detalle_view` y el control de acceso de `MensajeriaTests`/`IntentoAccesoSospechosoTests`."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_api_d@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_api_d@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.intruso = _crear_usuario('intruso_api_d@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA)
+        self.contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+
+    def _autenticado_como(self, usuario):
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_detalle_visible_para_cliente_y_proveedor(self):
+        self._autenticado_como(self.cliente)
+        self.assertEqual(self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/').status_code, 200)
+        self._autenticado_como(self.proveedor)
+        self.assertEqual(self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/').status_code, 200)
+
+    def test_detalle_ajeno_devuelve_404_y_queda_registrado(self):
+        self._autenticado_como(self.intruso)
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/')
+        self.assertEqual(resp.status_code, 404)
+        intento = IntentoAccesoSospechoso.objects.get(recurso='contratacion', recurso_id=str(self.contratacion.id_contratacion))
+        self.assertEqual(intento.usuario, self.intruso)
+
+    def test_enviar_mensaje_y_listarlo(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'Hola, ¿seguís disponible?'}, format='json')
+        self.assertEqual(resp.status_code, 201)
+
+        self._autenticado_como(self.proveedor)
+        resp_lista = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/')
+        self.assertEqual(len(resp_lista.data), 1)
+        self.assertEqual(resp_lista.data[0]['contenido'], 'Hola, ¿seguís disponible?')
+
+    def test_mensajes_ajenos_devuelve_404(self):
+        self._autenticado_como(self.intruso)
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/')
+        self.assertEqual(resp.status_code, 404)
+
+
+class ContratacionConfirmarCompletarApiTests(APITestCase):
+    """`POST /api/contrataciones/<id>/confirmar/` y `/completar/` — espeja ContratacionFlowTests/MontoAcordadoConfirmarTests/ItemPresupuestoTests (tests.py)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_api_cc@test.com', 'clave_prov', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_api_cc@test.com', 'clave_cli', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000)
+        self.contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=Contratacion.SOLICITADA)
+
+    def tearDown(self):
+        cache.clear()
+
+    def _autenticado_como(self, usuario):
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_confirmar_sin_monto_usa_el_precio_de_la_publicacion(self):
+        self._autenticado_como(self.proveedor)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/confirmar/', {'password': 'clave_prov'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.CONFIRMADA)
+        self.assertEqual(self.contratacion.monto_acordado, 15000)
+
+    def test_confirmar_permite_ajustar_el_monto_acordado(self):
+        self._autenticado_como(self.proveedor)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/confirmar/', {'password': 'clave_prov', 'monto': 20000}, format='json')
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.monto_acordado, 20000)
+
+    def test_confirmar_con_items_suma_el_monto_acordado_e_ignora_el_monto_unico(self):
+        self._autenticado_como(self.proveedor)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/confirmar/', {
+            'password': 'clave_prov', 'monto': 99999,
+            'items': [
+                {'descripcion': 'Cañería PVC', 'categoria': ItemPresupuesto.MATERIAL, 'monto': 8000},
+                {'descripcion': 'Mano de obra', 'categoria': ItemPresupuesto.MANO_DE_OBRA, 'monto': 12000},
+            ],
+        }, format='json')
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.monto_acordado, 20000)
+        items = list(self.contratacion.items_presupuesto.all())
+        self.assertEqual([item.descripcion for item in items], ['Cañería PVC', 'Mano de obra'])
+
+    def test_confirmar_con_password_incorrecta_no_avanza_estado(self):
+        self._autenticado_como(self.proveedor)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/confirmar/', {'password': 'mala'}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.SOLICITADA)
+
+    def test_solo_el_proveedor_puede_confirmar(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/confirmar/', {'password': 'clave_cli'}, format='json')
+        self.assertEqual(resp.status_code, 403)
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.SOLICITADA)
+
+    def test_reautenticacion_se_bloquea_tras_varios_intentos_fallidos(self):
+        self._autenticado_como(self.proveedor)
+        for _ in range(5):
+            self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/confirmar/', {'password': 'mala'}, format='json')
+
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/confirmar/', {'password': 'clave_prov'}, format='json')
+        self.assertEqual(resp.status_code, 429)
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.SOLICITADA)
+
+    def test_completar_avanza_a_completada(self):
+        _marcar_en_curso(self.contratacion)
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/completar/', {'password': 'clave_cli'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.COMPLETADA)
+
+    def test_solo_el_cliente_puede_completar(self):
+        _marcar_en_curso(self.contratacion)
+        self._autenticado_como(self.proveedor)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/completar/', {'password': 'clave_prov'}, format='json')
+        self.assertEqual(resp.status_code, 403)
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
+
+    def test_no_se_puede_completar_sin_pasar_por_en_curso(self):
+        """CONFIRMADA -> COMPLETADA directo no está permitido, hace falta el pago (EN_CURSO) en el medio."""
+        self.contratacion.estado = Contratacion.CONFIRMADA
+        self.contratacion.save()
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/completar/', {'password': 'clave_cli'}, format='json')
+        self.assertEqual(resp.status_code, 404)
+
+
+class ValoracionApiTests(APITestCase):
+    """`POST /api/contrataciones/<id>/valoracion/` — espeja la parte de valoración de `ContratacionFlowTests`."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_api_v@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_api_v@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Carpintería', estado_moderacion=Publicaciones.APROBADA)
+        self.contratacion = Contratacion.objects.create(
+            publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=Contratacion.COMPLETADA,
+        )
+
+    def _autenticado_como(self, usuario):
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_valorar_crea_una_resena_pendiente_y_no_cuenta_para_el_ranking_todavia(self):
+        self._autenticado_como(self.cliente)
+
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/valoracion/', {
+            'puntuacion': 5, 'comentario': 'Excelente',
+        }, format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        valoracion = Valoracion.objects.get(usuario_receptor=self.proveedor, puntuacion=5)
+        self.assertEqual(valoracion.estado_moderacion, Valoracion.PENDIENTE)
+        self.assertEqual(Ranking.objects.get(usuario=self.proveedor).total_valoraciones, 0)
+
+    def test_solo_el_cliente_puede_valorar(self):
+        self._autenticado_como(self.proveedor)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/valoracion/', {'puntuacion': 5, 'comentario': 'x'}, format='json')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_no_se_puede_valorar_dos_veces(self):
+        self._autenticado_como(self.cliente)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/valoracion/', {'puntuacion': 5, 'comentario': 'x'}, format='json')
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/valoracion/', {'puntuacion': 1, 'comentario': 'y'}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Valoracion.objects.filter(contratacion=self.contratacion).count(), 1)
+
+    def test_foto_valida_queda_pendiente_de_moderacion(self):
+        self._autenticado_como(self.cliente)
+
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/valoracion/', {
+            'puntuacion': 4, 'comentario': 'Bien', 'imagenes': [_imagen_de_prueba()],
+        }, format='multipart')
+
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['imagenes_rechazadas'], [])
+        imagen = ValoracionImagen.objects.get(valoracion__contratacion=self.contratacion)
+        self.assertEqual(imagen.estado_moderacion, ValoracionImagen.PENDIENTE)
