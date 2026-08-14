@@ -78,6 +78,11 @@ const routes: Routes = [
     loadChildren: () => import('./biometria/biometria.module').then( m => m.BiometriaPageModule),
     canActivate: [authGuard],
   },
+  {
+    path: 'rostro',
+    loadChildren: () => import('./rostro/rostro.module').then( m => m.RostroPageModule),
+    canActivate: [authGuard],
+  },
 ];
 
 @NgModule({

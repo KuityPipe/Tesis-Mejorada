@@ -18,7 +18,7 @@ from .models import (
     ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region, TokenSesion, Usuario, Valoracion,
     ValoracionImagen,
 )
-from .tests import _crear_region_comuna_tipo, _crear_usuario, _imagen_de_prueba, _marcar_en_curso
+from .tests import _crear_region_comuna_tipo, _crear_usuario, _frames_prueba_de_vida, _imagen_de_prueba, _marcar_en_curso
 from .views import _generar_token_recuperacion
 
 
@@ -966,3 +966,89 @@ class VerificarBiometriaNativaApiTests(APITestCase):
         self.assertTrue(resp.data['verificado_biometricamente'])
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.verificado_biometricamente)
+
+
+class RostroApiTests(APITestCase):
+    """`/api/auth/rostro/*` — espeja `ReconocimientoFacialTests` (tests.py). `biometria.calcular_encoding_facial`/`verificar_rostro_usuario` mockeados, mismo criterio que el resto del proyecto (ver esa clase para el porqué)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('rostro_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.access_token = jwt_utils.generar_access_token(self.usuario)
+
+    def _autenticado(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access_token}')
+
+    def test_estado_sin_referencia(self):
+        self._autenticado()
+        resp = self.client.get('/api/auth/rostro/estado/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['tiene_referencia'])
+
+    def test_estado_con_referencia_no_expone_el_encoding(self):
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.save()
+        self._autenticado()
+        resp = self.client.get('/api/auth/rostro/estado/')
+        self.assertTrue(resp.data['tiene_referencia'])
+        self.assertNotIn('encoding_facial', resp.data)
+
+    def test_registrar_sin_token_devuelve_401(self):
+        resp = self.client.post('/api/auth/rostro/registrar/', _frames_prueba_de_vida(), format='multipart')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_registrar_con_captura_incompleta_no_guarda_nada(self):
+        self._autenticado()
+        frames = _frames_prueba_de_vida(cantidad=2)  # menos que _FRAMES_MINIMOS_CAPTURA
+        with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=[0.1] * 128) as calcular:
+            resp = self.client.post('/api/auth/rostro/registrar/', frames, format='multipart')
+            calcular.assert_not_called()
+        self.assertEqual(resp.status_code, 400)
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.encoding_facial)
+
+    def test_registrar_con_encoding_calculado_lo_guarda(self):
+        encoding_falso = [0.1] * 128
+        self._autenticado()
+        with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=encoding_falso):
+            resp = self.client.post('/api/auth/rostro/registrar/', _frames_prueba_de_vida(), format='multipart')
+        self.assertEqual(resp.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.encoding_facial, encoding_falso)
+
+    def test_registrar_sin_prueba_de_vida_valida_no_guarda_nada(self):
+        self._autenticado()
+        with mock.patch('KeyServApp.biometria.calcular_encoding_facial', return_value=None):
+            resp = self.client.post('/api/auth/rostro/registrar/', _frames_prueba_de_vida(), format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.encoding_facial)
+
+    def test_verificar_sin_referencia_registrada_no_llama_al_pipeline(self):
+        self._autenticado()
+        with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=True) as verificar:
+            resp = self.client.post('/api/auth/rostro/verificar/', _frames_prueba_de_vida(), format='multipart')
+            verificar.assert_not_called()
+        self.assertEqual(resp.status_code, 400)
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.verificado_biometricamente)
+
+    def test_verificar_exitosa_marca_al_usuario_verificado(self):
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.save()
+        self._autenticado()
+        with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=True):
+            resp = self.client.post('/api/auth/rostro/verificar/', _frames_prueba_de_vida(), format='multipart')
+        self.assertEqual(resp.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.verificado_biometricamente)
+
+    def test_verificar_rechazada_no_marca_al_usuario_verificado(self):
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.save()
+        self._autenticado()
+        with mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=False):
+            resp = self.client.post('/api/auth/rostro/verificar/', _frames_prueba_de_vida(), format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.verificado_biometricamente)

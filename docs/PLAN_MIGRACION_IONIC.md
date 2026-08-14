@@ -281,7 +281,7 @@ Transbank/Khipu no puede ser una navegación de página completa como en web
 — en Capacitor se resuelve con el plugin `@capacitor/browser` (ventana
 in-app) en vez de `window.location`.
 
-### Fase 5 — Biometría nativa (pieza núcleo hecha)
+### Fase 5 — Biometría nativa ✅ (núcleo + fallback de cámara hechos)
 
 Reemplaza el reconocimiento facial pesado que hoy corre en el servidor
 (`opencv-python`/`dlib-bin`/`face_recognition`, ver CLAUDE.md Known Issues)
@@ -320,14 +320,44 @@ después para no dejar datos demo mutados). Sin build de iOS — no hay Mac
 disponible en este entorno; ver la nota de "Xcode Cloud/Capgo Cloud
 Build/rentar un Mac" más arriba si hace falta iOS antes de la Fase 8.
 
+**Reconocimiento facial por cámara portado a Ionic (web + nativo)**: a
+pedido explícito del usuario — "es alternativa en caso de que no se pueda
+usar la huella o viceversa" — se agregó el flujo de cámara con prueba de
+vida por parpadeo (el mismo pipeline que ya usa `/rostro/` del lado
+template) también en Ionic, para cubrir el caso de un dispositivo sin
+sensor biométrico nativo disponible. Nuevos endpoints
+`GET /api/auth/rostro/estado/` + `POST /api/auth/rostro/registrar/` +
+`POST /api/auth/rostro/verificar/` (`RostroEstadoView`/`RostroRegistrarView`/
+`RostroVerificarView`, reusan `biometria.calcular_encoding_facial`/
+`verificar_rostro_usuario` sin reimplementar nada) + pantalla
+`rostro/rostro.page` (Ionic) — puerto directo a TypeScript de la captura
+`getUserMedia`/`<canvas>` de `_captura_camara.html`, con
+`@capacitor/camera` cebando el permiso nativo de cámara al entrar a la
+pantalla. Enlazada desde `home.page` y desde el fallback de
+`biometria.page` cuando el dispositivo no tiene Face ID/huella nativa.
+**Verificado en vivo con webcam real en las tres superficies**: template
+Django (`:8000/rostro/`), Ionic web (`:8100/rostro`) y la app Android
+nativa (ver CLAUDE.md Known Issues para el detalle del segundo AVD
+`KeyServ_Test2` que hizo falta crear — el `KeyServ_Test` original, API 36,
+resultó tener un bug real del sistema que impedía lanzar cualquier APK
+recién instalado tras este cambio). `manage.py test KeyServApp` pasó de
+219 a 228 tests (9 nuevos en `tests_api.py`, `RostroApiTests`); `ng test`
+sigue en 29/29.
+
 **Pendiente, sin decidir todavía**: retirar el stack de reconocimiento
 facial del servidor (`codigo/biometria/reconocimiento_facial/`,
 `opencv-python`/`dlib-bin`/`face_recognition`) — el plan original lo
-condiciona a que exista un biométrico nativo verificado, que ya existe,
-pero retirarlo es una decisión aparte que el usuario todavía no tomó (deja
-de funcionar `/rostro/` del lado template si se hace). Tampoco se decidió
-si la huella dactilar propia (`codigo/biometria/huella/`) se reemplaza o
-se mantiene aparte.
+condicionaba a que existiera un biométrico nativo verificado, que ya
+existe, pero en vez de retirarlo el usuario pidió extenderlo a Ionic (ver
+arriba), así que ahora depende de él tanto el template como Ionic
+(web + nativo) — retirarlo sigue siendo una decisión aparte que el usuario
+todavía no tomó, y ahora tiene más superficies que dejarían de funcionar
+si se hace. Tampoco se decidió si la huella dactilar propia
+(`codigo/biometria/huella/`) se reemplaza o se mantiene aparte. WebAuthn se
+evaluó como alternativa futura (recomendado por Claude cuando se preguntó
+por biometría "profesional e intuitiva" en web+app) pero se descartó por
+ahora por ser redundante con el port de cámara recién hecho — no
+implementado.
 
 ### Fase 6 — Identidad visual
 

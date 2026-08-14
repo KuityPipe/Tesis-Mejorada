@@ -43,8 +43,13 @@
     <ion-item routerLink="/preferencias" button detail>
       <ion-label>Preferencias de la cuenta</ion-label>
     </ion-item>
-    <ion-item routerLink="/biometria" button detail lines="none" *ngIf="!usuario.verificado_biometricamente">
-      <ion-label>Verificación biométrica</ion-label>
-    </ion-item>
+    <ng-container *ngIf="!usuario.verificado_biometricamente">
+      <ion-item routerLink="/biometria" button detail>
+        <ion-label>Verificación biométrica</ion-label>
+      </ion-item>
+      <ion-item routerLink="/rostro" button detail lines="none">
+        <ion-label>Reconocimiento facial</ion-label>
+      </ion-item>
+    </ng-container>
   </ion-list>
 </ion-content>

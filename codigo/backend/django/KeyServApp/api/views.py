@@ -7,6 +7,7 @@ a duplicar el mismo bloqueo por (IP, email) en dos lugares que puedan
 divergir con el tiempo.
 """
 import logging
+import os
 
 from django.conf import settings
 from django.core.cache import cache
@@ -23,6 +24,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .. import biometria
 from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
@@ -165,6 +167,87 @@ class VerificarBiometriaNativaView(APIView):
         usuario.save(update_fields=['verificado_biometricamente'])
         logger.info('Verificación biométrica nativa exitosa (api): usuario_id=%s', usuario.id_usuario)
         return Response(UsuarioMeSerializer(usuario).data)
+
+
+class RostroEstadoView(APIView):
+    """
+    `GET /api/auth/rostro/estado/` — equivalente API de la variable
+    `tiene_referencia` que `rostro_view` le pasa a la plantilla: si el
+    usuario ya registró un rostro de referencia, sin exponer el encoding
+    en sí — `UsuarioMeSerializer` nunca lo incluye a propósito (dato
+    biométrico crudo), así que Ionic necesita este endpoint aparte para
+    decidir si mostrar "registrar" o "verificar".
+    """
+
+    def get(self, request):
+        return Response({'tiene_referencia': bool(request.user.encoding_facial)})
+
+
+class RostroRegistrarView(APIView):
+    """
+    `POST /api/auth/rostro/registrar/` — equivalente API de
+    `registro_rostro_view`. Sube una ráfaga de referencia (`rostro_frames`,
+    multi-archivo, mismo campo y mismo helper —
+    `vistas_legacy._obtener_frames_captura` — que usa el template),
+    calcula su encoding facial (prueba de vida por parpadeo) y lo guarda
+    en `Usuario.encoding_facial`. No marca al usuario como verificado
+    todavía — eso requiere una verificación aparte (`RostroVerificarView`),
+    igual que el flujo de template. Reemplaza cualquier encoding anterior
+    si el usuario vuelve a registrar su rostro.
+    """
+
+    def post(self, request):
+        try:
+            rutas = vistas_legacy._obtener_frames_captura(request)
+        except ValidationError as error:
+            detail = ' '.join(error.messages) if hasattr(error, 'messages') else str(error)
+            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            encoding = biometria.calcular_encoding_facial(rutas)
+        finally:
+            for ruta in rutas:
+                os.remove(ruta)
+
+        if encoding is None:
+            return Response(
+                {'detail': 'No se pudo validar la prueba de vida — mirá a la cámara, parpadeá una vez durante la captura, y asegurate de tener buena luz.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        request.user.encoding_facial = encoding
+        request.user.save()
+        logger.info('Rostro de referencia registrado (api): usuario_id=%s', request.user.id_usuario)
+        return Response({'detail': 'Rostro registrado. Ahora podés verificarlo.'})
+
+
+class RostroVerificarView(APIView):
+    """`POST /api/auth/rostro/verificar/` — equivalente API de `verificacion_facial_view`: compara una ráfaga nueva contra `Usuario.encoding_facial` y, si coincide, marca `verificado_biometricamente = True`."""
+
+    def post(self, request):
+        usuario = request.user
+        if not usuario.encoding_facial:
+            return Response({'detail': 'Todavía no registraste un rostro de referencia.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            rutas = vistas_legacy._obtener_frames_captura(request)
+        except ValidationError as error:
+            detail = ' '.join(error.messages) if hasattr(error, 'messages') else str(error)
+            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            resultado = biometria.verificar_rostro_usuario(usuario.encoding_facial, rutas)
+        finally:
+            for ruta in rutas:
+                os.remove(ruta)
+
+        if resultado is True:
+            usuario.verificado_biometricamente = True
+            usuario.save()
+            logger.info('Rostro verificado (api): usuario_id=%s', usuario.id_usuario)
+            return Response(UsuarioMeSerializer(usuario).data)
+        if resultado is False:
+            return Response({'detail': 'El rostro no coincide con el registrado. Intentá nuevamente.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'No se pudo procesar la foto. Intentá nuevamente.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PerfilView(APIView):
