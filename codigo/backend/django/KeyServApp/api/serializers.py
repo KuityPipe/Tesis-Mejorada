@@ -10,7 +10,19 @@ class LoginSerializer(serializers.Serializer):
 
 
 class UsuarioMeSerializer(serializers.ModelSerializer):
-    """Perfil del usuario autenticado — `GET /api/auth/me/`. Nunca incluye `password` ni `encoding_facial` (dato biométrico crudo, y de todos modos en retiro, ver plan de migración)."""
+    """
+    Perfil del usuario autenticado — `GET /api/auth/me/`. Nunca incluye
+    `password` ni `encoding_facial` (dato biométrico crudo, y de todos
+    modos en retiro, ver plan de migración).
+
+    `comuna` viene incluido como el pk plano (comportamiento default de
+    DRF para una FK en un ModelSerializer) y `region` es un
+    `SerializerMethodField` derivado de `comuna.region_id` — ninguno de
+    los dos se usa para mostrar el perfil, existen para poder precargar el
+    formulario de "editar perfil" en Ionic (cascade región→comuna, mismo
+    patrón que `RegistroForm`) sin una segunda request.
+    """
+    region = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
@@ -19,9 +31,12 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
             'apellido_usuario', 'apellido2_usuario', 'telefono', 'email',
             'direccion_usuario', 'edad', 'es_proveedor',
             'verificado_biometricamente', 'foto_perfil', 'areas_servicio',
-            'experiencia', 'notificaciones_sonido',
+            'experiencia', 'notificaciones_sonido', 'comuna', 'region',
         ]
         read_only_fields = fields
+
+    def get_region(self, usuario) -> int | None:
+        return usuario.comuna.region_id if usuario.comuna else None
 
 
 class RegionSerializer(serializers.ModelSerializer):

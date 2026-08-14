@@ -1,0 +1,78 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Editar perfil</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <form *ngIf="!cargando" [formGroup]="formulario" (ngSubmit)="enviar()">
+    <ion-list>
+      <ion-item>
+        <ion-input label="Nombre" labelPlacement="floating" formControlName="nombre_usuario"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('nombre_usuario')"><p class="ion-padding-start">{{ mensajeError('nombre_usuario') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Segundo nombre (opcional)" labelPlacement="floating" formControlName="nombre2_usuario"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input label="Apellido" labelPlacement="floating" formControlName="apellido_usuario"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('apellido_usuario')"><p class="ion-padding-start">{{ mensajeError('apellido_usuario') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Segundo apellido (opcional)" labelPlacement="floating" formControlName="apellido2_usuario"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input label="Teléfono" labelPlacement="floating" type="tel" formControlName="telefono"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('telefono')"><p class="ion-padding-start">{{ mensajeError('telefono') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Correo electrónico" labelPlacement="floating" type="email" formControlName="email" autocomplete="email"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('email')"><p class="ion-padding-start">{{ mensajeError('email') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Dirección (opcional)" labelPlacement="floating" formControlName="direccion_usuario"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-select label="Región" labelPlacement="floating" formControlName="region" (ionChange)="alCambiarRegion($event.detail.value)">
+          <ion-select-option *ngFor="let region of regiones" [value]="region.id_region">{{ region.nombre_region }}</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('region')"><p class="ion-padding-start">{{ mensajeError('region') }}</p></ion-text>
+
+      <ion-item>
+        <ion-select label="Comuna" labelPlacement="floating" formControlName="comuna">
+          <ion-select-option *ngFor="let comuna of comunas" [value]="comuna.id_comuna">{{ comuna.nombre_comuna }}</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('comuna')"><p class="ion-padding-start">{{ mensajeError('comuna') }}</p></ion-text>
+
+      <!-- Sin componente propio de Ionic para elegir archivos — un <input type="file"> nativo alcanza (Capacitor Camera es para la app nativa, fase aparte del plan). (change) en vez de formControlName porque un <input type="file"> no es algo que Reactive Forms pueda controlar directamente (el navegador no deja setear su value por seguridad). -->
+      <ion-item lines="none">
+        <ion-label>Foto de perfil (opcional)</ion-label>
+        <input type="file" accept="image/*" (change)="alElegirFoto($event)" />
+      </ion-item>
+    </ion-list>
+
+    <ion-text color="danger" *ngIf="errorGeneral">
+      <p class="ion-padding-start">{{ errorGeneral }}</p>
+    </ion-text>
+
+    <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
+      {{ enviando ? 'Guardando…' : 'Guardar cambios' }}
+    </ion-button>
+  </form>
+</ion-content>

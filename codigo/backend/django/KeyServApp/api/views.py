@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .. import views as vistas_legacy
-from ..forms import RegistroForm
+from ..forms import EditarPerfilForm, RegistroForm
 from ..models import Comuna, Publicaciones, Region, Transaccion, TipoCuenta, Usuario
 from ..views import Unaccent
 from . import jwt_utils
@@ -120,6 +120,31 @@ class MeView(APIView):
     """`GET /api/auth/me/` — perfil del usuario autenticado (requiere `Authorization: Bearer <access token>`, ver JWTAuthentication)."""
 
     def get(self, request):
+        return Response(UsuarioMeSerializer(request.user).data)
+
+
+class PerfilView(APIView):
+    """
+    `PUT /api/auth/perfil/` — equivalente API de `editar_perfil_view`, mismo
+    criterio de reuso que `RegistroView`: `EditarPerfilForm` (forms.py) se
+    usa tal cual, incluida su validación de email duplicado (excluyendo al
+    propio usuario) y el manejo de `foto_perfil` (opcional — si el cliente
+    no manda un archivo nuevo, `request.FILES` llega vacío y el `ModelForm`
+    deja la foto existente sin tocar, mismo comportamiento que ya tenía el
+    formulario del template).
+
+    `region` no es un campo real de `Usuario` (solo existe en el Form para
+    manejar el cascade región→comuna, igual que en `RegistroForm`) — el
+    cliente lo manda igual, pero nunca se guarda por separado; lo que
+    persiste es `comuna`, que ya trae su región.
+    """
+    def put(self, request):
+        form = EditarPerfilForm(request.data, request.FILES, instance=request.user)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        form.save()
+        logger.info('Perfil actualizado (api): usuario_id=%s', request.user.id_usuario)
         return Response(UsuarioMeSerializer(request.user).data)
 
 

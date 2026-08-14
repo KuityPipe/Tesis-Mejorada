@@ -28,6 +28,12 @@ export interface Usuario {
   areas_servicio: string;
   experiencia: string;
   notificaciones_sonido: boolean;
+  // Agregados para precargar el cascade región→comuna de "editar perfil"
+  // (perfil/editar/editar.page.ts) sin una request aparte — `comuna` es el
+  // pk crudo (no un objeto anidado), `region` se deriva en el backend de
+  // `comuna.region_id` (ver UsuarioMeSerializer.get_region).
+  comuna: number | null;
+  region: number | null;
 }
 
 interface RespuestaLogin {
@@ -122,6 +128,18 @@ export class Auth {
    */
   registrar(datos: DatosRegistro): Observable<Usuario> {
     return this.http.post<Usuario>(`${environment.apiUrl}/auth/registro/`, datos);
+  }
+
+  /**
+   * `PUT /api/auth/perfil/` — recibe un `FormData` (no un objeto plano
+   * como `login`/`registrar`) porque puede incluir `foto_perfil` (un
+   * archivo); `HttpClient` detecta un body `FormData` y arma el header
+   * `Content-Type: multipart/form-data` con el boundary correcto solo —
+   * si se lo pasara a mano quedaría mal formado. Ver `editar.page.ts`
+   * para cómo se arma el `FormData`.
+   */
+  actualizarPerfil(datos: FormData): Observable<Usuario> {
+    return this.http.put<Usuario>(`${environment.apiUrl}/auth/perfil/`, datos);
   }
 
   logout(): void {

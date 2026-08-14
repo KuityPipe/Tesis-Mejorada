@@ -33,6 +33,11 @@ const routes: Routes = [
     path: 'registro',
     loadChildren: () => import('./registro/registro.module').then( m => m.RegistroPageModule)
   },
+  {
+    path: 'perfil/editar',
+    loadChildren: () => import('./perfil/editar/editar.module').then( m => m.EditarPageModule),
+    canActivate: [authGuard],
+  },
 ];
 
 @NgModule({

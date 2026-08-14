@@ -119,7 +119,18 @@ depende de que el resto ya esté hecho:
   sesión"). Verificado en vivo por `curl`: registro → login con la cuenta
   recién creada, y el caso de error (`__all__` cuando las contraseñas no
   coinciden).
-- ⏳ Editar perfil, recuperación de contraseña, perfil de proveedor, preferencias — sin empezar.
+- **Editar perfil ✅** — `PUT /api/auth/perfil/` reusa `EditarPerfilForm`
+  (`ModelForm`) directamente, mismo criterio que el registro — incluida su
+  validación de email duplicado (excluyendo al propio usuario) y el manejo
+  de `foto_perfil` (`ImageField` opcional, sube por `multipart/form-data`
+  vía `request.FILES`, se deja intacta si no se manda una nueva). Se
+  extendió `UsuarioMeSerializer` con `comuna`/`region` (antes no estaban)
+  para poder precargar el cascade región→comuna del formulario Ionic
+  (`perfil/editar/editar.page`) sin una request aparte. Verificado en vivo
+  por `curl` contra la cuenta demo real (GET con los campos nuevos, PUT
+  cambiando dirección/comuna, restaurado después para no dejar los datos
+  demo mutados).
+- ⏳ Recuperación de contraseña, perfil de proveedor, preferencias — sin empezar.
 
 ### Fase 4 — Núcleo transaccional
 
@@ -144,14 +155,26 @@ distinto a la huella del sistema operativo — decidir en su momento si
 también se reemplaza por la biometría nativa del teléfono o se mantiene
 aparte.
 
-### Fase 6 — Hardening de producción
+### Fase 6 — Identidad visual
+
+La app Ionic corre hoy con el tema por defecto de `ionic start` (grises/
+azules genéricos), no con la paleta navy/teal/coral + tipografía Quicksand/
+Nunito que ya tiene el sitio Django (`base.css`) — decisión explícita del
+usuario (2026-08-13): terminar de portar toda la funcionalidad primero
+(Fases 1-5) y recién ahí hacer una pasada de diseño completa, en vez de
+ir maquillando pantalla por pantalla a medida que se construyen. Portar
+la paleta a `src/theme/variables.scss` (las variables `--ion-color-*` de
+Ionic), tipografía, logo, y revisar cada pantalla ya construida contra el
+diseño del sitio Django.
+
+### Fase 7 — Hardening de producción
 
 Almacenamiento seguro real de tokens (ver nota de seguridad arriba),
 endpoint de refresh token + rotación (`TokenSesion` ya existe para esto,
 falta la vista), tests E2E (Cypress/Playwright para web, o Appium si hace
 falta cubrir nativo), pipeline de build para Android/iOS.
 
-### Fase 7 — Publicación y entregable de portafolio
+### Fase 8 — Publicación y entregable de portafolio
 
 Build firmado de Android (Play Store) e iOS (App Store) vía Capacitor,
 íconos/splash, políticas de privacidad que piden las stores, y documentación

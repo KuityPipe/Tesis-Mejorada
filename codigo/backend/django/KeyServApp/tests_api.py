@@ -11,7 +11,7 @@ from rest_framework.test import APITestCase
 
 from .api import jwt_utils
 from .models import Comuna, IntentoAccesoSospechoso, Publicaciones, Region, TokenSesion, Usuario, Valoracion
-from .tests import _crear_region_comuna_tipo, _crear_usuario
+from .tests import _crear_region_comuna_tipo, _crear_usuario, _imagen_de_prueba
 
 
 class LoginApiTests(APITestCase):
@@ -252,3 +252,69 @@ class CatalogosApiTests(APITestCase):
         resp = self.client.get('/api/catalogos/tipos-cuenta/')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data[0]['id_tipo_cuenta'], self.tipo_cuenta.id_tipo_cuenta)
+
+
+class PerfilApiTests(APITestCase):
+    """`PUT /api/auth/perfil/` — espeja EditarPerfilTests (tests.py), mismos escenarios contra la ruta de la API."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.otra_comuna = Comuna.objects.create(id_comuna=2, nombre_comuna='Otra comuna', region=self.comuna.region)
+        self.usuario = _crear_usuario('editar_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.access_token = jwt_utils.generar_access_token(self.usuario)
+
+    def _autenticado(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access_token}')
+
+    def _datos_validos(self, **overrides):
+        datos = {
+            'nombre_usuario': self.usuario.nombre_usuario, 'apellido_usuario': self.usuario.apellido_usuario,
+            'telefono': self.usuario.telefono, 'email': self.usuario.email,
+            'region': self.comuna.region_id, 'comuna': self.comuna.id_comuna,
+        }
+        datos.update(overrides)
+        return datos
+
+    def test_sin_token_devuelve_401(self):
+        resp = self.client.put('/api/auth/perfil/', self._datos_validos())
+        self.assertEqual(resp.status_code, 401)
+
+    def test_guarda_los_cambios_reales(self):
+        self._autenticado()
+
+        resp = self.client.put('/api/auth/perfil/', self._datos_validos(
+            nombre_usuario='NuevoNombreApi', telefono=987654321, comuna=self.otra_comuna.id_comuna,
+        ))
+
+        self.assertEqual(resp.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.nombre_usuario, 'NuevoNombreApi')
+        self.assertEqual(self.usuario.telefono, 987654321)
+        self.assertEqual(self.usuario.comuna_id, self.otra_comuna.id_comuna)
+
+    def test_no_permite_repetir_el_correo_de_otro_usuario(self):
+        _crear_usuario('ocupado_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self._autenticado()
+
+        resp = self.client.put('/api/auth/perfil/', self._datos_validos(email='ocupado_api@test.com'))
+
+        self.assertEqual(resp.status_code, 400)
+        self.usuario.refresh_from_db()
+        self.assertNotEqual(self.usuario.email, 'ocupado_api@test.com')
+
+    def test_puede_guardar_sin_cambiar_su_propio_correo(self):
+        """clean_email() no debe rechazar al usuario contra sí mismo."""
+        self._autenticado()
+
+        resp = self.client.put('/api/auth/perfil/', self._datos_validos())
+
+        self.assertEqual(resp.status_code, 200)
+
+    def test_sube_una_foto_de_perfil_valida(self):
+        self._autenticado()
+
+        resp = self.client.put('/api/auth/perfil/', self._datos_validos(foto_perfil=_imagen_de_prueba()), format='multipart')
+
+        self.assertEqual(resp.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertTrue(bool(self.usuario.foto_perfil))
