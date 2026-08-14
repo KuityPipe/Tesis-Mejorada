@@ -17,10 +17,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .. import views as vistas_legacy
-from ..models import Publicaciones, Usuario
+from ..forms import RegistroForm
+from ..models import Comuna, Publicaciones, Region, Transaccion, TipoCuenta, Usuario
 from ..views import Unaccent
 from . import jwt_utils
-from .serializers import LoginSerializer, PublicacionDetailSerializer, PublicacionListSerializer, UsuarioMeSerializer
+from .serializers import (
+    ComunaSerializer, LoginSerializer, PublicacionDetailSerializer, PublicacionListSerializer,
+    RegionSerializer, TipoCuentaSerializer, UsuarioMeSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +77,80 @@ class LoginView(APIView):
         return Response({'detail': 'Correo o contraseña incorrectos.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+class RegistroView(APIView):
+    """
+    `POST /api/auth/registro/` — equivalente de `register_view` (views.py).
+
+    Reusa `RegistroForm` (forms.py) directamente en vez de escribir un
+    `Serializer` de DRF paralelo con las mismas reglas: es exactamente el
+    mismo caso que `LoginView` reusando `_clave_intentos_login` — dos
+    validaciones de "las mismas reglas de negocio" que puedan divergir con
+    el tiempo son peores que una sola reusada desde los dos lados. Un
+    `django.forms.Form` acepta perfectamente un dict plano como `request.data`
+    (no necesita ser un `QueryDict` de verdad), así que esto funciona sin
+    adaptar nada.
+
+    Costo del atajo: `drf-spectacular` no puede introspectar los campos de
+    un `Form` de Django (no es un `Serializer`), así que `/api/schema/` no
+    va a documentar el body esperado acá — aceptable mientras nadie genere
+    un cliente TypeScript desde ese schema todavía (ver plan de migración).
+
+    A diferencia de `register_view`, no rechaza una sesión ya autenticada:
+    ese chequeo existe del lado template para evitar confusión sobre "con
+    qué sesión de cookie terminás" — no aplica a un cliente JWT sin estado,
+    que decide por su cuenta cuándo llamar a este endpoint.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        form = RegistroForm(request.data)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        tipo_cuenta = form.cleaned_data['tipo_cuenta']
+        transaccion = Transaccion.objects.create(tipo_cuenta=tipo_cuenta)
+        usuario = form.crear_usuario(transaccion)
+        logger.info('Usuario registrado (api): id=%s email=%s', usuario.id_usuario, usuario.email)
+        # Sin tokens acá a propósito, mismo criterio que register_view:
+        # "cuenta creada, ahora iniciá sesión" — no auto-login.
+        return Response(UsuarioMeSerializer(usuario).data, status=status.HTTP_201_CREATED)
+
+
 class MeView(APIView):
     """`GET /api/auth/me/` — perfil del usuario autenticado (requiere `Authorization: Bearer <access token>`, ver JWTAuthentication)."""
 
     def get(self, request):
         return Response(UsuarioMeSerializer(request.user).data)
+
+
+class RegionListView(generics.ListAPIView):
+    """`GET /api/catalogos/regiones/` — catálogo fijo, público, usado por el cascade región→comuna del registro."""
+    permission_classes = [AllowAny]
+    serializer_class = RegionSerializer
+    pagination_class = None
+    queryset = Region.objects.all().order_by('nombre_region')
+
+
+class ComunaListView(generics.ListAPIView):
+    """`GET /api/catalogos/comunas/?region=<id>` — equivalente API de `load_comunas` (views.py). Sin `?region`, devuelve las 330 comunas completas (catálogo fijo chico, no hace falta paginar)."""
+    permission_classes = [AllowAny]
+    serializer_class = ComunaSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = Comuna.objects.all().order_by('nombre_comuna')
+        region_id = self.request.query_params.get('region', '').strip()
+        if region_id:
+            queryset = queryset.filter(region_id=region_id)
+        return queryset
+
+
+class TipoCuentaListView(generics.ListAPIView):
+    """`GET /api/catalogos/tipos-cuenta/` — los 4 tiers reales (free/individual/pyme/empresa), usados por el selector de tipo de cuenta del registro."""
+    permission_classes = [AllowAny]
+    serializer_class = TipoCuentaSerializer
+    pagination_class = None
+    queryset = TipoCuenta.objects.all().order_by('id_tipo_cuenta')
 
 
 class PaginacionPublicaciones(PageNumberPagination):

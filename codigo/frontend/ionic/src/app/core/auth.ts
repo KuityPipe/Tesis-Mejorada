@@ -36,6 +36,29 @@ interface RespuestaLogin {
   usuario: Usuario;
 }
 
+// Mismos nombres de campo que `RegistroForm` (KeyServApp/forms.py) — el
+// backend reusa ese Form directamente en vez de un serializer aparte (ver
+// api/views.py `RegistroView`), así que el contrato es literalmente el
+// mismo formulario de siempre, solo que ahora en JSON. `region`/`comuna`/
+// `tipo_cuenta` son los IDs (pk) elegidos en los <ion-select>, no objetos.
+export interface DatosRegistro {
+  rut: string;
+  nombre1: string;
+  nombre2?: string;
+  apellido1: string;
+  apellido2?: string;
+  edad: number;
+  telefono: string;
+  email: string;
+  direccion?: string;
+  region: number;
+  comuna: number;
+  tipo_cuenta: number;
+  es_proveedor: boolean;
+  password: string;
+  password_confirm: string;
+}
+
 /**
  * Cliente de la API REST (KeyServApp/api/) para login/perfil — ver
  * "API + Ionic migration" en CLAUDE.md y docs/PLAN_MIGRACION_IONIC.md.
@@ -87,6 +110,18 @@ export class Auth {
   /** El `Authorization: Bearer <token>` lo agrega `authInterceptor` (core/auth-interceptor.ts) — esta llamada no necesita pasarlo a mano. */
   me(): Observable<Usuario> {
     return this.http.get<Usuario>(`${environment.apiUrl}/auth/me/`);
+  }
+
+  /**
+   * `POST /api/auth/registro/` — a propósito **no** guarda tokens ni deja
+   * la sesión iniciada (mismo criterio que `register_view` del lado
+   * template: "cuenta creada, ahora iniciá sesión"). Si el backend
+   * responde 400, el body es el `form.errors` de Django tal cual
+   * (`{ campo: ["mensaje"] }`, con errores generales bajo la clave
+   * `"__all__"`) — `registro.page.ts` lo mapea a los controles del form.
+   */
+  registrar(datos: DatosRegistro): Observable<Usuario> {
+    return this.http.post<Usuario>(`${environment.apiUrl}/auth/registro/`, datos);
   }
 
   logout(): void {

@@ -103,13 +103,23 @@ después de loguearse. Verificado en vivo contra el backend real (demo data,
 8 publicaciones) vía `curl` — igual que en Fase 1, sin poder clickear en el
 navegador de verdad (extensión de Chrome desconectada).
 
-### Fase 3 — Cuenta de usuario
+### Fase 3 — Cuenta de usuario (en progreso)
 
-Registro vía API (`POST /api/auth/registro/`, espejo de `RegistroForm`),
-editar perfil, recuperación de contraseña, perfil de proveedor
-(`areas_servicio`/`experiencia`/certificados), preferencias de cuenta. Cada
-una es relativamente aislada de las demás — se pueden migrar y probar una
-por una sin depender de que el resto ya esté migrado.
+Cinco piezas relativamente aisladas — se migran y prueban una por una, no
+depende de que el resto ya esté hecho:
+
+- **Registro ✅** — `POST /api/auth/registro/` reusa `RegistroForm`
+  (forms.py) directamente en vez de duplicar sus reglas en un serializer
+  aparte (mismo criterio que `LoginView` reusando el bloqueo de intentos).
+  Catálogos de referencia públicos nuevos (`/api/catalogos/regiones/`,
+  `/comunas/?region=<id>`, `/tipos-cuenta/`) alimentan los `<ion-select>`
+  del formulario Ionic (`registro.page`, cascada región→comuna igual que
+  `/ajax/load-comunas/`). Sin auto-login tras registrarse, a propósito
+  (mismo criterio que `register_view`: "cuenta creada, ahora iniciá
+  sesión"). Verificado en vivo por `curl`: registro → login con la cuenta
+  recién creada, y el caso de error (`__all__` cuando las contraseñas no
+  coinciden).
+- ⏳ Editar perfil, recuperación de contraseña, perfil de proveedor, preferencias — sin empezar.
 
 ### Fase 4 — Núcleo transaccional
 

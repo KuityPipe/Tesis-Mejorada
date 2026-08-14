@@ -10,7 +10,7 @@ from django.core.cache import cache
 from rest_framework.test import APITestCase
 
 from .api import jwt_utils
-from .models import Comuna, IntentoAccesoSospechoso, Publicaciones, Region, TokenSesion, Valoracion
+from .models import Comuna, IntentoAccesoSospechoso, Publicaciones, Region, TokenSesion, Usuario, Valoracion
 from .tests import _crear_region_comuna_tipo, _crear_usuario
 
 
@@ -156,6 +156,11 @@ class PublicacionesApiTests(APITestCase):
         self.assertEqual(resp.data['count'], 1)
         self.assertEqual(resp.data['results'][0]['titulo'], 'De acá')
 
+    def test_no_requiere_token_detalle(self):
+        publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Detalle', estado_moderacion=Publicaciones.APROBADA)
+        resp = self.client.get(f'/api/publicaciones/{publicacion.pk}/')
+        self.assertEqual(resp.status_code, 200)
+
     def test_detalle_incluye_resenas_aprobadas_solamente(self):
         publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA)
         cliente = _crear_usuario('cliente_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
@@ -173,3 +178,77 @@ class PublicacionesApiTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.data['resenas']), 1)
         self.assertEqual(resp.data['resenas'][0]['comentario'], 'Aprobada')
+
+
+class RegistroApiTests(APITestCase):
+    """`POST /api/auth/registro/` — espeja RegistroViewTests (tests.py), mismos escenarios contra la ruta de la API."""
+
+    def setUp(self):
+        self.region, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+
+    def _datos_validos(self, **overrides):
+        datos = {
+            'rut': '11111111-1', 'nombre1': 'Test', 'nombre2': '', 'apellido1': 'Usuario', 'apellido2': '',
+            'edad': 30, 'telefono': 912345678, 'email': 'nuevo_api@test.com',
+            'region': self.region.id_region, 'comuna': self.comuna.id_comuna, 'direccion': 'Calle Falsa 123',
+            'tipo_cuenta': self.tipo_cuenta.id_tipo_cuenta, 'password': 'ClaveSegura2026!', 'password_confirm': 'ClaveSegura2026!',
+        }
+        datos.update(overrides)
+        return datos
+
+    def test_registro_exitoso_crea_usuario_y_devuelve_201(self):
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(), format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['email'], 'nuevo_api@test.com')
+        self.assertNotIn('password', resp.data)
+        # Sin tokens: mismo criterio que register_view, "ahora iniciá sesión" en vez de auto-login.
+        self.assertNotIn('access_token', resp.data)
+        usuario = Usuario.objects.get(email='nuevo_api@test.com')
+        self.assertTrue(usuario.check_password('ClaveSegura2026!'))
+
+    def test_registro_con_contrasenas_distintas_devuelve_400(self):
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(password_confirm='otra'), format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(Usuario.objects.filter(email='nuevo_api@test.com').exists())
+
+    def test_registro_con_email_duplicado_devuelve_400(self):
+        _crear_usuario('nuevo_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(), format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Usuario.objects.filter(email='nuevo_api@test.com').count(), 1)
+
+    def test_registro_menor_de_edad_devuelve_400(self):
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(edad=15, email='menor_api@test.com'), format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(Usuario.objects.filter(email='menor_api@test.com').exists())
+
+
+class CatalogosApiTests(APITestCase):
+    """`GET /api/catalogos/*` — catálogos públicos que alimentan los selects del registro en Ionic."""
+
+    def setUp(self):
+        self.region, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+
+    def test_regiones_no_requiere_token(self):
+        resp = self.client.get('/api/catalogos/regiones/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data[0]['nombre_region'], self.region.nombre_region)
+
+    def test_comunas_filtra_por_region(self):
+        otra_region = Region.objects.create(id_region=5, nombre_region='Valparaíso')
+        Comuna.objects.create(id_comuna=5, nombre_comuna='Viña del Mar', region=otra_region)
+
+        resp = self.client.get(f'/api/catalogos/comunas/?region={self.region.id_region}')
+
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]['nombre_comuna'], self.comuna.nombre_comuna)
+
+    def test_tipos_cuenta_no_requiere_token(self):
+        resp = self.client.get('/api/catalogos/tipos-cuenta/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data[0]['id_tipo_cuenta'], self.tipo_cuenta.id_tipo_cuenta)

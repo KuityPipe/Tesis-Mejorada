@@ -1,0 +1,102 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/catalogo"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Crear cuenta</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <form [formGroup]="formulario" (ngSubmit)="enviar()">
+    <ion-list>
+      <ion-item>
+        <ion-input label="RUT" labelPlacement="floating" formControlName="rut"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('rut')"><p class="ion-padding-start">{{ mensajeError('rut') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Nombre" labelPlacement="floating" formControlName="nombre1"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('nombre1')"><p class="ion-padding-start">{{ mensajeError('nombre1') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Segundo nombre (opcional)" labelPlacement="floating" formControlName="nombre2"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input label="Apellido" labelPlacement="floating" formControlName="apellido1"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('apellido1')"><p class="ion-padding-start">{{ mensajeError('apellido1') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Segundo apellido (opcional)" labelPlacement="floating" formControlName="apellido2"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-input label="Edad" labelPlacement="floating" type="number" formControlName="edad"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('edad')"><p class="ion-padding-start">{{ mensajeError('edad') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Teléfono" labelPlacement="floating" type="tel" formControlName="telefono"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('telefono')"><p class="ion-padding-start">{{ mensajeError('telefono') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Correo electrónico" labelPlacement="floating" type="email" formControlName="email" autocomplete="email"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('email')"><p class="ion-padding-start">{{ mensajeError('email') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Dirección (opcional)" labelPlacement="floating" formControlName="direccion"></ion-input>
+      </ion-item>
+
+      <!-- (ionChange) además del binding normal del form: necesitamos reaccionar al cambio de región para repoblar el select de comuna, no solo guardar el valor. -->
+      <ion-item>
+        <ion-select label="Región" labelPlacement="floating" formControlName="region" (ionChange)="alCambiarRegion($event.detail.value)">
+          <ion-select-option *ngFor="let region of regiones" [value]="region.id_region">{{ region.nombre_region }}</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('region')"><p class="ion-padding-start">{{ mensajeError('region') }}</p></ion-text>
+
+      <ion-item>
+        <ion-select label="Comuna" labelPlacement="floating" formControlName="comuna">
+          <ion-select-option *ngFor="let comuna of comunas" [value]="comuna.id_comuna">{{ comuna.nombre_comuna }}</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('comuna')"><p class="ion-padding-start">{{ mensajeError('comuna') }}</p></ion-text>
+
+      <ion-item>
+        <ion-select label="Tipo de cuenta" labelPlacement="floating" formControlName="tipo_cuenta">
+          <ion-select-option *ngFor="let tipo of tiposCuenta" [value]="tipo.id_tipo_cuenta">{{ tipo.nombre_tipo_cuenta }}</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('tipo_cuenta')"><p class="ion-padding-start">{{ mensajeError('tipo_cuenta') }}</p></ion-text>
+
+      <ion-item>
+        <ion-checkbox formControlName="es_proveedor">¿Ofrecés servicios como proveedor?</ion-checkbox>
+      </ion-item>
+
+      <ion-item>
+        <ion-input label="Contraseña" labelPlacement="floating" type="password" formControlName="password" autocomplete="new-password"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('password')"><p class="ion-padding-start">{{ mensajeError('password') }}</p></ion-text>
+
+      <ion-item>
+        <ion-input label="Confirmar contraseña" labelPlacement="floating" type="password" formControlName="password_confirm" autocomplete="new-password"></ion-input>
+      </ion-item>
+      <ion-text color="danger" *ngIf="mensajeError('password_confirm')"><p class="ion-padding-start">{{ mensajeError('password_confirm') }}</p></ion-text>
+    </ion-list>
+
+    <ion-text color="danger" *ngIf="errorGeneral">
+      <p class="ion-padding-start">{{ errorGeneral }}</p>
+    </ion-text>
+
+    <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
+      {{ enviando ? 'Creando cuenta…' : 'Crear cuenta' }}
+    </ion-button>
+
+    <ion-button expand="block" fill="clear" routerLink="/login">¿Ya tenés cuenta? Iniciá sesión</ion-button>
+  </form>
+</ion-content>

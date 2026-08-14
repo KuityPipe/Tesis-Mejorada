@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ..models import Imagenes, Publicaciones, Usuario, Valoracion
+from ..models import Comuna, Imagenes, Publicaciones, Region, TipoCuenta, Usuario, Valoracion
 
 
 class LoginSerializer(serializers.Serializer):
@@ -21,6 +21,27 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
             'verificado_biometricamente', 'foto_perfil', 'areas_servicio',
             'experiencia', 'notificaciones_sonido',
         ]
+        read_only_fields = fields
+
+
+class RegionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Region
+        fields = ['id_region', 'nombre_region']
+        read_only_fields = fields
+
+
+class ComunaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comuna
+        fields = ['id_comuna', 'nombre_comuna', 'region_id']
+        read_only_fields = fields
+
+
+class TipoCuentaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoCuenta
+        fields = ['id_tipo_cuenta', 'nombre_tipo_cuenta', 'valor_cuenta']
         read_only_fields = fields
 
 
