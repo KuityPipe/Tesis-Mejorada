@@ -10,7 +10,7 @@ from django.core.cache import cache
 from rest_framework.test import APITestCase
 
 from .api import jwt_utils
-from .models import IntentoAccesoSospechoso, TokenSesion
+from .models import Comuna, IntentoAccesoSospechoso, Publicaciones, Region, TokenSesion, Valoracion
 from .tests import _crear_region_comuna_tipo, _crear_usuario
 
 
@@ -108,3 +108,68 @@ class JWTUtilsTests(APITestCase):
     def test_refresh_token_incorrecto_no_encuentra_nada(self):
         jwt_utils.crear_sesion(self.usuario)
         self.assertIsNone(jwt_utils.obtener_sesion_vigente('token-que-no-existe'))
+
+
+class PublicacionesApiTests(APITestCase):
+    """`GET /api/publicaciones/` y `/api/publicaciones/<pk>/` — públicos, sin token (ver PublicacionListView/PublicacionDetailView)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_api@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+
+    def test_no_requiere_token(self):
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA)
+        resp = self.client.get('/api/publicaciones/')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_listado_solo_muestra_aprobadas(self):
+        """Mismo criterio que CatalogoViewTests.test_catalogo_solo_muestra_aprobadas (tests.py), ahora contra /api/publicaciones/."""
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pendiente', estado_moderacion=Publicaciones.PENDIENTE)
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Aprobada', estado_moderacion=Publicaciones.APROBADA)
+
+        resp = self.client.get('/api/publicaciones/')
+
+        self.assertEqual(resp.data['count'], 1)
+        self.assertEqual(resp.data['results'][0]['titulo'], 'Aprobada')
+
+    def test_listado_incluye_proveedor_embebido(self):
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Electricidad', estado_moderacion=Publicaciones.APROBADA)
+
+        resp = self.client.get('/api/publicaciones/')
+
+        proveedor = resp.data['results'][0]['proveedor']
+        self.assertEqual(proveedor['nombre_usuario'], self.proveedor.nombre_usuario)
+        # Sin Ranking todavía (nadie lo calificó) — el default de los campos
+        # anidados en ProveedorSerializer tiene que cubrir esto sin romper.
+        self.assertIsNone(proveedor['puntuacion_promedio'])
+        self.assertEqual(proveedor['total_valoraciones'], 0)
+
+    def test_filtro_region(self):
+        otra_region = Region.objects.create(id_region=5, nombre_region='Valparaíso')
+        otra_comuna = Comuna.objects.create(id_comuna=5, nombre_comuna='Viña del Mar', region=otra_region)
+        otro_proveedor = _crear_usuario('otro_proveedor_api@test.com', es_proveedor=True, comuna=otra_comuna, tipo_cuenta=self.tipo_cuenta)
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='De acá', estado_moderacion=Publicaciones.APROBADA)
+        Publicaciones.objects.create(usuario_publicador=otro_proveedor, titulo='De allá', estado_moderacion=Publicaciones.APROBADA)
+
+        resp = self.client.get(f'/api/publicaciones/?region={self.comuna.region_id}')
+
+        self.assertEqual(resp.data['count'], 1)
+        self.assertEqual(resp.data['results'][0]['titulo'], 'De acá')
+
+    def test_detalle_incluye_resenas_aprobadas_solamente(self):
+        publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA)
+        cliente = _crear_usuario('cliente_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        Valoracion.objects.create(
+            usuario_emisor=cliente, usuario_receptor=self.proveedor, publicacion=publicacion,
+            puntuacion=5, comentario='Aprobada', estado_moderacion=Valoracion.APROBADA,
+        )
+        Valoracion.objects.create(
+            usuario_emisor=cliente, usuario_receptor=self.proveedor, publicacion=publicacion,
+            puntuacion=1, comentario='Pendiente', estado_moderacion=Valoracion.PENDIENTE,
+        )
+
+        resp = self.client.get(f'/api/publicaciones/{publicacion.pk}/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data['resenas']), 1)
+        self.assertEqual(resp.data['resenas'][0]['comentario'], 'Aprobada')

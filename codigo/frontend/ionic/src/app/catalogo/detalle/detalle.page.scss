@@ -1,0 +1,12 @@
+.imagenes {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+
+  img {
+    height: 180px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+}

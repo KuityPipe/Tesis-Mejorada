@@ -14,13 +14,20 @@ const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    // El catálogo (público) es la landing, no /home (que ahora requiere
+    // sesión) — mismo criterio que el sitio Django, donde `/` y
+    // `/servicios/` son públicos y `/sesion/` es aparte.
     path: '',
-    redirectTo: 'home',
+    redirectTo: 'catalogo',
     pathMatch: 'full'
   },
   {
     path: 'login',
     loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
+  },
+  {
+    path: 'catalogo',
+    loadChildren: () => import('./catalogo/catalogo.module').then( m => m.CatalogoPageModule)
   },
 ];
 

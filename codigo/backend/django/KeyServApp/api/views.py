@@ -9,15 +9,18 @@ divergir con el tiempo.
 import logging
 
 from django.core.cache import cache
-from rest_framework import status
+from django.db.models import Q, Value
+from rest_framework import generics, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .. import views as vistas_legacy
-from ..models import Usuario
+from ..models import Publicaciones, Usuario
+from ..views import Unaccent
 from . import jwt_utils
-from .serializers import LoginSerializer, UsuarioMeSerializer
+from .serializers import LoginSerializer, PublicacionDetailSerializer, PublicacionListSerializer, UsuarioMeSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +78,79 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UsuarioMeSerializer(request.user).data)
+
+
+class PaginacionPublicaciones(PageNumberPagination):
+    """
+    Mismo tamaño de página que el catálogo por templates
+    (`views.PUBLICACIONES_POR_PAGINA = 20`) — duplicado a propósito en vez
+    de importar la constante: `PageNumberPagination` es una clase de DRF,
+    no un valor suelto, así que compartirla de verdad habría significado
+    acoplar el catálogo por templates a DRF. Si se cambia uno, cambiar el otro.
+    """
+    page_size = 20
+
+
+class PublicacionListView(generics.ListAPIView):
+    """
+    `GET /api/publicaciones/` — catálogo público, equivalente API de
+    `catalogo_view` (views.py): mismos filtros (`q`, `region`,
+    `calificacion`, `orden`) y misma búsqueda sin tildes vía `Unaccent`
+    (reusada de `views.py`, no reimplementada — mismo criterio que
+    `LoginView` reusando el bloqueo de intentos). Público a propósito
+    (`AllowAny`, pisa el `IsAuthenticated` por defecto de
+    `REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES']`): el catálogo es
+    visible sin sesión tanto en el sitio Django como en la futura app.
+    """
+    permission_classes = [AllowAny]
+    serializer_class = PublicacionListSerializer
+    pagination_class = PaginacionPublicaciones
+
+    def get_queryset(self):
+        query = self.request.query_params.get('q', '').strip()
+        region_id = self.request.query_params.get('region', '').strip()
+        calificacion_min = self.request.query_params.get('calificacion', '').strip()
+        orden = self.request.query_params.get('orden', 'recientes')
+
+        publicaciones = Publicaciones.objects.filter(estado_moderacion=Publicaciones.APROBADA)
+        if query:
+            query_unaccent = Unaccent(Value(query))
+            publicaciones = publicaciones.annotate(
+                titulo_unaccent=Unaccent('titulo'),
+                sub_titulo_unaccent=Unaccent('sub_titulo'),
+                categoria_unaccent=Unaccent('categoria'),
+            ).filter(
+                Q(titulo_unaccent__icontains=query_unaccent)
+                | Q(sub_titulo_unaccent__icontains=query_unaccent)
+                | Q(categoria_unaccent__icontains=query_unaccent)
+            )
+        if region_id:
+            publicaciones = publicaciones.filter(usuario_publicador__comuna__region_id=region_id)
+        if calificacion_min:
+            publicaciones = publicaciones.filter(usuario_publicador__ranking__puntuacion_promedio__gte=calificacion_min)
+
+        publicaciones = publicaciones.select_related(
+            'usuario_publicador__ranking', 'usuario_publicador__comuna__region',
+        ).prefetch_related('imagenes')
+
+        if orden == 'calificacion':
+            return publicaciones.order_by('-usuario_publicador__ranking__puntuacion_promedio', '-fecha_publicacion')
+        return publicaciones.order_by('-fecha_publicacion')
+
+
+class PublicacionDetailView(generics.RetrieveAPIView):
+    """
+    `GET /api/publicaciones/<pk>/` — equivalente API de
+    `publicacion_detalle_view` (views.py). Sin filtrar por
+    `estado_moderacion` a propósito, para no divergir del comportamiento
+    ya existente ahí: el detalle es visible por URL directa aunque la
+    publicación todavía no esté aprobada (no aparece en el listado, pero
+    no está 404-protegida). El estado de "ya la contraté" (`puede_contratar`
+    en la vista de template) no está acá todavía — llega en la fase de
+    contrataciones del plan de migración.
+    """
+    permission_classes = [AllowAny]
+    serializer_class = PublicacionDetailSerializer
+    queryset = Publicaciones.objects.select_related(
+        'usuario_publicador__ranking', 'usuario_publicador__comuna__region',
+    ).prefetch_related('imagenes')

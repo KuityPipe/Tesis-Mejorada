@@ -1,0 +1,50 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/catalogo"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ publicacion?.titulo || 'Servicio' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <!-- `*ngIf="publicacion as pub"` asigna el resultado del *ngIf a una variable local `pub` — evita repetir `publicacion!.` (con el operador de aserción no-null) en cada línea de abajo. -->
+  <ng-container *ngIf="publicacion as pub">
+    <div class="imagenes" *ngIf="pub.imagenes.length">
+      <img *ngFor="let imagen of pub.imagenes" [src]="imagen.url" [alt]="pub.titulo" />
+    </div>
+
+    <h1>{{ pub.titulo }}</h1>
+    <p *ngIf="pub.sub_titulo">{{ pub.sub_titulo }}</p>
+    <p *ngIf="pub.precio"><strong>${{ pub.precio | number }}</strong></p>
+    <p>{{ pub.descripcion_publicacion }}</p>
+
+    <ion-item lines="none">
+      <ion-avatar slot="start" *ngIf="pub.proveedor.foto_perfil">
+        <img [src]="pub.proveedor.foto_perfil" [alt]="pub.proveedor.nombre_usuario" />
+      </ion-avatar>
+      <ion-label>
+        <h2>{{ pub.proveedor.nombre_usuario }} {{ pub.proveedor.apellido_usuario }}</h2>
+        <p *ngIf="pub.proveedor.comuna">{{ pub.proveedor.comuna }}, {{ pub.proveedor.region }}</p>
+        <p *ngIf="pub.proveedor.puntuacion_promedio">★ {{ pub.proveedor.puntuacion_promedio }} ({{ pub.proveedor.total_valoraciones }})</p>
+      </ion-label>
+    </ion-item>
+
+    <h3>Reseñas</h3>
+    <ion-list *ngIf="pub.resenas.length; else sinResenas">
+      <ion-item *ngFor="let resena of pub.resenas" lines="full">
+        <ion-label class="ion-text-wrap">
+          <h3>{{ resena.usuario_emisor }} — ★{{ resena.puntuacion }}</h3>
+          <p>{{ resena.comentario }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+    <ng-template #sinResenas>
+      <p>Todavía no hay reseñas para este servicio.</p>
+    </ng-template>
+  </ng-container>
+</ion-content>

@@ -88,15 +88,20 @@ backend real vía `curl` (login + me con cuenta demo). Objetivo cumplido:
 probar que el esquema JWT + CORS + DRF funciona de punta a punta antes de
 construir nada más encima.
 
-### Fase 2 — Catálogo público (bajo acoplamiento, alto valor visible)
+### Fase 2 — Catálogo público ✅
 
-Extender `KeyServApp/api/` con endpoints de solo lectura: listado/detalle de
-`Publicaciones` (equivalente a `/servicios/` y `publicacion_detalle_view`),
-catálogos de referencia (`/ajax/load-comunas/` → versión API). Construir en
-Ionic las pantallas de catálogo con paginación y filtros. Se elige primero
-porque es público (sin lógica de permisos compleja), de solo lectura (sin
-riesgo de corromper datos) y es lo primero que ve cualquiera que entre a la
-app — la pantalla con más impacto visual para una demo de portafolio.
+Backend: `GET /api/publicaciones/` (paginado, `PageNumberPagination`,
+filtros `q`/`region`/`calificacion`/`orden` — mismos que `catalogo_view`,
+reusando `Unaccent` de `views.py`) y `GET /api/publicaciones/<pk>/`
+(equivalente de `publicacion_detalle_view`, incluye imágenes y reseñas ya
+moderadas). Ambos `AllowAny` — públicos de verdad, decidido con el usuario.
+Ionic: `catalogo.page` (listado con `ion-infinite-scroll`, decidido con el
+usuario en vez de paginación por botones — más natural en mobile) y
+`catalogo/detalle.page` (`/catalogo/:id`). `''` ahora redirige a `/catalogo`
+en vez de `/home` — el catálogo es la landing pública, `/home` quedó para
+después de loguearse. Verificado en vivo contra el backend real (demo data,
+8 publicaciones) vía `curl` — igual que en Fase 1, sin poder clickear en el
+navegador de verdad (extensión de Chrome desconectada).
 
 ### Fase 3 — Cuenta de usuario
 
