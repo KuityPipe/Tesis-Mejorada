@@ -46,8 +46,9 @@ nunca automático.
 | 31 | 2026-08-13 20:49 | `bbf1ff7` | Fase 2 (API/Ionic): catálogo público — API (listado+detalle de publicaciones) y pantallas Ionic con scroll infinito | 24 min |
 | 32 | 2026-08-13 21:07 | `39a5c11` | Fase 3 (API/Ionic, parcial): registro de cuenta — API (reusa RegistroForm), catálogos de referencia, pantalla Ionic con cascada región→comuna | 18 min |
 | 33 | 2026-08-13 21:19 | `83c8143` | Fase 3 (API/Ionic, parcial): editar perfil — API (reusa EditarPerfilForm, sube foto), pantalla Ionic; se agregó la Fase 6 de diseño visual al plan (deferida a después de toda la funcionalidad) | 12 min |
+| 34 | 2026-08-13 21:30 | `fac4e38` | Fase 3 (API/Ionic, parcial): recuperación de contraseña — API (reusa RecuperarForm/NuevaPasswordForm, link apunta al frontend Ionic), pantallas Ionic de los 2 pasos | 11 min |
 
-**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min. **Hasta el checkpoint #21**: ~17 h 04 min. **Hasta el checkpoint #22**: ~17 h 47 min. **Hasta el checkpoint #27**: ~25 h 35 min. **Hasta el checkpoint #33**: ~27 h 05 min.
+**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min. **Hasta el checkpoint #21**: ~17 h 04 min. **Hasta el checkpoint #22**: ~17 h 47 min. **Hasta el checkpoint #27**: ~25 h 35 min. **Hasta el checkpoint #34**: ~27 h 16 min.
 
 ---
 
