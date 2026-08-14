@@ -1,0 +1,19 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Resultado del pago</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+    <p>Consultando el estado del pago con Khipu…</p>
+  </div>
+
+  <ng-container *ngIf="!cargando">
+    <ion-text [color]="aprobado ? 'success' : 'medium'">
+      <p>{{ mensaje }}</p>
+    </ion-text>
+    <ion-button expand="block" (click)="volver()">Volver a la contratación</ion-button>
+  </ng-container>
+</ion-content>

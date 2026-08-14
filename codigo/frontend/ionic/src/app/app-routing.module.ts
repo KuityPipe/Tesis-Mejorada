@@ -62,6 +62,17 @@ const routes: Routes = [
     loadChildren: () => import('./contratacion/detalle/detalle.module').then( m => m.DetallePageModule),
     canActivate: [authGuard],
   },
+  {
+    // Sin authGuard: Transbank/Khipu redirigen acá directo, y el token JWT
+    // de la sesión Ionic puede haber quedado vencido durante el rato que
+    // el usuario estuvo fuera de la SPA (ver Pagos.confirmarWebpay/estadoKhipu).
+    path: 'pago/webpay/retorno',
+    loadChildren: () => import('./pago/webpay/retorno/retorno.module').then( m => m.RetornoPageModule),
+  },
+  {
+    path: 'pago/khipu/retorno/:id',
+    loadChildren: () => import('./pago/khipu/retorno/retorno.module').then( m => m.RetornoPageModule),
+  },
 ];
 
 @NgModule({

@@ -178,7 +178,7 @@ depende de que el resto ya esté hecho:
   posterior usando la contraseña nueva) y rechazo con la contraseña
   actual incorrecta — todo restaurado después al valor original.
 
-### Fase 4 — Núcleo transaccional (en progreso)
+### Fase 4 — Núcleo transaccional ✅
 
 Contrataciones (crear → confirmar → pagar → completar → valorar),
 mensajería por trabajo (`Conversacion`/`Mensaje`), pagos (Webpay/Khipu). Es
@@ -236,9 +236,45 @@ Dividida en piezas, orden confirmado con el usuario (2026-08-14):
    `SOLICITADA`, y completar sin haber pasado por `EN_CURSO` da 404. La
    contratación de prueba se borró después para no dejar datos demo
    mutados.
-5. ⏳ **Pagos (Webpay/Khipu)** — sin empezar. Necesita el manejo especial
-   de redirect a un gateway externo mencionado abajo (`@capacitor/browser`
-   en nativo).
+5. **Pagos (Webpay/Khipu) ✅** — decisión de diseño tomada con el
+   usuario: el retorno del pago se movió de una URL de Django a la app
+   Ionic (`IONIC_FRONTEND_URL`), igual que ya se hacía con la
+   recuperación de contraseña — no una página de este sitio. `POST
+   /api/contrataciones/<id>/pagos/webpay/iniciar/` devuelve `{token,
+   url_pago}` en vez de renderizar la página de auto-submit del template
+   — el `<form>` que hace el POST real a Transbank (su protocolo lo
+   exige, no alcanza una navegación GET) se arma del lado de Ionic
+   (`contratacion/detalle/detalle.page.pagarConWebpay()`). `POST
+   /api/pagos/webpay/confirmar/` (sin autenticación, mismo motivo que la
+   vista de template: Transbank redirige de vuelta al navegador del
+   usuario, no manda ningún JWT nuestro) es adonde la nueva pantalla
+   `pago/webpay/retorno` manda el `token_ws`/`TBK_TOKEN` que haya
+   recibido por query string. Khipu es más simple del lado del cliente
+   (`POST /api/contrataciones/<id>/pagos/khipu/iniciar/` devuelve
+   `{payment_url}`, Ionic solo navega ahí con `window.location.href` —
+   sin el truco del `<form>`) — `GET
+   /api/contrataciones/<id>/pagos/khipu/estado/` (equivalente de
+   `pago_khipu_retorno_view`, reconsulta si sigue `PENDIENTE`) es adonde
+   apunta `pago/khipu/retorno/:id`. El webhook servidor-a-servidor
+   (`pago_khipu_notificacion_view`) se queda tal cual en Django — nunca
+   lo llama el navegador, así que no había ninguna razón para moverlo.
+
+   **Verificado en vivo de punta a punta, incluido un click-through real
+   en el navegador** (la extensión de Chrome por fin conectó esta sesión,
+   primera vez en toda la migración): `POST
+   /api/contrataciones/<id>/pagos/webpay/iniciar/` contra el sandbox
+   público real de Transbank devolvió un token/URL reales; y desde la
+   propia app Ionic corriendo en Chrome se completó el pago con una
+   tarjeta de prueba de Transbank en el simulador de banco real,
+   volviendo a `/pago/webpay/retorno`, confirmando el pago
+   ("Pago aprobado — código de autorización..."), avanzando la
+   Contratacion a EN_CURSO, completando el trabajo (reautenticación) y
+   dejando una calificación — el primer recorrido de clic real de punta
+   a punta de toda la migración (Fases 1-4), no solo `curl`/tests
+   automatizados. Khipu no se pudo probar en vivo (sigue sin cuenta real,
+   ver Known Issues de CLAUDE.md) pero `pago_khipu_iniciar` devuelve el
+   mismo error claro (503, "KHIPU_API_KEY no configurado") que ya daba el
+   template, verificado en vivo igual.
 
 Los pagos necesitan atención especial en nativo: el flujo de redirect a
 Transbank/Khipu no puede ser una navegación de página completa como en web

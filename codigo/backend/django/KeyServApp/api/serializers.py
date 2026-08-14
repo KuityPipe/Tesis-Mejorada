@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from ..models import (
-    Comuna, Contratacion, Documento, HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje,
+    Comuna, Contratacion, Documento, HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago,
     Publicaciones, Region, TipoCuenta, Usuario, Valoracion, ValoracionImagen,
 )
 
@@ -96,6 +96,14 @@ class ValoracionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PagoSerializer(serializers.ModelSerializer):
+    """Estado del cobro de una Contratacion — nunca expone `respuesta_bruta`/`token_webpay`/`khipu_payment_id` (detalles internos del medio de pago, no algo que el cliente Ionic necesite)."""
+    class Meta:
+        model = Pago
+        fields = ['id_pago', 'metodo', 'estado', 'monto', 'fecha_creacion', 'fecha_confirmacion']
+        read_only_fields = fields
+
+
 class ContratacionListSerializer(serializers.ModelSerializer):
     """`GET /api/contrataciones/` — equivalente API de `reservas_view`. `cliente`/`proveedor` vienen como el pk plano (default de DRF para una FK) — el cliente Ionic decide su propio rol comparando contra `GET /api/auth/me/`, no hay un campo `rol` calculado acá."""
     publicacion_titulo = serializers.CharField(source='publicacion.titulo', read_only=True)
@@ -122,9 +130,10 @@ class ContratacionDetailSerializer(ContratacionListSerializer):
     historial = HistorialEstadoSerializer(source='historial_estados', many=True, read_only=True)
     items_presupuesto = ItemPresupuestoSerializer(many=True, read_only=True)
     valoracion = ValoracionSerializer(read_only=True)
+    pago = PagoSerializer(read_only=True)
 
     class Meta(ContratacionListSerializer.Meta):
-        fields = ContratacionListSerializer.Meta.fields + ['historial', 'items_presupuesto', 'valoracion']
+        fields = ContratacionListSerializer.Meta.fields + ['historial', 'items_presupuesto', 'valoracion', 'pago']
         read_only_fields = fields
 
 

@@ -15,6 +15,7 @@ from django.core.mail import send_mail
 from django.db.models import Q, Value
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.pagination import PageNumberPagination
@@ -22,6 +23,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
     CambiarPasswordForm, CATEGORIAS_PUBLICACION, CrearPerfilForm, EditarPerfilForm, MensajeForm,
@@ -30,7 +32,7 @@ from ..forms import (
 )
 from ..models import (
     Comuna, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion, ItemPresupuesto, Mensaje,
-    Publicaciones, Region, Transaccion, TipoCuenta, Usuario, UsuarioConversacion, ValoracionImagen,
+    Pago, Publicaciones, Region, Transaccion, TipoCuenta, Usuario, UsuarioConversacion, ValoracionImagen,
 )
 from ..views import Unaccent
 from . import jwt_utils
@@ -696,3 +698,226 @@ class ValoracionCrearView(APIView):
             {'valoracion': ValoracionSerializer(valoracion).data, 'imagenes_rechazadas': rechazadas},
             status=status.HTTP_201_CREATED,
         )
+
+
+def _validar_pago_posible_api(request, contratacion_id):
+    """
+    Espejo de `vistas_legacy._validar_pago_posible`, pero devolviendo
+    `(contratacion, Response|None)` en vez de `(contratacion,
+    HttpResponseRedirect|None)` — acá no hay una página de reservas a la
+    que mandar de vuelta, solo una respuesta de error para que el cliente
+    Ionic la muestre. Mismos chequeos: dueño correcto (el cliente), estado
+    CONFIRMADA, monto acordado real.
+    """
+    contratacion = get_object_or_404(
+        Contratacion.objects.select_related('publicacion'), pk=contratacion_id, estado=Contratacion.CONFIRMADA,
+    )
+    usuario = request.user
+    if usuario != contratacion.cliente:
+        vistas_legacy._registrar_intento_sospechoso(request, usuario, 'pago_iniciar', contratacion_id, 'no es el cliente (api)')
+        return None, Response({'detail': 'Solo el cliente puede pagar esta contratación.'}, status=status.HTTP_403_FORBIDDEN)
+    if not contratacion.monto_acordado:
+        return None, Response(
+            {'detail': 'Esta contratación no tiene un monto acordado — no se puede cobrar.'}, status=status.HTTP_400_BAD_REQUEST,
+        )
+    return contratacion, None
+
+
+class PagoWebpayIniciarView(APIView):
+    """
+    `POST /api/contrataciones/<id>/pagos/webpay/iniciar/` — equivalente
+    API de `pago_webpay_iniciar_view`. En vez de renderizar la página con
+    el `<form>` de auto-submit, devuelve `{token, url_pago}`: ese POST
+    real a Transbank lo arma el propio cliente Ionic
+    (`pago/webpay/webpay.page`), mismo truco que la plantilla pero del
+    lado del navegador — Transbank exige un POST de `token_ws` a su URL,
+    no una navegación GET común.
+
+    `url_retorno` apunta a `settings.IONIC_FRONTEND_URL` en vez de una
+    URL de Django, mismo criterio que `RecuperarView`: quien tiene que
+    resolver el regreso es la app Ionic (`pago/webpay/retorno.page`), no
+    una página de este sitio.
+    """
+
+    def post(self, request, contratacion_id):
+        contratacion, error = _validar_pago_posible_api(request, contratacion_id)
+        if error:
+            return error
+
+        pago, _creado = Pago.objects.get_or_create(
+            contratacion=contratacion, defaults={'monto': contratacion.monto_acordado, 'metodo': Pago.WEBPAY},
+        )
+        if pago.estado == Pago.PAGADO:
+            return Response({'detail': 'Esta contratación ya está pagada.'}, status=status.HTTP_400_BAD_REQUEST)
+        pago.metodo = Pago.WEBPAY
+        pago.monto = contratacion.monto_acordado
+        pago.estado = Pago.PENDIENTE
+
+        orden_compra = vistas_legacy._generar_orden_compra(contratacion)
+        url_retorno = f'{settings.IONIC_FRONTEND_URL}/pago/webpay/retorno'
+        try:
+            token, url_pago = pagos.TransbankService().iniciar_transaccion(
+                monto=pago.monto, orden_compra=orden_compra,
+                session_id=f'usuario-{contratacion.cliente_id}', url_retorno=url_retorno,
+            )
+        except Exception:
+            logger.exception('Error iniciando transacción Webpay (api): contratacion=%s', contratacion_id)
+            return Response(
+                {'detail': 'No pudimos conectar con Webpay en este momento. Probá de nuevo en unos minutos.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        pago.orden_compra = orden_compra
+        pago.token_webpay = token
+        pago.save()
+        logger.info('Transacción Webpay iniciada (api): contratacion=%s pago=%s', contratacion_id, pago.id_pago)
+        return Response({'token': token, 'url_pago': url_pago})
+
+
+class PagoWebpayConfirmarView(APIView):
+    """
+    `POST /api/pagos/webpay/confirmar/` — equivalente API de
+    `pago_webpay_retorno_view`. La pantalla de Ionic que recibe el
+    retorno de Transbank (`pago/webpay/retorno.page`) manda acá lo que
+    haya llegado en la query string (`token_ws` o `TBK_TOKEN`).
+
+    Sin autenticación a propósito, igual que la vista de template (que
+    solo tiene `@csrf_exempt`, no `@login_requerido`): quien redirige acá
+    es el propio Transbank devolviendo al navegador del usuario, no una
+    request nuestra — y el JWT de la sesión Ionic pudo haber quedado
+    obsoleto durante el rato que el usuario estuvo en Transbank. La
+    "credencial" real acá es el `token_ws` en sí (lo emitió Transbank,
+    solo alguien que pasó por el flujo real lo tiene).
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token_ws = request.data.get('token_ws')
+        tbk_token = request.data.get('TBK_TOKEN')
+
+        if not token_ws:
+            pago = Pago.objects.filter(token_webpay=tbk_token).first() if tbk_token else None
+            if pago and pago.estado == Pago.PENDIENTE:
+                pago.estado = Pago.ANULADO
+                pago.save()
+            return Response({
+                'aprobado': False,
+                'mensaje': 'Cancelaste el pago en Webpay.' if tbk_token else 'El pago no se completó a tiempo.',
+                'contratacion_id': pago.contratacion_id if pago else None,
+            })
+
+        pago = get_object_or_404(Pago, token_webpay=token_ws)
+        try:
+            respuesta = pagos.TransbankService().confirmar_transaccion(token_ws)
+        except Exception:
+            logger.exception('Error confirmando transacción Webpay (api): pago=%s', pago.id_pago)
+            pago.estado = Pago.RECHAZADO
+            pago.save()
+            return Response({
+                'aprobado': False, 'mensaje': 'No pudimos confirmar el pago con Webpay.', 'contratacion_id': pago.contratacion_id,
+            })
+
+        aprobado = respuesta.get('response_code') == 0 and respuesta.get('status') == 'AUTHORIZED'
+        if aprobado:
+            vistas_legacy._procesar_pago_aprobado(pago, respuesta)
+            mensaje = f'Pago aprobado — código de autorización {respuesta.get("authorization_code")}.'
+        else:
+            pago.estado = Pago.RECHAZADO
+            pago.respuesta_bruta = respuesta
+            pago.save()
+            logger.warning('Pago Webpay rechazado (api): pago=%s respuesta=%s', pago.id_pago, respuesta)
+            mensaje = 'El pago fue rechazado por el banco emisor de la tarjeta.'
+
+        return Response({'aprobado': aprobado, 'mensaje': mensaje, 'contratacion_id': pago.contratacion_id})
+
+
+class PagoKhipuIniciarView(APIView):
+    """
+    `POST /api/contrataciones/<id>/pagos/khipu/iniciar/` — equivalente
+    API de `pago_khipu_iniciar_view`. Devuelve `{payment_url}` para que
+    Ionic navegue ahí directo (`window.location.href`) — a diferencia de
+    Webpay, Khipu sí acepta una navegación GET común, no hace falta armar
+    ningún `<form>` de auto-submit del lado del cliente.
+
+    `url_notificacion` (el webhook) sigue apuntando a la URL de Django
+    existente sin cambios (`pago_khipu_notificacion_view`) — lo llama
+    Khipu servidor-a-servidor, nunca pasa por el navegador del usuario,
+    así que no tiene sentido moverlo a Ionic como `url_retorno`.
+    """
+
+    def post(self, request, contratacion_id):
+        contratacion, error = _validar_pago_posible_api(request, contratacion_id)
+        if error:
+            return error
+
+        pago, _creado = Pago.objects.get_or_create(
+            contratacion=contratacion, defaults={'monto': contratacion.monto_acordado, 'metodo': Pago.KHIPU},
+        )
+        if pago.estado == Pago.PAGADO:
+            return Response({'detail': 'Esta contratación ya está pagada.'}, status=status.HTTP_400_BAD_REQUEST)
+        pago.metodo = Pago.KHIPU
+        pago.monto = contratacion.monto_acordado
+        pago.estado = Pago.PENDIENTE
+        pago.save()
+
+        url_retorno = f'{settings.IONIC_FRONTEND_URL}/pago/khipu/retorno/{contratacion_id}'
+        url_notificacion = request.build_absolute_uri(reverse('KeyServApp:pago_khipu_notificacion'))
+        try:
+            respuesta = pagos.KhipuService().crear_pago(
+                monto=pago.monto,
+                asunto=f'KeyServ — {contratacion.publicacion.titulo}'[:250],
+                transaction_id=str(pago.id_pago),
+                url_retorno=url_retorno, url_cancelacion=url_retorno, url_notificacion=url_notificacion,
+            )
+        except RuntimeError as error:
+            # KHIPU_API_KEY no configurado — mensaje claro en vez de un 500 críptico.
+            return Response({'detail': str(error)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception:
+            logger.exception('Error iniciando pago Khipu (api): contratacion=%s', contratacion_id)
+            return Response(
+                {'detail': 'No pudimos conectar con Khipu en este momento. Probá de nuevo en unos minutos.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        pago.khipu_payment_id = respuesta.get('payment_id')
+        pago.save()
+        logger.info('Pago Khipu iniciado (api): contratacion=%s pago=%s', contratacion_id, pago.id_pago)
+        return Response({'payment_url': respuesta.get('payment_url') or respuesta.get('simplified_transfer_url')})
+
+
+class PagoKhipuEstadoView(APIView):
+    """
+    `GET /api/contrataciones/<id>/pagos/khipu/estado/` — equivalente API
+    de `pago_khipu_retorno_view`: reconsulta contra Khipu si el pago
+    sigue `PENDIENTE` (mejor UX al volver del banco — evita mostrar
+    "pendiente" si el webhook todavía no llegó pero el pago ya está
+    aprobado). La fuente de verdad real sigue siendo el webhook
+    (`pago_khipu_notificacion_view`, sin cambios) — esto es solo para no
+    hacer esperar al usuario mientras el webhook llega.
+    """
+
+    def get(self, request, contratacion_id):
+        contratacion = get_object_or_404(Contratacion, pk=contratacion_id)
+        if request.user not in (contratacion.cliente, contratacion.proveedor):
+            vistas_legacy._registrar_intento_sospechoso(request, request.user, 'contratacion', contratacion_id, 'contratación ajena (api, pago khipu)')
+            raise Http404()
+
+        pago = getattr(contratacion, 'pago', None)
+        if pago and pago.estado == Pago.PENDIENTE and pago.khipu_payment_id:
+            try:
+                respuesta = pagos.KhipuService().consultar_pago(pago.khipu_payment_id)
+                if respuesta.get('status') == 'done':
+                    vistas_legacy._procesar_pago_aprobado(pago, respuesta)
+            except Exception:
+                logger.exception('Error reconsultando pago Khipu al volver (api): pago=%s', pago.id_pago)
+
+        if pago:
+            pago.refresh_from_db()
+        aprobado = bool(pago and pago.estado == Pago.PAGADO)
+        if aprobado:
+            mensaje = 'Pago confirmado por transferencia bancaria.'
+        elif pago and pago.estado == Pago.PENDIENTE:
+            mensaje = 'Todavía estamos esperando la confirmación de tu banco — puede tardar unos minutos.'
+        else:
+            mensaje = 'El pago no se completó.'
+        return Response({'aprobado': aprobado, 'mensaje': mensaje})

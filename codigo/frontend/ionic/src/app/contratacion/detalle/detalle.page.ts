@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { Auth } from '../../core/auth';
 import { Contrataciones, ContratacionDetalle, Mensaje } from '../../contrataciones/contrataciones';
+import { Pagos } from '../../pago/pagos';
 
 /**
  * Detalle de un trabajo puntual — equivalente Ionic de
@@ -44,12 +45,15 @@ export class DetallePage implements OnInit {
   enviandoValoracion = false;
   errorValoracion: string | null = null;
   valoracionOk = false;
+  procesandoPago = false;
+  errorPago: string | null = null;
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly fb: FormBuilder,
     private readonly auth: Auth,
     private readonly contratacionesApi: Contrataciones,
+    private readonly pagosApi: Pagos,
   ) {}
 
   ngOnInit(): void {
@@ -89,6 +93,10 @@ export class DetallePage implements OnInit {
 
   get puedeCompletar(): boolean {
     return this.esCliente && this.contratacion?.estado === 'EN_CURSO';
+  }
+
+  get puedePagar(): boolean {
+    return this.esCliente && this.contratacion?.estado === 'CONFIRMADA';
   }
 
   get puedeValorar(): boolean {
@@ -149,6 +157,58 @@ export class DetallePage implements OnInit {
       error: (error: HttpErrorResponse) => {
         this.procesandoAccion = false;
         this.errorAccion = error.error?.detail ?? 'No se pudo completar.';
+      },
+    });
+  }
+
+  /**
+   * Transbank exige un POST real de `token_ws` a `url_pago` (no una
+   * navegación GET) — se arma un `<form>` oculto y se lo manda con
+   * `.submit()`, mismo truco que la página de auto-submit del template
+   * (`pago_webpay_redirigir.html`), pero armado del lado del cliente.
+   * Esto navega fuera de la SPA por completo (no vuelve nunca a este
+   * método) hasta que Transbank redirige a `/pago/webpay/retorno`.
+   */
+  pagarConWebpay(): void {
+    if (this.procesandoPago) {
+      return;
+    }
+    this.procesandoPago = true;
+    this.errorPago = null;
+    this.pagosApi.iniciarWebpay(this.contratacionId).subscribe({
+      next: ({ token, url_pago }) => {
+        const formulario = document.createElement('form');
+        formulario.method = 'POST';
+        formulario.action = url_pago;
+        const campoToken = document.createElement('input');
+        campoToken.type = 'hidden';
+        campoToken.name = 'token_ws';
+        campoToken.value = token;
+        formulario.appendChild(campoToken);
+        document.body.appendChild(formulario);
+        formulario.submit();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.procesandoPago = false;
+        this.errorPago = error.error?.detail ?? 'No se pudo iniciar el pago con Webpay.';
+      },
+    });
+  }
+
+  /** Khipu sí acepta una navegación GET directa a `payment_url` — no hace falta el truco del `<form>` que necesita Webpay. */
+  pagarConKhipu(): void {
+    if (this.procesandoPago) {
+      return;
+    }
+    this.procesandoPago = true;
+    this.errorPago = null;
+    this.pagosApi.iniciarKhipu(this.contratacionId).subscribe({
+      next: ({ payment_url }) => {
+        window.location.href = payment_url;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.procesandoPago = false;
+        this.errorPago = error.error?.detail ?? 'No se pudo iniciar el pago con Khipu.';
       },
     });
   }

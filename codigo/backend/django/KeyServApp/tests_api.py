@@ -6,14 +6,17 @@ mundos en un solo archivo gigante habría sido más fricción de merge que
 seguridad extra. Cada escenario acá espeja uno ya cubierto en
 `LoginViewTests` (tests.py) para la ruta equivalente `/api/auth/`.
 """
+from unittest import mock
+
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
 from .api import jwt_utils
 from .models import (
-    Comuna, Contratacion, Documento, EstadoDocumento, IntentoAccesoSospechoso, ItemPresupuesto, Mensaje,
-    Publicaciones, Ranking, Region, TokenSesion, Usuario, Valoracion, ValoracionImagen,
+    Comuna, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion, IntentoAccesoSospechoso,
+    ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region, TokenSesion, Usuario, Valoracion,
+    ValoracionImagen,
 )
 from .tests import _crear_region_comuna_tipo, _crear_usuario, _imagen_de_prueba, _marcar_en_curso
 from .views import _generar_token_recuperacion
@@ -808,3 +811,133 @@ class ValoracionApiTests(APITestCase):
         self.assertEqual(resp.data['imagenes_rechazadas'], [])
         imagen = ValoracionImagen.objects.get(valoracion__contratacion=self.contratacion)
         self.assertEqual(imagen.estado_moderacion, ValoracionImagen.PENDIENTE)
+
+
+class PagoApiTests(APITestCase):
+    """`/api/contrataciones/<id>/pagos/*` + `/api/pagos/webpay/confirmar/` — espeja `PagoTests` (tests.py), mismos escenarios contra la ruta de la API. `TransbankService`/`KhipuService` mockeados igual que el lado template."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_pago_api@test.com', 'clave_prov', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_pago_api@test.com', 'clave_cli', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(
+            usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000,
+        )
+        self.contratacion = Contratacion.objects.create(
+            publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor,
+            estado=Contratacion.CONFIRMADA, monto_acordado=15000,
+        )
+
+    def _autenticado_como(self, usuario):
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_webpay_iniciar_crea_pago_pendiente(self):
+        self._autenticado_como(self.cliente)
+        with mock.patch('KeyServApp.pagos.TransbankService.iniciar_transaccion', return_value=('tok123', 'https://webpay.test/init')):
+            resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/pagos/webpay/iniciar/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['token'], 'tok123')
+        self.assertEqual(resp.data['url_pago'], 'https://webpay.test/init')
+        pago = Pago.objects.get(contratacion=self.contratacion)
+        self.assertEqual(pago.metodo, Pago.WEBPAY)
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
+        self.assertEqual(pago.token_webpay, 'tok123')
+
+    def test_solo_el_cliente_puede_iniciar_el_pago(self):
+        self._autenticado_como(self.proveedor)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/pagos/webpay/iniciar/')
+        self.assertEqual(resp.status_code, 403)
+        self.assertFalse(Pago.objects.filter(contratacion=self.contratacion).exists())
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(recurso='pago_iniciar').exists())
+
+    def test_no_se_puede_pagar_sin_monto_acordado(self):
+        self.contratacion.monto_acordado = None
+        self.contratacion.save(update_fields=['monto_acordado'])
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/pagos/webpay/iniciar/')
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(Pago.objects.filter(contratacion=self.contratacion).exists())
+
+    def test_webpay_confirmar_aprobado_pasa_contratacion_a_en_curso(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        respuesta_aprobada = {'response_code': 0, 'status': 'AUTHORIZED', 'authorization_code': 'AUTH1'}
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', return_value=respuesta_aprobada):
+            resp = self.client.post('/api/pagos/webpay/confirmar/', {'token_ws': 'tok123'}, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['aprobado'])
+        pago.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PAGADO)
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
+        self.assertTrue(HistorialEstadoContratacion.objects.filter(contratacion=self.contratacion, estado=Contratacion.EN_CURSO).exists())
+
+    def test_webpay_confirmar_rechazado_no_avanza_la_contratacion(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        respuesta_rechazada = {'response_code': 1, 'status': 'FAILED'}
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', return_value=respuesta_rechazada):
+            resp = self.client.post('/api/pagos/webpay/confirmar/', {'token_ws': 'tok123'}, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['aprobado'])
+        pago.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.RECHAZADO)
+        self.assertEqual(self.contratacion.estado, Contratacion.CONFIRMADA)
+
+    def test_webpay_cancelado_por_el_usuario_queda_anulado(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        resp = self.client.post('/api/pagos/webpay/confirmar/', {'TBK_TOKEN': 'tok123'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['aprobado'])
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.ANULADO)
+
+    def test_webpay_confirmar_no_requiere_token(self):
+        """Igual que la vista de template — Transbank redirige acá sin ningún JWT nuestro."""
+        resp = self.client.post('/api/pagos/webpay/confirmar/', {'TBK_TOKEN': 'no-existe'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_khipu_iniciar_sin_api_key_da_error_claro(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/pagos/khipu/iniciar/')
+        self.assertEqual(resp.status_code, 503)
+        self.assertIn('KHIPU_API_KEY', resp.data['detail'])
+
+    def test_khipu_estado_reconsulta_y_marca_pagado(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.KHIPU, khipu_payment_id='pay123')
+        self._autenticado_como(self.cliente)
+        with mock.patch('KeyServApp.pagos.KhipuService.consultar_pago', return_value={'status': 'done', 'payment_id': 'pay123'}):
+            resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/pagos/khipu/estado/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['aprobado'])
+        pago.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PAGADO)
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
+
+    def test_khipu_estado_no_marca_pagado_si_todavia_pendiente(self):
+        Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.KHIPU, khipu_payment_id='pay123')
+        self._autenticado_como(self.cliente)
+        with mock.patch('KeyServApp.pagos.KhipuService.consultar_pago', return_value={'status': 'pending', 'payment_id': 'pay123'}):
+            resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/pagos/khipu/estado/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['aprobado'])
+
+    def test_khipu_estado_ajeno_devuelve_404(self):
+        Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.KHIPU, khipu_payment_id='pay123')
+        intruso = _crear_usuario('intruso_pago_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self._autenticado_como(intruso)
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/pagos/khipu/estado/')
+        self.assertEqual(resp.status_code, 404)
+
+    def test_detalle_incluye_el_pago(self):
+        Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, estado=Pago.PAGADO)
+        self._autenticado_como(self.cliente)
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/')
+        self.assertEqual(resp.data['pago']['metodo'], Pago.WEBPAY)
+        self.assertEqual(resp.data['pago']['estado'], Pago.PAGADO)

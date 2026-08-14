@@ -51,11 +51,22 @@ export interface ContratacionResumen {
   proveedor_nombre: string;
 }
 
+// Igual que PagoSerializer (api/serializers.py).
+export interface Pago {
+  id_pago: number;
+  metodo: 'WEBPAY' | 'KHIPU';
+  estado: 'PENDIENTE' | 'PAGADO' | 'RECHAZADO' | 'ANULADO';
+  monto: number;
+  fecha_creacion: string;
+  fecha_confirmacion: string | null;
+}
+
 // Campos extra de ContratacionDetailSerializer.
 export interface ContratacionDetalle extends ContratacionResumen {
   historial: HistorialEstado[];
   items_presupuesto: ItemPresupuesto[];
   valoracion: ValoracionDetalle | null;
+  pago: Pago | null;
 }
 
 export interface Mensaje {

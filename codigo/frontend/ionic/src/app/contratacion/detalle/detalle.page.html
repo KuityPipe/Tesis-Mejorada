@@ -38,6 +38,22 @@
       </ion-item>
     </ion-list>
 
+    <ion-item lines="none" *ngIf="c.pago">
+      <ion-label>Pago ({{ c.pago.metodo }})</ion-label>
+      <ion-badge slot="end" [color]="c.pago.estado === 'PAGADO' ? 'success' : 'medium'">{{ c.pago.estado }}</ion-badge>
+    </ion-item>
+
+    <!-- Pagar (cliente, CONFIRMADA) — el pago siempre navega fuera de la SPA (a Transbank/Khipu), no vuelve a esta página hasta el retorno. -->
+    <div *ngIf="puedePagar" class="ion-padding-top">
+      <ion-button expand="block" (click)="pagarConWebpay()" [disabled]="procesandoPago">
+        {{ procesandoPago ? 'Redirigiendo…' : 'Pagar con Webpay' }}
+      </ion-button>
+      <ion-button expand="block" fill="outline" (click)="pagarConKhipu()" [disabled]="procesandoPago">
+        {{ procesandoPago ? 'Redirigiendo…' : 'Pagar con Khipu (transferencia)' }}
+      </ion-button>
+      <ion-text color="danger" *ngIf="errorPago"><p class="ion-padding-start">{{ errorPago }}</p></ion-text>
+    </div>
+
     <!-- Confirmar (proveedor, SOLICITADA) / Completar (cliente, EN_CURSO) — ambas piden reautenticación, mismo <form> reusado para las dos acciones. -->
     <form *ngIf="puedeConfirmar || puedeCompletar" [formGroup]="formularioReauth" (ngSubmit)="puedeConfirmar ? confirmar() : completar()">
       <ion-list>
