@@ -7,10 +7,14 @@ seguridad extra. Cada escenario acá espeja uno ya cubierto en
 `LoginViewTests` (tests.py) para la ruta equivalente `/api/auth/`.
 """
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
 from .api import jwt_utils
-from .models import Comuna, IntentoAccesoSospechoso, Publicaciones, Region, TokenSesion, Usuario, Valoracion
+from .models import (
+    Comuna, Documento, EstadoDocumento, IntentoAccesoSospechoso, Publicaciones, Region, TokenSesion, Usuario,
+    Valoracion,
+)
 from .tests import _crear_region_comuna_tipo, _crear_usuario, _imagen_de_prueba
 from .views import _generar_token_recuperacion
 
@@ -254,6 +258,11 @@ class CatalogosApiTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data[0]['id_tipo_cuenta'], self.tipo_cuenta.id_tipo_cuenta)
 
+    def test_categorias_no_requiere_token(self):
+        resp = self.client.get('/api/catalogos/categorias/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('Gasfitería', resp.data)
+
 
 class PerfilApiTests(APITestCase):
     """`PUT /api/auth/perfil/` — espeja EditarPerfilTests (tests.py), mismos escenarios contra la ruta de la API."""
@@ -392,3 +401,159 @@ class RecuperarApiTests(APITestCase):
         resp = self.client.get(f'/api/auth/recuperar/confirmar/{token}/')
 
         self.assertEqual(resp.status_code, 404)
+
+
+class PerfilProveedorApiTests(APITestCase):
+    """`PUT /api/auth/perfil-proveedor/` + documentos — espeja CrearPerfilTests (tests.py), mismos escenarios contra la ruta de la API."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        EstadoDocumento.objects.get_or_create(id_estado_documento=2, defaults={'nombre_estado_documento': 'No firmado'})
+        self.proveedor = _crear_usuario('proveedor_api_perfil@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.access_token = jwt_utils.generar_access_token(self.proveedor)
+
+    def _autenticado(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access_token}')
+
+    def test_sin_token_devuelve_401(self):
+        resp = self.client.put('/api/auth/perfil-proveedor/', {'areas_servicio': ['Gasfitería']})
+        self.assertEqual(resp.status_code, 401)
+
+    def test_guarda_areas_de_servicio_y_experiencia(self):
+        self._autenticado()
+
+        resp = self.client.put('/api/auth/perfil-proveedor/', {
+            'areas_servicio': ['Gasfitería', 'Electricidad'],
+            'experiencia': '10 años reparando cañerías y tableros eléctricos.',
+        }, format='multipart')
+
+        self.assertEqual(resp.status_code, 200)
+        self.proveedor.refresh_from_db()
+        self.assertEqual(self.proveedor.areas_servicio, 'Gasfitería, Electricidad')
+        self.assertIn('10 años', self.proveedor.experiencia)
+
+    def test_agrega_un_area_libre_no_predefinida(self):
+        self._autenticado()
+
+        resp = self.client.put('/api/auth/perfil-proveedor/', {
+            'areas_servicio': ['Gasfitería'], 'otra_area_servicio': 'Reparación de piscinas',
+        }, format='multipart')
+
+        self.assertEqual(resp.status_code, 200)
+        self.proveedor.refresh_from_db()
+        self.assertEqual(self.proveedor.areas_servicio, 'Gasfitería, Reparación de piscinas')
+
+    def test_sube_un_certificado_valido(self):
+        self._autenticado()
+        pdf = SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 contenido de prueba', content_type='application/pdf')
+
+        resp = self.client.put('/api/auth/perfil-proveedor/', {
+            'areas_servicio': ['Gasfitería'], 'documentos': [pdf],
+        }, format='multipart')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['documentos_rechazados'], [])
+        documentos = Documento.objects.filter(usuario=self.proveedor, publicacion__isnull=True)
+        self.assertEqual(documentos.count(), 1)
+        self.assertEqual(documentos.first().nombre_documento, 'certificado.pdf')
+
+    def test_certificado_disfrazado_se_rechaza_pero_el_resto_del_perfil_se_guarda(self):
+        self._autenticado()
+        falso = SimpleUploadedFile('script.pdf', b'<script>alert(1)</script>', content_type='application/pdf')
+
+        resp = self.client.put('/api/auth/perfil-proveedor/', {
+            'areas_servicio': ['Gasfitería'], 'documentos': [falso],
+        }, format='multipart')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['documentos_rechazados'], ['script.pdf'])
+        self.assertEqual(Documento.objects.filter(usuario=self.proveedor).count(), 0)
+        self.proveedor.refresh_from_db()
+        self.assertEqual(self.proveedor.areas_servicio, 'Gasfitería')
+
+    def test_lista_los_certificados_ya_subidos(self):
+        Documento.objects.create(
+            usuario=self.proveedor, nombre_documento='certificado.pdf',
+            archivo_subido=SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 x', content_type='application/pdf'),
+        )
+        self._autenticado()
+
+        resp = self.client.get('/api/auth/perfil-proveedor/documentos/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]['nombre_documento'], 'certificado.pdf')
+
+    def test_puede_eliminar_su_propio_certificado(self):
+        documento = Documento.objects.create(
+            usuario=self.proveedor, nombre_documento='certificado.pdf',
+            archivo_subido=SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 x', content_type='application/pdf'),
+        )
+        self._autenticado()
+
+        resp = self.client.delete(f'/api/auth/perfil-proveedor/documentos/{documento.id_documento}/')
+
+        self.assertEqual(resp.status_code, 204)
+        self.assertFalse(Documento.objects.filter(pk=documento.id_documento).exists())
+
+    def test_no_puede_eliminar_el_certificado_de_otro_proveedor(self):
+        otro_proveedor = _crear_usuario('otro_proveedor_api_doc@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        documento = Documento.objects.create(
+            usuario=otro_proveedor, nombre_documento='certificado.pdf',
+            archivo_subido=SimpleUploadedFile('certificado.pdf', b'%PDF-1.4 x', content_type='application/pdf'),
+        )
+        self._autenticado()
+
+        resp = self.client.delete(f'/api/auth/perfil-proveedor/documentos/{documento.id_documento}/')
+
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Documento.objects.filter(pk=documento.id_documento).exists())
+
+
+class PreferenciasApiTests(APITestCase):
+    """`PUT /api/auth/preferencias/` + `POST /api/auth/cambiar-password/` — espeja PreferenciasCuentaTests (tests.py)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('preferencias_api@test.com', 'clave_actual', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.access_token = jwt_utils.generar_access_token(self.usuario)
+
+    def _autenticado(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access_token}')
+
+    def test_desactivar_notificaciones_de_sonido(self):
+        self._autenticado()
+
+        resp = self.client.put('/api/auth/preferencias/', {'notificaciones_sonido': False}, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.notificaciones_sonido)
+
+    def test_cambiar_password_sin_token_devuelve_401(self):
+        resp = self.client.post('/api/auth/cambiar-password/', {
+            'password_actual': 'clave_actual', 'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        }, format='json')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_cambiar_password_con_la_actual_correcta(self):
+        self._autenticado()
+
+        resp = self.client.post('/api/auth/cambiar-password/', {
+            'password_actual': 'clave_actual', 'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        }, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('ClaveNueva123'))
+
+    def test_cambiar_password_con_la_actual_incorrecta_no_cambia_nada(self):
+        self._autenticado()
+
+        resp = self.client.post('/api/auth/cambiar-password/', {
+            'password_actual': 'clave-equivocada', 'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        }, format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('clave_actual'))

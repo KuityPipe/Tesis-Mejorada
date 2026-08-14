@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ..models import Comuna, Imagenes, Publicaciones, Region, TipoCuenta, Usuario, Valoracion
+from ..models import Comuna, Documento, Imagenes, Publicaciones, Region, TipoCuenta, Usuario, Valoracion
 
 
 class LoginSerializer(serializers.Serializer):
@@ -37,6 +37,22 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
 
     def get_region(self, usuario) -> int | None:
         return usuario.comuna.region_id if usuario.comuna else None
+
+
+class DocumentoPerfilSerializer(serializers.ModelSerializer):
+    """
+    Un certificado/documento del perfil de proveedor (`Documento` con
+    `usuario` set y sin `publicacion`) — solo para listar/borrar desde
+    `PerfilProveedorView`/`DocumentoPerfilEliminarView`. Nunca expone el
+    archivo en sí: la descarga sigue siendo `documento_descargar_view`
+    (sesión de Django), no migrada todavía — este perfil de proveedor no
+    tiene aún una pantalla pública que muestre los certificados como
+    credenciales, mismo estado que del lado template (ver CLAUDE.md).
+    """
+    class Meta:
+        model = Documento
+        fields = ['id_documento', 'nombre_documento', 'fecha_subida_documento']
+        read_only_fields = fields
 
 
 class RegionSerializer(serializers.ModelSerializer):

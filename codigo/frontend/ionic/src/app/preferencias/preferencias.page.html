@@ -1,0 +1,71 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Preferencias de la cuenta</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <ng-container *ngIf="!cargando">
+    <form [formGroup]="formularioPreferencias" (ngSubmit)="guardarPreferencias()">
+      <ion-list>
+        <ion-list-header>
+          <ion-label>Notificaciones</ion-label>
+        </ion-list-header>
+        <ion-item>
+          <ion-toggle formControlName="notificaciones_sonido">
+            Reproducir un sonido cuando llega un mensaje nuevo
+          </ion-toggle>
+        </ion-item>
+      </ion-list>
+
+      <ion-text color="success" *ngIf="preferenciasGuardadasOk">
+        <p class="ion-padding-start">Preferencias actualizadas.</p>
+      </ion-text>
+
+      <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="guardandoPreferencias">
+        {{ guardandoPreferencias ? 'Guardando…' : 'Guardar preferencias' }}
+      </ion-button>
+    </form>
+
+    <form [formGroup]="formularioPassword" (ngSubmit)="cambiarPassword()">
+      <ion-list>
+        <ion-list-header>
+          <ion-label>Cambiar contraseña</ion-label>
+        </ion-list-header>
+
+        <ion-item>
+          <ion-input label="Contraseña actual" labelPlacement="floating" type="password" formControlName="password_actual"></ion-input>
+        </ion-item>
+        <ion-text color="danger" *ngIf="mensajeErrorPassword('password_actual')"><p class="ion-padding-start">{{ mensajeErrorPassword('password_actual') }}</p></ion-text>
+
+        <ion-item>
+          <ion-input label="Contraseña nueva" labelPlacement="floating" type="password" formControlName="password"></ion-input>
+        </ion-item>
+        <ion-text color="danger" *ngIf="mensajeErrorPassword('password')"><p class="ion-padding-start">{{ mensajeErrorPassword('password') }}</p></ion-text>
+
+        <ion-item>
+          <ion-input label="Confirmar contraseña nueva" labelPlacement="floating" type="password" formControlName="password_confirm"></ion-input>
+        </ion-item>
+        <ion-text color="danger" *ngIf="mensajeErrorPassword('password_confirm')"><p class="ion-padding-start">{{ mensajeErrorPassword('password_confirm') }}</p></ion-text>
+      </ion-list>
+
+      <ion-text color="danger" *ngIf="errorPassword">
+        <p class="ion-padding-start">{{ errorPassword }}</p>
+      </ion-text>
+      <ion-text color="success" *ngIf="passwordCambiadaOk">
+        <p class="ion-padding-start">Contraseña actualizada.</p>
+      </ion-text>
+
+      <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="cambiandoPassword">
+        {{ cambiandoPassword ? 'Guardando…' : 'Cambiar contraseña' }}
+      </ion-button>
+    </form>
+  </ng-container>
+</ion-content>

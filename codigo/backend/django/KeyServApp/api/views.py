@@ -10,8 +10,10 @@ import logging
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db.models import Q, Value
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
@@ -19,13 +21,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .. import views as vistas_legacy
-from ..forms import EditarPerfilForm, NuevaPasswordForm, RecuperarForm, RegistroForm
-from ..models import Comuna, Publicaciones, Region, Transaccion, TipoCuenta, Usuario
+from ..forms import (
+    CambiarPasswordForm, CATEGORIAS_PUBLICACION, CrearPerfilForm, EditarPerfilForm,
+    NuevaPasswordForm, PreferenciasCuentaForm, RecuperarForm, RegistroForm,
+)
+from ..models import Comuna, Documento, EstadoDocumento, Publicaciones, Region, Transaccion, TipoCuenta, Usuario
 from ..views import Unaccent
 from . import jwt_utils
 from .serializers import (
-    ComunaSerializer, LoginSerializer, PublicacionDetailSerializer, PublicacionListSerializer,
-    RegionSerializer, TipoCuentaSerializer, UsuarioMeSerializer,
+    ComunaSerializer, DocumentoPerfilSerializer, LoginSerializer, PublicacionDetailSerializer,
+    PublicacionListSerializer, RegionSerializer, TipoCuentaSerializer, UsuarioMeSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -148,6 +153,98 @@ class PerfilView(APIView):
         form.save()
         logger.info('Perfil actualizado (api): usuario_id=%s', request.user.id_usuario)
         return Response(UsuarioMeSerializer(request.user).data)
+
+
+class PerfilProveedorView(APIView):
+    """
+    `PUT /api/auth/perfil-proveedor/` — equivalente API de
+    `crear_perfil_view`, mismo criterio de reuso que `PerfilView`:
+    `CrearPerfilForm` (forms.py) se usa tal cual, incluida la fusión de
+    `areas_servicio` (checkboxes) + `otra_area_servicio` (texto libre) en
+    un solo string separado por comas.
+
+    Los certificados/documentos no son un campo del Form (mismo motivo que
+    `PublicacionForm`: Django no tiene un FileField multi-archivo) — se
+    leen de `request.FILES.getlist('documentos')`, tope
+    `MAX_DOCUMENTOS_PUBLICACION` y mismo estado inicial "No firmado"
+    (pk=2, ver comentario en `crear_perfil_view`) que el flujo de
+    template. Los que no pasan `full_clean()` (formato/tamaño/contenido
+    inválido) se listan en `documentos_rechazados` en vez de devolver un
+    400 — igual que `crear_perfil_view`, el resto del perfil sí se guarda.
+    """
+    def put(self, request):
+        form = CrearPerfilForm(request.data, request.FILES, instance=request.user)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        form.save()
+
+        rechazados = []
+        estado_no_firmado = EstadoDocumento.objects.filter(pk=2).first()  # 2 = No firmado (ver fixture catalogos_iniciales)
+        for archivo in request.FILES.getlist('documentos')[:vistas_legacy.MAX_DOCUMENTOS_PUBLICACION]:
+            documento = Documento(usuario=request.user, nombre_documento=archivo.name[:60], archivo_subido=archivo, estado_documento=estado_no_firmado)
+            try:
+                documento.full_clean()
+            except ValidationError:
+                rechazados.append(archivo.name)
+                continue
+            documento.save()
+
+        logger.info('Perfil de proveedor actualizado (api): usuario_id=%s', request.user.id_usuario)
+        return Response({'usuario': UsuarioMeSerializer(request.user).data, 'documentos_rechazados': rechazados})
+
+
+class DocumentoPerfilListView(generics.ListAPIView):
+    """`GET /api/auth/perfil-proveedor/documentos/` — certificados/documentos del proveedor logueado, equivalente a la lista que muestra `crearperfil.html`."""
+    serializer_class = DocumentoPerfilSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return Documento.objects.filter(usuario=self.request.user, publicacion__isnull=True).order_by('-fecha_subida_documento')
+
+
+class DocumentoPerfilEliminarView(APIView):
+    """`DELETE /api/auth/perfil-proveedor/documentos/<id>/` — equivalente API de `documento_perfil_eliminar_view`: solo el dueño, y solo si no quedó ligado a ninguna Publicacion (`get_object_or_404` devuelve 404, no 403, para no confirmar que el documento existe si es de otro usuario)."""
+    def delete(self, request, documento_id):
+        documento = get_object_or_404(Documento, pk=documento_id, usuario=request.user, publicacion__isnull=True)
+        documento.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PreferenciasView(APIView):
+    """
+    `PUT /api/auth/preferencias/` — equivalente API de la mitad
+    "preferencias" de `preferencias_cuenta_view` (el toggle
+    `notificaciones_sonido`, el único con efecto real hoy — ver
+    CLAUDE.md/Known Issues). El cambio de contraseña es un endpoint
+    aparte (`CambiarPasswordView`), igual que en el template son dos
+    `<form>` independientes en la misma página.
+    """
+    def put(self, request):
+        form = PreferenciasCuentaForm(request.data, instance=request.user)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        form.save()
+        return Response(UsuarioMeSerializer(request.user).data)
+
+
+class CambiarPasswordView(APIView):
+    """`POST /api/auth/cambiar-password/` — equivalente API de la mitad "password" de `preferencias_cuenta_view`: reusa `CambiarPasswordForm`, que exige la contraseña actual además de las reglas de `AUTH_PASSWORD_VALIDATORS` para la nueva."""
+    def post(self, request):
+        form = CambiarPasswordForm(request.data, usuario=request.user)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        request.user.set_password(form.cleaned_data['password'])
+        request.user.save(update_fields=['password'])
+        logger.info('Contraseña cambiada desde preferencias de cuenta (api): usuario_id=%s', request.user.id_usuario)
+        return Response({'detail': 'Contraseña actualizada.'})
+
+
+class CategoriasListView(APIView):
+    """`GET /api/catalogos/categorias/` — lista fija de categorías de servicio (`CATEGORIAS_PUBLICACION`, forms.py), usada por el checkbox multi-select de áreas de servicio del perfil de proveedor."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response(list(CATEGORIAS_PUBLICACION))
 
 
 class RecuperarView(APIView):

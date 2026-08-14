@@ -1,0 +1,92 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Perfil de proveedor</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <form *ngIf="!cargando" [formGroup]="formulario" (ngSubmit)="enviar()">
+    <ion-list>
+      <ion-list-header>
+        <ion-label>Áreas de servicio en las que trabajas</ion-label>
+      </ion-list-header>
+      <ion-item *ngFor="let categoria of categorias">
+        <ion-checkbox
+          [checked]="areasSeleccionadas.has(categoria)"
+          (ionChange)="alternarArea(categoria, $event.detail.checked)"
+        >
+          {{ categoria }}
+        </ion-checkbox>
+      </ion-item>
+
+      <ion-item>
+        <ion-textarea
+          label="¿Trabajas en algo que no está en la lista? Agrégalo acá"
+          labelPlacement="floating"
+          formControlName="otra_area_servicio"
+          placeholder="Separado por comas si son varias"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-textarea
+          label="Experiencia"
+          labelPlacement="floating"
+          formControlName="experiencia"
+          [autoGrow]="true"
+        ></ion-textarea>
+      </ion-item>
+
+      <!-- Mismo criterio que editar.page.html: un <input type="file"> nativo, sin componente propio de Ionic para elegir archivos. -->
+      <ion-item lines="none">
+        <ion-label>Foto de perfil (opcional)</ion-label>
+        <input type="file" accept="image/*" (change)="alElegirFoto($event)" />
+      </ion-item>
+
+      <ion-item lines="none">
+        <ion-label>Certificados / documentos de respaldo (opcional)</ion-label>
+        <input type="file" multiple (change)="alElegirDocumentos($event)" />
+      </ion-item>
+    </ion-list>
+
+    <ion-text color="danger" *ngIf="documentosRechazados.length">
+      <p class="ion-padding-start">
+        No se pudieron subir estos archivos (formato, tamaño o contenido no válido): {{ documentosRechazados.join(', ') }}.
+      </p>
+    </ion-text>
+
+    <ion-text color="danger" *ngIf="errorGeneral">
+      <p class="ion-padding-start">{{ errorGeneral }}</p>
+    </ion-text>
+
+    <ion-text color="success" *ngIf="guardadoOk">
+      <p class="ion-padding-start">Perfil de proveedor actualizado.</p>
+    </ion-text>
+
+    <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
+      {{ enviando ? 'Guardando…' : 'Guardar cambios' }}
+    </ion-button>
+  </form>
+
+  <ion-list *ngIf="!cargando">
+    <ion-list-header>
+      <ion-label>Certificados ya subidos</ion-label>
+    </ion-list-header>
+    <ion-item *ngFor="let documento of documentos">
+      <ion-label>{{ documento.nombre_documento }}</ion-label>
+      <ion-button slot="end" fill="clear" color="danger" (click)="confirmarEliminarDocumento(documento)">
+        Eliminar
+      </ion-button>
+    </ion-item>
+    <ion-item *ngIf="!documentos.length" lines="none">
+      <ion-label color="medium">Todavía no subiste ningún certificado.</ion-label>
+    </ion-item>
+  </ion-list>
+</ion-content>

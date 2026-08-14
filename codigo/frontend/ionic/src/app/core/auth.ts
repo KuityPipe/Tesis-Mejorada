@@ -36,6 +36,20 @@ export interface Usuario {
   region: number | null;
 }
 
+// Igual que `DocumentoPerfilSerializer` (api/serializers.py) — solo lo
+// necesario para listar/borrar, nunca el archivo en sí (la descarga sigue
+// sin migrar, ver CLAUDE.md Known Issues).
+export interface DocumentoPerfil {
+  id_documento: number;
+  nombre_documento: string;
+  fecha_subida_documento: string;
+}
+
+interface RespuestaPerfilProveedor {
+  usuario: Usuario;
+  documentos_rechazados: string[];
+}
+
 interface RespuestaLogin {
   access_token: string;
   refresh_token: string;
@@ -160,6 +174,43 @@ export class Auth {
   /** `POST /api/auth/recuperar/confirmar/<token>/` — Paso 2, elegir la contraseña nueva. Mismo formato de errores 400 que `registrar`. */
   confirmarRecuperacion(token: string, password: string, passwordConfirm: string): Observable<{ detail: string }> {
     return this.http.post<{ detail: string }>(`${environment.apiUrl}/auth/recuperar/confirmar/${token}/`, {
+      password,
+      password_confirm: passwordConfirm,
+    });
+  }
+
+  /**
+   * `PUT /api/auth/perfil-proveedor/` — igual que `actualizarPerfil`, recibe
+   * un `FormData` (áreas de servicio como campos `areas_servicio` repetidos
+   * — `FormData.append` con la misma clave varias veces, no un array — más
+   * `otra_area_servicio`/`experiencia`/`foto_perfil`/`documentos`, ver
+   * `proveedor.page.ts`). La respuesta trae `documentos_rechazados`: los
+   * certificados que no pasaron la validación del backend (formato/tamaño/
+   * contenido) no tiran un 400 — el resto del perfil se guarda igual.
+   */
+  actualizarPerfilProveedor(datos: FormData): Observable<RespuestaPerfilProveedor> {
+    return this.http.put<RespuestaPerfilProveedor>(`${environment.apiUrl}/auth/perfil-proveedor/`, datos);
+  }
+
+  /** `GET /api/auth/perfil-proveedor/documentos/` — certificados ya subidos del proveedor logueado. */
+  documentosPerfil(): Observable<DocumentoPerfil[]> {
+    return this.http.get<DocumentoPerfil[]>(`${environment.apiUrl}/auth/perfil-proveedor/documentos/`);
+  }
+
+  /** `DELETE /api/auth/perfil-proveedor/documentos/<id>/` — solo borra un certificado propio (el backend devuelve 404 para uno ajeno). */
+  eliminarDocumentoPerfil(documentoId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/auth/perfil-proveedor/documentos/${documentoId}/`);
+  }
+
+  /** `PUT /api/auth/preferencias/` — hoy el único toggle real (ver PreferenciasCuentaForm, backend). */
+  actualizarPreferencias(notificacionesSonido: boolean): Observable<Usuario> {
+    return this.http.put<Usuario>(`${environment.apiUrl}/auth/preferencias/`, { notificaciones_sonido: notificacionesSonido });
+  }
+
+  /** `POST /api/auth/cambiar-password/` — cambiar la contraseña estando logueado (a diferencia de `confirmarRecuperacion`, pide la contraseña actual). */
+  cambiarPassword(passwordActual: string, password: string, passwordConfirm: string): Observable<{ detail: string }> {
+    return this.http.post<{ detail: string }>(`${environment.apiUrl}/auth/cambiar-password/`, {
+      password_actual: passwordActual,
       password,
       password_confirm: passwordConfirm,
     });

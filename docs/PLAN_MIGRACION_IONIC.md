@@ -103,7 +103,7 @@ después de loguearse. Verificado en vivo contra el backend real (demo data,
 8 publicaciones) vía `curl` — igual que en Fase 1, sin poder clickear en el
 navegador de verdad (extensión de Chrome desconectada).
 
-### Fase 3 — Cuenta de usuario (en progreso)
+### Fase 3 — Cuenta de usuario ✅
 
 Cinco piezas relativamente aisladas — se migran y prueban una por una, no
 depende de que el resto ya esté hecho:
@@ -148,7 +148,35 @@ depende de que el resto ya esté hecho:
   contra la cuenta demo (para no alterar la contraseña documentada en
   CLAUDE.md) — ese paso específico solo tiene cobertura de tests
   automatizados (`test_post_confirmar_con_token_valido_cambia_la_contrasena`).
-- ⏳ Perfil de proveedor, preferencias de cuenta — sin empezar.
+- **Perfil de proveedor ✅** — `PUT /api/auth/perfil-proveedor/` reusa
+  `CrearPerfilForm` tal cual (misma fusión de `areas_servicio` + texto
+  libre en un solo string que el template), y agrega
+  `GET /api/auth/perfil-proveedor/documentos/` /
+  `DELETE /api/auth/perfil-proveedor/documentos/<id>/` (equivalentes de
+  la lista y el borrado de certificados de `crearperfil.html`). Los
+  certificados rechazados por `validators.py` (formato/tamaño/contenido
+  inválido) no tiran un 400 — se listan en `documentos_rechazados` y el
+  resto del perfil se guarda igual, mismo criterio que
+  `crear_perfil_view`. Nuevo catálogo público
+  `GET /api/catalogos/categorias/` (`CATEGORIAS_PUBLICACION`, forms.py)
+  alimenta el checkbox multi-select de `perfil/proveedor/proveedor.page`.
+  Verificado en vivo por `curl` contra la cuenta demo real (guardado de
+  áreas/experiencia, listado de documentos), restaurado después para no
+  dejar los datos demo mutados — la subida de un certificado válido por
+  `curl` no se pudo verificar en vivo (el PDF armado a mano en la shell
+  no pasó el chequeo de bytes de `validators.py`), pero sí tiene
+  cobertura de tests automatizados (`PerfilProveedorApiTests`, que reusa
+  el mismo `SimpleUploadedFile` que ya pasaba en `CrearPerfilTests` del
+  lado template).
+- **Preferencias de cuenta ✅** — `PUT /api/auth/preferencias/` (reusa
+  `PreferenciasCuentaForm`) y `POST /api/auth/cambiar-password/` (reusa
+  `CambiarPasswordForm`, exige la contraseña actual) — dos endpoints
+  independientes en vez de un solo formulario con campo oculto `form`
+  como en el template, porque acá cada uno ya es su propia request.
+  Verificado en vivo por `curl` contra la cuenta demo real: toggle de
+  notificaciones, cambio de contraseña exitoso (confirmado con un login
+  posterior usando la contraseña nueva) y rechazo con la contraseña
+  actual incorrecta — todo restaurado después al valor original.
 
 ### Fase 4 — Núcleo transaccional
 

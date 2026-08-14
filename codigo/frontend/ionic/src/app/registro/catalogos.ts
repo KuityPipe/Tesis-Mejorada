@@ -41,4 +41,9 @@ export class Catalogos {
   tiposCuenta(): Observable<TipoCuentaCatalogo[]> {
     return this.http.get<TipoCuentaCatalogo[]>(`${environment.apiUrl}/catalogos/tipos-cuenta/`);
   }
+
+  /** `GET /api/catalogos/categorias/` — lista fija de categorías de servicio (`CATEGORIAS_PUBLICACION`, forms.py), usada por el perfil de proveedor (`perfil/proveedor/proveedor.page.ts`). */
+  categorias(): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiUrl}/catalogos/categorias/`);
+  }
 }

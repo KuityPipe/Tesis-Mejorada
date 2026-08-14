@@ -39,6 +39,16 @@ const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'perfil/proveedor',
+    loadChildren: () => import('./perfil/proveedor/proveedor.module').then( m => m.ProveedorPageModule),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'preferencias',
+    loadChildren: () => import('./preferencias/preferencias.module').then( m => m.PreferenciasPageModule),
+    canActivate: [authGuard],
+  },
+  {
     path: 'recuperar',
     loadChildren: () => import('./recuperar/recuperar.module').then( m => m.RecuperarPageModule)
   },
