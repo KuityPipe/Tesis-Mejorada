@@ -3,6 +3,10 @@ import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 
 import { authGuard } from './core/auth-guard';
 
+// `loadChildren` con un `import()` dinámico es lazy-loading: el código de
+// cada página (y sus dependencias) recién se descarga cuando el usuario
+// navega ahí, no en el bundle inicial. `canActivate: [authGuard]` corre el
+// guard antes de permitir esa navegación (ver core/auth-guard.ts).
 const routes: Routes = [
   {
     path: 'home',

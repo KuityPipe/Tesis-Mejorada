@@ -7,6 +7,10 @@ import { environment } from '../../environments/environment';
 const CLAVE_ACCESS_TOKEN = 'keyserv_access_token';
 const CLAVE_REFRESH_TOKEN = 'keyserv_refresh_token';
 
+// Los mismos campos que devuelve `UsuarioMeSerializer` en el backend
+// (KeyServApp/api/serializers.py) — mantenerlos sincronizados a mano, ya
+// que todavía no hay un cliente TypeScript generado desde el schema OpenAPI
+// (`/api/schema/`, ver docs/PLAN_MIGRACION_IONIC.md).
 export interface Usuario {
   id_usuario: number;
   rut_usuario: string;
@@ -34,9 +38,23 @@ interface RespuestaLogin {
 
 /**
  * Cliente de la API REST (KeyServApp/api/) para login/perfil — ver
- * "API + Ionic migration" en CLAUDE.md. Guarda los tokens en localStorage
- * (simple y suficiente mientras el target sea solo web; pasar a
- * @capacitor/preferences cuando haya build nativo real).
+ * "API + Ionic migration" en CLAUDE.md y docs/PLAN_MIGRACION_IONIC.md.
+ *
+ * `@Injectable({ providedIn: 'root' })` es el mecanismo de inyección de
+ * dependencias (DI) de Angular: registra esta clase como un singleton a
+ * nivel de toda la app — cualquier componente/servicio que la pida por
+ * constructor (como hacen LoginPage y HomePage) recibe la misma instancia,
+ * sin necesidad de declararla en ningún NgModule a mano (a diferencia de
+ * componentes/páginas, que sí hay que `declarations: [...]` en su módulo).
+ *
+ * SEGURIDAD (ver docs/PLAN_MIGRACION_IONIC.md, sección "Nota de
+ * seguridad"): los tokens se guardan en `localStorage`, que **no está
+ * cifrado en disco**. Esto es aceptable solo mientras el target sea el
+ * navegador de desarrollo — antes de una build nativa real (Capacitor)
+ * hay que migrar a un plugin de almacenamiento seguro respaldado por
+ * Keychain (iOS) / Keystore (Android), no alcanza ni con `localStorage`
+ * ni con `@capacitor/preferences` (ninguno de los dos cifra). Eso está
+ * planeado para la fase de "Hardening" del plan de migración, no antes.
  *
  * `estaAutenticado()` solo comprueba que exista un access token, no que
  * siga vigente — todavía no hay endpoint de refresh (ver plan de
@@ -47,14 +65,26 @@ interface RespuestaLogin {
   providedIn: 'root',
 })
 export class Auth {
+  // Inyección por constructor: Angular resuelve `HttpClient` solo (fue
+  // registrado por `provideHttpClient(...)` en app.module.ts) y lo pasa
+  // acá — no hace falta instanciarlo a mano en ningún lado.
   constructor(private readonly http: HttpClient) {}
 
+  /**
+   * `HttpClient.post<T>` devuelve un `Observable<T>` (RxJS), no una
+   * Promise: la request HTTP recién se dispara cuando alguien se
+   * suscribe (ver `login.page.ts`, `.subscribe({...})`) — hasta entonces
+   * esto es solo una "receta" de la request, no la request en sí.
+   * `.pipe(tap(...))` deja pasar la respuesta sin transformarla, pero
+   * ejecuta un efecto secundario (guardar los tokens) en el camino.
+   */
   login(email: string, password: string): Observable<RespuestaLogin> {
     return this.http
       .post<RespuestaLogin>(`${environment.apiUrl}/auth/login/`, { email, password })
       .pipe(tap((respuesta) => this.guardarTokens(respuesta.access_token, respuesta.refresh_token)));
   }
 
+  /** El `Authorization: Bearer <token>` lo agrega `authInterceptor` (core/auth-interceptor.ts) — esta llamada no necesita pasarlo a mano. */
   me(): Observable<Usuario> {
     return this.http.get<Usuario>(`${environment.apiUrl}/auth/me/`);
   }
