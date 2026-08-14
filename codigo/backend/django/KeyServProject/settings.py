@@ -259,9 +259,9 @@ DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='KeyServ <no-respo
 COMISION_PLATAFORMA_PORCENTAJE = env.float('COMISION_PLATAFORMA_PORCENTAJE', default=5.0)
 
 
-# API REST (KeyServApp/api/) — para el frontend Ionic/Angular, ver plan de
-# migración. Coexiste con las vistas basadas en templates mientras dura la
-# migración (Fase 8 las retira área por área).
+# API REST (KeyServApp/api/) — para el frontend Ionic/Angular, ver
+# docs/PLAN_MIGRACION_IONIC.md. Coexiste con las vistas basadas en
+# templates mientras dura la migración, que las retira área por área.
 
 # Orígenes permitidos a llamar /api/* con credenciales — 'ionic serve' sirve
 # por defecto en :8100; agregar acá el resto (capacitor://localhost,
@@ -269,6 +269,13 @@ COMISION_PLATAFORMA_PORCENTAJE = env.float('COMISION_PLATAFORMA_PORCENTAJE', def
 # propio dominio del sitio Django: las vistas basadas en templates siguen
 # siendo same-origin y no necesitan CORS.
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:8100'])
+
+# URL base del frontend Ionic — se usa para armar links que van por correo
+# desde endpoints de la API (ej. RecuperarView en api/views.py), a
+# diferencia de recuperar_view (template) que arma el link con
+# request.build_absolute_uri() apuntando al propio Django. El cliente API
+# no tiene un "propio dominio" al que apuntar — es esto o hardcodear la URL.
+IONIC_FRONTEND_URL = env('IONIC_FRONTEND_URL', default='http://localhost:8100')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

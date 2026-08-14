@@ -130,7 +130,25 @@ depende de que el resto ya esté hecho:
   por `curl` contra la cuenta demo real (GET con los campos nuevos, PUT
   cambiando dirección/comuna, restaurado después para no dejar los datos
   demo mutados).
-- ⏳ Recuperación de contraseña, perfil de proveedor, preferencias — sin empezar.
+- **Recuperación de contraseña ✅** — `POST /api/auth/recuperar/` +
+  `GET`/`POST /api/auth/recuperar/confirmar/<token>/` reusan
+  `RecuperarForm`/`NuevaPasswordForm` y los helpers de token firmado
+  (`_generar_token_recuperacion`/`_usuario_desde_token_recuperacion`,
+  `django.core.signing`) tal cual del lado template, mismo rate-limit y
+  mismo mensaje genérico "exista o no la cuenta". Diferencia real con el
+  template: el link del correo apunta a `settings.IONIC_FRONTEND_URL`
+  (nueva env var), no a una URL de Django — quien pide la recuperación es
+  el cliente Ionic, así que el paso 2 también se resuelve ahí
+  (`recuperar/confirmar/confirmar.page`, con un `GET` previo que valida el
+  token antes de mostrar el formulario, para no hacer perder tiempo
+  llenando una contraseña nueva con un link ya vencido). Verificado en vivo
+  por `curl` contra la cuenta demo real: pedido → link real en el log del
+  `runserver` (backend de email de consola en `DEBUG=True`) → token
+  validado. No se probó el cambio de contraseña real de punta a punta
+  contra la cuenta demo (para no alterar la contraseña documentada en
+  CLAUDE.md) — ese paso específico solo tiene cobertura de tests
+  automatizados (`test_post_confirmar_con_token_valido_cambia_la_contrasena`).
+- ⏳ Perfil de proveedor, preferencias de cuenta — sin empezar.
 
 ### Fase 4 — Núcleo transaccional
 

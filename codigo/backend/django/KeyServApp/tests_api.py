@@ -12,6 +12,7 @@ from rest_framework.test import APITestCase
 from .api import jwt_utils
 from .models import Comuna, IntentoAccesoSospechoso, Publicaciones, Region, TokenSesion, Usuario, Valoracion
 from .tests import _crear_region_comuna_tipo, _crear_usuario, _imagen_de_prueba
+from .views import _generar_token_recuperacion
 
 
 class LoginApiTests(APITestCase):
@@ -318,3 +319,76 @@ class PerfilApiTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.usuario.refresh_from_db()
         self.assertTrue(bool(self.usuario.foto_perfil))
+
+
+class RecuperarApiTests(APITestCase):
+    """`POST /api/auth/recuperar/` + `/confirmar/<token>/` — espeja RecuperarPasswordTests (tests.py)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('recuperar_api@test.com', 'claveoriginal1', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.usuario.telefono = 912345678
+        self.usuario.save(update_fields=['telefono'])
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_solicitud_con_datos_correctos_manda_un_correo_con_link_al_frontend_ionic(self):
+        from django.conf import settings
+        from django.core import mail
+
+        resp = self.client.post('/api/auth/recuperar/', {'email': self.usuario.email, 'telefono': self.usuario.telefono}, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.usuario.email, mail.outbox[0].to)
+        self.assertIn(f'{settings.IONIC_FRONTEND_URL}/recuperar/confirmar/', mail.outbox[0].body)
+
+    def test_mensaje_es_igual_exista_o_no_la_cuenta(self):
+        resp_real = self.client.post('/api/auth/recuperar/', {'email': self.usuario.email, 'telefono': self.usuario.telefono}, format='json')
+        resp_falso = self.client.post('/api/auth/recuperar/', {'email': 'nadie_api@test.com', 'telefono': 111111111}, format='json')
+        self.assertEqual(resp_real.data, resp_falso.data)
+
+    def test_limite_de_intentos(self):
+        from django.core import mail
+
+        for _ in range(3):
+            self.client.post('/api/auth/recuperar/', {'email': self.usuario.email, 'telefono': self.usuario.telefono}, format='json')
+        mail.outbox.clear()
+
+        resp = self.client.post('/api/auth/recuperar/', {'email': self.usuario.email, 'telefono': self.usuario.telefono}, format='json')
+
+        self.assertEqual(resp.status_code, 429)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_get_confirmar_con_token_valido(self):
+        token = _generar_token_recuperacion(self.usuario)
+        resp = self.client.get(f'/api/auth/recuperar/confirmar/{token}/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['valido'])
+
+    def test_get_confirmar_con_token_invalido_devuelve_404(self):
+        resp = self.client.get('/api/auth/recuperar/confirmar/token-inventado/')
+        self.assertEqual(resp.status_code, 404)
+
+    def test_post_confirmar_con_token_valido_cambia_la_contrasena(self):
+        token = _generar_token_recuperacion(self.usuario)
+
+        resp = self.client.post(f'/api/auth/recuperar/confirmar/{token}/', {
+            'password': 'ClaveNueva2026!', 'password_confirm': 'ClaveNueva2026!',
+        }, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('ClaveNueva2026!'))
+
+    def test_token_ya_usado_no_sirve_dos_veces(self):
+        """Cambiar la contraseña rota el hash embebido en el token — el mismo link no debería servir dos veces."""
+        token = _generar_token_recuperacion(self.usuario)
+        self.client.post(f'/api/auth/recuperar/confirmar/{token}/', {
+            'password': 'ClaveNueva2026!', 'password_confirm': 'ClaveNueva2026!',
+        }, format='json')
+
+        resp = self.client.get(f'/api/auth/recuperar/confirmar/{token}/')
+
+        self.assertEqual(resp.status_code, 404)

@@ -38,6 +38,10 @@ const routes: Routes = [
     loadChildren: () => import('./perfil/editar/editar.module').then( m => m.EditarPageModule),
     canActivate: [authGuard],
   },
+  {
+    path: 'recuperar',
+    loadChildren: () => import('./recuperar/recuperar.module').then( m => m.RecuperarPageModule)
+  },
 ];
 
 @NgModule({

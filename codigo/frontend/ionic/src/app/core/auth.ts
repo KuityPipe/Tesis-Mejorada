@@ -142,6 +142,29 @@ export class Auth {
     return this.http.put<Usuario>(`${environment.apiUrl}/auth/perfil/`, datos);
   }
 
+  /**
+   * `POST /api/auth/recuperar/` — Paso 1 de recuperación de contraseña.
+   * La respuesta es siempre el mismo mensaje genérico, exista o no la
+   * cuenta (mismo criterio que el backend, ver `RecuperarView`) — no hay
+   * nada específico que mapear del lado del éxito, solo mostrarlo tal cual.
+   */
+  solicitarRecuperacion(email: string, telefono: string): Observable<{ detail: string }> {
+    return this.http.post<{ detail: string }>(`${environment.apiUrl}/auth/recuperar/`, { email, telefono });
+  }
+
+  /** `GET /api/auth/recuperar/confirmar/<token>/` — valida el link antes de mostrar el formulario de nueva contraseña (`confirmar.page.ts`). 404 si el token es inválido o venció. */
+  validarTokenRecuperacion(token: string): Observable<{ valido: boolean }> {
+    return this.http.get<{ valido: boolean }>(`${environment.apiUrl}/auth/recuperar/confirmar/${token}/`);
+  }
+
+  /** `POST /api/auth/recuperar/confirmar/<token>/` — Paso 2, elegir la contraseña nueva. Mismo formato de errores 400 que `registrar`. */
+  confirmarRecuperacion(token: string, password: string, passwordConfirm: string): Observable<{ detail: string }> {
+    return this.http.post<{ detail: string }>(`${environment.apiUrl}/auth/recuperar/confirmar/${token}/`, {
+      password,
+      password_confirm: passwordConfirm,
+    });
+  }
+
   logout(): void {
     localStorage.removeItem(CLAVE_ACCESS_TOKEN);
     localStorage.removeItem(CLAVE_REFRESH_TOKEN);

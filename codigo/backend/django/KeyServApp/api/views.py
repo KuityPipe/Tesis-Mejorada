@@ -8,7 +8,9 @@ divergir con el tiempo.
 """
 import logging
 
+from django.conf import settings
 from django.core.cache import cache
+from django.core.mail import send_mail
 from django.db.models import Q, Value
 from rest_framework import generics, status
 from rest_framework.pagination import PageNumberPagination
@@ -17,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .. import views as vistas_legacy
-from ..forms import EditarPerfilForm, RegistroForm
+from ..forms import EditarPerfilForm, NuevaPasswordForm, RecuperarForm, RegistroForm
 from ..models import Comuna, Publicaciones, Region, Transaccion, TipoCuenta, Usuario
 from ..views import Unaccent
 from . import jwt_utils
@@ -146,6 +148,94 @@ class PerfilView(APIView):
         form.save()
         logger.info('Perfil actualizado (api): usuario_id=%s', request.user.id_usuario)
         return Response(UsuarioMeSerializer(request.user).data)
+
+
+class RecuperarView(APIView):
+    """
+    `POST /api/auth/recuperar/` — Paso 1, equivalente API de
+    `recuperar_view`: mismo rate-limit por (IP, email) (reusa
+    `vistas_legacy.MAX_INTENTOS_RECUPERAR`/`VENTANA_INTENTOS_RECUPERAR`) y
+    mismo mensaje de éxito "genérico" exista o no la cuenta, para no
+    convertir el endpoint en una forma de confirmar qué correos están
+    registrados.
+
+    A diferencia de `recuperar_view` (que arma el link con
+    `request.build_absolute_uri()`, apuntando al propio Django), el correo
+    que manda este endpoint apunta a `settings.IONIC_FRONTEND_URL` — quien
+    llama a `/api/auth/recuperar/` es el cliente Ionic, así que el paso 2
+    también tiene que resolverse ahí, no en una página de Django.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        form = RecuperarForm(request.data)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = form.cleaned_data['email']
+        clave_intentos = f'recuperar_intentos:{vistas_legacy._obtener_ip_cliente(request)}:{email.strip().lower()}'
+        if cache.get(clave_intentos, 0) >= vistas_legacy.MAX_INTENTOS_RECUPERAR:
+            return Response(
+                {'detail': 'Demasiadas solicitudes. Probá de nuevo en unos minutos.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        try:
+            cache.incr(clave_intentos)
+        except ValueError:
+            cache.set(clave_intentos, 1, vistas_legacy.VENTANA_INTENTOS_RECUPERAR)
+
+        usuario = Usuario.objects.filter(email=email, telefono=form.cleaned_data['telefono']).first()
+        if usuario:
+            token = vistas_legacy._generar_token_recuperacion(usuario)
+            url_reset = f'{settings.IONIC_FRONTEND_URL}/recuperar/confirmar/{token}'
+            send_mail(
+                'Recuperar tu contraseña de KeyServ',
+                f'Hola {usuario.nombre_usuario},\n\n'
+                f'Para elegir una nueva contraseña entrá a este enlace (válido por 1 hora):\n{url_reset}\n\n'
+                'Si no pediste esto, podés ignorar este correo — tu contraseña actual sigue siendo válida.',
+                settings.DEFAULT_FROM_EMAIL,
+                [usuario.email],
+                fail_silently=True,
+            )
+            logger.info('Correo de recuperación de contraseña enviado (api): usuario_id=%s', usuario.id_usuario)
+
+        return Response({
+            'detail': 'Si el correo y el teléfono coinciden con una cuenta, te enviamos un enlace para restablecer tu contraseña.',
+        })
+
+
+class RecuperarConfirmarView(APIView):
+    """
+    `GET`/`POST /api/auth/recuperar/confirmar/<token>/` — Paso 2, equivalente
+    API de `recuperar_confirmar_view`. `GET` solo valida el token (para que
+    la pantalla de Ionic pueda mostrar "enlace vencido" antes de que la
+    persona llene el formulario en vano); `POST` reusa `NuevaPasswordForm`
+    para elegir la contraseña nueva. Ninguno de los dos devuelve datos del
+    usuario — el token ya es suficientemente sensible, no hace falta
+    confirmar de quién es en la respuesta.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, token):
+        if not vistas_legacy._usuario_desde_token_recuperacion(token):
+            return Response({'detail': 'Este enlace no es válido o ya venció.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'valido': True})
+
+    def post(self, request, token):
+        usuario = vistas_legacy._usuario_desde_token_recuperacion(token)
+        if not usuario:
+            return Response(
+                {'detail': 'Este enlace no es válido o ya venció. Pedí uno nuevo.'}, status=status.HTTP_404_NOT_FOUND,
+            )
+
+        form = NuevaPasswordForm(request.data, usuario=usuario)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        usuario.set_password(form.cleaned_data['password'])
+        usuario.save(update_fields=['password'])
+        logger.info('Contraseña restablecida vía recuperación (api): usuario_id=%s', usuario.id_usuario)
+        return Response({'detail': 'Contraseña actualizada. Ya podés iniciar sesión.'})
 
 
 class RegionListView(generics.ListAPIView):
