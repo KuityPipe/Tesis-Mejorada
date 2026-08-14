@@ -3,7 +3,11 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: false
+  production: false,
+  // Backend Django corriendo con `manage.py runserver 8000` — debe estar
+  // en CORS_ALLOWED_ORIGINS (.env del backend) junto con este origen
+  // (`ionic serve` sirve en :8100 por defecto).
+  apiUrl: 'http://localhost:8000/api',
 };
 
 /*
