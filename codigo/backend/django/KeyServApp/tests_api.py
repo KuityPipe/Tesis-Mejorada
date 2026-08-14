@@ -941,3 +941,28 @@ class PagoApiTests(APITestCase):
         resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/')
         self.assertEqual(resp.data['pago']['metodo'], Pago.WEBPAY)
         self.assertEqual(resp.data['pago']['estado'], Pago.PAGADO)
+
+
+class VerificarBiometriaNativaApiTests(APITestCase):
+    """`POST /api/auth/verificar-biometria-nativa/` — Fase 5 del plan de migración (biometría nativa vía Capacitor, en vez del reconocimiento facial/huella pesados del servidor)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('biometria_nativa_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+
+    def test_sin_token_devuelve_401(self):
+        resp = self.client.post('/api/auth/verificar-biometria-nativa/')
+        self.assertEqual(resp.status_code, 401)
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.verificado_biometricamente)
+
+    def test_con_token_marca_verificado(self):
+        token = jwt_utils.generar_access_token(self.usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+        resp = self.client.post('/api/auth/verificar-biometria-nativa/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['verificado_biometricamente'])
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.verificado_biometricamente)

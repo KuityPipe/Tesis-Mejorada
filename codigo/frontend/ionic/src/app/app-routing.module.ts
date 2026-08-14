@@ -73,6 +73,11 @@ const routes: Routes = [
     path: 'pago/khipu/retorno/:id',
     loadChildren: () => import('./pago/khipu/retorno/retorno.module').then( m => m.RetornoPageModule),
   },
+  {
+    path: 'biometria',
+    loadChildren: () => import('./biometria/biometria.module').then( m => m.BiometriaPageModule),
+    canActivate: [authGuard],
+  },
 ];
 
 @NgModule({

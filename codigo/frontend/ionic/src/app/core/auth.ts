@@ -216,6 +216,20 @@ export class Auth {
     });
   }
 
+  /**
+   * `POST /api/auth/verificar-biometria-nativa/` — la llama
+   * `biometria/biometria.page` recién después de que
+   * `NativeBiometric.verifyIdentity()` (plugin Capacitor) confirmó la
+   * huella/Face ID en el propio dispositivo. Alcanza con el JWT ya
+   * autenticado (sin re-pedir la contraseña) — decisión tomada con el
+   * usuario: el servidor nunca ve el dato biométrico en sí (se valida
+   * enteramente en el enclave seguro del teléfono), así que la única
+   * garantía real que puede pedir es una sesión ya válida.
+   */
+  verificarBiometriaNativa(): Observable<Usuario> {
+    return this.http.post<Usuario>(`${environment.apiUrl}/auth/verificar-biometria-nativa/`, {});
+  }
+
   logout(): void {
     localStorage.removeItem(CLAVE_ACCESS_TOKEN);
     localStorage.removeItem(CLAVE_REFRESH_TOKEN);

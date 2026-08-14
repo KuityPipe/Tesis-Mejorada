@@ -281,7 +281,7 @@ Transbank/Khipu no puede ser una navegación de página completa como en web
 — en Capacitor se resuelve con el plugin `@capacitor/browser` (ventana
 in-app) en vez de `window.location`.
 
-### Fase 5 — Biometría nativa
+### Fase 5 — Biometría nativa (pieza núcleo hecha)
 
 Reemplaza el reconocimiento facial pesado que hoy corre en el servidor
 (`opencv-python`/`dlib-bin`/`face_recognition`, ver CLAUDE.md Known Issues)
@@ -292,6 +292,42 @@ huella dactilar actual (`codigo/biometria/huella/`) es un pipeline propio
 distinto a la huella del sistema operativo — decidir en su momento si
 también se reemplaza por la biometría nativa del teléfono o se mantiene
 aparte.
+
+**Hecho**: plugin elegido `@capgo/capacitor-native-biometric` (gratis,
+mantenido, `peerDependency @capacitor/core >=8.0.0` — coincide con lo ya
+instalado; implementación dummy para web así `ng serve` no se rompe).
+`POST /api/auth/verificar-biometria-nativa/` (`VerificarBiometriaNativaView`)
+marca `verificado_biometricamente=True` confiando en la sesión JWT ya
+autenticada — decisión de diseño tomada con el usuario: a diferencia de
+`/rostro/`/`/huella/`, acá el servidor nunca ve ni puede ver el dato
+biométrico (se valida enteramente en el enclave seguro del teléfono), así
+que la única garantía real que puede pedir es una sesión ya válida, sin
+reautenticación adicional. Pantalla `biometria/biometria.page` (Ionic).
+
+**Se instaló el entorno de desarrollo Android local en esta sesión**
+(Android Studio + SDK + emulador, ver CLAUDE.md Known Issues para el
+detalle completo de la instalación no interactiva y los problemas
+encontrados — versión de JDK, aceptación de licencias, `cleartextTraffic`,
+etc.) y se armó el proyecto nativo Android (`npx cap add android`,
+`codigo/frontend/ionic/android/`). **Verificado en vivo de punta a punta
+con un build real**: instalado y corrido en un AVD (`KeyServ_Test`, Pixel
+6, Android 16/API 36), con un PIN configurado y una huella real enrolada
+(simulada con `adb emu finger touch`) — login contra el backend real,
+navegación a "Verificación biométrica", `BiometricPrompt` real del sistema
+aprobado con el sensor simulado, y confirmación de que
+`verificado_biometricamente` quedó en `True` en Postgres (revertido
+después para no dejar datos demo mutados). Sin build de iOS — no hay Mac
+disponible en este entorno; ver la nota de "Xcode Cloud/Capgo Cloud
+Build/rentar un Mac" más arriba si hace falta iOS antes de la Fase 8.
+
+**Pendiente, sin decidir todavía**: retirar el stack de reconocimiento
+facial del servidor (`codigo/biometria/reconocimiento_facial/`,
+`opencv-python`/`dlib-bin`/`face_recognition`) — el plan original lo
+condiciona a que exista un biométrico nativo verificado, que ya existe,
+pero retirarlo es una decisión aparte que el usuario todavía no tomó (deja
+de funcionar `/rostro/` del lado template si se hace). Tampoco se decidió
+si la huella dactilar propia (`codigo/biometria/huella/`) se reemplaza o
+se mantiene aparte.
 
 ### Fase 6 — Identidad visual
 

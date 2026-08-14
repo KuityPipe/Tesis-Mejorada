@@ -40,8 +40,11 @@
     <ion-item routerLink="/perfil/proveedor" button detail>
       <ion-label>Perfil de proveedor</ion-label>
     </ion-item>
-    <ion-item routerLink="/preferencias" button detail lines="none">
+    <ion-item routerLink="/preferencias" button detail>
       <ion-label>Preferencias de la cuenta</ion-label>
+    </ion-item>
+    <ion-item routerLink="/biometria" button detail lines="none" *ngIf="!usuario.verificado_biometricamente">
+      <ion-label>Verificación biométrica</ion-label>
     </ion-item>
   </ion-list>
 </ion-content>

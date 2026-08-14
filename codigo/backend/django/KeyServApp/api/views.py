@@ -139,6 +139,34 @@ class MeView(APIView):
         return Response(UsuarioMeSerializer(request.user).data)
 
 
+class VerificarBiometriaNativaView(APIView):
+    """
+    `POST /api/auth/verificar-biometria-nativa/` — marca
+    `Usuario.verificado_biometricamente = True` tras un desbloqueo
+    biométrico nativo exitoso en el dispositivo (Face ID / huella del
+    teléfono, vía `@capgo/capacitor-native-biometric` del lado Ionic,
+    ver Fase 5 del plan de migración), en vez del reconocimiento facial
+    pesado del servidor (`/rostro/`) o la huella dactilar por imagen
+    (`/huella/`).
+
+    Sin verificación adicional más allá del JWT a propósito — decisión
+    tomada con el usuario: a diferencia de esos dos flujos, acá el
+    servidor nunca ve ni puede ver el dato biométrico en sí (Face ID/
+    huella nativos se validan enteramente dentro del enclave seguro del
+    dispositivo; el plugin solo le informa a la app "sí" o "no"). La
+    única garantía real que el servidor puede pedir es que quien llama
+    ya tiene una sesión JWT válida — exactamente lo que hace, mismo
+    criterio que confiar en el device en apps bancarias/de producción.
+    """
+
+    def post(self, request):
+        usuario = request.user
+        usuario.verificado_biometricamente = True
+        usuario.save(update_fields=['verificado_biometricamente'])
+        logger.info('Verificación biométrica nativa exitosa (api): usuario_id=%s', usuario.id_usuario)
+        return Response(UsuarioMeSerializer(usuario).data)
+
+
 class PerfilView(APIView):
     """
     `PUT /api/auth/perfil/` — equivalente API de `editar_perfil_view`, mismo

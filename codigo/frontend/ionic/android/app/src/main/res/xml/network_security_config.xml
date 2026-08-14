@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android bloquea tráfico cleartext (HTTP plano) por defecto desde API 28 —
+  necesario para hablar con el backend Django local (`manage.py runserver`,
+  sin HTTPS) durante desarrollo, tanto desde el emulador (10.0.2.2 apunta al
+  host) como desde `adb reverse tcp:8000 tcp:8000` (localhost). Acotado a
+  estos dos hosts nomás, no es un `usesCleartextTraffic="true"` global —
+  no debería importar para un build de producción real (ahí el backend
+  tiene que estar en HTTPS de verdad).
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

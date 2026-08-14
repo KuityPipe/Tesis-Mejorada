@@ -9,6 +9,7 @@ urlpatterns = [
     path('auth/registro/', views.RegistroView.as_view(), name='registro'),
     path('auth/me/', views.MeView.as_view(), name='me'),
     path('auth/perfil/', views.PerfilView.as_view(), name='perfil'),
+    path('auth/verificar-biometria-nativa/', views.VerificarBiometriaNativaView.as_view(), name='verificar-biometria-nativa'),
     path('auth/perfil-proveedor/', views.PerfilProveedorView.as_view(), name='perfil-proveedor'),
     path('auth/perfil-proveedor/documentos/', views.DocumentoPerfilListView.as_view(), name='perfil-proveedor-documentos'),
     path('auth/perfil-proveedor/documentos/<int:documento_id>/', views.DocumentoPerfilEliminarView.as_view(), name='perfil-proveedor-documento-eliminar'),
