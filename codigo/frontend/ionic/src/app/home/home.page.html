@@ -1,6 +1,7 @@
 <!-- (click) es el binding de evento de Angular — llama a salir() (home.page.ts) al tocar el botón, sin addEventListener manual. -->
 <ion-header [translucent]="true">
   <ion-toolbar>
+    <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>KeyServ</ion-title>
     <ion-buttons slot="end">
       <ion-button routerLink="/catalogo">Catálogo</ion-button>
@@ -12,44 +13,105 @@
 <ion-content [fullscreen]="true" class="ion-padding">
   <div *ngIf="cargando">Cargando…</div>
 
-  <ion-list *ngIf="usuario">
-    <ion-item lines="none">
-      <ion-label>
-        <h1>{{ usuario.nombre_usuario }} {{ usuario.apellido_usuario }}</h1>
-        <p>{{ usuario.email }}</p>
-      </ion-label>
-    </ion-item>
-    <ion-item>
-      <ion-label>Proveedor</ion-label>
-      <ion-badge [color]="usuario.es_proveedor ? 'success' : 'medium'" slot="end">
-        {{ usuario.es_proveedor ? 'Sí' : 'No' }}
-      </ion-badge>
-    </ion-item>
-    <ion-item lines="none">
-      <ion-label>Verificado biométricamente</ion-label>
-      <ion-badge [color]="usuario.verificado_biometricamente ? 'success' : 'medium'" slot="end">
-        {{ usuario.verificado_biometricamente ? 'Sí' : 'No' }}
-      </ion-badge>
-    </ion-item>
-    <ion-item routerLink="/reservas" button detail>
-      <ion-label>Mis contrataciones</ion-label>
-    </ion-item>
-    <ion-item routerLink="/perfil/editar" button detail>
-      <ion-label>Editar perfil</ion-label>
-    </ion-item>
-    <ion-item routerLink="/perfil/proveedor" button detail>
-      <ion-label>Perfil de proveedor</ion-label>
-    </ion-item>
-    <ion-item routerLink="/preferencias" button detail>
-      <ion-label>Preferencias de la cuenta</ion-label>
-    </ion-item>
-    <ng-container *ngIf="!usuario.verificado_biometricamente">
-      <ion-item routerLink="/biometria" button detail>
-        <ion-label>Verificación biométrica</ion-label>
-      </ion-item>
-      <ion-item routerLink="/rostro" button detail lines="none">
-        <ion-label>Reconocimiento facial</ion-label>
-      </ion-item>
-    </ng-container>
-  </ion-list>
+  <ng-container *ngIf="usuario">
+    <!-- Equivalente Ionic de /inicio/ del sitio Django: banda de saludo + accesos rápidos + trabajos activos, en vez de solo un menú de opciones. -->
+    <div class="ks-page-header">
+      <h1><ion-icon name="home-outline"></ion-icon> Hola, {{ usuario.nombre_usuario }}</h1>
+      <p>¿Qué necesitás hacer hoy?</p>
+    </div>
+
+    <div class="ks-quick-actions">
+      <div class="ks-card-tile" routerLink="/catalogo">
+        <div class="ks-card-tile-body">
+          <h3><ion-icon name="search-outline"></ion-icon> Buscar servicios</h3>
+          <p>Explorá el catálogo de proveedores verificados.</p>
+        </div>
+      </div>
+      <div class="ks-card-tile" routerLink="/reservas">
+        <div class="ks-card-tile-body">
+          <h3><ion-icon name="briefcase-outline"></ion-icon> Mis contrataciones</h3>
+          <p>Seguí el estado de tus servicios contratados.</p>
+        </div>
+      </div>
+      <div class="ks-card-tile" routerLink="/perfil/editar">
+        <div class="ks-card-tile-body">
+          <h3><ion-icon name="person-outline"></ion-icon> Mi perfil</h3>
+          <p>Verificá tu identidad y revisá tus datos.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ks-section" *ngIf="trabajosActuales.length">
+      <p class="ks-section-title"><ion-icon name="time-outline"></ion-icon> Trabajos actuales</p>
+      <ion-card>
+        <ion-card-content>
+          <ion-list lines="full">
+            <ion-item *ngFor="let c of trabajosActuales" [routerLink]="['/contratacion', c.id_contratacion]" button detail>
+              <ion-label>
+                <h2>{{ c.publicacion_titulo }}</h2>
+                <p>Proveedor: {{ c.proveedor_nombre }}</p>
+              </ion-label>
+              <ion-badge slot="end" [color]="colorEstado(c.estado)">{{ c.estado }}</ion-badge>
+            </ion-item>
+          </ion-list>
+          <ion-button expand="block" fill="outline" class="ion-margin-top" routerLink="/reservas">
+            Ver todas mis contrataciones
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <div class="ks-section">
+      <p class="ks-section-title">Tu cuenta</p>
+      <ion-card>
+        <ion-card-content>
+          <ion-item lines="none">
+            <div class="ks-avatar-brand" slot="start">{{ usuario.nombre_usuario.charAt(0) }}</div>
+            <ion-label>
+              <h2>{{ usuario.nombre_usuario }} {{ usuario.apellido_usuario }}</h2>
+              <p>{{ usuario.email }}</p>
+            </ion-label>
+          </ion-item>
+          <ion-item lines="none">
+            <ion-label>Proveedor</ion-label>
+            <ion-badge [color]="usuario.es_proveedor ? 'success' : 'medium'" slot="end">
+              {{ usuario.es_proveedor ? 'Sí' : 'No' }}
+            </ion-badge>
+          </ion-item>
+          <ion-item lines="none">
+            <ion-label>Verificado biométricamente</ion-label>
+            <ion-badge [color]="usuario.verificado_biometricamente ? 'success' : 'medium'" slot="end">
+              {{ usuario.verificado_biometricamente ? 'Sí' : 'No' }}
+            </ion-badge>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <div class="ks-section">
+      <ion-card>
+        <ion-card-content>
+          <ion-list lines="full">
+            <ion-item routerLink="/perfil/editar" button detail>
+              <ion-label>Editar perfil</ion-label>
+            </ion-item>
+            <ion-item routerLink="/perfil/proveedor" button detail>
+              <ion-label>Perfil de proveedor</ion-label>
+            </ion-item>
+            <ion-item routerLink="/preferencias" button detail>
+              <ion-label>Preferencias de la cuenta</ion-label>
+            </ion-item>
+            <ng-container *ngIf="!usuario.verificado_biometricamente">
+              <ion-item routerLink="/biometria" button detail>
+                <ion-label>Verificación biométrica</ion-label>
+              </ion-item>
+              <ion-item routerLink="/rostro" button detail lines="none">
+                <ion-label>Reconocimiento facial</ion-label>
+              </ion-item>
+            </ng-container>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </ng-container>
 </ion-content>

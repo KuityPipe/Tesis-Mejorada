@@ -35,3 +35,214 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import "@ionic/angular/css/palettes/dark.system.css";
+
+/* ---------------------------------------------------------------------
+   Toques de marca KeyServ que no son solo variables de color — mismo
+   look "píldora" en botones y cards redondeadas que ya tiene base.css
+   del sitio Django, aplicado acá a nivel global para que no haga falta
+   repetirlo página por página.
+--------------------------------------------------------------------- */
+
+ion-title, h1, h2, h3, h4 {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+}
+
+ion-button {
+  --border-radius: 999px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+// base.css usa .ks-panel (borde sutil, sin sombra permanente, padding
+// generoso) para las secciones de las páginas internas — más "definido y
+// prolijo" que el card-con-sombra-siempre-encendida por defecto de Ionic,
+// que es lo que hacía sentir a la app más genérica/plana en comparación.
+ion-card {
+  --border-radius: var(--ks-radius-lg);
+  border: 1px solid var(--ks-border);
+  box-shadow: none;
+}
+
+ion-card-content {
+  padding: 24px;
+}
+
+// Grid de cards con imagen — equivalente Ionic de .ks-card-grid/.ks-card
+// en base.css, para el catálogo (antes una lista `ion-item` plana).
+.ks-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.ks-card-tile {
+  display: block;
+  background: var(--ks-surface);
+  border-radius: var(--ks-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--ks-border);
+  color: var(--ks-ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.ks-card-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--ks-shadow);
+}
+
+.ks-card-tile-img {
+  height: 140px;
+  background: var(--ks-teal-light);
+}
+
+.ks-card-tile-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ks-card-tile-body {
+  padding: 16px;
+}
+
+.ks-card-tile-body h3 {
+  font-size: 1.02rem;
+  margin: 0 0 4px;
+}
+
+.ks-card-tile-body p {
+  color: var(--ks-ink-soft);
+  font-size: .88rem;
+  margin: 0 0 10px;
+}
+
+.ks-card-tile-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--ks-ink-soft);
+}
+
+.ks-card-tile-rating {
+  color: var(--ks-coral-dark);
+}
+
+// Grid de accesos rápidos (3 columnas en desktop, 1 en móvil angosto) —
+// reusa .ks-card-tile, mismo look que las cards "Buscar servicios/
+// Mensajes/Mi perfil" de /inicio/ en el sitio Django.
+.ks-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ks-quick-actions .ks-card-tile-body h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// Avatar circular con iniciales sobre el gradiente de marca — mismo
+// .ks-avatar que base.css, para donde se muestra identidad de usuario
+// (perfil, proveedor en el detalle de una publicación).
+.ks-avatar-brand {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--ks-gradient-brand);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+// Banda de encabezado de página — ícono + título + subtítulo sobre un
+// fondo degradado suave, mismo .ks-page-header que tiene cada pantalla
+// interna del sitio Django (perfil, servicios, reservas, etc.). Se sale
+// del padding de ion-content (margin negativo) para llegar de borde a
+// borde de la columna de lectura, en vez de quedar como un bloque más
+// adentro del padding — eso es lo que le da la sensación de "banner"
+// distintivo por pantalla en vez de un título de toolbar genérico.
+.ks-page-header {
+  margin: -16px -16px 24px;
+  padding: 28px 16px 22px;
+  background: linear-gradient(120deg, var(--ks-navy-light) 0%, var(--ks-cream) 70%);
+  border-radius: 0 0 var(--ks-radius-lg) var(--ks-radius-lg);
+}
+
+.ks-page-header h1 {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ks-page-header h1 ion-icon {
+  font-size: 1.5rem;
+  color: var(--ks-teal);
+}
+
+.ks-page-header p {
+  color: var(--ks-ink-soft);
+  margin: 0;
+}
+
+ion-badge {
+  --border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+ion-toolbar {
+  border-bottom: 3px solid transparent;
+  border-image: var(--ks-gradient-brand) 1;
+}
+
+// La app arrancó pensada mobile-first (Ionic asume que el viewport es el
+// ancho del dispositivo) — en :8100 sobre escritorio, el contenido se
+// estira de punta a punta sin estructura. `::part(scroll)` es la parte de
+// sombra que Ionic expone justamente para esto: centra el contenido con un
+// ancho de lectura razonable en pantallas anchas, sin achicar nada en un
+// viewport angosto (móvil real o la mayoría de las ventanas de escritorio
+// no maximizadas).
+ion-content::part(scroll) {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+// Agrupa bloques de contenido sueltos (ion-list/ion-item consecutivos sin
+// relación visual entre sí) en "secciones" con separación real — ver
+// .ks-section en las páginas que lo usan.
+.ks-section {
+  margin-block-end: 24px;
+}
+
+.ks-section-title {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--ks-navy-dark);
+  margin: 0 0 8px 4px;
+}
+
+// Logo de marca en el header de las pantallas de entrada (login, registro,
+// home, catálogo) — mismo activo que .ks-logo img en base.css del sitio
+// Django, adaptado al alto de un ion-toolbar en vez de un header de sitio.
+.ks-toolbar-logo {
+  height: 32px;
+  margin-inline-end: 8px;
+}

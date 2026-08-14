@@ -132,4 +132,26 @@ export class Contrataciones {
   valorar(id: number, datos: FormData): Observable<RespuestaValoracion> {
     return this.http.post<RespuestaValoracion>(`${environment.apiUrl}/contrataciones/${id}/valoracion/`, datos);
   }
+
+  /**
+   * Mismo mapeo estado→color que `.ks-badge-*` en base.css del sitio
+   * Django: coral (`tertiary`) para lo que espera acción, teal
+   * (`secondary`) para confirmada/en curso, navy (`primary`) para
+   * completada, gris (`medium`) para rechazada/cancelada. Vive acá (no
+   * duplicado en reservas.page.ts/detalle.page.ts) porque ambas pantallas
+   * necesitan exactamente el mismo criterio.
+   */
+  colorEstado(estado: string | undefined): string {
+    switch (estado) {
+      case 'SOLICITADA':
+        return 'tertiary';
+      case 'CONFIRMADA':
+      case 'EN_CURSO':
+        return 'secondary';
+      case 'COMPLETADA':
+        return 'primary';
+      default:
+        return 'medium';
+    }
+  }
 }

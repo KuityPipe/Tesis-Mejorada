@@ -359,17 +359,119 @@ por biometría "profesional e intuitiva" en web+app) pero se descartó por
 ahora por ser redundante con el port de cámara recién hecho — no
 implementado.
 
-### Fase 6 — Identidad visual
+### Fase 6 — Identidad visual ✅
 
-La app Ionic corre hoy con el tema por defecto de `ionic start` (grises/
+La app Ionic corría con el tema por defecto de `ionic start` (grises/
 azules genéricos), no con la paleta navy/teal/coral + tipografía Quicksand/
 Nunito que ya tiene el sitio Django (`base.css`) — decisión explícita del
 usuario (2026-08-13): terminar de portar toda la funcionalidad primero
 (Fases 1-5) y recién ahí hacer una pasada de diseño completa, en vez de
-ir maquillando pantalla por pantalla a medida que se construyen. Portar
-la paleta a `src/theme/variables.scss` (las variables `--ion-color-*` de
-Ionic), tipografía, logo, y revisar cada pantalla ya construida contra el
-diseño del sitio Django.
+ir maquillando pantalla por pantalla a medida que se construyen.
+
+**Hecho (2026-08-14)**: paleta navy/teal/coral (clara + oscura, igual que
+`base.css`) portada a `src/theme/variables.scss`, mapeada directamente a
+los `--ion-color-primary/secondary/tertiary/...` nativos de Ionic — todos
+los componentes (`ion-button`, `ion-badge`, `ion-card`, `ion-toolbar`) heredan
+la marca automáticamente en las 16 pantallas sin tocarlas una por una.
+Tipografía Quicksand/Nunito vía Google Fonts, botones tipo píldora
+(`--border-radius: 999px`), cards redondeadas con sombra, franja-gradiente
+de marca en los toolbars, logo (`assets/logo.png`, recomprimido de 2.6MB a
+~80KB) en los headers de las pantallas raíz (login/catálogo/home — las
+pantallas con botón atrás no lo llevan, siguen convención de app móvil, no
+de sitio web). Los badges de estado de contratación (`reservas.page`,
+`contratacion/detalle`) ahora comparten un único `Contrataciones.colorEstado()`
+(antes duplicado y con mapeo distinto en cada pantalla) que replica
+exactamente la semántica de `.ks-badge-*` en `base.css`: coral = pendiente
+de acción, teal = confirmada/en curso, navy = completada, gris =
+cancelada/rechazada.
+
+**Bug real encontrado y corregido en el camino**: el propio `dark.system.css`
+de Ionic define `--ion-background-color`/`--ion-toolbar-background`/etc.
+bajo selectores `:root.md`/`:root.ios` (más específicos que un `:root`
+simple), así que esas propiedades puntuales le ganaban a mis overrides pese
+a cargar después en el bundle — mientras que `--ion-color-primary` (definido
+por Ionic solo a nivel `:root` liso) sí se pisaba bien. Fix: usar
+`:root, :root.ios, :root.md { ... }` en el bloque de modo oscuro de
+`variables.scss` para igualar la especificidad. Verificado corrigiendo el
+`getComputedStyle` real del navegador antes/después, no solo revisando el
+SCSS fuente.
+
+**Verificado en vivo** (Chrome, modo oscuro real del SO — no emulado):
+login, catálogo, home, reservas, detalle de contratación (chat, historial,
+botones de pago) y registro, todos con la paleta nueva aplicada
+correctamente. Modo claro solo verificado por análisis de CSS (no hubo
+captura real en esa variante). 29/29 tests de Angular siguen pasando.
+
+**Segunda pasada, misma sesión (2026-08-14): estructura/dimensiones.** El
+usuario marcó, viendo las capturas de la primera pasada, que las pantallas
+se veían "alargadas y sin estructura" — cierto: Ionic es mobile-first y
+asume que el viewport es el ancho del dispositivo, así que en `:8100` sobre
+navegador de escritorio el contenido se estiraba de punta a punta sin
+ninguna columna ni agrupación visual. Dos arreglos, ambos globales (no
+pantalla por pantalla):
+- `ion-content::part(scroll) { max-width: 720px; margin-inline: auto }` en
+  `global.scss` — centra el contenido con un ancho de lectura razonable en
+  pantallas anchas, sin achicar nada en un viewport angosto real (`::part`
+  es la forma soportada de estilar el interior de un `ion-content` desde
+  fuera de su shadow DOM).
+- `.ks-section`/`.ks-section-title` (también en `global.scss`) — el patrón
+  reusado en cada pantalla para agrupar contenido relacionado bajo un
+  título Quicksand y una `ion-card`, en vez de listas sueltas corriendo
+  una tras otra sin separación. Aplicado a las 12 pantallas con contenido
+  (login, registro — 3 secciones: datos personales/ubicación/cuenta —,
+  editar perfil, perfil de proveedor — 2 secciones —, preferencias — 2
+  secciones —, recuperar y su confirmación, home — 2 secciones: datos del
+  usuario + menú —, catálogo, reservas, catálogo/detalle — info +
+  reseñas —, contratación/detalle — la más densa: encabezado, presupuesto,
+  historial, pago, confirmar/completar, valorar, mensajes, cada una su
+  propia card —, biometria, rostro). Las pantallas de resultado de pago
+  (`pago/webpay|khipu/retorno`) se dejaron sin card por ser solo un
+  mensaje + un botón — envolverlas no aportaba nada.
+
+**Tercera pasada, misma sesión: fidelidad real al diseño de Django, en progreso, cortada por límite de sesión.**
+El usuario, viendo las capturas de la segunda pasada, marcó que igual se
+sentía "simple y sosa" comparada con el sitio Django — comparando en vivo
+`/servicios/`, `/sesion/`(→`/inicio/`) y `/perfil/` del lado Django contra
+lo hecho hasta ahí, la brecha real no era solo agrupar contenido en cards
+genéricas: Django usa un patrón `.ks-page-header` (banda con gradiente,
+ícono+título+subtítulo) en cada pantalla interna, `.ks-panel` (borde sutil,
+sin sombra permanente — más "definido" que un card-con-sombra-siempre-
+encendida), `.ks-avatar` (círculo con iniciales sobre el gradiente de
+marca), y `/inicio/` (el dashboard autenticado) es mucho más rico que
+un simple menú: saludo + 3 accesos rápidos (Buscar servicios/Mensajes/Mi
+perfil) + panel "Trabajos actuales" con las contrataciones activas.
+
+**Hecho en esta tercera pasada** (`global.scss`): `.ks-page-header`
+(banda con gradiente, se sale del padding de `ion-content` con margen
+negativo para llegar borde a borde de la columna de 720px en vez de quedar
+metida adentro — ver comentario en el SCSS), `ion-card`/`ion-card-content`
+rediseñados para parecerse a `.ks-panel` (borde en vez de sombra
+permanente, padding 24px), `.ks-card-tile`/`.ks-card-grid` (grid de cards
+con imagen, listo para usarse pero **todavía no aplicado al catálogo**),
+`.ks-avatar-brand` (círculo con inicial), `.ks-quick-actions` (grid de 3
+accesos rápidos). **`home.page` fue rediseñada de punta a punta** para
+parecerse a `/inicio/`: banda "Hola, {{nombre}}", 3 accesos rápidos
+(Buscar servicios/Mis contrataciones/Mi perfil — "Mensajes" se cambió por
+"Mis contrataciones" porque Ionic no tiene una pantalla de mensajería
+standalone, el chat vive embebido en `contratacion/detalle`), panel
+"Trabajos actuales" (nueva llamada a `Contrataciones.listar()` filtrada a
+estados no cerrados, primeras 3, con el mismo `colorEstado()` que
+`reservas`/`contratacion/detalle`) con botón "Ver todas mis
+contrataciones", y la tarjeta de identidad/menú de siempre debajo. Build
+(`ng build`) y tests (`ng test`, 29/29) verificados en verde después de
+este cambio — **pero no se alcanzó a verificar visualmente en vivo en
+browser** (el login automatizado para probarlo falló por las mismas
+limitaciones de coordenadas de siempre, y se cortó la sesión antes de
+reintentar) — auditar visualmente al retomar antes de asumir que se ve
+bien.
+
+**Pendiente para la próxima sesión** (en este orden, de mayor a menor impacto):
+1. **Verificar visualmente `home.page`** contra `/inicio/` (no se llegó a hacer, ver arriba).
+2. **Aplicar `.ks-page-header` al resto de las pantallas** — todavía ninguna otra pantalla lo tiene (solo se armó el CSS y se usó en `home.page`). Candidatas con íconos sugeridos: catálogo (`grid-outline`, "Catálogo de servicios"), reservas (`briefcase-outline`, "Mis contrataciones"), registro (`person-add-outline`), editar perfil (`create-outline`), perfil de proveedor (`construct-outline`), preferencias (`settings-outline`), contratación/detalle (`document-text-outline`), catálogo/detalle (`storefront-outline`), biometría (`finger-print-outline`), rostro (`camera-outline`), recuperar (`key-outline`). Login/registro son dudosos — ya tienen logo en el toolbar, evaluar si el page-header ahí es redundante o si se ve bien igual.
+3. **Convertir el catálogo (`/catalogo`) al grid de cards con imagen** (`.ks-card-grid`/`.ks-card-tile`, ya definidos en CSS, ver arriba) en vez de la lista simple actual — el cambio de layout más grande que queda pendiente, mismo look que `/servicios/`.
+4. **Agregar avatar (`.ks-avatar-brand`) donde se muestra identidad** — ya usado en `home.page`, falta en `catalogo/detalle` (proveedor) y donde más aplique.
+
+Este estado (segunda pasada completa + tercera pasada parcial sobre `home.page`) sí se commiteó y pusheó al cierre de esta sesión — retomar desde ahí, no desde cero.
 
 ### Fase 7 — Hardening de producción
 

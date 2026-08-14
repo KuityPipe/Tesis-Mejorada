@@ -6,6 +6,7 @@
 -->
 <ion-header [translucent]="true">
   <ion-toolbar>
+    <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Iniciar sesión</ion-title>
   </ion-toolbar>
 </ion-header>
@@ -19,43 +20,47 @@
     al estado de la clase. (ngSubmit) captura el submit del form (Enter en
     un campo, o el botón) y llama a enviar() en la clase.
   -->
-  <form [formGroup]="formulario" (ngSubmit)="enviar()">
-    <ion-list>
-      <ion-item>
-        <!-- formControlName ata este <ion-input> al control "email" del formulario — value y validación quedan sincronizados solos, sin (input)/[value] manuales. -->
-        <ion-input
-          label="Correo electrónico"
-          labelPlacement="floating"
-          type="email"
-          formControlName="email"
-          autocomplete="email"
-        ></ion-input>
-      </ion-item>
-      <ion-item>
-        <ion-input
-          label="Contraseña"
-          labelPlacement="floating"
-          type="password"
-          formControlName="password"
-          autocomplete="current-password"
-        ></ion-input>
-      </ion-item>
-    </ion-list>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
+    <ion-card>
+      <ion-card-content>
+        <ion-list lines="none">
+          <ion-item>
+            <!-- formControlName ata este <ion-input> al control "email" del formulario — value y validación quedan sincronizados solos, sin (input)/[value] manuales. -->
+            <ion-input
+              label="Correo electrónico"
+              labelPlacement="floating"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input
+              label="Contraseña"
+              labelPlacement="floating"
+              type="password"
+              formControlName="password"
+              autocomplete="current-password"
+            ></ion-input>
+          </ion-item>
+        </ion-list>
 
-    <!-- *ngIf es una directiva estructural: si errorMensaje es null/vacío, este <ion-text> ni se agrega al DOM (no es solo display:none). -->
-    <ion-text color="danger" *ngIf="errorMensaje">
-      <p class="ion-padding-start">{{ errorMensaje }}</p>
-    </ion-text>
+        <!-- *ngIf es una directiva estructural: si errorMensaje es null/vacío, este <ion-text> ni se agrega al DOM (no es solo display:none). -->
+        <ion-text color="danger" *ngIf="errorMensaje">
+          <p class="ion-padding-start">{{ errorMensaje }}</p>
+        </ion-text>
 
-    <!-- [disabled] con binding de propiedad (corchetes) evalúa la expresión de TS; {{ }} interpola el texto según el estado `enviando` mientras se espera la respuesta del backend. -->
-    <ion-button
-      expand="block"
-      class="ion-margin-top"
-      type="submit"
-      [disabled]="formulario.invalid || enviando"
-    >
-      {{ enviando ? 'Ingresando…' : 'Ingresar' }}
-    </ion-button>
+        <!-- [disabled] con binding de propiedad (corchetes) evalúa la expresión de TS; {{ }} interpola el texto según el estado `enviando` mientras se espera la respuesta del backend. -->
+        <ion-button
+          expand="block"
+          class="ion-margin-top"
+          type="submit"
+          [disabled]="formulario.invalid || enviando"
+        >
+          {{ enviando ? 'Ingresando…' : 'Ingresar' }}
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
     <ion-button expand="block" fill="clear" routerLink="/registro">¿No tenés cuenta? Registrate</ion-button>
     <ion-button expand="block" fill="clear" routerLink="/recuperar">¿Olvidaste tu contraseña?</ion-button>
   </form>

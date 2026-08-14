@@ -103,6 +103,10 @@ export class DetallePage implements OnInit {
     return this.esCliente && this.contratacion?.estado === 'COMPLETADA' && !this.contratacion.valoracion;
   }
 
+  colorEstado(estado: string | undefined): string {
+    return this.contratacionesApi.colorEstado(estado);
+  }
+
   enviarMensaje(): void {
     if (this.formularioMensaje.invalid || this.enviandoMensaje) {
       return;

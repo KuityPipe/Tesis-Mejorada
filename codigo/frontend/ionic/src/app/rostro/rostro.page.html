@@ -13,7 +13,7 @@
   </div>
 
   <ng-container *ngIf="!cargando">
-    <ion-segment [value]="modo" *ngIf="tieneReferencia">
+    <ion-segment [value]="modo" *ngIf="tieneReferencia" class="ion-margin-top">
       <ion-segment-button value="verificar" (click)="cambiarModo('verificar')">
         <ion-label>Verificar</ion-label>
       </ion-segment-button>
@@ -22,27 +22,31 @@
       </ion-segment-button>
     </ion-segment>
 
-    <ion-item lines="none">
-      <ion-label class="ion-text-wrap">
-        <h2 *ngIf="modo === 'registrar'">{{ tieneReferencia ? 'Registrar un nuevo rostro de referencia' : 'Registrar rostro de referencia' }}</h2>
-        <h2 *ngIf="modo === 'verificar'">Verificación facial</h2>
-        <p>{{ instruccion }}</p>
-      </ion-label>
-    </ion-item>
+    <ion-card [class.ion-margin-top]="!tieneReferencia">
+      <ion-card-content>
+        <ion-item lines="none">
+          <ion-label class="ion-text-wrap">
+            <h2 *ngIf="modo === 'registrar'">{{ tieneReferencia ? 'Registrar un nuevo rostro de referencia' : 'Registrar rostro de referencia' }}</h2>
+            <h2 *ngIf="modo === 'verificar'">Verificación facial</h2>
+            <p>{{ instruccion }}</p>
+          </ion-label>
+        </ion-item>
 
-    <div class="ion-padding-start ion-padding-end">
-      <video #video autoplay playsinline muted [class.ion-hide]="!camaraActiva"></video>
-      <canvas #canvas class="ion-hide"></canvas>
+        <div>
+          <video #video autoplay playsinline muted [class.ion-hide]="!camaraActiva"></video>
+          <canvas #canvas class="ion-hide"></canvas>
 
-      <ion-button expand="block" *ngIf="!camaraActiva" (click)="iniciarCamara()">
-        Iniciar cámara
-      </ion-button>
-      <ion-button expand="block" *ngIf="camaraActiva" (click)="capturar()" [disabled]="capturando || enviando">
-        {{ capturando || enviando ? 'Capturando…' : 'Capturar (parpadeá durante la captura)' }}
-      </ion-button>
+          <ion-button expand="block" *ngIf="!camaraActiva" (click)="iniciarCamara()">
+            Iniciar cámara
+          </ion-button>
+          <ion-button expand="block" *ngIf="camaraActiva" (click)="capturar()" [disabled]="capturando || enviando">
+            {{ capturando || enviando ? 'Capturando…' : 'Capturar (parpadeá durante la captura)' }}
+          </ion-button>
 
-      <ion-text color="danger" *ngIf="error"><p>{{ error }}</p></ion-text>
-      <ion-text color="success" *ngIf="exito"><p>{{ exito }}</p></ion-text>
-    </div>
+          <ion-text color="danger" *ngIf="error"><p>{{ error }}</p></ion-text>
+          <ion-text color="success" *ngIf="exito"><p>{{ exito }}</p></ion-text>
+        </div>
+      </ion-card-content>
+    </ion-card>
   </ng-container>
 </ion-content>

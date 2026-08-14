@@ -2,6 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { Auth, Usuario } from '../core/auth';
+import { Contrataciones, ContratacionResumen } from '../contrataciones/contrataciones';
+
+const ESTADOS_ACTIVOS = ['SOLICITADA', 'CONFIRMADA', 'EN_CURSO'];
 
 /**
  * Pantalla protegida (`canActivate: [authGuard]` en app-routing.module.ts)
@@ -21,10 +24,12 @@ import { Auth, Usuario } from '../core/auth';
 export class HomePage implements OnInit {
   usuario: Usuario | null = null;
   cargando = true;
+  trabajosActuales: ContratacionResumen[] = [];
 
   constructor(
     private readonly auth: Auth,
     private readonly router: Router,
+    private readonly contratacionesApi: Contrataciones,
   ) {}
 
   ngOnInit(): void {
@@ -41,6 +46,23 @@ export class HomePage implements OnInit {
         this.router.navigateByUrl('/login');
       },
     });
+
+    // "Trabajos actuales" (equivalente Ionic de /inicio/ en el sitio
+    // Django) — mismas 3 primeras contrataciones no cerradas, para que el
+    // dashboard sirva de vistazo rápido en vez de mandar directo a la
+    // lista completa (/reservas).
+    this.contratacionesApi.listar().subscribe({
+      next: (contrataciones) => {
+        this.trabajosActuales = contrataciones.filter((c) => ESTADOS_ACTIVOS.includes(c.estado)).slice(0, 3);
+      },
+      error: () => {
+        // Si falla, el dashboard simplemente no muestra esta sección — no es crítico como el auth.me() de arriba.
+      },
+    });
+  }
+
+  colorEstado(estado: string): string {
+    return this.contratacionesApi.colorEstado(estado);
   }
 
   salir(): void {

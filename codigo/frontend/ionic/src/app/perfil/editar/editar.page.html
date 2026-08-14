@@ -12,8 +12,10 @@
     <ion-spinner></ion-spinner>
   </div>
 
-  <form *ngIf="!cargando" [formGroup]="formulario" (ngSubmit)="enviar()">
-    <ion-list>
+  <form *ngIf="!cargando" [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
+   <ion-card>
+    <ion-card-content>
+    <ion-list lines="none">
       <ion-item>
         <ion-input label="Nombre" labelPlacement="floating" formControlName="nombre_usuario"></ion-input>
       </ion-item>
@@ -74,5 +76,7 @@
     <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
       {{ enviando ? 'Guardando…' : 'Guardar cambios' }}
     </ion-button>
+    </ion-card-content>
+   </ion-card>
   </form>
 </ion-content>

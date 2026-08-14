@@ -28,18 +28,6 @@ export class ReservasPage implements OnInit {
   }
 
   colorEstado(estado: string): string {
-    switch (estado) {
-      case 'SOLICITADA':
-        return 'warning';
-      case 'CONFIRMADA':
-      case 'EN_CURSO':
-        return 'primary';
-      case 'COMPLETADA':
-        return 'success';
-      case 'CANCELADA':
-        return 'medium';
-      default:
-        return 'medium';
-    }
+    return this.contratacionesApi.colorEstado(estado);
   }
 }

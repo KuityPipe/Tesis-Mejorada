@@ -1,2 +1,220 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+/* ---------------------------------------------------------------------
+   Sistema de diseño KeyServ, portado desde el sitio Django
+   (codigo/backend/django/KeyServApp/static/KeyServApp/css/base.css) —
+   misma paleta navy/teal/coral, misma tipografía Quicksand/Nunito, mismo
+   modo oscuro. Los --ion-color-* alimentan directamente los componentes
+   nativos de Ionic (ion-button, ion-badge, ion-toolbar, etc.), y los
+   --ks-* quedan disponibles para estilos propios de cada página (cards,
+   badges de estado) igual que en base.css.
+--------------------------------------------------------------------- */
+
+:root {
+  /* ---------- Paleta de marca (claro) ---------- */
+  --ks-cream: #FFF8F1;
+  --ks-cream-soft: #FFFFFF;
+  --ks-navy: #0B3D78;
+  --ks-navy-dark: #082C57;
+  --ks-navy-light: #E9F0FA;
+  --ks-teal: #12A38C;
+  --ks-teal-dark: #0C8272;
+  --ks-teal-light: #E1F7F2;
+  --ks-coral: #FF7A50;
+  --ks-coral-dark: #E85A30;
+  --ks-coral-light: #FFE4D6;
+  --ks-ink: #16233A;
+  --ks-ink-soft: #5B6B82;
+  --ks-border: #E7ECF3;
+  --ks-surface: #FFFFFF;
+  --ks-neutral-bg: #F1F1F1;
+  --ks-neutral-text: #6B6B6B;
+  --ks-gradient-brand: linear-gradient(135deg, var(--ks-navy) 0%, var(--ks-teal) 55%, var(--ks-coral) 100%);
+  --ks-shadow: 0 10px 30px -12px rgba(11, 61, 120, 0.25);
+  --ks-radius-lg: 20px;
+  --ks-radius-md: 14px;
+  --ks-radius-sm: 10px;
+
+  /* ---------- Primary = navy ---------- */
+  --ion-color-primary: var(--ks-navy);
+  --ion-color-primary-rgb: 11, 61, 120;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #0a366a;
+  --ion-color-primary-tint: #235086;
+
+  /* ---------- Secondary = teal ---------- */
+  --ion-color-secondary: var(--ks-teal);
+  --ion-color-secondary-rgb: 18, 163, 140;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #108f7b;
+  --ion-color-secondary-tint: #2aac98;
+
+  /* ---------- Tertiary = coral ---------- */
+  --ion-color-tertiary: var(--ks-coral);
+  --ion-color-tertiary-rgb: 255, 122, 80;
+  --ion-color-tertiary-contrast: #000000;
+  --ion-color-tertiary-contrast-rgb: 0, 0, 0;
+  --ion-color-tertiary-shade: #e06b46;
+  --ion-color-tertiary-tint: #ff8762;
+
+  --ion-color-success: #12A38C;
+  --ion-color-success-rgb: 18, 163, 140;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #108f7b;
+  --ion-color-success-tint: #2aac98;
+
+  --ion-color-warning: #FF7A50;
+  --ion-color-warning-rgb: 255, 122, 80;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #e06b46;
+  --ion-color-warning-tint: #ff8762;
+
+  --ion-color-danger: #d32f2f;
+  --ion-color-danger-rgb: 211, 47, 47;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #ba2929;
+  --ion-color-danger-tint: #d84444;
+
+  --ion-color-dark: var(--ks-ink);
+  --ion-color-dark-rgb: 22, 35, 58;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #131f33;
+  --ion-color-dark-tint: #2d394e;
+
+  --ion-color-medium: var(--ks-ink-soft);
+  --ion-color-medium-rgb: 91, 107, 130;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #505e72;
+  --ion-color-medium-tint: #6b7a8e;
+
+  --ion-color-light: var(--ks-neutral-bg);
+  --ion-color-light-rgb: 241, 241, 241;
+  --ion-color-light-contrast: #16233A;
+  --ion-color-light-contrast-rgb: 22, 35, 58;
+  --ion-color-light-shade: #d4d4d4;
+  --ion-color-light-tint: #f2f2f2;
+
+  /* ---------- Fondo/texto/tipografía base ---------- */
+  --ion-background-color: var(--ks-cream);
+  --ion-background-color-rgb: 255, 248, 241;
+  --ion-text-color: var(--ks-ink);
+  --ion-text-color-rgb: 22, 35, 58;
+  --ion-font-family: 'Nunito', sans-serif;
+
+  --ion-toolbar-background: var(--ks-cream-soft);
+  --ion-toolbar-color: var(--ks-navy-dark);
+  --ion-item-background: var(--ks-surface);
+  --ion-border-color: var(--ks-border);
+  --ion-card-background: var(--ks-surface);
+}
+
+/* Modo oscuro — sigue la preferencia del sistema (misma fuente de verdad
+   que @ionic/angular/css/palettes/dark.system.css, ya importado en
+   global.scss); mismos valores que el bloque [data-bs-theme="dark"] de
+   base.css. */
+@media (prefers-color-scheme: dark) {
+  /* `:root.md`/`:root.ios` (no solo `:root`) para igualar o superar la
+     especificidad de @ionic/angular/css/palettes/dark.system.css, que
+     define --ion-background-color/--ion-toolbar-background/etc. bajo esos
+     mismos selectores compuestos — con solo `:root` esas propiedades
+     puntuales perdían la cascada pese a cargar después en el bundle. */
+  :root, :root.ios, :root.md {
+    --ks-cream: #10151F;
+    --ks-cream-soft: #161D29;
+    --ks-navy: #6FA8F0;
+    --ks-navy-dark: #E7F0FE;
+    --ks-navy-light: #1B2A42;
+    --ks-teal: #2BD6B8;
+    --ks-teal-dark: #8FF0DC;
+    --ks-teal-light: #123A34;
+    --ks-coral: #FF9270;
+    --ks-coral-dark: #FFC1A6;
+    --ks-coral-light: #3A2318;
+    --ks-ink: #E9EFF8;
+    --ks-ink-soft: #9FB0C7;
+    --ks-border: #29344A;
+    --ks-surface: #182231;
+    --ks-neutral-bg: #232E40;
+    --ks-neutral-text: #B7C2D6;
+    --ks-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+
+    --ion-color-primary: var(--ks-navy);
+    --ion-color-primary-rgb: 111, 168, 240;
+    --ion-color-primary-contrast: #000000;
+    --ion-color-primary-contrast-rgb: 0, 0, 0;
+    --ion-color-primary-shade: #6294d3;
+    --ion-color-primary-tint: #7db1f2;
+
+    --ion-color-secondary: var(--ks-teal);
+    --ion-color-secondary-rgb: 43, 214, 184;
+    --ion-color-secondary-contrast: #000000;
+    --ion-color-secondary-contrast-rgb: 0, 0, 0;
+    --ion-color-secondary-shade: #26bca2;
+    --ion-color-secondary-tint: #40dabf;
+
+    --ion-color-tertiary: var(--ks-coral);
+    --ion-color-tertiary-rgb: 255, 146, 112;
+    --ion-color-tertiary-contrast: #000000;
+    --ion-color-tertiary-contrast-rgb: 0, 0, 0;
+    --ion-color-tertiary-shade: #e08063;
+    --ion-color-tertiary-tint: #ff9d7e;
+
+    --ion-color-success: var(--ks-teal);
+    --ion-color-success-rgb: 43, 214, 184;
+    --ion-color-success-contrast: #000000;
+    --ion-color-success-contrast-rgb: 0, 0, 0;
+    --ion-color-success-shade: #26bca2;
+    --ion-color-success-tint: #40dabf;
+
+    --ion-color-warning: var(--ks-coral);
+    --ion-color-warning-rgb: 255, 146, 112;
+    --ion-color-warning-contrast: #000000;
+    --ion-color-warning-contrast-rgb: 0, 0, 0;
+    --ion-color-warning-shade: #e08063;
+    --ion-color-warning-tint: #ff9d7e;
+
+    --ion-color-danger: #ff6b6b;
+    --ion-color-danger-rgb: 255, 107, 107;
+    --ion-color-danger-contrast: #000000;
+    --ion-color-danger-contrast-rgb: 0, 0, 0;
+    --ion-color-danger-shade: #e05e5e;
+    --ion-color-danger-tint: #ff7979;
+
+    --ion-color-dark: var(--ks-ink);
+    --ion-color-dark-rgb: 233, 239, 248;
+    --ion-color-dark-contrast: #000000;
+    --ion-color-dark-contrast-rgb: 0, 0, 0;
+    --ion-color-dark-shade: #cdd2da;
+    --ion-color-dark-tint: #ebf0f9;
+
+    --ion-color-medium: var(--ks-ink-soft);
+    --ion-color-medium-rgb: 159, 176, 199;
+    --ion-color-medium-contrast: #000000;
+    --ion-color-medium-contrast-rgb: 0, 0, 0;
+    --ion-color-medium-shade: #8c9bb0;
+    --ion-color-medium-tint: #a9b8cc;
+
+    --ion-color-light: var(--ks-neutral-bg);
+    --ion-color-light-rgb: 35, 46, 64;
+    --ion-color-light-contrast: #E9EFF8;
+    --ion-color-light-contrast-rgb: 233, 239, 248;
+    --ion-color-light-shade: #1f2938;
+    --ion-color-light-tint: #394253;
+
+    --ion-background-color: var(--ks-cream);
+    --ion-background-color-rgb: 16, 21, 31;
+    --ion-text-color: var(--ks-ink);
+    --ion-text-color-rgb: 233, 239, 248;
+
+    --ion-toolbar-background: var(--ks-cream-soft);
+    --ion-toolbar-color: var(--ks-navy-dark);
+    --ion-item-background: var(--ks-surface);
+    --ion-border-color: var(--ks-border);
+    --ion-card-background: var(--ks-surface);
+  }
+}

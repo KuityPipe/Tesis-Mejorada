@@ -13,18 +13,22 @@
     <p class="ion-padding-start">{{ mensaje }}</p>
   </ion-text>
 
-  <form [formGroup]="formulario" (ngSubmit)="enviar()">
-    <ion-list>
-      <ion-item>
-        <ion-input label="Correo electrónico" labelPlacement="floating" type="email" formControlName="email" autocomplete="email"></ion-input>
-      </ion-item>
-      <ion-item>
-        <ion-input label="Número de teléfono" labelPlacement="floating" type="tel" formControlName="telefono"></ion-input>
-      </ion-item>
-    </ion-list>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
+    <ion-card>
+      <ion-card-content>
+        <ion-list lines="none">
+          <ion-item>
+            <ion-input label="Correo electrónico" labelPlacement="floating" type="email" formControlName="email" autocomplete="email"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Número de teléfono" labelPlacement="floating" type="tel" formControlName="telefono"></ion-input>
+          </ion-item>
+        </ion-list>
 
-    <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="formulario.invalid || enviando">
-      {{ enviando ? 'Enviando…' : 'Enviar enlace de recuperación' }}
-    </ion-button>
+        <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="formulario.invalid || enviando">
+          {{ enviando ? 'Enviando…' : 'Enviar enlace de recuperación' }}
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
   </form>
 </ion-content>

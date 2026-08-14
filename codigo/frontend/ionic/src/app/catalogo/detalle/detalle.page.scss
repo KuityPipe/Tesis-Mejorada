@@ -6,7 +6,7 @@
 
   img {
     height: 180px;
-    border-radius: 8px;
+    border-radius: var(--ks-radius-md);
     flex-shrink: 0;
   }
 }

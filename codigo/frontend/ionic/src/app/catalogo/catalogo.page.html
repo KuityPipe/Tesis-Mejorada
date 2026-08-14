@@ -1,5 +1,6 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
+    <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Servicios</ion-title>
     <!-- `auth` es público (no `private`) en catalogo.page.ts justo para poder llamarlo desde acá, del template. -->
     <ion-buttons slot="end">
@@ -17,22 +18,26 @@
   </div>
 
   <!-- [routerLink] arma la navegación a /catalogo/:id sin recargar la página (SPA) — `button` + `detail` son atributos de ion-item que agregan el estado "clickeable" y la flechita, respectivamente. -->
-  <ion-list *ngIf="!cargandoInicial">
-    <ion-item *ngFor="let publicacion of publicaciones" [routerLink]="['/catalogo', publicacion.id_publicacion]" button detail>
-      <ion-thumbnail slot="start" *ngIf="publicacion.imagen_portada">
-        <img [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
-      </ion-thumbnail>
-      <ion-label>
-        <h2>{{ publicacion.titulo }}</h2>
-        <p>{{ publicacion.categoria }} — {{ publicacion.proveedor.nombre_usuario }}</p>
-        <p *ngIf="publicacion.precio">${{ publicacion.precio | number }}</p>
-      </ion-label>
-    </ion-item>
+  <ion-card *ngIf="!cargandoInicial" class="ion-margin-top">
+    <ion-card-content>
+      <ion-list lines="full">
+        <ion-item *ngFor="let publicacion of publicaciones" [routerLink]="['/catalogo', publicacion.id_publicacion]" button detail>
+          <ion-thumbnail slot="start" *ngIf="publicacion.imagen_portada">
+            <img [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
+          </ion-thumbnail>
+          <ion-label>
+            <h2>{{ publicacion.titulo }}</h2>
+            <p>{{ publicacion.categoria }} — {{ publicacion.proveedor.nombre_usuario }}</p>
+            <p *ngIf="publicacion.precio">${{ publicacion.precio | number }}</p>
+          </ion-label>
+        </ion-item>
 
-    <ion-item *ngIf="!publicaciones.length" lines="none">
-      <ion-label>No hay servicios publicados todavía.</ion-label>
-    </ion-item>
-  </ion-list>
+        <ion-item *ngIf="!publicaciones.length" lines="none">
+          <ion-label>No hay servicios publicados todavía.</ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-card-content>
+  </ion-card>
 
   <!-- ionInfinite se dispara cuando el usuario se acerca al final del scroll — .complete() (llamado en catalogo.page.ts) le avisa al componente que ya terminó de cargar y puede volver a armarse para la próxima vez. -->
   <ion-infinite-scroll (ionInfinite)="cargarMas($event)" [disabled]="!hayMas">
