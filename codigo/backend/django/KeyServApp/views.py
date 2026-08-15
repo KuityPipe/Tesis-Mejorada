@@ -332,7 +332,7 @@ def recuperar_view(request):
     registrados (mismo criterio que login_bloqueado en sesion_view).
     """
     if obtener_usuario_actual(request):
-        messages.info(request, 'Ya tenés una sesión iniciada.')
+        messages.info(request, 'Ya tienes una sesión iniciada.')
         return redirect('KeyServApp:sesion_iniciada')
 
     if request.method == 'POST':
@@ -356,7 +356,7 @@ def recuperar_view(request):
                     'Recuperar tu contraseña de KeyServ',
                     f'Hola {usuario.nombre_usuario},\n\n'
                     f'Para elegir una nueva contraseña entrá a este enlace (válido por 1 hora):\n{url_reset}\n\n'
-                    'Si no pediste esto, podés ignorar este correo — tu contraseña actual sigue siendo válida.',
+                    'Si no pediste esto, puedes ignorar este correo — tu contraseña actual sigue siendo válida.',
                     settings.DEFAULT_FROM_EMAIL,
                     [usuario.email],
                     fail_silently=True,
@@ -382,7 +382,7 @@ def recuperar_confirmar_view(request, token):
             usuario.set_password(form.cleaned_data['password'])
             usuario.save(update_fields=['password'])
             logger.info('Contraseña restablecida vía recuperación: usuario_id=%s', usuario.id_usuario)
-            messages.success(request, 'Contraseña actualizada. Ya podés iniciar sesión.')
+            messages.success(request, 'Contraseña actualizada. Ya puedes iniciar sesión.')
             return redirect('KeyServApp:sesion')
     else:
         form = NuevaPasswordForm(usuario=usuario)
@@ -425,7 +425,7 @@ def register_view(request):
     terminabas (ver también sesion_view, mismo criterio).
     """
     if obtener_usuario_actual(request):
-        messages.info(request, 'Ya tenés una sesión iniciada.')
+        messages.info(request, 'Ya tienes una sesión iniciada.')
         return redirect('KeyServApp:sesion_iniciada')
 
     if request.method == 'POST':
@@ -478,7 +478,7 @@ def sesion_view(request):
       que quedara claro qué sesión terminaba activa.
     """
     if obtener_usuario_actual(request):
-        messages.info(request, 'Ya tenés una sesión iniciada.')
+        messages.info(request, 'Ya tienes una sesión iniciada.')
         return redirect('KeyServApp:sesion_iniciada')
 
     if request.method == 'POST':
@@ -575,9 +575,9 @@ def alternar_proveedor_view(request):
     usuario.es_proveedor = not usuario.es_proveedor
     usuario.save(update_fields=['es_proveedor'])
     if usuario.es_proveedor:
-        messages.success(request, 'Listo, ahora podés publicar servicios como proveedor.')
+        messages.success(request, 'Listo, ahora puedes publicar servicios como proveedor.')
     else:
-        messages.info(request, 'Dejaste de ofrecer servicios. Ya no podés crear nuevas publicaciones hasta que lo actives de nuevo (las que ya tenías siguen visibles).')
+        messages.info(request, 'Dejaste de ofrecer servicios. Ya no puedes crear nuevas publicaciones hasta que lo actives de nuevo (las que ya tenías siguen visibles).')
     return redirect('KeyServApp:perfil')
 
 
@@ -896,7 +896,7 @@ def contratacion_crear_view(request, publicacion_id):
     proveedor = publicacion.usuario_publicador
 
     if cliente == proveedor:
-        messages.error(request, 'No podés contratar tu propia publicación.')
+        messages.error(request, 'No puedes contratar tu propia publicación.')
         return redirect('KeyServApp:publicacion_detalle', pk=publicacion_id)
 
     ya_activa = Contratacion.objects.filter(
@@ -904,7 +904,7 @@ def contratacion_crear_view(request, publicacion_id):
         estado__in=[Contratacion.SOLICITADA, Contratacion.CONFIRMADA, Contratacion.EN_CURSO],
     ).exists()
     if ya_activa:
-        messages.error(request, 'Ya tenés una solicitud en curso para este servicio — esperá a que se complete antes de volver a pedirlo.')
+        messages.error(request, 'Ya tienes una solicitud en curso para este servicio — espera a que se complete antes de volver a pedirlo.')
         return redirect('KeyServApp:publicacion_detalle', pk=publicacion_id)
 
     contratacion = Contratacion.objects.create(
@@ -1080,7 +1080,7 @@ def contratacion_completar_view(request, contratacion_id):
         contratacion.save()
         HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.COMPLETADA)
         logger.info('Contratación completada: id=%s', contratacion.id_contratacion)
-        messages.success(request, '¡Servicio marcado como completado! Ya podés calificarlo.')
+        messages.success(request, '¡Servicio marcado como completado! Ya puedes calificarlo.')
     else:
         _registrar_intento_reautenticacion(usuario, contratacion_id, exito=False)
         messages.error(request, 'Contraseña incorrecta — no se pudo completar.')
@@ -1403,7 +1403,7 @@ def valoracion_crear_view(request, contratacion_id):
         _recalcular_ranking(contratacion.proveedor)
         messages.success(request, 'Gracias por tu calificación.')
     else:
-        messages.error(request, 'No se pudo registrar la calificación — elegí una puntuación de 1 a 5 estrellas.')
+        messages.error(request, 'No se pudo registrar la calificación — elige una puntuación de 1 a 5 estrellas.')
     return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
 
 
@@ -1465,7 +1465,7 @@ def verificacion_huella_view(request):
     usuario = obtener_usuario_actual(request)
     archivo = request.FILES.get('huella_imagen')
     if not archivo:
-        messages.error(request, 'Subí una imagen de huella para verificar.')
+        messages.error(request, 'Sube una imagen de huella para verificar.')
         return redirect('KeyServApp:huella')
 
     try:
@@ -1521,7 +1521,7 @@ def _obtener_frames_captura(request):
     """
     archivos = request.FILES.getlist('rostro_frames')
     if len(archivos) < _FRAMES_MINIMOS_CAPTURA:
-        raise ValidationError('La captura de la cámara no se completó — volvé a intentarlo.')
+        raise ValidationError('La captura de la cámara no se completó — vuelve a intentarlo.')
     for archivo in archivos:
         validators.validar_imagen(archivo)
     return [_guardar_archivo_temporal(archivo) for archivo in archivos]
@@ -1551,7 +1551,7 @@ def validar_captura_rostro_ajax(request):
             os.remove(ruta)
 
     if encoding is None:
-        return JsonResponse({'ok': False, 'motivo': 'No se pudo validar la prueba de vida — mirá a la cámara, parpadeá una vez, y asegurate de tener buena luz.'})
+        return JsonResponse({'ok': False, 'motivo': 'No se pudo validar la prueba de vida — mira a la cámara, parpadea una vez, y asegúrate de tener buena luz.'})
     return JsonResponse({'ok': True, 'motivo': None})
 
 
@@ -1596,9 +1596,9 @@ def registro_rostro_view(request):
     if encoding is not None:
         usuario.encoding_facial = encoding
         usuario.save()
-        messages.success(request, 'Rostro registrado. Ahora podés verificarlo.')
+        messages.success(request, 'Rostro registrado. Ahora puedes verificarlo.')
     else:
-        messages.error(request, 'No se pudo validar la prueba de vida — mirá a la cámara, parpadeá una vez durante la captura, y asegurate de tener buena luz.')
+        messages.error(request, 'No se pudo validar la prueba de vida — mira a la cámara, parpadea una vez durante la captura, y asegúrate de tener buena luz.')
     return redirect('KeyServApp:rostro')
 
 

@@ -128,7 +128,7 @@ export class ProveedorPage implements OnInit {
       },
       error: (_error: HttpErrorResponse) => {
         this.enviando = false;
-        this.errorGeneral = 'No se pudo guardar el perfil. Revisá los datos e intentá de nuevo.';
+        this.errorGeneral = 'No se pudo guardar el perfil. Revisa los datos e intenta de nuevo.';
       },
     });
   }

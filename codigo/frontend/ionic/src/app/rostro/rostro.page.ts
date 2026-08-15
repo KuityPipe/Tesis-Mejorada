@@ -48,7 +48,7 @@ export class RostroPage implements OnInit, OnDestroy {
 
   camaraActiva = false;
   capturando = false;
-  instruccion = 'Mirá a la cámara y capturá — vas a tener que parpadear una vez durante la captura.';
+  instruccion = 'Mira a la cámara y captura — vas a tener que parpadear una vez durante la captura.';
   error: string | null = null;
   exito: string | null = null;
   enviando = false;
@@ -139,7 +139,7 @@ export class RostroPage implements OnInit, OnDestroy {
       }
     }
 
-    this.instruccion = 'Mirá a la cámara y capturá — vas a tener que parpadear una vez durante la captura.';
+    this.instruccion = 'Mira a la cámara y captura — vas a tener que parpadear una vez durante la captura.';
     this.enviarCaptura(frames);
   }
 
@@ -149,7 +149,7 @@ export class RostroPage implements OnInit, OnDestroy {
     if (this.modo === 'registrar') {
       this.rostroApi.registrar(frames).subscribe({
         next: () => {
-          this.alTenerExito('Rostro registrado. Ahora podés verificarlo.');
+          this.alTenerExito('Rostro registrado. Ahora puedes verificarlo.');
           this.tieneReferencia = true;
           this.modo = 'verificar';
         },

@@ -22,11 +22,11 @@
   <!-- Mismo encabezado que .ks-page-header en catalogo.html del sitio Django (ícono grid + título + subtítulo + barra de filtros .ks-filter-bar). -->
   <div class="ks-page-header">
     <h1><ion-icon name="grid-outline"></ion-icon> Catálogo de servicios</h1>
-    <p>Buscá y filtrá entre todos los proveedores verificados de KeyServ.</p>
+    <p>Busca y filtra entre todos los proveedores verificados de KeyServ.</p>
 
     <form (ngSubmit)="aplicarFiltros()" class="ks-filter-bar">
       <ion-searchbar
-        placeholder="¿Qué servicio necesitás? Ej: gasfitería, jardinería…"
+        placeholder="¿Qué servicio necesitas? Ej: gasfitería, jardinería…"
         [(ngModel)]="filtros.q"
         name="q"
         (ionChange)="aplicarFiltros()"
@@ -55,6 +55,12 @@
 
   <div *ngIf="cargandoInicial" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
+  </div>
+
+  <!-- Mismo .ks-section-header que catalogo.html: título dinámico (resultados de búsqueda vs. listado completo) + contador. -->
+  <div class="ks-section-header" *ngIf="!cargandoInicial">
+    <h2>{{ filtros.q ? 'Resultados para "' + filtros.q + '"' : 'Todos los servicios' }}</h2>
+    <span>{{ total }} publicación{{ total === 1 ? '' : 'es' }}</span>
   </div>
 
   <!-- Grid de cards con imagen — mismo .ks-card-grid/.ks-card que catalogo.html del sitio Django, en vez de una lista ion-item plana. [routerLink] arma la navegación a /catalogo/:id sin recargar la página (SPA). -->

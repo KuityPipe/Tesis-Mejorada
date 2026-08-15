@@ -79,7 +79,7 @@
           <form [formGroup]="formularioReauth" (ngSubmit)="puedeConfirmar ? confirmar() : completar()">
             <ion-list lines="none">
               <ion-item>
-                <ion-input label="Confirmá tu contraseña" labelPlacement="floating" type="password" formControlName="password"></ion-input>
+                <ion-input label="Confirma tu contraseña" labelPlacement="floating" type="password" formControlName="password"></ion-input>
               </ion-item>
               <ion-item *ngIf="puedeConfirmar">
                 <ion-input label="Monto acordado (CLP, opcional)" labelPlacement="floating" type="number" formControlName="monto"></ion-input>
@@ -96,7 +96,7 @@
 
     <!-- Valorar (cliente, COMPLETADA, todavía sin reseña) -->
     <div class="ks-section" *ngIf="puedeValorar">
-      <p class="ks-section-title">Calificá este trabajo</p>
+      <p class="ks-section-title">Califica este trabajo</p>
       <ion-card>
         <ion-card-content>
           <form [formGroup]="formularioValoracion" (ngSubmit)="valorar()">
@@ -160,7 +160,7 @@
 
           <form [formGroup]="formularioMensaje" (ngSubmit)="enviarMensaje()">
             <ion-item lines="none">
-              <ion-input label="Escribí un mensaje" labelPlacement="floating" formControlName="contenido"></ion-input>
+              <ion-input label="Escribe un mensaje" labelPlacement="floating" formControlName="contenido"></ion-input>
             </ion-item>
             <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviandoMensaje">
               {{ enviandoMensaje ? 'Enviando…' : 'Enviar' }}

@@ -78,7 +78,7 @@ export class BiometriaPage implements OnInit {
       // no devuelve un booleano, ver definitions.d.ts del plugin.
       await NativeBiometric.verifyIdentity({
         title: 'Verificación biométrica',
-        reason: 'Confirmá tu identidad para verificar tu cuenta de KeyServ.',
+        reason: 'Confirma tu identidad para verificar tu cuenta de KeyServ.',
       });
     } catch {
       this.verificando = false;

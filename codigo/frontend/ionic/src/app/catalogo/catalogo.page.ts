@@ -37,6 +37,8 @@ export class CatalogoPage implements OnInit {
   regiones: RegionCatalogo[] = [];
   cargandoInicial = true;
   hayMas = true;
+  /** Total de resultados del filtro actual (respuesta.count de DRF) — mismo dato que {{ total_publicaciones }} en catalogo.html. */
+  total = 0;
   private pagina = 1;
 
   filtros: FiltrosCatalogo = { orden: 'recientes' };
@@ -88,6 +90,7 @@ export class CatalogoPage implements OnInit {
         // scroll infinito (a diferencia de la paginación por botones del
         // template, donde cada página reemplaza a la anterior).
         this.publicaciones = [...this.publicaciones, ...respuesta.results];
+        this.total = respuesta.count;
         this.hayMas = respuesta.next !== null;
         this.cargandoInicial = false;
         eventoScroll?.target.complete();

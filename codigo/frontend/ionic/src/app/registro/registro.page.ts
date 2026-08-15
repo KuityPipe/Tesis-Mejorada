@@ -123,6 +123,6 @@ export class RegistroPage implements OnInit {
       }
     }
 
-    this.errorGeneral = generales.length ? generales.join(' ') : 'Revisá los datos del formulario.';
+    this.errorGeneral = generales.length ? generales.join(' ') : 'Revisa los datos del formulario.';
   }
 }

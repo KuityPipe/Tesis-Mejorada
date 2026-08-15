@@ -21,14 +21,14 @@
     <!-- Equivalente Ionic de /inicio/ del sitio Django: banda de saludo + accesos rápidos + trabajos activos, en vez de solo un menú de opciones. -->
     <div class="ks-page-header">
       <h1><ion-icon name="home-outline"></ion-icon> Hola, {{ usuario.nombre_usuario }}</h1>
-      <p>¿Qué necesitás hacer hoy?</p>
+      <p>¿Qué necesitas hacer hoy?</p>
     </div>
 
     <div class="ks-quick-actions">
       <div class="ks-card-tile" routerLink="/catalogo">
         <div class="ks-card-tile-body">
           <h3><ion-icon name="search-outline"></ion-icon> Buscar servicios</h3>
-          <p>Explorá el catálogo de proveedores verificados.</p>
+          <p>Explora el catálogo de proveedores verificados.</p>
         </div>
       </div>
       <!-- Mismo orden que Sesioniniciadainicio.html en Django: Buscar servicios, Mensajes, Mi perfil. -->
@@ -50,14 +50,14 @@
       <div class="ks-card-tile" routerLink="/perfil/editar">
         <div class="ks-card-tile-body">
           <h3><ion-icon name="person-outline"></ion-icon> Mi perfil</h3>
-          <p>Verificá tu identidad y revisá tus datos.</p>
+          <p>Verifica tu identidad y revisa tus datos.</p>
         </div>
       </div>
       <!-- Mismo tile condicional "Publicar un servicio" que Sesioniniciadainicio.html muestra solo si usuario.es_proveedor. -->
       <div class="ks-card-tile" routerLink="/catalogo/crear" *ngIf="usuario.es_proveedor">
         <div class="ks-card-tile-body">
           <h3><ion-icon name="megaphone-outline"></ion-icon> Publicar un servicio</h3>
-          <p>Creá una nueva publicación para tus clientes.</p>
+          <p>Crea una nueva publicación para tus clientes.</p>
         </div>
       </div>
     </div>

@@ -116,7 +116,7 @@
       </form>
       {% if publicacion.precio %}<p class="ks-help mt-2 mb-0">Precio de referencia: ${{ publicacion.precio }} CLP. El monto final lo confirma el proveedor al aceptar tu solicitud (puede ajustarlo si charlaron algo distinto), y ahí se pide el pago.</p>{% endif %}
       {% elif contratacion_activa %}
-      <div class="ks-info-note mb-2"><i class="bi bi-hourglass-split"></i> Ya tenés una solicitud <strong>{{ contratacion_activa.get_estado_display|lower }}</strong> para este servicio.</div>
+      <div class="ks-info-note mb-2"><i class="bi bi-hourglass-split"></i> Ya tienes una solicitud <strong>{{ contratacion_activa.get_estado_display|lower }}</strong> para este servicio.</div>
       <a href="{% url 'KeyServApp:contratacion_detalle' contratacion_activa.id_contratacion %}" class="ks-btn ks-btn-outline" style="width:100%; justify-content:center;"><i class="bi bi-arrow-right-circle"></i> Ver mi solicitud</a>
       {% elif not proveedor %}
       <div class="ks-info-note mb-0"><i class="bi bi-exclamation-triangle"></i> Este servicio no tiene proveedor asignado.</div>

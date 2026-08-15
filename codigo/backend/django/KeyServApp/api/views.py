@@ -243,13 +243,13 @@ class RostroRegistrarView(APIView):
 
         if encoding is None:
             return Response(
-                {'detail': 'No se pudo validar la prueba de vida — mirá a la cámara, parpadeá una vez durante la captura, y asegurate de tener buena luz.'},
+                {'detail': 'No se pudo validar la prueba de vida — mira a la cámara, parpadea una vez durante la captura, y asegúrate de tener buena luz.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         request.user.encoding_facial = encoding
         request.user.save()
         logger.info('Rostro de referencia registrado (api): usuario_id=%s', request.user.id_usuario)
-        return Response({'detail': 'Rostro registrado. Ahora podés verificarlo.'})
+        return Response({'detail': 'Rostro registrado. Ahora puedes verificarlo.'})
 
 
 class RostroVerificarView(APIView):
@@ -467,7 +467,7 @@ class RecuperarView(APIView):
                 'Recuperar tu contraseña de KeyServ',
                 f'Hola {usuario.nombre_usuario},\n\n'
                 f'Para elegir una nueva contraseña entrá a este enlace (válido por 1 hora):\n{url_reset}\n\n'
-                'Si no pediste esto, podés ignorar este correo — tu contraseña actual sigue siendo válida.',
+                'Si no pediste esto, puedes ignorar este correo — tu contraseña actual sigue siendo válida.',
                 settings.DEFAULT_FROM_EMAIL,
                 [usuario.email],
                 fail_silently=True,
@@ -510,7 +510,7 @@ class RecuperarConfirmarView(APIView):
         usuario.set_password(form.cleaned_data['password'])
         usuario.save(update_fields=['password'])
         logger.info('Contraseña restablecida vía recuperación (api): usuario_id=%s', usuario.id_usuario)
-        return Response({'detail': 'Contraseña actualizada. Ya podés iniciar sesión.'})
+        return Response({'detail': 'Contraseña actualizada. Ya puedes iniciar sesión.'})
 
 
 class RegionListView(generics.ListAPIView):
@@ -729,7 +729,7 @@ class ContratacionListCreateView(APIView):
         proveedor = publicacion.usuario_publicador
 
         if cliente == proveedor:
-            return Response({'detail': 'No podés contratar tu propia publicación.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'No puedes contratar tu propia publicación.'}, status=status.HTTP_400_BAD_REQUEST)
 
         ya_activa = Contratacion.objects.filter(
             publicacion=publicacion, cliente=cliente,
@@ -737,7 +737,7 @@ class ContratacionListCreateView(APIView):
         ).exists()
         if ya_activa:
             return Response(
-                {'detail': 'Ya tenés una solicitud en curso para este servicio — esperá a que se complete antes de volver a pedirlo.'},
+                {'detail': 'Ya tienes una solicitud en curso para este servicio — espera a que se complete antes de volver a pedirlo.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

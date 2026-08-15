@@ -245,7 +245,7 @@ export class DetallePage implements OnInit {
       },
       error: () => {
         this.enviandoValoracion = false;
-        this.errorValoracion = 'No se pudo registrar la calificación — elegí una puntuación de 1 a 5 estrellas.';
+        this.errorValoracion = 'No se pudo registrar la calificación — elige una puntuación de 1 a 5 estrellas.';
       },
     });
   }

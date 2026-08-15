@@ -69,6 +69,28 @@ ion-card-content {
   padding: 24px;
 }
 
+// Encabezado de sección con contador — equivalente Ionic de
+// .ks-section-header en base.css (catalogo.html: "Todos los servicios" /
+// "Resultados para..." + "N publicaciones"), usado sobre el grid del
+// catálogo en vez de solo el título suelto que tenía antes.
+.ks-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  h2 {
+    margin: 0;
+  }
+
+  span {
+    color: var(--ks-ink-soft, var(--ion-color-medium));
+    font-weight: 600;
+  }
+}
+
 // Grid de cards con imagen — equivalente Ionic de .ks-card-grid/.ks-card
 // en base.css, para el catálogo (antes una lista `ion-item` plana).
 .ks-card-grid {
