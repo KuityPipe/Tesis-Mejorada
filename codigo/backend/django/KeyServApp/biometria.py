@@ -70,6 +70,9 @@ def calcular_encoding_facial(rutas_frames):
     except ValueError as error:
         logger.exception('La prueba de vida por parpadeo falló al registrar el rostro: %s', error)
         return None
+    except ImportError:
+        logger.exception('No se pudo importar opencv-python/face_recognition al ejecutar la prueba de vida')
+        return None
     return list(float(valor) for valor in encoding)
 
 
@@ -101,5 +104,8 @@ def verificar_rostro_usuario(encoding_guardado, rutas_frames):
         return None
     except ValueError as error:
         logger.exception('La prueba de vida por parpadeo falló al verificar el rostro: %s', error)
+        return None
+    except ImportError:
+        logger.exception('No se pudo importar opencv-python/face_recognition al ejecutar la prueba de vida')
         return None
     return comparar_encodings(encoding_guardado, encoding_nuevo)

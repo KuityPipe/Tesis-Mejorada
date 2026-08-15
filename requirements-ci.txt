@@ -1,0 +1,45 @@
+# Dependencias mínimas para correr `manage.py test KeyServApp` en CI
+# (.github/workflows/tests.yml) — no es un duplicado descuidado de
+# requirements.txt, es intencional.
+#
+# requirements.txt completo incluye el stack pesado de reconocimiento facial
+# (opencv-python/dlib-bin/face_recognition) y fpdf2. Ninguno de esos hace
+# falta para que la suite de tests pase:
+#   - KeyServApp/biometria.py importa `probando_face_recognition` con
+#     `try/except ImportError` dentro de cada función (nunca al nivel del
+#     módulo), así que falta esa dependencia no rompe nada al importar
+#     tests.py — solo hace que las funciones devuelvan None si algo las
+#     llamara de verdad (confirmado corriendo la suite completa contra
+#     este mismo archivo: sin face_recognition instalado, los únicos tests
+#     de reconocimiento facial que no mockean `biometria.*` directamente
+#     — `ReconocimientoFacialTests`/`RostroApiTests` sí mockean — pasan
+#     igual porque devuelven None con gracia, ver el fix de ImportError
+#     agregado a `calcular_encoding_facial`/`verificar_rostro_usuario`).
+#   - `dlib-bin` en particular es un paquete no oficial sin wheels
+#     garantizadas para Linux (se eligió para este proyecto por sus wheels
+#     de Windows cp314-win_amd64, ver requirements.txt) — instalarlo en un
+#     runner de GitHub Actions (Ubuntu) es un riesgo real de romper el CI
+#     por una dependencia que los tests ni siquiera ejercitan de verdad.
+#
+# `transbank-sdk` SÍ hace falta acá, a diferencia del bloque de reconocimiento
+# facial: aunque los tests de pago mockean `TransbankService.iniciar_transaccion`/
+# `confirmar_transaccion`, `TransbankService.__init__` (no mockeado) hace el
+# import real de `transbank.webpay...` sin try/except — confirmado corriendo
+# la suite sin esta dependencia, falla con "302 != 200"/"502 != 200" en vez
+# de un ModuleNotFoundError claro. A diferencia de dlib-bin, es un paquete
+# puro-Python sobre `requests`, sin riesgo real de wheels por plataforma.
+#
+# Si en el futuro se agrega un test que sí ejecuta el código real de
+# reconocimiento facial, hay que sumar esas dependencias acá también.
+
+Django==5.2.16
+django-environ>=0.11
+psycopg2-binary>=2.9.9
+Pillow>=10.3
+geoip2>=4.8
+djangorestframework>=3.15
+django-cors-headers>=4.4
+drf-spectacular>=0.27
+PyJWT>=2.9
+requests
+transbank-sdk>=6.1.0

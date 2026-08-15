@@ -2,6 +2,8 @@
 
 # KeyServ
 
+[![Tests](https://github.com/KuityPipe/Tesis-Mejorada/actions/workflows/tests.yml/badge.svg)](https://github.com/KuityPipe/Tesis-Mejorada/actions/workflows/tests.yml)
+
 A Chilean home-services marketplace with biometric identity verification (fingerprint, webcam-based facial recognition, and native Face ID/fingerprint). Started as a university thesis project, now being developed as a real product.
 
 ![KeyServ service catalog](assets/imagenes/catalogo-keyserv.jpg)

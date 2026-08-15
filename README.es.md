@@ -2,6 +2,8 @@
 
 # KeyServ
 
+[![Tests](https://github.com/KuityPipe/Tesis-Mejorada/actions/workflows/tests.yml/badge.svg)](https://github.com/KuityPipe/Tesis-Mejorada/actions/workflows/tests.yml)
+
 Un marketplace chileno de servicios del hogar con verificación biométrica de identidad (huella dactilar, reconocimiento facial por cámara, y Face ID/huella nativos del teléfono). Empezó como proyecto de tesis universitaria; hoy se sigue desarrollando como producto real.
 
 ![Catálogo de servicios de KeyServ](assets/imagenes/catalogo-keyserv.jpg)

@@ -38,6 +38,15 @@ module.exports = function (config) {
     logLevel: config.LOG_INFO,
     autoWatch: true,
     browsers: ['Chrome'],
+    // Usado en CI (.github/workflows/tests.yml, sin display) via
+    // `ng test --browsers=ChromeHeadlessCI` — --no-sandbox hace falta
+    // porque los runners de GitHub Actions corren como root.
+    customLaunchers: {
+      ChromeHeadlessCI: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox', '--disable-gpu']
+      }
+    },
     singleRun: false,
     restartOnFileChange: true
   });
