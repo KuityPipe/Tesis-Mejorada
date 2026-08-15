@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { InicioPageRoutingModule } from './inicio-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { InicioPage } from './inicio.page';
 
@@ -13,7 +14,8 @@ import { InicioPage } from './inicio.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    InicioPageRoutingModule
+    InicioPageRoutingModule,
+    SharedModule
   ],
   declarations: [InicioPage]
 })

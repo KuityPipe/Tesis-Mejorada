@@ -98,8 +98,17 @@ en esa categoría.
       con "1" tanto en el ícono del header como en el tile, en `/home` y en `/catalogo`, y el ícono
       navega a `/mensajes`. 4 tests backend (`MensajesNoLeidosApiTests`) + 4 tests frontend
       (`notificaciones.spec.ts`).
-- [ ] **Footer** (marca + links + copyright) en el resto de pantallas raíz — hoy solo está en
-      `inicio`/`catalogo`.
+- [x] **Footer** (marca + links + copyright) en el resto de pantallas raíz — nuevo `FooterComponent`
+      compartido (`app/shared/footer/`, declarado/exportado desde `SharedModule`) para no duplicar
+      el mismo bloque de HTML en cada página; reemplaza el footer ad-hoc que `inicio`/`catalogo` ya
+      tenían (inconsistentes entre sí — `catalogo` no tenía la línea de copyright) y se agrega nuevo
+      a `login`/`home`, que no tenían ninguno. Mismo `.ks-footer` de `base.css` del sitio Django
+      (marca+bajada, nav de links, copyright con año dinámico) portado a `global.scss`. — 2026-08-15,
+      verificado en vivo en las 4 pantallas (`/login`, `/`, `/catalogo`, `/home`, esta última y
+      `/catalogo` autenticadas con una cuenta demo). 2 tests nuevos (`footer.spec.ts`).
+
+Con esto se cierra también la prioridad media — no queda ningún ítem `[ ]` en esa categoría. Lo que
+resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y publicación).
 
 ## Pendiente — prioridad baja / decisión de negocio
 

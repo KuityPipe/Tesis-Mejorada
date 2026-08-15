@@ -30,7 +30,6 @@ export class InicioPage implements OnInit {
   destacadas: PublicacionResumen[] = [];
   cargandoDestacadas = true;
   q = '';
-  readonly anioActual = new Date().getFullYear();
   readonly mensajesNoLeidos$ = this.notificaciones.noLeidos$;
 
   constructor(

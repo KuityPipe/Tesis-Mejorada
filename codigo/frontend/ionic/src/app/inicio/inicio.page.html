@@ -94,10 +94,5 @@
     <ion-button expand="block" fill="outline" routerLink="/catalogo">Ver todo el catálogo</ion-button>
   </div>
 
-  <!-- Mismos links que .ks-footer-links en base.html del sitio Django, adaptados a un footer simple en vez de un pie de página de sitio web. -->
-  <div class="ion-text-center ion-padding-top" style="color: var(--ks-ink-soft); font-size: .9rem;">
-    <ion-button fill="clear" size="small" routerLink="/acerca-de-nosotros">Acerca de nosotros</ion-button>
-    <ion-button fill="clear" size="small" routerLink="/contacto">Contacto</ion-button>
-    <p>© {{ anioActual }} KeyServ</p>
-  </div>
+  <app-footer></app-footer>
 </ion-content>

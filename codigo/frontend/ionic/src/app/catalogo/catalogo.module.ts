@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { CatalogoPageRoutingModule } from './catalogo-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { CatalogoPage } from './catalogo.page';
 
@@ -18,7 +19,8 @@ import { CatalogoPage } from './catalogo.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    CatalogoPageRoutingModule
+    CatalogoPageRoutingModule,
+    SharedModule
   ],
   declarations: [CatalogoPage]
 })

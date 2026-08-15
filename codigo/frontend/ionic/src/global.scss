@@ -485,6 +485,63 @@ ion-content::part(scroll) {
 // core/notificaciones.ts) — equivalente Ionic de #ks-chat-badge en
 // base.css del sitio Django (mismo criterio: círculo pequeño en la
 // esquina superior derecha del ícono, no un ion-badge de flujo normal).
+// Footer compartido (marca + links + copyright) — ver app/shared/footer/,
+// portado de .ks-footer/.ks-footer-* en base.css del sitio Django.
+.ks-footer {
+  background: var(--ks-surface);
+  border-top: 3px solid transparent;
+  border-image: var(--ks-gradient-brand) 1;
+  margin-top: 40px;
+}
+
+.ks-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px 16px;
+  flex-wrap: wrap;
+}
+
+.ks-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 340px;
+}
+
+.ks-footer-brand img {
+  height: 34px;
+}
+
+.ks-footer-brand p {
+  color: var(--ks-ink-soft);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.ks-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-weight: 600;
+}
+
+.ks-footer-links a {
+  color: var(--ks-ink-soft);
+  text-decoration: none;
+}
+
+.ks-footer-links a:hover {
+  color: var(--ks-coral-dark);
+}
+
+.ks-footer-copy {
+  color: var(--ks-ink-soft);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
 ion-button:has(.ks-toolbar-badge) {
   position: relative;
 }

@@ -1,0 +1,16 @@
+<!-- Misma estructura que .ks-footer en base.html del sitio Django: marca+bajada, links de navegación, copyright. -->
+<footer class="ks-footer">
+  <div class="ks-footer-inner">
+    <div class="ks-footer-brand">
+      <img src="assets/logo.png" alt="KeyServ">
+      <p>Servicios de confianza, verificados con biometría, cerca de ti.</p>
+    </div>
+    <nav class="ks-footer-links">
+      <a routerLink="/">Inicio</a>
+      <a routerLink="/catalogo">Servicios</a>
+      <a routerLink="/acerca-de-nosotros">Acerca de nosotros</a>
+      <a routerLink="/contacto">Contacto</a>
+    </nav>
+    <p class="ks-footer-copy">© {{ anioActual }} KeyServ</p>
+  </div>
+</footer>
