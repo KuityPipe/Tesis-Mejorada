@@ -5,8 +5,10 @@ una foto fija del 2026-08-14). Acá se anota qué falta, en qué orden, y por qu
 hilo entre sesiones y para tener un registro real del trabajo (útil también para portafolio: es la
 prueba de que esto se llevó con metodología, no a los saltos).
 
-Ver también: `docs/PLAN_MIGRACION_IONIC.md` (fases 1-8 de la migración, más técnico) y
-`docs/AUDITORIA_8000_vs_8100.md` (comparación sección por sección Django vs Ionic).
+Ver también: `docs/PLAN_MIGRACION_IONIC.md` (fases 1-8 de la migración, más técnico),
+`docs/AUDITORIA_8000_vs_8100.md` (comparación sección por sección Django vs Ionic) y
+`docs/PLAN_PORTAFOLIO.md` (plan en 3 niveles para presentar este proyecto como portafolio —
+decidido 2026-08-15, arranca en la próxima sesión).
 
 ## Cómo se usa este documento
 
