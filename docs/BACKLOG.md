@@ -65,8 +65,11 @@ en esa categoría.
          envolvieron en un `.ks-file-field` propio (flex-column) en vez de depender del layout
          interno de `ion-item`. De paso, el label flotante de "otra área de servicio" en
          `perfil/proveedor` (mismo problema, `ion-textarea`) se acortó en vez de parcharse con CSS.
-- [ ] **Reseñas recibidas** en el perfil propio — Django las muestra en `/perfil/`, Ionic
-      (`home.page`, "Tu cuenta") no las tiene todavía.
+- [x] **Reseñas recibidas** en el perfil — `GET /api/perfil/resenas-recibidas/`
+      (`ResenasRecibidasView` + `ResenaRecibidaSerializer`, sin filtrar por `estado_moderacion` a
+      propósito, igual que `perfil_view`) + sección nueva en `home.page` entre "Tu cuenta" y el
+      menú. — 2026-08-15, verificado en vivo con una reseña real de datos demo (Camila ← Javiera,
+      ★5). 4 tests.
 - [ ] **Toggle de tema claro/oscuro manual** — Ionic solo sigue la preferencia del SO, Django
       tiene un botón explícito con persistencia en `localStorage`.
 - [ ] **Badge + polling de mensajes no leídos** (cada 15s, con beep) en el header — no existe en

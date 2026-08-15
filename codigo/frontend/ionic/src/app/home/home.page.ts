@@ -5,6 +5,7 @@ import { AlertController } from '@ionic/angular';
 import { Auth, Usuario } from '../core/auth';
 import { Contrataciones, ContratacionResumen } from '../contrataciones/contrataciones';
 import { Conversaciones } from '../mensajes/conversaciones';
+import { Resenas, ResenaRecibida } from './resenas';
 
 const ESTADOS_ACTIVOS = ['SOLICITADA', 'CONFIRMADA', 'EN_CURSO'];
 
@@ -28,12 +29,14 @@ export class HomePage implements OnInit {
   cargando = true;
   trabajosActuales: ContratacionResumen[] = [];
   mensajesNoLeidos = 0;
+  resenasRecibidas: ResenaRecibida[] = [];
 
   constructor(
     private readonly auth: Auth,
     private readonly router: Router,
     private readonly contratacionesApi: Contrataciones,
     private readonly conversacionesApi: Conversaciones,
+    private readonly resenasApi: Resenas,
     private readonly alertController: AlertController,
   ) {}
 
@@ -75,6 +78,17 @@ export class HomePage implements OnInit {
       },
       error: () => {
         // No crítico — el tile simplemente no muestra badge.
+      },
+    });
+
+    // Reseñas recibidas — equivalente Ionic de la sección homónima de
+    // perfil.html, sin cap (Django tampoco pagina esto).
+    this.resenasApi.recibidas().subscribe({
+      next: (resenas) => {
+        this.resenasRecibidas = resenas;
+      },
+      error: () => {
+        // No crítico — la sección simplemente no aparece.
       },
     });
   }

@@ -96,6 +96,28 @@ class ValoracionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class ResenaRecibidaSerializer(serializers.ModelSerializer):
+    """
+    `GET /api/perfil/resenas-recibidas/` — equivalente API de la sección
+    "Reseñas y calificaciones recibidas" de `perfil.html` (`perfil_view`).
+    Nombre distinto a propósito de los otros dos `ValoracionSerializer` ya
+    definidos en este archivo (arriba, para la propia reseña embebida en
+    una contratación puntual; más abajo, para reseñas ya moderadas de una
+    publicación pública) — sumar un tercer uso del mismo nombre solo
+    haría más frágil una situación que ya depende de en qué orden Python
+    liga cada referencia (atributo de clase vs. dentro de un método).
+    Incluye `estado_moderacion` aunque `perfil.html` no lo muestre —
+    Ionic sí lo usa para la misma nota "Pendiente de revisión" que ya
+    tiene `contratacion/detalle` para la propia reseña dejada.
+    """
+    usuario_emisor = serializers.CharField(source='usuario_emisor.nombre_usuario', read_only=True)
+
+    class Meta:
+        model = Valoracion
+        fields = ['id_valoracion', 'puntuacion', 'comentario', 'fecha_valoracion', 'estado_moderacion', 'usuario_emisor']
+        read_only_fields = fields
+
+
 class PagoSerializer(serializers.ModelSerializer):
     """Estado del cobro de una Contratacion — nunca expone `respuesta_bruta`/`token_webpay`/`khipu_payment_id` (detalles internos del medio de pago, no algo que el cliente Ionic necesite)."""
     class Meta:

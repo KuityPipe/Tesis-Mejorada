@@ -555,6 +555,55 @@ class AlternarProveedorApiTests(APITestCase):
         self.assertFalse(self.usuario.es_proveedor)
 
 
+class ResenasRecibidasApiTests(APITestCase):
+    """`GET /api/perfil/resenas-recibidas/` — equivalente API de la parte de `perfil_view` que arma `resenas_recibidas` (tests.py no tiene una clase dedicada para esa vista)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_resenas_api@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_resenas_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.otro_cliente = _crear_usuario('otro_cliente_resenas_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA)
+        token = jwt_utils.generar_access_token(self.proveedor)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_sin_token_devuelve_401(self):
+        self.client.credentials()
+        resp = self.client.get('/api/perfil/resenas-recibidas/')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_sin_resenas_devuelve_lista_vacia(self):
+        resp = self.client.get('/api/perfil/resenas-recibidas/')
+        self.assertEqual(resp.data, [])
+
+    def test_incluye_pendientes_y_rechazadas_a_diferencia_del_catalogo_publico(self):
+        Valoracion.objects.create(
+            usuario_emisor=self.cliente, usuario_receptor=self.proveedor, publicacion=self.publicacion,
+            puntuacion=5, comentario='Aprobada', estado_moderacion=Valoracion.APROBADA,
+        )
+        Valoracion.objects.create(
+            usuario_emisor=self.cliente, usuario_receptor=self.proveedor, publicacion=self.publicacion,
+            puntuacion=1, comentario='Pendiente', estado_moderacion=Valoracion.PENDIENTE,
+        )
+
+        resp = self.client.get('/api/perfil/resenas-recibidas/')
+
+        self.assertEqual(resp.status_code, 200)
+        comentarios = {r['comentario'] for r in resp.data}
+        self.assertEqual(comentarios, {'Aprobada', 'Pendiente'})
+        pendiente = next(r for r in resp.data if r['comentario'] == 'Pendiente')
+        self.assertEqual(pendiente['usuario_emisor'], self.cliente.nombre_usuario)
+        self.assertEqual(pendiente['estado_moderacion'], Valoracion.PENDIENTE)
+
+    def test_no_incluye_resenas_de_otro_usuario(self):
+        Valoracion.objects.create(
+            usuario_emisor=self.cliente, usuario_receptor=self.otro_cliente, publicacion=self.publicacion,
+            puntuacion=4, comentario='No es para mí', estado_moderacion=Valoracion.APROBADA,
+        )
+        resp = self.client.get('/api/perfil/resenas-recibidas/')
+        self.assertEqual(resp.data, [])
+
+
 class RecuperarApiTests(APITestCase):
     """`POST /api/auth/recuperar/` + `/confirmar/<token>/` — espeja RecuperarPasswordTests (tests.py)."""
 

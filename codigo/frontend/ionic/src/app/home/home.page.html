@@ -110,6 +110,24 @@
       </ion-card>
     </div>
 
+    <!-- Equivalente Ionic del panel "Reseñas y calificaciones recibidas" de perfil.html. Sin cap — Django tampoco pagina esto. -->
+    <div class="ks-section" *ngIf="resenasRecibidas.length">
+      <p class="ks-section-title"><ion-icon name="star-outline"></ion-icon> Reseñas recibidas</p>
+      <ion-card>
+        <ion-card-content>
+          <ion-list lines="full">
+            <ion-item *ngFor="let resena of resenasRecibidas" lines="full">
+              <ion-label class="ion-text-wrap">
+                <h3>{{ resena.usuario_emisor }} — ★{{ resena.puntuacion }}</h3>
+                <p>{{ resena.comentario }}</p>
+                <p *ngIf="resena.estado_moderacion === 'PENDIENTE'" style="color: var(--ks-coral-dark);">Pendiente de revisión por un moderador.</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <div class="ks-section">
       <ion-card>
         <ion-card-content>

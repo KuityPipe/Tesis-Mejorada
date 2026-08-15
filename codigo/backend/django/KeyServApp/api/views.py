@@ -35,7 +35,7 @@ from ..forms import (
 from ..models import (
     Comuna, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region,
-    Transaccion, TipoCuenta, Usuario, UsuarioConversacion, ValoracionImagen,
+    Transaccion, TipoCuenta, Usuario, UsuarioConversacion, Valoracion, ValoracionImagen,
 )
 from ..views import Unaccent
 from . import jwt_utils
@@ -43,7 +43,7 @@ from .serializers import (
     ComunaSerializer, ContratacionDetailSerializer, ContratacionListSerializer, ConversacionResumenSerializer,
     DocumentoPerfilSerializer, LoginSerializer, MensajeSerializer, PagoHistorialSerializer,
     PublicacionDetailSerializer, PublicacionListSerializer, PublicacionPropiaSerializer, RegionSerializer,
-    TipoCuentaSerializer, UsuarioMeSerializer, ValoracionSerializer,
+    ResenaRecibidaSerializer, TipoCuentaSerializer, UsuarioMeSerializer, ValoracionSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -322,6 +322,15 @@ class AlternarProveedorView(APIView):
         usuario.save(update_fields=['es_proveedor'])
         logger.info('Proveedor alternado (api): usuario_id=%s es_proveedor=%s', usuario.id_usuario, usuario.es_proveedor)
         return Response(UsuarioMeSerializer(usuario).data)
+
+
+class ResenasRecibidasView(generics.ListAPIView):
+    """`GET /api/perfil/resenas-recibidas/` — equivalente API de la parte de `perfil_view` que lista `resenas_recibidas`. Sin filtrar por `estado_moderacion` a propósito, igual que el template — el propio receptor ve sus reseñas pendientes/rechazadas también, no solo las aprobadas (a diferencia del catálogo público, que sí filtra)."""
+    serializer_class = ResenaRecibidaSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return Valoracion.objects.filter(usuario_receptor=self.request.user).select_related('usuario_emisor').order_by('-fecha_valoracion')
 
 
 class PerfilProveedorView(APIView):

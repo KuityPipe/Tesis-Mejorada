@@ -11,6 +11,7 @@ urlpatterns = [
     path('auth/me/', views.MeView.as_view(), name='me'),
     path('auth/perfil/', views.PerfilView.as_view(), name='perfil'),
     path('auth/alternar-proveedor/', views.AlternarProveedorView.as_view(), name='alternar-proveedor'),
+    path('perfil/resenas-recibidas/', views.ResenasRecibidasView.as_view(), name='resenas-recibidas'),
     path('auth/verificar-biometria-nativa/', views.VerificarBiometriaNativaView.as_view(), name='verificar-biometria-nativa'),
     path('auth/rostro/estado/', views.RostroEstadoView.as_view(), name='rostro-estado'),
     path('auth/rostro/registrar/', views.RostroRegistrarView.as_view(), name='rostro-registrar'),
