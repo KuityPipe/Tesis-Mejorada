@@ -96,7 +96,7 @@ export class BiometriaPage implements OnInit {
       },
       error: () => {
         this.verificando = false;
-        this.error = 'Se verificó tu identidad, pero no pudimos guardarlo en tu cuenta. Probá de nuevo.';
+        this.error = 'Se verificó tu identidad, pero no pudimos guardarlo en tu cuenta. Prueba de nuevo.';
       },
     });
   }

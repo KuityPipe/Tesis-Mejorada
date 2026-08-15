@@ -341,7 +341,7 @@ def recuperar_view(request):
             email = form.cleaned_data['email']
             clave_intentos = f'recuperar_intentos:{_obtener_ip_cliente(request)}:{email.strip().lower()}'
             if cache.get(clave_intentos, 0) >= MAX_INTENTOS_RECUPERAR:
-                messages.error(request, 'Demasiadas solicitudes. Probá de nuevo en unos minutos.')
+                messages.error(request, 'Demasiadas solicitudes. Prueba de nuevo en unos minutos.')
                 return render(request, 'KeyServApp/recuperar.html', {'form': form})
             try:
                 cache.incr(clave_intentos)
@@ -493,7 +493,7 @@ def sesion_view(request):
                 # poder ver en el panel de alertas, no solo a los que ya
                 # tienen sesión.
                 _registrar_intento_sospechoso(request, None, 'login_bloqueado', email, 'demasiados intentos fallidos')
-                messages.error(request, 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.')
+                messages.error(request, 'Demasiados intentos fallidos. Prueba de nuevo en unos minutos.')
                 return render(request, 'KeyServApp/sesion.html')
 
             usuario = Usuario.objects.filter(email=email).first()
@@ -1017,7 +1017,7 @@ def contratacion_confirmar_view(request, contratacion_id):
 
     if _reautenticacion_bloqueada(usuario, contratacion_id):
         _registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_confirmar', contratacion_id, 'demasiados intentos fallidos')
-        messages.error(request, 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.')
+        messages.error(request, 'Demasiados intentos fallidos. Prueba de nuevo en unos minutos.')
         return redirect('KeyServApp:reservas')
 
     form = ReautenticacionForm(request.POST)
@@ -1070,7 +1070,7 @@ def contratacion_completar_view(request, contratacion_id):
 
     if _reautenticacion_bloqueada(usuario, contratacion_id):
         _registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_completar', contratacion_id, 'demasiados intentos fallidos')
-        messages.error(request, 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.')
+        messages.error(request, 'Demasiados intentos fallidos. Prueba de nuevo en unos minutos.')
         return redirect('KeyServApp:reservas')
 
     form = ReautenticacionForm(request.POST)
@@ -1169,7 +1169,7 @@ def pago_webpay_iniciar_view(request, contratacion_id):
         )
     except Exception:
         logger.exception('Error iniciando transacción Webpay: contratacion=%s', contratacion_id)
-        messages.error(request, 'No pudimos conectar con Webpay en este momento. Probá de nuevo en unos minutos.')
+        messages.error(request, 'No pudimos conectar con Webpay en este momento. Prueba de nuevo en unos minutos.')
         return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
 
     pago.orden_compra = orden_compra
@@ -1272,7 +1272,7 @@ def pago_khipu_iniciar_view(request, contratacion_id):
         return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
     except Exception:
         logger.exception('Error iniciando pago Khipu: contratacion=%s', contratacion_id)
-        messages.error(request, 'No pudimos conectar con Khipu en este momento. Probá de nuevo en unos minutos.')
+        messages.error(request, 'No pudimos conectar con Khipu en este momento. Prueba de nuevo en unos minutos.')
         return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
 
     pago.khipu_payment_id = respuesta.get('payment_id')

@@ -147,7 +147,7 @@
           btnCapturar.disabled = false;
 
           if (!resultado.ok) {
-            errorEl.textContent = resultado.motivo || 'No se pudo validar la captura — probá de nuevo.';
+            errorEl.textContent = resultado.motivo || 'No se pudo validar la captura — prueba de nuevo.';
             errorEl.classList.remove('d-none');
             return; // Se queda con la cámara prendida para reintentar.
           }
@@ -163,7 +163,7 @@
         }).catch(function () {
           validandoEl.classList.add('d-none');
           btnCapturar.disabled = false;
-          errorEl.textContent = 'No se pudo validar la captura (¿problema de conexión?) — probá de nuevo.';
+          errorEl.textContent = 'No se pudo validar la captura (¿problema de conexión?) — prueba de nuevo.';
           errorEl.classList.remove('d-none');
         });
       }

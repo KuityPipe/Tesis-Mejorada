@@ -137,7 +137,7 @@ export class CrearPage implements OnInit {
         this.enviando = false;
         this.errorGeneral = typeof error.error === 'object' && error.error !== null
           ? Object.values(error.error).map((valor) => (Array.isArray(valor) ? valor.join(' ') : String(valor))).join(' ')
-          : 'No se pudo crear la publicación. Probá de nuevo en unos minutos.';
+          : 'No se pudo crear la publicación. Prueba de nuevo en unos minutos.';
       },
     });
   }

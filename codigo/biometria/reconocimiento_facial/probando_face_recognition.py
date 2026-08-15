@@ -156,7 +156,7 @@ def _calidad_de_imagen_aceptable(imagen):
     brillo = float(gris.mean())
     nitidez = float(cv2.Laplacian(gris, cv2.CV_64F).var())
     if brillo < BRILLO_MINIMO:
-        return False, 'La imagen está muy oscura — probá con más luz.'
+        return False, 'La imagen está muy oscura — prueba con más luz.'
     if nitidez < NITIDEZ_MINIMA:
         return False, 'La imagen está borrosa — mantené la cámara firme durante la captura.'
     return True, None
@@ -196,7 +196,7 @@ def verificar_prueba_de_vida_parpadeo(rutas_frames):
         candidatos.append((_ear_promedio_de_landmarks(landmarks), imagen, ubicacion))
 
     if len(candidatos) < FRAMES_MIN_PARPADEO:
-        raise ValueError('No se detectó tu rostro con claridad durante la captura — mirá directo a la cámara, con buena luz, y probá de nuevo.')
+        raise ValueError('No se detectó tu rostro con claridad durante la captura — mira directo a la cámara, con buena luz, y prueba de nuevo.')
 
     if not _hubo_parpadeo([ear for ear, _, _ in candidatos]):
         raise ValueError('No se detectó un parpadeo real durante la captura — mirá a la cámara y parpadeá una vez mientras se captura.')

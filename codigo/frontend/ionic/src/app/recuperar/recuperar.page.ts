@@ -46,7 +46,7 @@ export class RecuperarPage {
       },
       error: () => {
         this.enviando = false;
-        this.mensaje = 'No se pudo procesar la solicitud. Probá de nuevo en unos minutos.';
+        this.mensaje = 'No se pudo procesar la solicitud. Prueba de nuevo en unos minutos.';
       },
     });
   }

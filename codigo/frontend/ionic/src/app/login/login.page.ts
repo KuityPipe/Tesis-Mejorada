@@ -65,7 +65,7 @@ export class LoginPage {
         // El backend (KeyServApp/api/views.py) ya devuelve mensajes en
         // español listos para mostrar (401 credenciales incorrectas, 429
         // demasiados intentos) — no hace falta traducirlos acá.
-        this.errorMensaje = error.error?.detail ?? 'No se pudo iniciar sesión. Probá de nuevo.';
+        this.errorMensaje = error.error?.detail ?? 'No se pudo iniciar sesión. Prueba de nuevo.';
       },
     });
   }

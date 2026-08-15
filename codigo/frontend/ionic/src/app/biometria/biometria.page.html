@@ -12,30 +12,20 @@
     <ion-spinner></ion-spinner>
   </div>
 
-  <ion-card class="ion-margin-top" *ngIf="!cargando">
-    <ion-card-content>
-      <ion-item lines="none" *ngIf="yaVerificado">
-        <ion-label class="ion-text-wrap" color="success">
-          <h2>Ya estás verificado biométricamente.</h2>
-        </ion-label>
-      </ion-item>
+  <ng-container *ngIf="!cargando">
+    <!-- Mismo avatar-ícono circular con gradiente que rostro.page (y .ks-fingerprint-scanner en base.css) — misma familia visual pese a que esta pantalla no tiene equivalente Django directo (nueva de Fase 5). -->
+    <div class="ks-bio-header">
+      <div class="ks-fingerprint-scanner"><ion-icon name="finger-print-outline"></ion-icon></div>
+      <h1 *ngIf="yaVerificado">Ya estás verificado biométricamente</h1>
+      <h1 *ngIf="!yaVerificado && !disponible">Biometría no disponible en este dispositivo</h1>
+      <h1 *ngIf="!yaVerificado && disponible">Verifica tu identidad con {{ tipoBiometria }}</h1>
+      <p *ngIf="!yaVerificado && !disponible">No detectamos Face ID, huella u otro sensor biométrico configurado. Puedes verificarte por <a routerLink="/rostro">reconocimiento facial</a> mientras tanto.</p>
+      <p *ngIf="!yaVerificado && disponible">Usamos la biometría de tu propio teléfono — la huella o tu cara nunca se envían a nuestros servidores, solo confirmamos que tu dispositivo ya la validó.</p>
+    </div>
 
-      <ng-container *ngIf="!yaVerificado">
-        <ion-item lines="none" *ngIf="!disponible">
-          <ion-label class="ion-text-wrap">
-            <h2>Biometría no disponible en este dispositivo</h2>
-            <p>No detectamos Face ID, huella u otro sensor biométrico configurado. Puedes verificarte por <a routerLink="/rostro">reconocimiento facial</a> mientras tanto.</p>
-          </ion-label>
-        </ion-item>
-
-        <ion-item lines="none" *ngIf="disponible">
-          <ion-label class="ion-text-wrap">
-            <h2>Verifica tu identidad con {{ tipoBiometria }}</h2>
-            <p>Usamos la biometría de tu propio teléfono — la huella o tu cara nunca se envían a nuestros servidores, solo confirmamos que tu dispositivo ya la validó.</p>
-          </ion-label>
-        </ion-item>
-
-        <ion-button expand="block" *ngIf="disponible" (click)="verificar()" [disabled]="verificando">
+    <ion-card *ngIf="!yaVerificado && disponible">
+      <ion-card-content>
+        <ion-button expand="block" (click)="verificar()" [disabled]="verificando">
           {{ verificando ? 'Verificando…' : ('Verificar con ' + tipoBiometria) }}
         </ion-button>
 
@@ -45,7 +35,7 @@
         <ion-text color="success" *ngIf="exito">
           <p class="ion-padding-start">¡Listo! Quedaste verificado biométricamente.</p>
         </ion-text>
-      </ng-container>
-    </ion-card-content>
-  </ion-card>
+      </ion-card-content>
+    </ion-card>
+  </ng-container>
 </ion-content>

@@ -79,7 +79,7 @@ export class ContactoPage {
    */
   private extraerMensajeError(error: HttpErrorResponse): string {
     if (typeof error.error !== 'object' || error.error === null) {
-      return 'No se pudo enviar tu consulta. Probá de nuevo en unos minutos.';
+      return 'No se pudo enviar tu consulta. Prueba de nuevo en unos minutos.';
     }
     return Object.values(error.error)
       .map((valor) => (Array.isArray(valor) ? valor.join(' ') : String(valor)))

@@ -173,7 +173,7 @@ export class RostroPage implements OnInit, OnDestroy {
   private alFallar(error: HttpErrorResponse): void {
     this.enviando = false;
     this.capturando = false;
-    this.error = error.error?.detail ?? 'No se pudo validar la captura — probá de nuevo.';
+    this.error = error.error?.detail ?? 'No se pudo validar la captura — prueba de nuevo.';
     // Se queda con la cámara prendida para reintentar, mismo criterio que rostro.html.
   }
 }

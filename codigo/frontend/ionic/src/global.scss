@@ -824,3 +824,37 @@ ion-button:has(.ks-toolbar-badge) {
   color: var(--ion-color-medium);
   margin-top: 2px;
 }
+
+// ---------- Avatar-ícono circular con gradiente — equivalente Ionic de
+// .ks-fingerprint-scanner en base.css (rostro.html/huella.html), usado
+// también en biometria.page para que las dos pantallas de verificación
+// biométrica compartan el mismo lenguaje visual pese a que biometria.page
+// no tiene equivalente Django directo (es nueva de Fase 5).
+.ks-fingerprint-scanner {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: 8px auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: #fff;
+  background: var(--ks-gradient-brand, var(--ion-color-secondary));
+  box-shadow: 0 0 0 8px var(--ks-teal-light, rgba(var(--ion-color-secondary-rgb), .15));
+}
+
+.ks-bio-header {
+  text-align: center;
+  margin-bottom: 8px;
+
+  h1, h2 {
+    margin: 0 0 8px;
+  }
+
+  p {
+    color: var(--ion-color-medium);
+    max-width: 420px;
+    margin-inline: auto;
+  }
+}

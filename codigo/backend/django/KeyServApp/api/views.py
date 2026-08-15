@@ -72,7 +72,7 @@ class LoginView(APIView):
                 request, None, 'login_bloqueado', email, 'demasiados intentos fallidos (api)',
             )
             return Response(
-                {'detail': 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.'},
+                {'detail': 'Demasiados intentos fallidos. Prueba de nuevo en unos minutos.'},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
@@ -451,7 +451,7 @@ class RecuperarView(APIView):
         clave_intentos = f'recuperar_intentos:{vistas_legacy._obtener_ip_cliente(request)}:{email.strip().lower()}'
         if cache.get(clave_intentos, 0) >= vistas_legacy.MAX_INTENTOS_RECUPERAR:
             return Response(
-                {'detail': 'Demasiadas solicitudes. Probá de nuevo en unos minutos.'},
+                {'detail': 'Demasiadas solicitudes. Prueba de nuevo en unos minutos.'},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
         try:
@@ -880,7 +880,7 @@ class ContratacionConfirmarView(APIView):
 
         if vistas_legacy._reautenticacion_bloqueada(usuario, contratacion_id):
             vistas_legacy._registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_confirmar', contratacion_id, 'demasiados intentos fallidos (api)')
-            return Response({'detail': 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            return Response({'detail': 'Demasiados intentos fallidos. Prueba de nuevo en unos minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         form = ReautenticacionForm(request.data)
         if not (form.is_valid() and usuario.check_password(form.cleaned_data['password'])):
@@ -922,7 +922,7 @@ class ContratacionCompletarView(APIView):
 
         if vistas_legacy._reautenticacion_bloqueada(usuario, contratacion_id):
             vistas_legacy._registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_completar', contratacion_id, 'demasiados intentos fallidos (api)')
-            return Response({'detail': 'Demasiados intentos fallidos. Probá de nuevo en unos minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            return Response({'detail': 'Demasiados intentos fallidos. Prueba de nuevo en unos minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         form = ReautenticacionForm(request.data)
         if not (form.is_valid() and usuario.check_password(form.cleaned_data['password'])):
@@ -1049,7 +1049,7 @@ class PagoWebpayIniciarView(APIView):
         except Exception:
             logger.exception('Error iniciando transacción Webpay (api): contratacion=%s', contratacion_id)
             return Response(
-                {'detail': 'No pudimos conectar con Webpay en este momento. Probá de nuevo en unos minutos.'},
+                {'detail': 'No pudimos conectar con Webpay en este momento. Prueba de nuevo en unos minutos.'},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
@@ -1161,7 +1161,7 @@ class PagoKhipuIniciarView(APIView):
         except Exception:
             logger.exception('Error iniciando pago Khipu (api): contratacion=%s', contratacion_id)
             return Response(
-                {'detail': 'No pudimos conectar con Khipu en este momento. Probá de nuevo en unos minutos.'},
+                {'detail': 'No pudimos conectar con Khipu en este momento. Prueba de nuevo en unos minutos.'},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
