@@ -1,0 +1,85 @@
+# Backlog — migración Ionic + producto KeyServ
+
+Documento vivo (se actualiza cada sesión, a diferencia de `docs/AUDITORIA_8000_vs_8100.md`, que es
+una foto fija del 2026-08-14). Acá se anota qué falta, en qué orden, y por qué — para no perder el
+hilo entre sesiones y para tener un registro real del trabajo (útil también para portafolio: es la
+prueba de que esto se llevó con metodología, no a los saltos).
+
+Ver también: `docs/PLAN_MIGRACION_IONIC.md` (fases 1-8 de la migración, más técnico) y
+`docs/AUDITORIA_8000_vs_8100.md` (comparación sección por sección Django vs Ionic).
+
+## Cómo se usa este documento
+
+- Cada ítem tiene un estado: `[ ]` pendiente, `[~]` en progreso, `[x]` hecho.
+- Al cerrar un ítem, se anota la fecha y qué se verificó (no alcanza con "se escribió el código" —
+  tiene que estar probado, ver `CLAUDE.md` sobre el estándar de verificación de este proyecto).
+- Prioridad = impacto real en el negocio (¿esto bloquea que alguien use la app de verdad?), no
+  dificultad técnica.
+
+## Hecho
+
+- [x] Fases 1-5 de la migración (auth JWT, catálogo, cuenta de usuario, contrataciones/pagos,
+      biometría nativa+facial) — 2026-08-13/14, ver `docs/PLAN_MIGRACION_IONIC.md`.
+- [x] Fase 6, identidad visual (paleta, tipografía, `.ks-page-header`, grid de cards, modo claro
+      verificado) — 2026-08-14.
+- [x] Landing pública (`/`), catálogo con filtros reales (búsqueda/región/calificación/orden),
+      Acerca de nosotros, Contacto (+ endpoint API nuevo `POST /api/contacto/`) — 2026-08-14.
+- [x] **Bug de login real corregido**: un JWT vencido bloqueaba el login mismo (401 antes de mirar
+      el body) — `authentication.py` ahora trata un token vencido/inválido como anónimo. 3 tests de
+      regresión. — 2026-08-14.
+- [x] Publicar un servicio (`/catalogo/crear` + `POST /api/publicaciones/crear/`) y Mis
+      publicaciones (`/perfil/publicaciones` + `GET /api/publicaciones/mias/`) — 2026-08-14,
+      verificado en vivo creando una publicación real con un proveedor demo.
+
+## Pendiente — prioridad alta (gaps funcionales reales)
+
+- [ ] **Alternar proveedor** — endpoint API (`POST /api/perfil/alternar-proveedor/` o similar,
+      reusar `alternar_proveedor_view`) + botón en Ionic (candidato: `home.page`, cerca de "Tu
+      cuenta", o dentro de `perfil/proveedor`). Sin esto, alguien que se registró como cliente no
+      puede convertirse en proveedor desde la app — tiene que ir al sitio Django.
+- [ ] **Historial de pagos** (`/historial-pagos/` → nueva pantalla Ionic). El backend ya tiene el
+      modelo `Pago` y la lógica en `historial_pagos_view`; falta el endpoint API (listar pagos
+      propios) y la pantalla.
+- [ ] **Bandeja de entrada de mensajes** (`chat.html` → nueva pantalla Ionic, lista de
+      conversaciones). Hoy el chat de Ionic solo es accesible entrando a una contratación puntual.
+
+## Pendiente — prioridad media (completar lo empezado)
+
+- [ ] **Reseñas recibidas** en el perfil propio — Django las muestra en `/perfil/`, Ionic
+      (`home.page`, "Tu cuenta") no las tiene todavía.
+- [ ] **Prueba real en viewport de teléfono** (375-430px) de las pantallas más densas: barra de
+      filtros del catálogo, `contratacion/detalle`, formulario de registro, el nuevo formulario de
+      "Publicar un servicio". Todo lo verificado hasta ahora fue a ancho de escritorio.
+- [ ] **Toggle de tema claro/oscuro manual** — Ionic solo sigue la preferencia del SO, Django
+      tiene un botón explícito con persistencia en `localStorage`.
+- [ ] **Badge + polling de mensajes no leídos** (cada 15s, con beep) en el header — no existe en
+      Ionic todavía, existe en Django desde Fase 5.
+- [ ] **Footer** (marca + links + copyright) en el resto de pantallas raíz — hoy solo está en
+      `inicio`/`catalogo`.
+
+## Pendiente — prioridad baja / decisión de negocio
+
+- [ ] **Espacios reservados para publicidad** (`.ks-ad-slot`) en landing/catálogo/detalle — ver
+      recomendación en `docs/AUDITORIA_8000_vs_8100.md` sección 5. Bloqueado en: qué red de ads,
+      políticas de consentimiento — decisión del usuario, no técnica.
+- [ ] Retirar `huella.html` (demo legacy) del propio sitio Django, ya superado por biometría nativa
+      + reconocimiento facial. No migrar a Ionic.
+
+## Fase 7 — Hardening de producción (después de cerrar los gaps de arriba)
+
+- [ ] Almacenamiento seguro de tokens (Keychain/Keystore vía plugin nativo, no `localStorage`).
+- [ ] Endpoint de refresh token + rotación (`TokenSesion` ya existe, falta la vista).
+- [ ] Tests E2E (Cypress/Playwright para web, Appium si hace falta cubrir nativo).
+- [ ] Pipeline de build para Android/iOS.
+
+## Fase 8 — Publicación / portafolio
+
+- [ ] Build firmado Android (Play Store) / iOS (App Store).
+- [ ] Íconos, splash screens, políticas de privacidad que piden las stores.
+- [ ] Documentación de arquitectura + capturas/video corto para portafolio.
+
+## Ver también
+
+Carta Gantt (línea de tiempo visual de todo esto, hecho con fechas reales de commits + estimado
+para lo pendiente): https://claude.ai/code/artifact/aea584bb-cc91-4a5a-8bf0-238cd886903b — privado
+por defecto, compartir desde el menú de la página si se quiere mostrar en el portafolio.

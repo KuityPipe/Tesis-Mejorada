@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { InfiniteScrollCustomEvent } from '@ionic/angular';
 
 import { Auth } from '../core/auth';
-import { Publicaciones, PublicacionResumen } from './publicaciones';
+import { Catalogos, RegionCatalogo } from '../registro/catalogos';
+import { FiltrosCatalogo, Publicaciones, PublicacionResumen } from './publicaciones';
 
 /**
  * Catálogo público (Fase 2 del plan de migración, ver
@@ -15,6 +17,13 @@ import { Publicaciones, PublicacionResumen } from './publicaciones';
  * lista; `[disabled]="!hayMas"` lo apaga solo cuando el backend ya no
  * tiene más páginas (`respuesta.next === null`, el mismo campo que arma
  * `PageNumberPagination` de DRF).
+ *
+ * Filtros (búsqueda/región/calificación/orden) — mismo `.ks-filter-bar`
+ * que `catalogo.html` del sitio Django, mismos query params que ya acepta
+ * `PublicacionListView` (`q`/`region`/`calificacion`/`orden`). `q` inicial
+ * puede llegar por query param (`?q=...`) desde el buscador rápido del
+ * home marketing (`inicio.page`), igual que el `<form method="get">` de
+ * Django navega a `/servicios/?q=...`.
  */
 @Component({
   selector: 'app-catalogo',
@@ -24,16 +33,31 @@ import { Publicaciones, PublicacionResumen } from './publicaciones';
 })
 export class CatalogoPage implements OnInit {
   publicaciones: PublicacionResumen[] = [];
+  regiones: RegionCatalogo[] = [];
   cargandoInicial = true;
   hayMas = true;
   private pagina = 1;
 
+  filtros: FiltrosCatalogo = { orden: 'recientes' };
+
   constructor(
     private readonly api: Publicaciones,
+    private readonly catalogos: Catalogos,
+    private readonly ruta: ActivatedRoute,
     readonly auth: Auth,
   ) {}
 
   ngOnInit(): void {
+    const qInicial = this.ruta.snapshot.queryParamMap.get('q');
+    if (qInicial) {
+      this.filtros.q = qInicial;
+    }
+    this.catalogos.regiones().subscribe({
+      next: (regiones) => (this.regiones = regiones),
+      error: () => {
+        // Sin regiones el filtro por región queda vacío, pero el resto del catálogo sigue funcionando.
+      },
+    });
     this.cargarPagina();
   }
 
@@ -42,8 +66,17 @@ export class CatalogoPage implements OnInit {
     this.cargarPagina(evento);
   }
 
+  /** Se llama al tocar "Aplicar filtros" — reinicia la paginación en vez de acumular sobre resultados de otro filtro. */
+  aplicarFiltros(): void {
+    this.pagina = 1;
+    this.publicaciones = [];
+    this.hayMas = true;
+    this.cargandoInicial = true;
+    this.cargarPagina();
+  }
+
   private cargarPagina(eventoScroll?: InfiniteScrollCustomEvent): void {
-    this.api.listar(this.pagina).subscribe({
+    this.api.listar(this.pagina, this.filtros).subscribe({
       next: (respuesta) => {
         // Se concatena, no se reemplaza — cada página nueva se agrega al
         // final de lo que ya había, que es justo lo que necesita el

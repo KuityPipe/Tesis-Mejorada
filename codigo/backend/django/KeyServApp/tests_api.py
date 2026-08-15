@@ -14,9 +14,9 @@ from rest_framework.test import APITestCase
 
 from .api import jwt_utils
 from .models import (
-    Comuna, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion, IntentoAccesoSospechoso,
-    ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region, TokenSesion, Usuario, Valoracion,
-    ValoracionImagen,
+    Comuna, Consulta, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion,
+    IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region, TokenSesion,
+    Usuario, Valoracion, ValoracionImagen,
 )
 from .tests import _crear_region_comuna_tipo, _crear_usuario, _frames_prueba_de_vida, _imagen_de_prueba, _marcar_en_curso
 from .views import _generar_token_recuperacion
@@ -88,6 +88,52 @@ class MeApiTests(APITestCase):
         access_token = jwt_utils.generar_access_token(self.usuario)
         self.usuario.delete()
         resp = self.client.get('/api/auth/me/', HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        self.assertEqual(resp.status_code, 401)
+
+
+class JWTAuthenticationTokenVencidoTests(APITestCase):
+    """
+    Regresión: un token vencido/inválido ya no debe bloquear la request con
+    un 401 duro (`AuthenticationFailed`) — debe tratarse como "sin
+    credenciales" (`AnonymousUser`), dejando que cada vista decida según
+    su propio `permission_classes`. Encontrado probando `/api/contacto/`
+    a mano: `authInterceptor` (Ionic) adjunta el access token guardado a
+    *toda* request hacia la API, incluido `/api/auth/login/` — con el
+    comportamiento viejo, una sesión vencida en el navegador dejaba a
+    cualquiera sin forma de volver a loguearse (el login mismo devolvía
+    401 antes de mirar el email/password del body).
+    """
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('vencido@test.com', 'ClaveOk123!', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+
+    def _token_vencido(self):
+        from datetime import timedelta
+
+        import jwt as pyjwt
+        from django.conf import settings
+        from django.utils import timezone
+        return pyjwt.encode(
+            {'sub': str(self.usuario.id_usuario), 'iat': timezone.now() - timedelta(minutes=40), 'exp': timezone.now() - timedelta(minutes=20)},
+            settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM,
+        )
+
+    def test_token_vencido_no_bloquea_login_allowany(self):
+        # Antes del fix, este 401-eaba antes de siquiera validar el email/password.
+        resp = self.client.post(
+            '/api/auth/login/', {'email': 'vencido@test.com', 'password': 'ClaveOk123!'}, format='json',
+            HTTP_AUTHORIZATION=f'Bearer {self._token_vencido()}',
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('access_token', resp.data)
+
+    def test_token_vencido_no_bloquea_publicaciones_allowany(self):
+        resp = self.client.get('/api/publicaciones/', HTTP_AUTHORIZATION=f'Bearer {self._token_vencido()}')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_token_vencido_en_endpoint_protegido_sigue_devolviendo_401(self):
+        resp = self.client.get('/api/auth/me/', HTTP_AUTHORIZATION=f'Bearer {self._token_vencido()}')
         self.assertEqual(resp.status_code, 401)
 
 
@@ -188,6 +234,111 @@ class PublicacionesApiTests(APITestCase):
         self.assertEqual(resp.data['resenas'][0]['comentario'], 'Aprobada')
 
 
+class PublicacionCrearApiTests(APITestCase):
+    """`POST /api/publicaciones/crear/` — espeja PublicacionCrearViewTests (tests.py) sobre la ruta de la API."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_crea_api@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_no_proveedor_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+
+    def _autenticado_como(self, usuario):
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def _datos_validos(self, **overrides):
+        datos = {
+            'titulo': 'Gasfitería a domicilio', 'sub_titulo': 'Reparaciones rápidas',
+            'descripcion_publicacion': 'Reparo filtraciones y cambio artefactos.',
+            'categoria': 'Gasfitería', 'precio': 25000,
+        }
+        datos.update(overrides)
+        return datos
+
+    def test_proveedor_crea_publicacion_exitosamente(self):
+        self._autenticado_como(self.proveedor)
+
+        resp = self.client.post('/api/publicaciones/crear/', self._datos_validos(), format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        publicacion = Publicaciones.objects.get(titulo='Gasfitería a domicilio')
+        self.assertEqual(publicacion.usuario_publicador, self.proveedor)
+        self.assertEqual(publicacion.estado_moderacion, Publicaciones.PENDIENTE)
+        self.assertEqual(resp.data['publicacion']['titulo'], 'Gasfitería a domicilio')
+
+    def test_no_proveedor_no_puede_publicar(self):
+        self._autenticado_como(self.cliente)
+
+        resp = self.client.post('/api/publicaciones/crear/', self._datos_validos(), format='json')
+
+        self.assertEqual(resp.status_code, 403)
+        self.assertFalse(Publicaciones.objects.filter(titulo='Gasfitería a domicilio').exists())
+
+    def test_sin_token_devuelve_401(self):
+        resp = self.client.post('/api/publicaciones/crear/', self._datos_validos(), format='json')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_categoria_otra_usa_el_texto_libre(self):
+        self._autenticado_como(self.proveedor)
+
+        resp = self.client.post('/api/publicaciones/crear/', self._datos_validos(categoria='Otra', categoria_otra='Paisajismo'), format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(Publicaciones.objects.get(titulo='Gasfitería a domicilio').categoria, 'Paisajismo')
+
+    def test_titulo_vacio_devuelve_400(self):
+        self._autenticado_como(self.proveedor)
+
+        resp = self.client.post('/api/publicaciones/crear/', self._datos_validos(titulo=''), format='json')
+
+        self.assertEqual(resp.status_code, 400)
+
+    def test_sube_imagenes_validas(self):
+        self._autenticado_como(self.proveedor)
+
+        datos = self._datos_validos()
+        datos['imagenes'] = [_imagen_de_prueba()]
+        resp = self.client.post('/api/publicaciones/crear/', datos, format='multipart')
+
+        self.assertEqual(resp.status_code, 201)
+        publicacion = Publicaciones.objects.get(titulo='Gasfitería a domicilio')
+        self.assertEqual(publicacion.imagenes.count(), 1)
+        self.assertEqual(resp.data['imagenes_rechazadas'], [])
+
+
+class MisPublicacionesApiTests(APITestCase):
+    """`GET /api/publicaciones/mias/` — solo publicaciones propias, con cualquier estado_moderacion."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('mias_api@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.otro_proveedor = _crear_usuario('otro_mias_api@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        token = jwt_utils.generar_access_token(self.proveedor)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_sin_token_devuelve_401(self):
+        self.client.credentials()
+        resp = self.client.get('/api/publicaciones/mias/')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_incluye_pendientes_y_rechazadas_propias(self):
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pendiente', estado_moderacion=Publicaciones.PENDIENTE)
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Rechazada', estado_moderacion=Publicaciones.RECHAZADA)
+
+        resp = self.client.get('/api/publicaciones/mias/')
+
+        self.assertEqual(resp.status_code, 200)
+        titulos = {p['titulo'] for p in resp.data}
+        self.assertEqual(titulos, {'Pendiente', 'Rechazada'})
+
+    def test_no_incluye_publicaciones_de_otro_usuario(self):
+        Publicaciones.objects.create(usuario_publicador=self.otro_proveedor, titulo='No es mía', estado_moderacion=Publicaciones.APROBADA)
+
+        resp = self.client.get('/api/publicaciones/mias/')
+
+        self.assertEqual(resp.data, [])
+
+
 class RegistroApiTests(APITestCase):
     """`POST /api/auth/registro/` — espeja RegistroViewTests (tests.py), mismos escenarios contra la ruta de la API."""
 
@@ -234,6 +385,45 @@ class RegistroApiTests(APITestCase):
 
         self.assertEqual(resp.status_code, 400)
         self.assertFalse(Usuario.objects.filter(email='menor_api@test.com').exists())
+
+
+class ContactoApiTests(APITestCase):
+    """`POST /api/contacto/` — equivalente API de `contacto_view` (views.py), no existe un ContactoViewTests del lado template para espejar."""
+
+    def test_anonimo_con_datos_de_contacto_crea_consulta_abierta(self):
+        resp = self.client.post('/api/contacto/', {
+            'asunto_consulta': 'No puedo pagar', 'descripcion': 'El botón de Webpay no responde.',
+            'nombre_contacto': 'Alguien', 'email_contacto': 'alguien@test.com',
+        }, format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        consulta = Consulta.objects.get(asunto_consulta='No puedo pagar')
+        self.assertIsNone(consulta.usuario_consulta)
+        self.assertEqual(consulta.nombre_contacto, 'Alguien')
+        self.assertEqual(consulta.estado_consulta_id, 1)  # 1 = Abierta
+
+    def test_anonimo_sin_datos_de_contacto_devuelve_400(self):
+        resp = self.client.post('/api/contacto/', {
+            'asunto_consulta': 'No puedo pagar', 'descripcion': 'El botón de Webpay no responde.',
+        }, format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(Consulta.objects.filter(asunto_consulta='No puedo pagar').exists())
+
+    def test_autenticado_usa_sus_propios_datos_de_contacto(self):
+        region, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        usuario = _crear_usuario('con_sesion@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+        resp = self.client.post('/api/contacto/', {
+            'asunto_consulta': 'Duda sobre una reseña', 'descripcion': 'Quiero editar mi calificación.',
+        }, format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        consulta = Consulta.objects.get(asunto_consulta='Duda sobre una reseña')
+        self.assertEqual(consulta.usuario_consulta, usuario)
+        self.assertEqual(consulta.email_contacto, usuario.email)
 
 
 class CatalogosApiTests(APITestCase):

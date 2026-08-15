@@ -4,20 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
-import { CatalogoPage } from './catalogo.page';
+import { InicioPage } from './inicio.page';
 
-describe('CatalogoPage', () => {
-  let component: CatalogoPage;
-  let fixture: ComponentFixture<CatalogoPage>;
+describe('InicioPage', () => {
+  let component: InicioPage;
+  let fixture: ComponentFixture<InicioPage>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [CatalogoPage],
-      // FormsModule: la barra de filtros usa [(ngModel)] en ion-searchbar/ion-select (ver catalogo.page.html) — sin importarlo acá, Angular no reconoce el binding y tira NG0303 en consola (el test igual pasa, pero con ruido).
+      declarations: [InicioPage],
+      // FormsModule: la búsqueda rápida usa [(ngModel)] en ion-searchbar (ver inicio.page.html).
       imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, FormsModule],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(CatalogoPage);
+    fixture = TestBed.createComponent(InicioPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

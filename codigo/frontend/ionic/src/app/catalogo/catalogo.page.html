@@ -12,35 +12,79 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Mismo encabezado que .ks-page-header en catalogo.html del sitio Django (ícono grid + título + subtítulo + barra de filtros .ks-filter-bar). -->
+  <div class="ks-page-header">
+    <h1><ion-icon name="grid-outline"></ion-icon> Catálogo de servicios</h1>
+    <p>Buscá y filtrá entre todos los proveedores verificados de KeyServ.</p>
+
+    <form (ngSubmit)="aplicarFiltros()" class="ks-filter-bar">
+      <ion-searchbar
+        placeholder="¿Qué servicio necesitás? Ej: gasfitería, jardinería…"
+        [(ngModel)]="filtros.q"
+        name="q"
+        (ionChange)="aplicarFiltros()"
+      ></ion-searchbar>
+
+      <div class="ks-filter-row">
+        <ion-select label="Región" labelPlacement="stacked" interface="popover" placeholder="Todas" [(ngModel)]="filtros.region" name="region">
+          <ion-select-option [value]="undefined">Todas</ion-select-option>
+          <ion-select-option *ngFor="let region of regiones" [value]="region.id_region">{{ region.nombre_region }}</ion-select-option>
+        </ion-select>
+
+        <ion-select label="Calificación mínima" labelPlacement="stacked" interface="popover" placeholder="Cualquiera" [(ngModel)]="filtros.calificacion" name="calificacion">
+          <ion-select-option [value]="undefined">Cualquiera</ion-select-option>
+          <ion-select-option *ngFor="let n of [1,2,3,4,5]" [value]="n">{{ n }}+ estrellas</ion-select-option>
+        </ion-select>
+
+        <ion-select label="Ordenar por" labelPlacement="stacked" interface="popover" [(ngModel)]="filtros.orden" name="orden">
+          <ion-select-option value="recientes">Más recientes</ion-select-option>
+          <ion-select-option value="calificacion">Mejor calificados</ion-select-option>
+        </ion-select>
+      </div>
+
+      <ion-button type="submit" fill="outline" expand="block">Aplicar filtros</ion-button>
+    </form>
+  </div>
+
   <div *ngIf="cargandoInicial" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
-  <!-- [routerLink] arma la navegación a /catalogo/:id sin recargar la página (SPA) — `button` + `detail` son atributos de ion-item que agregan el estado "clickeable" y la flechita, respectivamente. -->
-  <ion-card *ngIf="!cargandoInicial" class="ion-margin-top">
-    <ion-card-content>
-      <ion-list lines="full">
-        <ion-item *ngFor="let publicacion of publicaciones" [routerLink]="['/catalogo', publicacion.id_publicacion]" button detail>
-          <ion-thumbnail slot="start" *ngIf="publicacion.imagen_portada">
-            <img [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
-          </ion-thumbnail>
-          <ion-label>
-            <h2>{{ publicacion.titulo }}</h2>
-            <p>{{ publicacion.categoria }} — {{ publicacion.proveedor.nombre_usuario }}</p>
-            <p *ngIf="publicacion.precio">${{ publicacion.precio | number }}</p>
-          </ion-label>
-        </ion-item>
+  <!-- Grid de cards con imagen — mismo .ks-card-grid/.ks-card que catalogo.html del sitio Django, en vez de una lista ion-item plana. [routerLink] arma la navegación a /catalogo/:id sin recargar la página (SPA). -->
+  <div class="ks-card-grid" *ngIf="!cargandoInicial && publicaciones.length">
+    <a class="ks-card-tile" *ngFor="let publicacion of publicaciones" [routerLink]="['/catalogo', publicacion.id_publicacion]">
+      <div class="ks-card-tile-img">
+        <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
+        <ng-template #sinImagen>
+          <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline"></ion-icon></div>
+        </ng-template>
+      </div>
+      <div class="ks-card-tile-body">
+        <h3>{{ publicacion.titulo }}</h3>
+        <p>{{ publicacion.sub_titulo || publicacion.categoria }}</p>
+        <p *ngIf="publicacion.precio" style="font-weight:800; color: var(--ks-navy-dark); margin:0 0 10px;">${{ publicacion.precio | number }}</p>
+        <div class="ks-card-tile-footer">
+          <span><ion-icon name="person-circle-outline"></ion-icon> {{ publicacion.proveedor.nombre_usuario }}</span>
+          <span class="ks-card-tile-rating" *ngIf="publicacion.proveedor.total_valoraciones">
+            <ion-icon name="star"></ion-icon> {{ publicacion.proveedor.puntuacion_promedio }}
+          </span>
+        </div>
+      </div>
+    </a>
+  </div>
 
-        <ion-item *ngIf="!publicaciones.length" lines="none">
-          <ion-label>No hay servicios publicados todavía.</ion-label>
-        </ion-item>
-      </ion-list>
-    </ion-card-content>
-  </ion-card>
+  <ion-text color="medium" *ngIf="!cargandoInicial && !publicaciones.length">
+    <p class="ion-text-center">No hay servicios publicados todavía.</p>
+  </ion-text>
 
   <!-- ionInfinite se dispara cuando el usuario se acerca al final del scroll — .complete() (llamado en catalogo.page.ts) le avisa al componente que ya terminó de cargar y puede volver a armarse para la próxima vez. -->
   <ion-infinite-scroll (ionInfinite)="cargarMas($event)" [disabled]="!hayMas">
     <ion-infinite-scroll-content loadingText="Cargando más…"></ion-infinite-scroll-content>
   </ion-infinite-scroll>
+
+  <div class="ion-text-center ion-padding-top" *ngIf="!cargandoInicial">
+    <ion-button fill="clear" size="small" routerLink="/acerca-de-nosotros">Acerca de nosotros</ion-button>
+    <ion-button fill="clear" size="small" routerLink="/contacto">Contacto</ion-button>
+  </div>
 </ion-content>

@@ -28,20 +28,21 @@ from .. import biometria
 from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
-    CambiarPasswordForm, CATEGORIAS_PUBLICACION, CrearPerfilForm, EditarPerfilForm, MensajeForm,
-    MontoAcordadoForm, NuevaPasswordForm, PreferenciasCuentaForm, ReautenticacionForm, RecuperarForm,
-    RegistroForm, ValoracionForm,
+    CambiarPasswordForm, CATEGORIAS_PUBLICACION, ContactoForm, CrearPerfilForm, EditarPerfilForm, MensajeForm,
+    MontoAcordadoForm, NuevaPasswordForm, PreferenciasCuentaForm, PublicacionForm, ReautenticacionForm,
+    RecuperarForm, RegistroForm, ValoracionForm,
 )
 from ..models import (
-    Comuna, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion, ItemPresupuesto, Mensaje,
-    Pago, Publicaciones, Region, Transaccion, TipoCuenta, Usuario, UsuarioConversacion, ValoracionImagen,
+    Comuna, Contratacion, Documento, EstadoConsulta, EstadoDocumento, HistorialEstadoContratacion,
+    Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region, Transaccion, TipoCuenta, Usuario,
+    UsuarioConversacion, ValoracionImagen,
 )
 from ..views import Unaccent
 from . import jwt_utils
 from .serializers import (
     ComunaSerializer, ContratacionDetailSerializer, ContratacionListSerializer, DocumentoPerfilSerializer,
-    LoginSerializer, MensajeSerializer, PublicacionDetailSerializer, PublicacionListSerializer, RegionSerializer,
-    TipoCuentaSerializer, UsuarioMeSerializer, ValoracionSerializer,
+    LoginSerializer, MensajeSerializer, PublicacionDetailSerializer, PublicacionListSerializer,
+    PublicacionPropiaSerializer, RegionSerializer, TipoCuentaSerializer, UsuarioMeSerializer, ValoracionSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -132,6 +133,36 @@ class RegistroView(APIView):
         # Sin tokens acá a propósito, mismo criterio que register_view:
         # "cuenta creada, ahora iniciá sesión" — no auto-login.
         return Response(UsuarioMeSerializer(usuario).data, status=status.HTTP_201_CREATED)
+
+
+class ContactoView(APIView):
+    """
+    `POST /api/contacto/` — equivalente de `contacto_view` (views.py),
+    reusa `ContactoForm` igual que `RegistroView` reusa `RegistroForm`
+    (mismo motivo: una sola validación de las reglas de negocio en vez de
+    dos que puedan divergir). Público (`AllowAny`) — cualquiera puede
+    escribir a soporte sin sesión iniciada; si el caller sí manda un JWT
+    válido (`request.user.is_authenticated`), se usan sus propios datos
+    para `nombre_contacto`/`email_contacto`, igual que `contacto_view` hace
+    con la sesión de Django.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        usuario = request.user if request.user.is_authenticated else None
+        form = ContactoForm(request.data, requiere_datos_contacto=not bool(usuario))
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        consulta = form.save(commit=False)
+        consulta.usuario_consulta = usuario
+        consulta.estado_consulta = EstadoConsulta.objects.filter(pk=1).first()  # 1 = Abierta (ver migración 0006)
+        if usuario:
+            consulta.nombre_contacto = str(usuario)
+            consulta.email_contacto = usuario.email
+        consulta.save()
+        logger.info('Consulta creada (api): id=%s usuario=%s', consulta.id_consulta, usuario.id_usuario if usuario else None)
+        return Response({'detalle': 'Recibimos tu mensaje — te contactaremos pronto.'}, status=status.HTTP_201_CREATED)
 
 
 class MeView(APIView):
@@ -559,6 +590,72 @@ class PublicacionDetailView(generics.RetrieveAPIView):
     queryset = Publicaciones.objects.select_related(
         'usuario_publicador__ranking', 'usuario_publicador__comuna__region',
     ).prefetch_related('imagenes')
+
+
+class PublicacionCrearView(APIView):
+    """
+    `POST /api/publicaciones/crear/` — equivalente API de
+    `publicacion_crear_view` (views.py), mismo criterio de reuso que
+    `PerfilProveedorView`: `PublicacionForm` (forms.py) tal cual, incluida
+    la resolución de categoría "Otra" en `form.clean()`. Imágenes y
+    documentos no son campos del Form (Django no tiene un FileField
+    multi-archivo) — se leen de `request.FILES.getlist('imagenes'/
+    'documentos')`, mismos topes `MAX_IMAGENES_PUBLICACION`/
+    `MAX_DOCUMENTOS_PUBLICACION` y mismo estado inicial "No firmado"
+    (pk=2) para los documentos. Los archivos que no pasan `full_clean()`
+    (formato/tamaño/contenido inválido) no tiran un 400 — se listan en
+    `imagenes_rechazadas`/`documentos_rechazados`, la publicación se crea
+    igual con el resto, mismo trade-off que `ValoracionCrearView`/
+    `PerfilProveedorView`.
+    """
+    def post(self, request):
+        if not request.user.es_proveedor:
+            return Response({'detail': 'Solo los proveedores pueden publicar servicios.'}, status=status.HTTP_403_FORBIDDEN)
+
+        form = PublicacionForm(request.data)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        publicacion = form.save(commit=False)
+        publicacion.usuario_publicador = request.user
+        publicacion.save()
+
+        imagenes_rechazadas = []
+        for archivo in request.FILES.getlist('imagenes')[:vistas_legacy.MAX_IMAGENES_PUBLICACION]:
+            imagen = Imagenes(publicacion=publicacion, archivo=archivo)
+            try:
+                imagen.full_clean()
+            except ValidationError:
+                imagenes_rechazadas.append(archivo.name)
+                continue
+            imagen.save()
+
+        documentos_rechazados = []
+        estado_no_firmado = EstadoDocumento.objects.filter(pk=2).first()  # 2 = No firmado (ver fixture catalogos_iniciales)
+        for archivo in request.FILES.getlist('documentos')[:vistas_legacy.MAX_DOCUMENTOS_PUBLICACION]:
+            documento = Documento(publicacion=publicacion, usuario=request.user, nombre_documento=archivo.name[:60], archivo_subido=archivo, estado_documento=estado_no_firmado)
+            try:
+                documento.full_clean()
+            except ValidationError:
+                documentos_rechazados.append(archivo.name)
+                continue
+            documento.save()
+
+        logger.info('Publicación creada (api): id=%s usuario=%s', publicacion.id_publicacion, request.user.id_usuario)
+        return Response({
+            'publicacion': PublicacionDetailSerializer(publicacion).data,
+            'imagenes_rechazadas': imagenes_rechazadas,
+            'documentos_rechazados': documentos_rechazados,
+        }, status=status.HTTP_201_CREATED)
+
+
+class MisPublicacionesView(generics.ListAPIView):
+    """`GET /api/publicaciones/mias/` — equivalente API de la sección "Mis publicaciones" de `perfil.html`: publicaciones propias con cualquier `estado_moderacion` (no solo `APROBADA`, a diferencia de `PublicacionListView`), para que el proveedor vea si están pendientes/rechazadas."""
+    serializer_class = PublicacionPropiaSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return Publicaciones.objects.filter(usuario_publicador=self.request.user).prefetch_related('imagenes').order_by('-fecha_publicacion')
 
 
 def _parsear_items_presupuesto_api(data):

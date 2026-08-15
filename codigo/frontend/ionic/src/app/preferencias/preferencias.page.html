@@ -8,12 +8,18 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Mismo encabezado que .ks-page-header en preferencias_cuenta.html del sitio Django. -->
+  <div class="ks-page-header">
+    <h1><ion-icon name="settings-outline"></ion-icon> Preferencias de la cuenta</h1>
+    <p>Notificaciones y seguridad de tu cuenta.</p>
+  </div>
+
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
   <ng-container *ngIf="!cargando">
-    <div class="ks-section ion-margin-top">
+    <div class="ks-section">
       <p class="ks-section-title">Notificaciones</p>
       <ion-card>
         <ion-card-content>

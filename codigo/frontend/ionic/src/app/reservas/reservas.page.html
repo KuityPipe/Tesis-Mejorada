@@ -7,12 +7,18 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Mismo encabezado que .ks-page-header en reservas.html del sitio Django. -->
+  <div class="ks-page-header">
+    <h1><ion-icon name="calendar-outline"></ion-icon> Mis contrataciones</h1>
+    <p>Solicitudes, confirmaciones y servicios completados.</p>
+  </div>
+
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
-  <ion-card *ngIf="!cargando" class="ion-margin-top">
+  <ion-card *ngIf="!cargando">
     <ion-card-content>
       <ion-list lines="full">
         <ion-item *ngFor="let c of contrataciones" [routerLink]="['/contratacion', c.id_contratacion]" button detail>

@@ -13,18 +13,12 @@
   </div>
 
   <ng-container *ngIf="contratacion as c">
-    <ion-card class="ion-margin-top">
-      <ion-card-content>
-        <ion-item lines="none">
-          <ion-label>
-            <h1>{{ c.publicacion_titulo }}</h1>
-            <p>Cliente: {{ c.cliente_nombre }} · Proveedor: {{ c.proveedor_nombre }}</p>
-            <p *ngIf="c.monto_acordado">Monto acordado: ${{ c.monto_acordado | number }}</p>
-          </ion-label>
-          <ion-badge slot="end" [color]="colorEstado(c.estado)">{{ c.estado }}</ion-badge>
-        </ion-item>
-      </ion-card-content>
-    </ion-card>
+    <!-- Mismo encabezado que .ks-page-header en contratacion_detalle.html del sitio Django (título + badge de estado + quién es la contraparte). -->
+    <div class="ks-page-header">
+      <h1><ion-icon name="document-text-outline"></ion-icon> {{ c.publicacion_titulo }} <ion-badge [color]="colorEstado(c.estado)">{{ c.estado }}</ion-badge></h1>
+      <p>{{ c.cliente_nombre }} · {{ c.proveedor_nombre }} · Trabajo #{{ c.id_contratacion }}</p>
+      <p *ngIf="c.monto_acordado" style="font-weight:800; margin:4px 0 0;">Monto acordado: ${{ c.monto_acordado | number }}</p>
+    </div>
 
     <div class="ks-section" *ngIf="c.items_presupuesto.length">
       <p class="ks-section-title">Desglose del presupuesto</p>

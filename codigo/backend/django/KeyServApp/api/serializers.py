@@ -254,6 +254,32 @@ class PublicacionListSerializer(serializers.ModelSerializer):
         return primera.url if primera else None
 
 
+class PublicacionPropiaSerializer(serializers.ModelSerializer):
+    """
+    `GET /api/publicaciones/mias/` — a diferencia de `PublicacionListSerializer`
+    (el catálogo público, siempre `APROBADA`), acá el dueño necesita ver el
+    estado real de cada una de sus publicaciones (pendiente/aprobada/
+    rechazada), igual que `perfil.html` muestra con `.ks-badge-{{ estado
+    |lower }}` — `estado_moderacion_display` es el texto legible
+    (`get_estado_moderacion_display()`, no expuesto por defecto en un
+    `ModelSerializer`) para no duplicar ese mapeo en el cliente.
+    """
+    imagen_portada = serializers.SerializerMethodField()
+    estado_moderacion_display = serializers.CharField(source='get_estado_moderacion_display', read_only=True)
+
+    class Meta:
+        model = Publicaciones
+        fields = [
+            'id_publicacion', 'titulo', 'categoria', 'precio', 'fecha_publicacion',
+            'imagen_portada', 'estado_moderacion', 'estado_moderacion_display',
+        ]
+        read_only_fields = fields
+
+    def get_imagen_portada(self, publicacion) -> str | None:
+        primera = publicacion.imagenes.first()
+        return primera.url if primera else None
+
+
 class PublicacionDetailSerializer(serializers.ModelSerializer):
     """`GET /api/publicaciones/<pk>/` — equivalente API de `publicacion_detalle_view`, sin el estado de "ya la contraté" (eso llega recién en la fase de contrataciones del plan de migración)."""
     proveedor = ProveedorSerializer(source='usuario_publicador', read_only=True)

@@ -1,0 +1,45 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Mis publicaciones</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <ng-container *ngIf="!cargando">
+    <!-- Mismo grid .ks-card-grid que usa la sección "Mis publicaciones" de perfil.html en Django (con el badge de estado, a diferencia del catálogo público). -->
+    <div class="ks-card-grid" *ngIf="publicaciones.length">
+      <a class="ks-card-tile" *ngFor="let publicacion of publicaciones" [routerLink]="['/catalogo', publicacion.id_publicacion]">
+        <div class="ks-card-tile-img">
+          <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
+          <ng-template #sinImagen>
+            <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline"></ion-icon></div>
+          </ng-template>
+          <ion-badge [color]="colorEstado(publicacion.estado_moderacion)" style="position:absolute; top:8px; right:8px;">
+            {{ publicacion.estado_moderacion_display }}
+          </ion-badge>
+        </div>
+        <div class="ks-card-tile-body">
+          <h3>{{ publicacion.titulo }}</h3>
+          <div class="ks-card-tile-footer">
+            <span *ngIf="publicacion.precio">${{ publicacion.precio | number }}</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <ion-text color="medium" *ngIf="!publicaciones.length">
+      <p class="ion-text-center">Todavía no publicaste ningún servicio.</p>
+    </ion-text>
+
+    <ion-button expand="block" fill="outline" class="ion-margin-top" routerLink="/catalogo/crear">
+      <ion-icon name="add-outline" slot="start"></ion-icon> Publicar un nuevo servicio
+    </ion-button>
+  </ng-container>
+</ion-content>

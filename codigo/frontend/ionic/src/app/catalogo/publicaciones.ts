@@ -60,6 +60,39 @@ export interface PublicacionDetalle {
   resenas: Resena[];
 }
 
+// Campos de PublicacionPropiaSerializer — lo que muestra "Mis
+// publicaciones" (antes, sección de perfil.html): a diferencia de
+// PublicacionResumen, incluye el estado_moderacion real (pendiente/
+// aprobada/rechazada) porque acá el dueño necesita verlo, no solo lo que
+// ya está aprobado y visible al público.
+export interface PublicacionPropia {
+  id_publicacion: number;
+  titulo: string;
+  categoria: string | null;
+  precio: number | null;
+  fecha_publicacion: string;
+  imagen_portada: string | null;
+  estado_moderacion: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
+  estado_moderacion_display: string;
+}
+
+// Mismos campos que PublicacionForm (KeyServApp/forms.py) — el backend lo
+// reusa directo en PublicacionCrearView, igual criterio que Auth.registrar.
+export interface DatosPublicacion {
+  titulo: string;
+  sub_titulo?: string;
+  descripcion_publicacion?: string;
+  categoria: string;
+  categoria_otra?: string;
+  precio: number;
+}
+
+interface RespuestaCrearPublicacion {
+  publicacion: PublicacionDetalle;
+  imagenes_rechazadas: string[];
+  documentos_rechazados: string[];
+}
+
 /** Forma estándar de una respuesta paginada de DRF (`PageNumberPagination`) — la misma para cualquier listado paginado de la API, no solo publicaciones. */
 interface RespuestaPaginada<T> {
   count: number;
@@ -94,5 +127,20 @@ export class Publicaciones {
 
   detalle(id: number): Observable<PublicacionDetalle> {
     return this.http.get<PublicacionDetalle>(`${environment.apiUrl}/publicaciones/${id}/`);
+  }
+
+  /** `GET /api/publicaciones/mias/` — publicaciones propias con cualquier estado_moderacion, requiere sesión (solo proveedores llegan a tener alguna). */
+  mias(): Observable<PublicacionPropia[]> {
+    return this.http.get<PublicacionPropia[]>(`${environment.apiUrl}/publicaciones/mias/`);
+  }
+
+  /**
+   * `POST /api/publicaciones/crear/` — recibe `FormData` (no un objeto
+   * plano) porque puede incluir `imagenes`/`documentos` (archivos
+   * múltiples); `HttpClient` arma el `Content-Type: multipart/form-data`
+   * solo, mismo criterio que `Auth.actualizarPerfilProveedor`.
+   */
+  crear(datos: FormData): Observable<RespuestaCrearPublicacion> {
+    return this.http.post<RespuestaCrearPublicacion>(`${environment.apiUrl}/publicaciones/crear/`, datos);
   }
 }

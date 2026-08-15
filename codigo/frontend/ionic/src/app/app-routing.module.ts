@@ -14,12 +14,13 @@ const routes: Routes = [
     canActivate: [authGuard],
   },
   {
-    // El catálogo (público) es la landing, no /home (que ahora requiere
-    // sesión) — mismo criterio que el sitio Django, donde `/` y
-    // `/servicios/` son públicos y `/sesion/` es aparte.
+    // Landing pública (marketing + búsqueda rápida), equivalente Ionic de
+    // `/` (paginicio_view) — distinta de `/catalogo` (listado completo,
+    // equivalente de `/servicios/`) y de `/home` (dashboard autenticado,
+    // equivalente de `/inicio/`), mismo criterio de 3 rutas separadas que
+    // usa el sitio Django.
     path: '',
-    redirectTo: 'catalogo',
-    pathMatch: 'full'
+    loadChildren: () => import('./inicio/inicio.module').then( m => m.InicioPageModule),
   },
   {
     path: 'login',
@@ -28,6 +29,14 @@ const routes: Routes = [
   {
     path: 'catalogo',
     loadChildren: () => import('./catalogo/catalogo.module').then( m => m.CatalogoPageModule)
+  },
+  {
+    path: 'acerca-de-nosotros',
+    loadChildren: () => import('./acerca/acerca.module').then( m => m.AcercaPageModule)
+  },
+  {
+    path: 'contacto',
+    loadChildren: () => import('./contacto/contacto.module').then((m) => m.ContactoPageModule)
   },
   {
     path: 'registro',
@@ -41,6 +50,11 @@ const routes: Routes = [
   {
     path: 'perfil/proveedor',
     loadChildren: () => import('./perfil/proveedor/proveedor.module').then( m => m.ProveedorPageModule),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'perfil/publicaciones',
+    loadChildren: () => import('./perfil/publicaciones/publicaciones.module').then( m => m.PublicacionesPageModule),
     canActivate: [authGuard],
   },
   {

@@ -1,0 +1,140 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Acerca de nosotros</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Mismo encabezado que .ks-page-header en Acercadeenosotros.html del sitio Django. -->
+  <div class="ks-page-header">
+    <h1><ion-icon name="finger-print-outline"></ion-icon> Acerca de nosotros</h1>
+    <p>La historia detrás de KeyServ, sin rodeos.</p>
+  </div>
+
+  <div class="ks-section">
+    <ion-card>
+      <ion-card-content>
+        <p style="font-style:italic; font-size:1.1rem; font-weight:700; color: var(--ks-navy-dark);">
+          "Contratar un servicio para tu casa no debería sentirse como una apuesta."
+        </p>
+        <p style="color: var(--ks-ink-soft); line-height:1.7;">
+          Esa es la idea que le dio partida a KeyServ. Somos una plataforma chilena que conecta a personas que
+          necesitan un servicio — gasfitería, electricidad, jardinería, limpieza y más — con proveedores que
+          verificamos de verdad: huella dactilar y reconocimiento facial, no solo un formulario marcado con un
+          check. Para que sepás exactamente con quién estás tratando antes de dejarlo entrar a tu casa.
+        </p>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <div class="ks-feature-grid">
+    <ion-card>
+      <ion-card-content>
+        <ion-icon name="locate-outline"></ion-icon>
+        <h3>Nuestra misión</h3>
+        <p>Hacer que contratar servicios del hogar sea simple y seguro, con la tranquilidad de una identidad verificada en ambos extremos de la conexión.</p>
+      </ion-card-content>
+    </ion-card>
+    <ion-card>
+      <ion-card-content>
+        <ion-icon name="telescope-outline"></ion-icon>
+        <h3>Nuestra visión</h3>
+        <p>Ser la plataforma de referencia en Chile para contratar con confianza — reconocida por su seguridad, su transparencia y lo cercana que se siente.</p>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <div class="ks-section">
+    <p class="ks-section-title">Nuestros pilares</p>
+    <div class="ks-feature-grid">
+      <ion-card>
+        <ion-card-content>
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+          <h3>Confianza real</h3>
+          <p>Antes de ofrecer o contratar un servicio, cada persona verifica su identidad con huella dactilar y reconocimiento facial. No es una casilla que marcás al registrarte — es una verificación real.</p>
+        </ion-card-content>
+      </ion-card>
+      <ion-card>
+        <ion-card-content>
+          <ion-icon name="heart-outline"></ion-icon>
+          <h3>Cercanía</h3>
+          <p>Cada consulta que llega a soporte la revisa una persona, no un bot con respuestas genéricas. Y detrás de cada calificación hay un trabajo que realmente se completó.</p>
+        </ion-card-content>
+      </ion-card>
+      <ion-card>
+        <ion-card-content>
+          <ion-icon name="eye-outline"></ion-icon>
+          <h3>Transparencia</h3>
+          <p>Ves el precio antes de contratar, el historial completo de cada trabajo y calificaciones que pasaron por moderación antes de publicarse.</p>
+        </ion-card-content>
+      </ion-card>
+      <ion-card>
+        <ion-card-content>
+          <ion-icon name="hardware-chip-outline"></ion-icon>
+          <h3>Tecnología accesible</h3>
+          <p>Verificar tu identidad no debería sentirse como un trámite bancario. Usamos tecnología biométrica en serio, pensada para que cualquiera la use sin filas ni papeleo.</p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+
+  <div class="ks-section">
+    <p class="ks-section-title">Lo que no estamos dispuestos a tolerar</p>
+    <div class="ks-feature-grid">
+      <ion-card>
+        <ion-card-content>
+          <ion-icon name="thumbs-down-outline"></ion-icon>
+          <h3>Aprovechamiento</h3>
+          <p>Ni de un lado ni del otro — cliente y proveedor parten en igualdad de condiciones.</p>
+        </ion-card-content>
+      </ion-card>
+      <ion-card>
+        <ion-card-content>
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <h3>Fraude y robos</h3>
+          <p>Identidad verificada con huella y reconocimiento facial en ambos lados — nadie entra a ciegas.</p>
+        </ion-card-content>
+      </ion-card>
+      <ion-card>
+        <ion-card-content>
+          <ion-icon name="flag-outline"></ion-icon>
+          <h3>Reseñas falsas</h3>
+          <p>Toda calificación pasa por moderación antes de publicarse — nadie compra una buena reputación.</p>
+        </ion-card-content>
+      </ion-card>
+      <ion-card>
+        <ion-card-content>
+          <ion-icon name="ban-outline"></ion-icon>
+          <h3>Malos tratos</h3>
+          <p>Cero tolerancia al abuso — cualquier intento sospechoso queda registrado y se revisa.</p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+
+  <div class="ks-section">
+    <ion-card>
+      <ion-card-content>
+        <h3 style="display:flex; align-items:center; gap:8px;"><ion-icon name="people-outline"></ion-icon> Nuestro equipo</h3>
+        <p style="color: var(--ks-ink-soft); line-height:1.7;">
+          Partimos como un equipo pequeño con una pregunta simple: ¿por qué es tan difícil confiar en quién entra
+          a tu casa a hacer un trabajo? De ahí salió KeyServ. Seguimos siendo un equipo chico, y preferimos
+          resolver ese problema bien antes que rápido.
+        </p>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <div class="ks-section">
+    <ion-card style="background: var(--ks-gradient-brand); border: none;">
+      <ion-card-content class="ion-text-center">
+        <h3 style="color:#fff;">¿Tenés dudas o sugerencias?</h3>
+        <p style="color: rgba(255,255,255,.85);">Nos encantaría escucharte.</p>
+        <ion-button routerLink="/contacto" style="--background:#fff; --color:#0B3D78;">Escribinos</ion-button>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

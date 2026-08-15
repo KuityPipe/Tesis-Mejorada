@@ -1,0 +1,83 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Contacto</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Mismo encabezado que .ks-page-header en contacto.html del sitio Django. -->
+  <div class="ks-page-header">
+    <h1><ion-icon name="headset-outline"></ion-icon> Contacto</h1>
+    <p>¿Necesitás ayuda? Este es el canal directo con el equipo de soporte.</p>
+  </div>
+
+  <div class="ks-feature-grid">
+    <div class="ks-contact-tile">
+      <ion-icon name="person-outline"></ion-icon>
+      <p class="label">Ingeniero de soporte</p>
+      <p class="value">Felipe Salinas</p>
+    </div>
+    <a class="ks-contact-tile" href="tel:+56955162348">
+      <ion-icon name="call-outline"></ion-icon>
+      <p class="label">Teléfono</p>
+      <p class="value">+56 9 5516 2348</p>
+    </a>
+    <a class="ks-contact-tile" href="mailto:keyserv@gmail.com">
+      <ion-icon name="mail-outline"></ion-icon>
+      <p class="label">Correo</p>
+      <p class="value">keyserv@gmail.com</p>
+    </a>
+  </div>
+
+  <div class="ks-section">
+    <ion-card>
+      <ion-card-content>
+        <h3 style="display:flex; align-items:center; gap:8px;"><ion-icon name="chatbox-ellipses-outline"></ion-icon> ¿Tenés un problema o una consulta?</h3>
+        <p style="color: var(--ks-ink-soft);">Contanos qué pasó — nuestro equipo lo revisa y te responde apenas puede.</p>
+
+        <div class="ks-info-note"><ion-icon name="happy-outline"></ion-icon> Nada de respuestas automáticas — una persona de verdad lee cada consulta.</div>
+
+        <ion-text color="success" *ngIf="enviadoOk">
+          <p class="ion-padding-start">Recibimos tu mensaje — te contactaremos pronto.</p>
+        </ion-text>
+
+        <form [formGroup]="formulario" (ngSubmit)="enviar()" *ngIf="!enviadoOk">
+          <ion-list lines="none">
+            <ion-item>
+              <ion-input label="Asunto" labelPlacement="floating" formControlName="asunto_consulta"></ion-input>
+            </ion-item>
+            <ion-text color="danger" *ngIf="mensajeError('asunto_consulta')"><p class="ion-padding-start">{{ mensajeError('asunto_consulta') }}</p></ion-text>
+
+            <ion-item>
+              <ion-textarea label="Contanos qué pasó" labelPlacement="floating" formControlName="descripcion" [autoGrow]="true" rows="4"></ion-textarea>
+            </ion-item>
+            <ion-text color="danger" *ngIf="mensajeError('descripcion')"><p class="ion-padding-start">{{ mensajeError('descripcion') }}</p></ion-text>
+
+            <ng-container *ngIf="requiereDatosContacto">
+              <ion-item>
+                <ion-input label="Tu nombre" labelPlacement="floating" formControlName="nombre_contacto"></ion-input>
+              </ion-item>
+              <ion-text color="danger" *ngIf="mensajeError('nombre_contacto')"><p class="ion-padding-start">{{ mensajeError('nombre_contacto') }}</p></ion-text>
+
+              <ion-item>
+                <ion-input label="Tu correo" labelPlacement="floating" type="email" formControlName="email_contacto"></ion-input>
+              </ion-item>
+              <ion-text color="danger" *ngIf="mensajeError('email_contacto')"><p class="ion-padding-start">{{ mensajeError('email_contacto') }}</p></ion-text>
+            </ng-container>
+          </ion-list>
+
+          <ion-text color="danger" *ngIf="errorGeneral">
+            <p class="ion-padding-start">{{ errorGeneral }}</p>
+          </ion-text>
+
+          <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
+            {{ enviando ? 'Enviando…' : 'Enviar consulta' }}
+          </ion-button>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

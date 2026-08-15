@@ -8,12 +8,18 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Mismo encabezado que .ks-page-header en crearperfil.html del sitio Django. -->
+  <div class="ks-page-header">
+    <h1><ion-icon name="briefcase-outline"></ion-icon> Perfil de proveedor</h1>
+    <p>Contale a los clientes en qué trabajás y qué experiencia tenés.</p>
+  </div>
+
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
-  <div class="ks-section ion-margin-top" *ngIf="!cargando">
-    <p class="ks-section-title">Perfil de proveedor</p>
+  <div class="ks-section" *ngIf="!cargando">
+    <p class="ks-section-title">Áreas y experiencia</p>
     <ion-card>
       <ion-card-content>
         <form [formGroup]="formulario" (ngSubmit)="enviar()">

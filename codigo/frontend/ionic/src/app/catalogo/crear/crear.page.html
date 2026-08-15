@@ -1,0 +1,123 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/catalogo"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Publicar un servicio</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <ng-container *ngIf="!cargando">
+    <!-- Mismo encabezado que .ks-page-header en crear_publicacion.html del sitio Django. -->
+    <div class="ks-page-header">
+      <h1><ion-icon name="megaphone-outline"></ion-icon> Publicar un servicio</h1>
+      <p>Completá los datos — abajo ves en vivo cómo va a quedar tu publicación.</p>
+    </div>
+
+    <ion-text color="warning" *ngIf="!puedePublicar">
+      <div class="ks-info-note">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        Solo los proveedores pueden publicar servicios. Activá el modo proveedor desde
+        <a routerLink="/perfil/proveedor">tu perfil de proveedor</a>.
+      </div>
+    </ion-text>
+
+    <ng-container *ngIf="puedePublicar">
+      <ion-text color="success" *ngIf="enviadoOk">
+        <div class="ks-info-note">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          Publicación creada, queda pendiente de aprobación. Redirigiendo…
+        </div>
+      </ion-text>
+
+      <form [formGroup]="formulario" (ngSubmit)="enviar()" *ngIf="!enviadoOk">
+        <div class="ks-section">
+          <ion-card>
+            <ion-card-content>
+              <ion-list lines="none">
+                <ion-item>
+                  <ion-input label="Título" labelPlacement="floating" formControlName="titulo"></ion-input>
+                </ion-item>
+                <ion-text color="danger" *ngIf="mensajeError('titulo')"><p class="ion-padding-start">{{ mensajeError('titulo') }}</p></ion-text>
+
+                <ion-item>
+                  <ion-input label="Subtítulo" labelPlacement="floating" formControlName="sub_titulo"></ion-input>
+                </ion-item>
+
+                <ion-item>
+                  <ion-input label="Precio (CLP)" labelPlacement="floating" type="number" formControlName="precio"></ion-input>
+                </ion-item>
+                <ion-text color="danger" *ngIf="mensajeError('precio')"><p class="ion-padding-start">{{ mensajeError('precio') }}</p></ion-text>
+
+                <ion-item>
+                  <ion-select label="Categoría" labelPlacement="floating" formControlName="categoria">
+                    <ion-select-option *ngFor="let c of categorias" [value]="c">{{ c }}</ion-select-option>
+                    <ion-select-option [value]="otraCategoria">Otra (especificar abajo)</ion-select-option>
+                  </ion-select>
+                </ion-item>
+                <ion-text color="danger" *ngIf="mensajeError('categoria')"><p class="ion-padding-start">{{ mensajeError('categoria') }}</p></ion-text>
+
+                <ion-item *ngIf="formulario.controls.categoria.value === otraCategoria">
+                  <ion-input label="Especificá la categoría" labelPlacement="floating" formControlName="categoria_otra"></ion-input>
+                </ion-item>
+
+                <ion-item>
+                  <ion-textarea label="Descripción" labelPlacement="floating" formControlName="descripcion_publicacion" [autoGrow]="true" rows="4"></ion-textarea>
+                </ion-item>
+
+                <ion-item lines="none">
+                  <ion-label>Fotos del servicio (hasta 8, la primera es la portada)</ion-label>
+                  <input type="file" accept="image/*" multiple (change)="alElegirImagenes($event)" />
+                </ion-item>
+
+                <ion-item lines="none">
+                  <ion-label>Documentos de respaldo (opcional, hasta 5)</ion-label>
+                  <input type="file" multiple (change)="alElegirDocumentos($event)" />
+                </ion-item>
+              </ion-list>
+
+              <p class="ks-help" style="color: var(--ks-ink-soft); font-size: .88rem;">
+                Tu publicación (con fotos, documentos y categoría) queda pendiente de aprobación por un moderador antes de aparecer en el catálogo.
+              </p>
+
+              <ion-text color="danger" *ngIf="imagenesRechazadas.length || documentosRechazados.length">
+                <p class="ion-padding-start">No se pudieron subir: {{ imagenesRechazadas.concat(documentosRechazados).join(', ') }}.</p>
+              </ion-text>
+              <ion-text color="danger" *ngIf="errorGeneral">
+                <p class="ion-padding-start">{{ errorGeneral }}</p>
+              </ion-text>
+
+              <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
+                {{ enviando ? 'Publicando…' : 'Publicar' }}
+              </ion-button>
+            </ion-card-content>
+          </ion-card>
+        </div>
+      </form>
+
+      <!-- Previsualización en vivo — misma idea que el panel de la derecha en crear_publicacion.html, portada 1:1 pero apilada abajo (mobile-first) en vez de al costado. -->
+      <div class="ks-section">
+        <p class="ks-section-title"><ion-icon name="eye-outline"></ion-icon> Así se ve tu publicación</p>
+        <div class="ks-page-header">
+          <h1>{{ preview.titulo || 'Título de tu servicio' }} <ion-badge *ngIf="categoriaPreview" color="tertiary">{{ categoriaPreview }}</ion-badge></h1>
+          <p>{{ preview.sub_titulo || 'Subtítulo breve del servicio' }}</p>
+          <p *ngIf="preview.precio" style="font-weight:800; font-size:1.2rem; margin:6px 0 0;">${{ preview.precio | number }} CLP</p>
+        </div>
+        <div class="imagenes" *ngIf="previewsImagenes.length">
+          <img *ngFor="let url of previewsImagenes" [src]="url" alt="" />
+        </div>
+        <ion-card>
+          <ion-card-content>
+            <h3>Descripción</h3>
+            <p style="color: var(--ks-ink-soft);">{{ preview.descripcion_publicacion || 'Todavía no escribiste una descripción.' }}</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </ng-container>
+  </ng-container>
+</ion-content>
