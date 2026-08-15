@@ -18,24 +18,80 @@
     <ion-spinner></ion-spinner>
   </div>
 
-  <ion-card *ngIf="!cargando">
-    <ion-card-content>
-      <ion-list lines="full">
-        <ion-item *ngFor="let c of contrataciones" [routerLink]="['/contratacion', c.id_contratacion]" button detail>
-          <ion-thumbnail slot="start" *ngIf="c.publicacion_imagen">
-            <img [src]="c.publicacion_imagen" [alt]="c.publicacion_titulo" />
-          </ion-thumbnail>
-          <ion-label>
-            <h2>{{ c.publicacion_titulo }}</h2>
-            <p>Cliente: {{ c.cliente_nombre }} · Proveedor: {{ c.proveedor_nombre }}</p>
-            <p *ngIf="c.monto_acordado">${{ c.monto_acordado | number }}</p>
-          </ion-label>
-          <ion-badge slot="end" [color]="colorEstado(c.estado)">{{ c.estado }}</ion-badge>
-        </ion-item>
-        <ion-item *ngIf="!contrataciones.length" lines="none">
-          <ion-label color="medium">Todavía no tienes contrataciones.</ion-label>
-        </ion-item>
-      </ion-list>
-    </ion-card-content>
-  </ion-card>
+  <ng-container *ngIf="!cargando && contrataciones.length">
+    <!-- Mismo .ks-reservas-toolbar que reservas.html: busqueda + rango de fechas, filtrado en memoria (reservas_view tampoco filtra del lado del servidor). -->
+    <div class="ks-reservas-toolbar">
+      <div class="ks-filter-field ks-filter-field-buscar">
+        <label for="reservas-buscar"><ion-icon name="search-outline"></ion-icon> Buscar</label>
+        <input type="text" id="reservas-buscar" placeholder="Servicio o persona..." [(ngModel)]="busqueda" (ngModelChange)="aplicarFiltros()">
+      </div>
+      <div class="ks-filter-field">
+        <label for="reservas-desde"><ion-icon name="calendar-outline"></ion-icon> Desde</label>
+        <input type="date" id="reservas-desde" [(ngModel)]="desde" (ngModelChange)="aplicarFiltros()">
+      </div>
+      <div class="ks-filter-field">
+        <label for="reservas-hasta"><ion-icon name="calendar-outline"></ion-icon> Hasta</label>
+        <input type="date" id="reservas-hasta" [(ngModel)]="hasta" (ngModelChange)="aplicarFiltros()">
+      </div>
+      <ion-button fill="outline" size="small" (click)="limpiarFiltros()">Limpiar filtros</ion-button>
+    </div>
+
+    <div class="ks-filtros-chips">
+      <button
+        type="button"
+        class="ks-filtro-chip"
+        *ngFor="let f of estadosFiltro"
+        [class.is-activo]="filtroEstado === f.valor"
+        (click)="elegirFiltro(f.valor)"
+      >
+        {{ f.etiqueta }} <span class="ks-filtro-count">{{ contador(f.valor) }}</span>
+      </button>
+    </div>
+
+    <ion-text color="medium" *ngIf="!filtradas.length">
+      <p>Ningún resultado con esos filtros.</p>
+    </ion-text>
+
+    <!-- Mismo .ks-reservas-grid que reservas.html: foto de portada, badge de estado superpuesto, etiqueta de rol (Contraté / Me contrataron), y la acción según estado+rol. -->
+    <div class="ks-reservas-grid" *ngIf="filtradas.length">
+      <div class="ks-reserva-card" *ngFor="let c of filtradas">
+        <a class="ks-reserva-card-img" [routerLink]="['/contratacion', c.id_contratacion]">
+          <img *ngIf="c.publicacion_imagen; else sinImagen" [src]="c.publicacion_imagen" [alt]="c.publicacion_titulo" />
+          <ng-template #sinImagen>
+            <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline"></ion-icon></div>
+          </ng-template>
+          <ion-badge class="ks-reserva-badge" [color]="colorEstado(c.estado)">{{ etiquetaEstado(c.estado) }}</ion-badge>
+        </a>
+        <div class="ks-reserva-card-body">
+          <span class="ks-reserva-role-tag">
+            <ion-icon [name]="esCliente(c) ? 'bag-check-outline' : 'briefcase-outline'"></ion-icon>
+            {{ esCliente(c) ? 'Contraté' : 'Me contrataron' }}
+          </span>
+          <h4><a [routerLink]="['/contratacion', c.id_contratacion]">{{ c.publicacion_titulo }}</a></h4>
+          <p class="ks-reserva-counterpart">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            {{ contraparteNombre(c) }}
+          </p>
+
+          <div class="ks-reserva-actions">
+            <ng-container *ngIf="c.estado === 'COMPLETADA' && esCliente(c); else verDetalle">
+              <ion-button *ngIf="!c.tiene_valoracion" [routerLink]="['/contratacion', c.id_contratacion]" fill="outline" size="small">
+                <ion-icon name="star-outline" slot="start"></ion-icon> Calificar
+              </ion-button>
+              <a *ngIf="c.tiene_valoracion" [routerLink]="['/contratacion', c.id_contratacion]" class="ks-help">
+                <ion-icon name="checkmark-circle-outline"></ion-icon> Ya calificaste este trabajo
+              </a>
+            </ng-container>
+            <ng-template #verDetalle>
+              <ion-button [routerLink]="['/contratacion', c.id_contratacion]" fill="outline" size="small">Ver detalle</ion-button>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ion-text color="medium" *ngIf="!cargando && !contrataciones.length">
+    <p>Todavía no tienes contrataciones — <a routerLink="/catalogo">busca un servicio</a> para empezar.</p>
+  </ion-text>
 </ion-content>

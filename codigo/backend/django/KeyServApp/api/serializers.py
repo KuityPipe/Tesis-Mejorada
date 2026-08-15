@@ -154,6 +154,10 @@ class ContratacionListSerializer(serializers.ModelSerializer):
     publicacion_imagen = serializers.SerializerMethodField()
     cliente_nombre = serializers.CharField(source='cliente.nombre_usuario', read_only=True)
     proveedor_nombre = serializers.CharField(source='proveedor.nombre_usuario', read_only=True)
+    # Para el grid de reservas.page (Ionic) — mismo dato que `contratacion.valoracion`
+    # en reservas.html, para distinguir "Calificar" de "Ya calificaste este trabajo"
+    # sin pedir el detalle completo de cada tarjeta.
+    tiene_valoracion = serializers.SerializerMethodField()
 
     class Meta:
         model = Contratacion
@@ -161,12 +165,16 @@ class ContratacionListSerializer(serializers.ModelSerializer):
             'id_contratacion', 'estado', 'monto_acordado', 'fecha_creacion',
             'publicacion', 'publicacion_titulo', 'publicacion_imagen',
             'cliente', 'cliente_nombre', 'proveedor', 'proveedor_nombre',
+            'tiene_valoracion',
         ]
         read_only_fields = fields
 
     def get_publicacion_imagen(self, contratacion) -> str | None:
         primera = contratacion.publicacion.imagenes.first()
         return primera.url if primera else None
+
+    def get_tiene_valoracion(self, contratacion) -> bool:
+        return hasattr(contratacion, 'valoracion') and contratacion.valoracion is not None
 
 
 class ContratacionDetailSerializer(ContratacionListSerializer):

@@ -107,6 +107,10 @@ export class DetallePage implements OnInit {
     return this.contratacionesApi.colorEstado(estado);
   }
 
+  etiquetaEstado(estado: string | undefined): string {
+    return this.contratacionesApi.etiquetaEstado(estado);
+  }
+
   enviarMensaje(): void {
     if (this.formularioMensaje.invalid || this.enviandoMensaje) {
       return;

@@ -89,6 +89,10 @@ export class HomePage implements OnInit {
     return this.contratacionesApi.colorEstado(estado);
   }
 
+  etiquetaEstado(estado: string): string {
+    return this.contratacionesApi.etiquetaEstado(estado);
+  }
+
   salir(): void {
     this.auth.logout();
     this.router.navigateByUrl('/login');

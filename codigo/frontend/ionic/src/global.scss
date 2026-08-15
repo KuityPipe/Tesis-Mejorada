@@ -579,3 +579,184 @@ ion-button:has(.ks-toolbar-badge) {
   line-height: 16px;
   border-radius: 999px;
 }
+
+// ---------- Reservas (mis contrataciones) — equivalente Ionic de
+// .ks-reservas-toolbar/.ks-filtros-chips/.ks-reservas-grid en base.css.
+// A diferencia de .ks-filter-bar del catálogo (ion-searchbar/ion-select),
+// acá se portan los <input> nativos tal cual porque reservas.html también
+// los usa nativos (texto + fecha, sin selects) — mismo criterio, menos
+// componentes que enlazar.
+.ks-reservas-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--ks-surface, var(--ion-card-background));
+  border: 1px solid var(--ks-border, var(--ion-border-color));
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.ks-reservas-toolbar .ks-filter-field {
+  flex: 1;
+  min-width: 150px;
+}
+
+.ks-reservas-toolbar .ks-filter-field-buscar {
+  flex: 2;
+  min-width: 200px;
+}
+
+.ks-filter-field label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--ion-text-color);
+  margin-bottom: 4px;
+}
+
+.ks-filter-field input[type="text"],
+.ks-filter-field input[type="date"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ks-border, var(--ion-border-color));
+  border-radius: 8px;
+  font-family: 'Nunito', sans-serif;
+  background: transparent;
+  color: var(--ion-text-color);
+}
+
+.ks-filter-field input[type="text"]:focus,
+.ks-filter-field input[type="date"]:focus {
+  outline: none;
+  border-color: var(--ion-color-secondary);
+}
+
+@media (max-width: 640px) {
+  .ks-reservas-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.ks-filtros-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.ks-filtro-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 2px solid var(--ks-border, var(--ion-border-color));
+  background: transparent;
+  color: var(--ion-color-medium);
+  font-weight: 700;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: border-color .12s ease, color .12s ease, background .12s ease;
+}
+
+.ks-filtro-chip.is-activo {
+  background: var(--ion-color-secondary);
+  border-color: var(--ion-color-secondary);
+  color: #fff;
+}
+
+.ks-filtro-chip .ks-filtro-count {
+  background: rgba(0, 0, 0, .12);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: .78rem;
+}
+
+.ks-filtro-chip.is-activo .ks-filtro-count {
+  background: rgba(255, 255, 255, .25);
+}
+
+.ks-reservas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.ks-reserva-card {
+  background: var(--ks-surface, var(--ion-card-background));
+  border-radius: 16px;
+  border: 1px solid var(--ks-border, var(--ion-border-color));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+}
+
+.ks-reserva-card-img {
+  position: relative;
+  display: block;
+  height: 130px;
+  background: var(--ion-color-light);
+}
+
+.ks-reserva-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ks-reserva-card-img .ks-card-tile-img-placeholder {
+  height: 100%;
+}
+
+.ks-reserva-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+}
+
+.ks-reserva-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.ks-reserva-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  color: var(--ion-color-secondary);
+  font-size: .76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.ks-reserva-card-body h4 {
+  font-size: 1.02rem;
+  margin: 2px 0 0;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+}
+
+.ks-reserva-counterpart {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ion-color-medium);
+  font-size: .88rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.ks-reserva-actions {
+  margin-top: auto;
+  padding-top: 12px;
+}

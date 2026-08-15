@@ -49,6 +49,7 @@ export interface ContratacionResumen {
   cliente_nombre: string;
   proveedor: number;
   proveedor_nombre: string;
+  tiene_valoracion: boolean;
 }
 
 // Igual que PagoSerializer (api/serializers.py).
@@ -152,6 +153,31 @@ export class Contrataciones {
         return 'primary';
       default:
         return 'medium';
+    }
+  }
+
+  /**
+   * Mismo texto que `Contratacion.get_estado_display()` (models.py,
+   * ESTADOS_CONTRATACION) — Django no muestra el código crudo del estado
+   * en ningún badge, siempre la etiqueta descriptiva ("Confirmada por el
+   * proveedor", no "CONFIRMADA"). Vive acá junto a `colorEstado` por el
+   * mismo motivo: varias pantallas (home, reservas, detalle) necesitan el
+   * mismo criterio.
+   */
+  etiquetaEstado(estado: string | undefined): string {
+    switch (estado) {
+      case 'SOLICITADA':
+        return 'Solicitada por el cliente';
+      case 'CONFIRMADA':
+        return 'Confirmada por el proveedor';
+      case 'EN_CURSO':
+        return 'Servicio en curso';
+      case 'COMPLETADA':
+        return 'Completada';
+      case 'CANCELADA':
+        return 'Cancelada';
+      default:
+        return estado ?? '';
     }
   }
 }
