@@ -23,6 +23,42 @@ Todavía no está desplegado (ver [Roadmap](#roadmap)). Mientras tanto, corre lo
 
 Actualmente coexisten dos frontends: los templates originales renderizados por Django y la nueva app Ionic/Angular, que habla con una API REST hecha con DRF. La migración a Ionic sigue un enfoque "strangler fig" — las pantallas se retiran del app de templates área por área, no en un solo corte grande.
 
+## Arquitectura
+
+```mermaid
+flowchart TB
+    subgraph CLIENTS["Clientes (migración strangler-fig, coexistiendo)"]
+        direction LR
+        TPL["Templates Django<br/>auth por sesión"]
+        ION["Ionic + Angular<br/>web · Android · iOS vía Capacitor"]
+    end
+
+    TPL -. "pantallas retirándose área por área" .-> ION
+
+    subgraph BACKEND["Backend Django"]
+        direction LR
+        VIEWS["Vistas de templates"]
+        API["API REST /api/*<br/>JWT hecho a mano (PyJWT)"]
+    end
+
+    TPL --> VIEWS
+    ION -- "Bearer token" --> API
+
+    VIEWS --> DB[("PostgreSQL")]
+    API --> DB
+
+    VIEWS --> PAY
+    API --> PAY
+    VIEWS --> BIO
+    API --> BIO
+
+    subgraph EXTERNAL["Servicios externos"]
+        direction LR
+        PAY["Transbank Webpay<br/>+ Khipu"]
+        BIO["Biometría<br/>huella · rostro por cámara · nativa<br/>Face ID / huella"]
+    end
+```
+
 ## Decisiones técnicas
 
 Algunas de las que defendería en una entrevista:

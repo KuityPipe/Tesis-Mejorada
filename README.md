@@ -23,6 +23,42 @@ Not deployed yet (see [Roadmap](#roadmap)). In the meantime, it runs locally in 
 
 Two frontends currently coexist: the original Django server-rendered templates and the new Ionic/Angular app, talking to a DRF REST API. The Ionic migration follows a strangler-fig approach — screens are retired from the template app one area at a time, not in one big cutover.
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph CLIENTS["Clients (strangler-fig migration, coexisting)"]
+        direction LR
+        TPL["Django templates<br/>session auth"]
+        ION["Ionic + Angular<br/>web · Android · iOS via Capacitor"]
+    end
+
+    TPL -. "screens retiring area by area" .-> ION
+
+    subgraph BACKEND["Django backend"]
+        direction LR
+        VIEWS["Template views"]
+        API["REST API /api/*<br/>hand-rolled JWT (PyJWT)"]
+    end
+
+    TPL --> VIEWS
+    ION -- "Bearer token" --> API
+
+    VIEWS --> DB[("PostgreSQL")]
+    API --> DB
+
+    VIEWS --> PAY
+    API --> PAY
+    VIEWS --> BIO
+    API --> BIO
+
+    subgraph EXTERNAL["External services"]
+        direction LR
+        PAY["Transbank Webpay<br/>+ Khipu"]
+        BIO["Biometrics<br/>fingerprint · webcam face · native<br/>Face ID / fingerprint"]
+    end
+```
+
 ## Technical decisions
 
 A few of the calls I'd defend in an interview:
