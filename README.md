@@ -3,6 +3,10 @@
 # KeyServ
 
 [![Tests](https://github.com/KuityPipe/Tesis-Mejorada/actions/workflows/tests.yml/badge.svg)](https://github.com/KuityPipe/Tesis-Mejorada/actions/workflows/tests.yml)
+![Django](https://img.shields.io/badge/Django-5.2-092E20?logo=django&logoColor=white)
+![Angular](https://img.shields.io/badge/Angular-20-DD0031?logo=angular&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 A Chilean home-services marketplace with biometric identity verification (fingerprint, webcam-based facial recognition, and native Face ID/fingerprint). Started as a university thesis project, now being developed as a real product.
 
@@ -102,10 +106,12 @@ This project was built with Claude Code as a development pair. Every architectur
 
 ## Roadmap
 
-- CI (GitHub Actions) running the test suite on every push
 - A deployed demo (catalog + auth + contracting; native biometrics stay local-only, covered by a demo video instead)
-- Architecture diagram
-- Open-source license
+- A short video walkthrough (contracting flow, payment, native Android app with biometrics)
+
+## License
+
+[MIT](LICENSE) — permissive, doesn't block relicensing later if this ever grows past a portfolio project.
 
 ## Further reading
 
@@ -114,3 +120,4 @@ The project keeps unusually detailed engineering docs, written as the work happe
 - [`docs/PLAN_MIGRACION_IONIC.md`](docs/PLAN_MIGRACION_IONIC.md) — the phased plan for the Django-to-Ionic migration
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — tracked gaps and decisions across the project
 - [`docs/DATABASE_DOCUMENTATION.md`](docs/DATABASE_DOCUMENTATION.md) — data model reference
+- [Development timeline (Gantt chart)](https://claude.ai/code/artifact/aea584bb-cc91-4a5a-8bf0-238cd886903b) — process evidence, built alongside the work rather than after the fact
