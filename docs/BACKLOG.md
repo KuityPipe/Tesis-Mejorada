@@ -37,11 +37,15 @@ Ver también: `docs/PLAN_MIGRACION_IONIC.md` (fases 1-8 de la migración, más t
 - [x] **Historial de pagos** — `GET /api/pagos/historial/` (`PagoHistorialView` +
       `PagoHistorialSerializer`) + `/perfil/pagos`. — 2026-08-14, verificado en vivo (estado vacío
       y con un pago real creado a propósito para probar el listado, revertido después). 4 tests.
+- [x] **Bandeja de entrada de mensajes** — `GET /api/conversaciones/` (`ConversacionListView` +
+      `ConversacionResumenSerializer`, arma la lista igual que `chat_view`) + `/mensajes`, con badge
+      de no leídos también en el tile "Mensajes" de `home.page`. Cada fila navega directo a
+      `/contratacion/:id` (el chat ya vive embebido ahí, no se duplicó una pantalla de conversación
+      aparte). — 2026-08-15, verificado en vivo con 6 conversaciones reales de datos demo (avatares,
+      badges de estado, preview del último mensaje, navegación a la contratación correcta). 5 tests.
 
-## Pendiente — prioridad alta (gaps funcionales reales)
-
-- [ ] **Bandeja de entrada de mensajes** (`chat.html` → nueva pantalla Ionic, lista de
-      conversaciones). Hoy el chat de Ionic solo es accesible entrando a una contratación puntual.
+Con esto se cierra el punch list de gaps funcionales de prioridad alta — no queda ningún ítem `[ ]`
+en esa categoría.
 
 ## Pendiente — prioridad media (completar lo empezado)
 

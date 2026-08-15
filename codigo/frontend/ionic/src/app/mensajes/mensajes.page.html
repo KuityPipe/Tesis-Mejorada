@@ -1,0 +1,53 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Bandeja de entrada</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Mismo encabezado que .ks-page-header en chat.html del sitio Django. -->
+  <div class="ks-page-header">
+    <h1><ion-icon name="chatbubbles-outline"></ion-icon> Bandeja de entrada</h1>
+    <p>Un chat por cada trabajo — así no se mezclan conversaciones de contrataciones distintas.</p>
+  </div>
+
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <ion-card *ngIf="!cargando">
+    <ion-card-content>
+      <ion-list lines="full" *ngIf="conversaciones.length; else sinConversaciones">
+        <ion-item
+          *ngFor="let conv of conversaciones"
+          [routerLink]="conv.contratacion_id ? ['/contratacion', conv.contratacion_id] : null"
+          [button]="!!conv.contratacion_id"
+          [detail]="!!conv.contratacion_id"
+        >
+          <div class="ks-avatar-brand" slot="start">{{ (conv.contraparte_nombre || '?').charAt(0) }}</div>
+          <ion-label class="ion-text-wrap">
+            <div class="ks-inbox-top">
+              <h2>{{ conv.contraparte_nombre }}</h2>
+              <ion-badge *ngIf="conv.no_leidos" color="danger">{{ conv.no_leidos }}</ion-badge>
+            </div>
+            <p *ngIf="conv.publicacion_titulo">
+              <ion-icon name="briefcase-outline"></ion-icon> {{ conv.publicacion_titulo }}
+              <ion-badge [color]="colorEstado(conv.contratacion_estado || '')" style="margin-left:6px;">{{ conv.contratacion_estado }}</ion-badge>
+            </p>
+            <p *ngIf="conv.ultimo_mensaje_contenido">
+              {{ conv.ultimo_mensaje_es_propio ? 'Vos: ' : '' }}{{ conv.ultimo_mensaje_contenido }}
+            </p>
+            <p *ngIf="!conv.ultimo_mensaje_contenido" style="color: var(--ks-ink-soft);">Todavía no hay mensajes.</p>
+          </ion-label>
+          <ion-note slot="end" *ngIf="conv.ultimo_mensaje_fecha">{{ conv.ultimo_mensaje_fecha | date:'short' }}</ion-note>
+        </ion-item>
+      </ion-list>
+      <ng-template #sinConversaciones>
+        <p style="color: var(--ks-ink-soft);">Todavía no tenés conversaciones — se crean automáticamente al contratar o recibir una solicitud de servicio.</p>
+      </ng-template>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

@@ -169,6 +169,26 @@ class MensajeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_mensaje', 'fecha_envio', 'usuario', 'usuario_nombre']
 
 
+class ConversacionResumenSerializer(serializers.Serializer):
+    """
+    `GET /api/conversaciones/` — equivalente API de `chat_view` (bandeja de
+    entrada). No es un `ModelSerializer` a propósito: igual que el
+    template, cada fila combina la `Conversacion` con datos calculados
+    aparte (no_leidos, último mensaje, contraparte) que no son campos
+    reales del modelo — se arman a mano en `ConversacionListView` y este
+    serializer solo define la forma de esa lista de dicts.
+    """
+    id_conversacion = serializers.IntegerField()
+    contratacion_id = serializers.IntegerField(allow_null=True)
+    publicacion_titulo = serializers.CharField(allow_null=True)
+    contratacion_estado = serializers.CharField(allow_null=True)
+    contraparte_nombre = serializers.CharField(allow_null=True)
+    no_leidos = serializers.IntegerField()
+    ultimo_mensaje_contenido = serializers.CharField(allow_null=True)
+    ultimo_mensaje_fecha = serializers.DateTimeField(allow_null=True)
+    ultimo_mensaje_es_propio = serializers.BooleanField()
+
+
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region

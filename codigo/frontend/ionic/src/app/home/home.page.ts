@@ -4,6 +4,7 @@ import { AlertController } from '@ionic/angular';
 
 import { Auth, Usuario } from '../core/auth';
 import { Contrataciones, ContratacionResumen } from '../contrataciones/contrataciones';
+import { Conversaciones } from '../mensajes/conversaciones';
 
 const ESTADOS_ACTIVOS = ['SOLICITADA', 'CONFIRMADA', 'EN_CURSO'];
 
@@ -26,11 +27,13 @@ export class HomePage implements OnInit {
   usuario: Usuario | null = null;
   cargando = true;
   trabajosActuales: ContratacionResumen[] = [];
+  mensajesNoLeidos = 0;
 
   constructor(
     private readonly auth: Auth,
     private readonly router: Router,
     private readonly contratacionesApi: Contrataciones,
+    private readonly conversacionesApi: Conversaciones,
     private readonly alertController: AlertController,
   ) {}
 
@@ -59,6 +62,19 @@ export class HomePage implements OnInit {
       },
       error: () => {
         // Si falla, el dashboard simplemente no muestra esta sección — no es crítico como el auth.me() de arriba.
+      },
+    });
+
+    // Badge de no leídos en el tile "Mensajes" — equivalente Ionic del
+    // badge que Django pinta en el ícono de chat del header
+    // (contar_mensajes_no_leidos, base.html), acá sumado sobre la misma
+    // lista que ya trae GET /api/conversaciones/.
+    this.conversacionesApi.listar().subscribe({
+      next: (conversaciones) => {
+        this.mensajesNoLeidos = conversaciones.reduce((total, c) => total + c.no_leidos, 0);
+      },
+      error: () => {
+        // No crítico — el tile simplemente no muestra badge.
       },
     });
   }

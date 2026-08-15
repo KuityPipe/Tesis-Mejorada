@@ -27,6 +27,16 @@
           <p>Explorá el catálogo de proveedores verificados.</p>
         </div>
       </div>
+      <!-- Mismo orden que Sesioniniciadainicio.html en Django: Buscar servicios, Mensajes, Mi perfil. -->
+      <div class="ks-card-tile" routerLink="/mensajes">
+        <div class="ks-card-tile-body">
+          <h3>
+            <ion-icon name="chatbubbles-outline"></ion-icon> Mensajes
+            <ion-badge color="danger" *ngIf="mensajesNoLeidos" style="margin-left:4px;">{{ mensajesNoLeidos }}</ion-badge>
+          </h3>
+          <p>Conversá con clientes o proveedores.</p>
+        </div>
+      </div>
       <div class="ks-card-tile" routerLink="/reservas">
         <div class="ks-card-tile-body">
           <h3><ion-icon name="briefcase-outline"></ion-icon> Mis contrataciones</h3>

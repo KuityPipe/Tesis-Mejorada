@@ -26,6 +26,7 @@ urlpatterns = [
     path('publicaciones/crear/', views.PublicacionCrearView.as_view(), name='publicaciones-crear'),
     path('publicaciones/mias/', views.MisPublicacionesView.as_view(), name='publicaciones-mias'),
     path('publicaciones/<int:pk>/', views.PublicacionDetailView.as_view(), name='publicaciones-detail'),
+    path('conversaciones/', views.ConversacionListView.as_view(), name='conversaciones-list'),
     path('contrataciones/', views.ContratacionListCreateView.as_view(), name='contrataciones-list'),
     path('contrataciones/<int:contratacion_id>/', views.ContratacionDetailView.as_view(), name='contrataciones-detail'),
     path('contrataciones/<int:contratacion_id>/mensajes/', views.ContratacionMensajesView.as_view(), name='contrataciones-mensajes'),

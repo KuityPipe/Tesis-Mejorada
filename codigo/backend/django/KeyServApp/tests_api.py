@@ -888,6 +888,70 @@ class ContratacionDetalleMensajesApiTests(APITestCase):
         self.assertEqual(resp.status_code, 404)
 
 
+class ConversacionListApiTests(APITestCase):
+    """`GET /api/conversaciones/` — espeja `chat_view` (bandeja de entrada), sin equivalente propio en tests.py."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_inbox_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_inbox_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.intruso = _crear_usuario('intruso_inbox_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Electricidad', estado_moderacion=Publicaciones.APROBADA)
+        self.contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+
+    def _autenticado_como(self, usuario):
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_sin_token_devuelve_401(self):
+        resp = self.client.get('/api/conversaciones/')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_sin_conversaciones_devuelve_lista_vacia(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.get('/api/conversaciones/')
+        self.assertEqual(resp.data, [])
+
+    def test_lista_la_conversacion_con_ultimo_mensaje_y_contraparte(self):
+        self._autenticado_como(self.cliente)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'Hola, ¿cuándo podrías venir?'}, format='json')
+
+        resp = self.client.get('/api/conversaciones/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        fila = resp.data[0]
+        self.assertEqual(fila['contratacion_id'], self.contratacion.id_contratacion)
+        self.assertEqual(fila['publicacion_titulo'], 'Electricidad')
+        self.assertEqual(fila['contraparte_nombre'], str(self.proveedor))
+        self.assertEqual(fila['ultimo_mensaje_contenido'], 'Hola, ¿cuándo podrías venir?')
+        self.assertTrue(fila['ultimo_mensaje_es_propio'])
+
+    def test_no_incluye_conversaciones_ajenas(self):
+        self._autenticado_como(self.cliente)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'Hola'}, format='json')
+
+        self._autenticado_como(self.intruso)
+        resp = self.client.get('/api/conversaciones/')
+        self.assertEqual(resp.data, [])
+
+    def test_no_leidos_cuenta_solo_mensajes_de_la_contraparte(self):
+        self._autenticado_como(self.cliente)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'Hola'}, format='json')
+        self._autenticado_como(self.proveedor)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'Sí, mañana'}, format='json')
+
+        # De vuelta como cliente, sin haber marcado nada como leído (eso solo
+        # lo hace el GET de mensajes, no este endpoint ni el POST) — el único
+        # mensaje que no es propio es el del proveedor, así que no_leidos = 1.
+        self._autenticado_como(self.cliente)
+        resp = self.client.get('/api/conversaciones/')
+
+        self.assertEqual(resp.data[0]['no_leidos'], 1)
+        self.assertEqual(resp.data[0]['ultimo_mensaje_contenido'], 'Sí, mañana')
+        self.assertFalse(resp.data[0]['ultimo_mensaje_es_propio'])
+
+
 class ContratacionConfirmarCompletarApiTests(APITestCase):
     """`POST /api/contrataciones/<id>/confirmar/` y `/completar/` — espeja ContratacionFlowTests/MontoAcordadoConfirmarTests/ItemPresupuestoTests (tests.py)."""
 

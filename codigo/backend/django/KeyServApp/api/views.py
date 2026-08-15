@@ -33,17 +33,17 @@ from ..forms import (
     RecuperarForm, RegistroForm, ValoracionForm,
 )
 from ..models import (
-    Comuna, Contratacion, Documento, EstadoConsulta, EstadoDocumento, HistorialEstadoContratacion,
-    Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region, Transaccion, TipoCuenta, Usuario,
-    UsuarioConversacion, ValoracionImagen,
+    Comuna, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
+    HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region,
+    Transaccion, TipoCuenta, Usuario, UsuarioConversacion, ValoracionImagen,
 )
 from ..views import Unaccent
 from . import jwt_utils
 from .serializers import (
-    ComunaSerializer, ContratacionDetailSerializer, ContratacionListSerializer, DocumentoPerfilSerializer,
-    LoginSerializer, MensajeSerializer, PagoHistorialSerializer, PublicacionDetailSerializer,
-    PublicacionListSerializer, PublicacionPropiaSerializer, RegionSerializer, TipoCuentaSerializer,
-    UsuarioMeSerializer, ValoracionSerializer,
+    ComunaSerializer, ContratacionDetailSerializer, ContratacionListSerializer, ConversacionResumenSerializer,
+    DocumentoPerfilSerializer, LoginSerializer, MensajeSerializer, PagoHistorialSerializer,
+    PublicacionDetailSerializer, PublicacionListSerializer, PublicacionPropiaSerializer, RegionSerializer,
+    TipoCuentaSerializer, UsuarioMeSerializer, ValoracionSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -790,6 +790,44 @@ class ContratacionMensajesView(APIView):
         mensaje.usuario = request.user
         mensaje.save()
         return Response(MensajeSerializer(mensaje).data, status=status.HTTP_201_CREATED)
+
+
+class ConversacionListView(APIView):
+    """
+    `GET /api/conversaciones/` — equivalente API de `chat_view` (bandeja de
+    entrada): un chat por trabajo, con badge de no leídos, contraparte y
+    una vista previa del último mensaje. Arma la lista a mano igual que el
+    template en vez de un `ModelSerializer` (ver `ConversacionResumenSerializer`)
+    porque `no_leidos`/`ultimo_mensaje`/`contraparte` no son campos reales
+    de `Conversacion` — se calculan por conversación, mismo criterio que
+    `chat_view` ya hacía del lado template.
+    """
+    def get(self, request):
+        usuario = request.user
+        conversacion_ids = UsuarioConversacion.objects.filter(usuario=usuario).values_list('conversacion_id', flat=True)
+        conversaciones = Conversacion.objects.filter(id_conversacion__in=conversacion_ids).select_related(
+            'contratacion__publicacion', 'contratacion__cliente', 'contratacion__proveedor',
+        ).order_by('-fecha_creacion')
+        no_leidos_map = vistas_legacy._mensajes_no_leidos_por_conversacion(usuario)
+
+        datos = []
+        for conv in conversaciones:
+            ultimo = Mensaje.objects.filter(conversacion=conv).select_related('usuario').order_by('-fecha_envio').first()
+            contraparte = None
+            if conv.contratacion_id:
+                contraparte = conv.contratacion.proveedor if usuario == conv.contratacion.cliente else conv.contratacion.cliente
+            datos.append({
+                'id_conversacion': conv.id_conversacion,
+                'contratacion_id': conv.contratacion_id,
+                'publicacion_titulo': conv.contratacion.publicacion.titulo if conv.contratacion_id else None,
+                'contratacion_estado': conv.contratacion.estado if conv.contratacion_id else None,
+                'contraparte_nombre': str(contraparte) if contraparte else conv.nombre_conversacion,
+                'no_leidos': no_leidos_map.get(conv.id_conversacion, 0),
+                'ultimo_mensaje_contenido': ultimo.contenido if ultimo else None,
+                'ultimo_mensaje_fecha': ultimo.fecha_envio if ultimo else None,
+                'ultimo_mensaje_es_propio': bool(ultimo and ultimo.usuario_id == usuario.id_usuario),
+            })
+        return Response(ConversacionResumenSerializer(datos, many=True).data)
 
 
 class ContratacionConfirmarView(APIView):

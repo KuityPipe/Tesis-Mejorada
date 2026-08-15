@@ -77,6 +77,11 @@ const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'mensajes',
+    loadChildren: () => import('./mensajes/mensajes.module').then( m => m.MensajesPageModule),
+    canActivate: [authGuard],
+  },
+  {
     path: 'contratacion/:id',
     loadChildren: () => import('./contratacion/detalle/detalle.module').then( m => m.DetallePageModule),
     canActivate: [authGuard],
