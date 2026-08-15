@@ -5,6 +5,10 @@
     <ion-title>KeyServ</ion-title>
     <ion-buttons slot="end">
       <ion-button routerLink="/catalogo">Catálogo</ion-button>
+      <ion-button routerLink="/mensajes">
+        <ion-icon slot="icon-only" name="chatbubbles-outline"></ion-icon>
+        <ion-badge color="danger" *ngIf="mensajesNoLeidos$ | async as n" class="ks-toolbar-badge">{{ n }}</ion-badge>
+      </ion-button>
       <ion-button (click)="salir()">Cerrar sesión</ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -32,7 +36,7 @@
         <div class="ks-card-tile-body">
           <h3>
             <ion-icon name="chatbubbles-outline"></ion-icon> Mensajes
-            <ion-badge color="danger" *ngIf="mensajesNoLeidos" style="margin-left:4px;">{{ mensajesNoLeidos }}</ion-badge>
+            <ion-badge color="danger" *ngIf="mensajesNoLeidos$ | async as n" style="margin-left:4px;">{{ n }}</ion-badge>
           </h3>
           <p>Conversá con clientes o proveedores.</p>
         </div>

@@ -4,7 +4,13 @@
     <ion-title>KeyServ</ion-title>
     <ion-buttons slot="end">
       <ion-button routerLink="/catalogo">Catálogo</ion-button>
-      <ion-button *ngIf="auth.estaAutenticado(); else botonIngresar" routerLink="/home">Mi perfil</ion-button>
+      <ng-container *ngIf="auth.estaAutenticado(); else botonIngresar">
+        <ion-button routerLink="/mensajes">
+          <ion-icon slot="icon-only" name="chatbubbles-outline"></ion-icon>
+          <ion-badge color="danger" *ngIf="mensajesNoLeidos$ | async as n" class="ks-toolbar-badge">{{ n }}</ion-badge>
+        </ion-button>
+        <ion-button routerLink="/home">Mi perfil</ion-button>
+      </ng-container>
       <ng-template #botonIngresar>
         <ion-button routerLink="/login">Ingresar</ion-button>
       </ng-template>

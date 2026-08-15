@@ -84,8 +84,20 @@ en esa categoría.
       :root.md[data-theme="light"]`. — 2026-08-15, verificado en vivo con el SO en modo oscuro:
       alternar el switch cambia el tema al instante (paleta completa, no solo el header), persiste
       al navegar a otra página (`/home`) y al recargar. 4 tests nuevos (`tema.spec.ts`).
-- [ ] **Badge + polling de mensajes no leídos** (cada 15s, con beep) en el header — no existe en
-      Ionic todavía, existe en Django desde Fase 5.
+- [x] **Badge + polling de mensajes no leídos** (cada 15s, con beep) en el header — equivalente
+      Ionic de `mensajes_no_leidos_ajax`/el script de `base.html`: nuevo endpoint liviano
+      `GET /api/mensajes/no-leidos/` (`MensajesNoLeidosView`, solo el total, no la lista completa de
+      conversaciones) + `core/notificaciones.ts` (`Notificaciones`, servicio singleton arrancado una
+      sola vez desde `AppComponent` — sobrevive la navegación entre páginas de Angular a diferencia
+      de un `<script>` por página en Django). Mismo criterio exacto que el original: intervalo de
+      15s, beep sintetizado con Web Audio (880Hz, sin archivo externo) solo si el conteo subió
+      respecto de la última consulta y `Usuario.notificaciones_sonido` está activo. Badge nuevo en
+      el ícono de chat del header de `home`/`catalogo`/`inicio` (antes solo existía como resumen en
+      el tile "Mensajes" de `home`, ahora ambos comparten el mismo observable en vivo). —
+      2026-08-15, verificado en vivo con un mensaje sin leer real de datos demo: el badge aparece
+      con "1" tanto en el ícono del header como en el tile, en `/home` y en `/catalogo`, y el ícono
+      navega a `/mensajes`. 4 tests backend (`MensajesNoLeidosApiTests`) + 4 tests frontend
+      (`notificaciones.spec.ts`).
 - [ ] **Footer** (marca + links + copyright) en el resto de pantallas raíz — hoy solo está en
       `inicio`/`catalogo`.
 

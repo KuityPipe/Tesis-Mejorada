@@ -29,4 +29,9 @@ export class Conversaciones {
   listar(): Observable<ConversacionResumen[]> {
     return this.http.get<ConversacionResumen[]>(`${environment.apiUrl}/conversaciones/`);
   }
+
+  /** `GET /api/mensajes/no-leidos/` — solo el total, para el polling del badge (ver core/notificaciones.ts). Más liviano que `listar()`, que trae preview de cada chat. */
+  noLeidos(): Observable<{ no_leidos: number }> {
+    return this.http.get<{ no_leidos: number }>(`${environment.apiUrl}/mensajes/no-leidos/`);
+  }
 }

@@ -480,3 +480,23 @@ ion-content::part(scroll) {
   height: 32px;
   margin-inline-end: 8px;
 }
+
+// Badge de mensajes no leídos sobre el ícono de chat del header (ver
+// core/notificaciones.ts) — equivalente Ionic de #ks-chat-badge en
+// base.css del sitio Django (mismo criterio: círculo pequeño en la
+// esquina superior derecha del ícono, no un ion-badge de flujo normal).
+ion-button:has(.ks-toolbar-badge) {
+  position: relative;
+}
+
+.ks-toolbar-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 0.62rem;
+  line-height: 16px;
+  border-radius: 999px;
+}

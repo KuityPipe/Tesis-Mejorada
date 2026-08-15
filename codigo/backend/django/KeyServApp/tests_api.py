@@ -1001,6 +1001,45 @@ class ConversacionListApiTests(APITestCase):
         self.assertFalse(resp.data[0]['ultimo_mensaje_es_propio'])
 
 
+class MensajesNoLeidosApiTests(APITestCase):
+    """`GET /api/mensajes/no-leidos/` — espeja `mensajes_no_leidos_ajax`, endpoint liviano para el polling del badge en Ionic."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_noleidos_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_noleidos_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA)
+        self.contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+
+    def _autenticado_como(self, usuario):
+        token = jwt_utils.generar_access_token(usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_sin_token_devuelve_401(self):
+        resp = self.client.get('/api/mensajes/no-leidos/')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_sin_mensajes_devuelve_cero(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.get('/api/mensajes/no-leidos/')
+        self.assertEqual(resp.data, {'no_leidos': 0})
+
+    def test_cuenta_mensajes_de_la_contraparte_sin_leer(self):
+        self._autenticado_como(self.proveedor)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'Hola'}, format='json')
+
+        self._autenticado_como(self.cliente)
+        resp = self.client.get('/api/mensajes/no-leidos/')
+        self.assertEqual(resp.data, {'no_leidos': 1})
+
+    def test_no_cuenta_los_mensajes_propios(self):
+        self._autenticado_como(self.cliente)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'Hola'}, format='json')
+
+        resp = self.client.get('/api/mensajes/no-leidos/')
+        self.assertEqual(resp.data, {'no_leidos': 0})
+
+
 class ContratacionConfirmarCompletarApiTests(APITestCase):
     """`POST /api/contrataciones/<id>/confirmar/` y `/completar/` — espeja ContratacionFlowTests/MontoAcordadoConfirmarTests/ItemPresupuestoTests (tests.py)."""
 

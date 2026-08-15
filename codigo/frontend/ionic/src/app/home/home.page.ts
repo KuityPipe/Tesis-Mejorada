@@ -4,7 +4,7 @@ import { AlertController } from '@ionic/angular';
 
 import { Auth, Usuario } from '../core/auth';
 import { Contrataciones, ContratacionResumen } from '../contrataciones/contrataciones';
-import { Conversaciones } from '../mensajes/conversaciones';
+import { Notificaciones } from '../core/notificaciones';
 import { Resenas, ResenaRecibida } from './resenas';
 
 const ESTADOS_ACTIVOS = ['SOLICITADA', 'CONFIRMADA', 'EN_CURSO'];
@@ -28,14 +28,19 @@ export class HomePage implements OnInit {
   usuario: Usuario | null = null;
   cargando = true;
   trabajosActuales: ContratacionResumen[] = [];
-  mensajesNoLeidos = 0;
   resenasRecibidas: ResenaRecibida[] = [];
+
+  // Badge de no leídos en el tile "Mensajes" — equivalente Ionic del badge
+  // que Django pinta en el ícono de chat del header (contar_mensajes_no_leidos,
+  // base.html). Ahora en vivo (polling cada 15s vía Notificaciones, ver
+  // core/notificaciones.ts) en vez de una foto fija tomada solo al entrar.
+  readonly mensajesNoLeidos$ = this.notificaciones.noLeidos$;
 
   constructor(
     private readonly auth: Auth,
     private readonly router: Router,
     private readonly contratacionesApi: Contrataciones,
-    private readonly conversacionesApi: Conversaciones,
+    private readonly notificaciones: Notificaciones,
     private readonly resenasApi: Resenas,
     private readonly alertController: AlertController,
   ) {}
@@ -65,19 +70,6 @@ export class HomePage implements OnInit {
       },
       error: () => {
         // Si falla, el dashboard simplemente no muestra esta sección — no es crítico como el auth.me() de arriba.
-      },
-    });
-
-    // Badge de no leídos en el tile "Mensajes" — equivalente Ionic del
-    // badge que Django pinta en el ícono de chat del header
-    // (contar_mensajes_no_leidos, base.html), acá sumado sobre la misma
-    // lista que ya trae GET /api/conversaciones/.
-    this.conversacionesApi.listar().subscribe({
-      next: (conversaciones) => {
-        this.mensajesNoLeidos = conversaciones.reduce((total, c) => total + c.no_leidos, 0);
-      },
-      error: () => {
-        // No crítico — el tile simplemente no muestra badge.
       },
     });
 

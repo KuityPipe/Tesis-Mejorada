@@ -839,6 +839,19 @@ class ConversacionListView(APIView):
         return Response(ConversacionResumenSerializer(datos, many=True).data)
 
 
+class MensajesNoLeidosView(APIView):
+    """
+    `GET /api/mensajes/no-leidos/` — equivalente API de `mensajes_no_leidos_ajax`:
+    endpoint liviano (solo el total, no la lista completa de conversaciones)
+    para el polling del badge de notificaciones del header en Ionic (ver
+    `mensajes/conversaciones.ts` y `core/notificaciones.ts`), cada ~15s —
+    mismo motivo que el original: evitar traer `ConversacionListView`
+    entera (con preview de último mensaje por chat) solo para un contador.
+    """
+    def get(self, request):
+        return Response({'no_leidos': vistas_legacy.contar_mensajes_no_leidos(request.user)})
+
+
 class ContratacionConfirmarView(APIView):
     """
     `POST /api/contrataciones/<id>/confirmar/` — equivalente API de
