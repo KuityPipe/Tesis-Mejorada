@@ -60,13 +60,13 @@
           <div class="ks-field mb-2">
             <label for="id_monto_confirmar" class="ks-help" style="font-weight:700;">Monto acordado con el cliente (CLP)</label>
             <input type="number" name="monto" id="id_monto_confirmar" min="1" value="{{ contratacion.publicacion.precio|default:'' }}" placeholder="Precio de la publicación: ${{ contratacion.publicacion.precio|default:'0' }}">
-            <span class="ks-help" style="font-size:.82rem;">Si ya hablaron por el chat y quedaron en otro monto, ajustalo acá — si lo dejás como está, se cobra el precio de la publicación.</span>
+            <span class="ks-help" style="font-size:.82rem;">Si ya hablaron por el chat y quedaron en otro monto, ajústalo acá — si lo dejas como está, se cobra el precio de la publicación.</span>
           </div>
 
           <button type="button" class="ks-btn ks-btn-outline mb-2" id="btnTogglePresupuesto"><i class="bi bi-receipt"></i> Armar hoja de presupuesto (opcional)</button>
 
           <div id="hojaPresupuesto" style="display:none;">
-            <p class="ks-help">Desglosá en qué se compone el monto — materiales, tiempo, viaje, lo que necesites. Es totalmente opcional; si cargás al menos un ítem, la suma reemplaza el monto de arriba.</p>
+            <p class="ks-help">Desglosa en qué se compone el monto — materiales, tiempo, viaje, lo que necesites. Es totalmente opcional; si cargas al menos un ítem, la suma reemplaza el monto de arriba.</p>
             <div id="filasPresupuesto"></div>
             <button type="button" class="ks-btn ks-btn-outline ks-btn-sm" id="btnAgregarItem"><i class="bi bi-plus-lg"></i> Agregar ítem</button>
             <div class="ks-presupuesto-total">

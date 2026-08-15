@@ -816,7 +816,7 @@ def contratacion_detalle_view(request, contratacion_id):
     usuario = obtener_usuario_actual(request)
     if usuario not in (contratacion.cliente, contratacion.proveedor):
         _registrar_intento_sospechoso(request, usuario, 'contratacion', contratacion_id, 'contratación ajena')
-        messages.error(request, 'No participás en esta contratación.')
+        messages.error(request, 'No participas en esta contratación.')
         return redirect('KeyServApp:reservas')
 
     conversacion = _obtener_o_crear_conversacion_de_contratacion(contratacion)
@@ -1728,7 +1728,7 @@ def conversacion_detalle_view(request, conversacion_id):
     participacion = UsuarioConversacion.objects.filter(usuario=usuario, conversacion=conversacion).first()
     if not participacion:
         _registrar_intento_sospechoso(request, usuario, 'conversacion', conversacion_id, 'conversación ajena')
-        messages.error(request, 'No participás en esta conversación.')
+        messages.error(request, 'No participas en esta conversación.')
         return redirect('KeyServApp:chat')
 
     if conversacion.contratacion_id:
@@ -1770,7 +1770,7 @@ def conversacion_exportar_view(request, conversacion_id):
     conversacion = get_object_or_404(Conversacion, pk=conversacion_id)
     if not UsuarioConversacion.objects.filter(usuario=usuario, conversacion=conversacion).exists():
         _registrar_intento_sospechoso(request, usuario, 'conversacion_exportar', conversacion_id, 'conversación ajena')
-        messages.error(request, 'No participás en esta conversación.')
+        messages.error(request, 'No participas en esta conversación.')
         return redirect('KeyServApp:chat')
 
     mensajes = Mensaje.objects.filter(conversacion=conversacion).select_related('usuario').order_by('fecha_envio')
