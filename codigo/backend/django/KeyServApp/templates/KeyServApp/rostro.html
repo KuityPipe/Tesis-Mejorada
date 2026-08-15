@@ -9,7 +9,7 @@
 
     {% if tiene_referencia %}
       <h1>Verificación facial</h1>
-      <p class="ks-help">Ya registraste un rostro de referencia. Mirá a la cámara, capturá, y parpadeá una vez durante la captura para verificar tu identidad.</p>
+      <p class="ks-help">Ya registraste un rostro de referencia. Mira a la cámara, captura, y parpadea una vez durante la captura para verificar tu identidad.</p>
 
       <form method="post" action="{% url 'KeyServApp:verificacion_facial' %}" enctype="multipart/form-data" class="ks-form text-start" id="form-verificar-rostro">
         {% csrf_token %}
@@ -17,7 +17,7 @@
         <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center" disabled><i class="bi bi-person-bounding-box"></i> Verificar rostro</button>
       </form>
 
-      <p class="ks-help mt-3">¿Cambiaste de foto de referencia? Podés <a href="#registrar-rostro">volver a registrarla</a> más abajo.</p>
+      <p class="ks-help mt-3">¿Cambiaste de foto de referencia? Puedes <a href="#registrar-rostro">volver a registrarla</a> más abajo.</p>
 
       <hr class="my-4">
 
@@ -118,7 +118,7 @@
       btnCapturar.disabled = true;
       errorEl.classList.add('d-none');
       okEl.classList.add('d-none');
-      instruccionEl.textContent = 'Parpadeá una vez mientras se captura…';
+      instruccionEl.textContent = 'Parpadea una vez mientras se captura…';
 
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;

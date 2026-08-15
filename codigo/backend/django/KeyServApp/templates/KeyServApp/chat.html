@@ -56,15 +56,15 @@
           </div>
           {% endif %}
           {% if conv.ultimo_mensaje %}
-          <p class="ks-inbox-preview">{% if conv.ultimo_mensaje.usuario == usuario_actual %}Vos: {% else %}{{ conv.ultimo_mensaje.usuario.nombre_usuario }}: {% endif %}{{ conv.ultimo_mensaje.contenido }}</p>
+          <p class="ks-inbox-preview">{% if conv.ultimo_mensaje.usuario == usuario_actual %}Tú: {% else %}{{ conv.ultimo_mensaje.usuario.nombre_usuario }}: {% endif %}{{ conv.ultimo_mensaje.contenido }}</p>
           {% else %}
-          <p class="ks-inbox-preview ks-help">Todavía no hay mensajes — escribí el primero.</p>
+          <p class="ks-inbox-preview ks-help">Todavía no hay mensajes — escribe el primero.</p>
           {% endif %}
         </div>
         {% if conv.no_leidos %}<span class="ks-inbox-unread">{{ conv.no_leidos }}</span>{% endif %}
       </a>
       {% empty %}
-      <p class="ks-help">No tenés chats todavía — se crean automáticamente al solicitar la contratación de un servicio.</p>
+      <p class="ks-help">No tienes chats todavía — se crean automáticamente al solicitar la contratación de un servicio.</p>
       {% endfor %}
     </div>
 </section>

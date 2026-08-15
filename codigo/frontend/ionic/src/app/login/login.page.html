@@ -23,6 +23,12 @@
   <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
     <ion-card>
       <ion-card-content>
+        <!-- Mismo h1+subtítulo centrado que .ks-panel en sesion.html del sitio Django (el título del toolbar de arriba no reemplaza este encabezado dentro del panel). -->
+        <div class="ion-text-center ion-margin-bottom">
+          <h1>Iniciar sesión</h1>
+          <p>Ingresa a tu cuenta de KeyServ.</p>
+        </div>
+
         <ion-list lines="none">
           <ion-item>
             <!-- formControlName ata este <ion-input> al control "email" del formulario — value y validación quedan sincronizados solos, sin (input)/[value] manuales. -->
@@ -57,12 +63,13 @@
           type="submit"
           [disabled]="formulario.invalid || enviando"
         >
-          {{ enviando ? 'Ingresando…' : 'Ingresar' }}
+          {{ enviando ? 'Ingresando…' : 'Iniciar sesión' }}
         </ion-button>
       </ion-card-content>
     </ion-card>
     <ion-button expand="block" fill="clear" routerLink="/registro">¿No tienes cuenta? Regístrate</ion-button>
     <ion-button expand="block" fill="clear" routerLink="/recuperar">¿Olvidaste tu contraseña?</ion-button>
+    <ion-button expand="block" fill="clear" routerLink="/">&larr; Volver al inicio</ion-button>
   </form>
 
   <app-footer></app-footer>

@@ -19,6 +19,12 @@
       <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
         <ion-card>
           <ion-card-content>
+            <!-- Mismo h1+subtítulo centrado que .ks-panel en recuperar_confirmar.html del sitio Django. -->
+            <div class="ion-text-center ion-margin-bottom">
+              <h1>Elige tu nueva contraseña</h1>
+              <p>Ya validamos tu enlace de recuperación.</p>
+            </div>
+
             <ion-list lines="none">
               <ion-item>
                 <ion-input label="Nueva contraseña" labelPlacement="floating" type="password" formControlName="password" autocomplete="new-password"></ion-input>
