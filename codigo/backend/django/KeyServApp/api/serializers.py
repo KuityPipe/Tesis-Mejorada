@@ -183,10 +183,22 @@ class ContratacionDetailSerializer(ContratacionListSerializer):
     items_presupuesto = ItemPresupuestoSerializer(many=True, read_only=True)
     valoracion = ValoracionSerializer(read_only=True)
     pago = PagoSerializer(read_only=True)
+    # `contratacion_detalle.html` también muestra la descripción e imágenes
+    # de la publicación (no solo la portada) — el detalle de contratación
+    # es donde tiene sentido revisarlas de nuevo (ej. antes de calificar),
+    # no hace falta ir hasta /catalogo/<id> para verlas.
+    publicacion_descripcion = serializers.CharField(source='publicacion.descripcion_publicacion', read_only=True)
+    publicacion_imagenes = serializers.SerializerMethodField()
 
     class Meta(ContratacionListSerializer.Meta):
-        fields = ContratacionListSerializer.Meta.fields + ['historial', 'items_presupuesto', 'valoracion', 'pago']
+        fields = ContratacionListSerializer.Meta.fields + [
+            'historial', 'items_presupuesto', 'valoracion', 'pago',
+            'publicacion_descripcion', 'publicacion_imagenes',
+        ]
         read_only_fields = fields
+
+    def get_publicacion_imagenes(self, contratacion) -> list[str]:
+        return [imagen.url for imagen in contratacion.publicacion.imagenes.all() if imagen.url]
 
 
 class MensajeSerializer(serializers.ModelSerializer):

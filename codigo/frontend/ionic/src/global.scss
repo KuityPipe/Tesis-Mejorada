@@ -760,3 +760,67 @@ ion-button:has(.ks-toolbar-badge) {
   margin-top: auto;
   padding-top: 12px;
 }
+
+// ---------- "Avance del trabajo" — equivalente Ionic de .ks-progress-steps
+// en base.css (contratacion_detalle.html), 4 pasos con línea conectora.
+.ks-progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 0 8px;
+  position: relative;
+}
+
+.ks-progress-steps::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: 5%;
+  right: 5%;
+  height: 3px;
+  background: var(--ks-border, var(--ion-border-color));
+  z-index: 0;
+}
+
+.ks-progress-step {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--ion-color-medium);
+}
+
+.ks-progress-step .dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ion-card-background);
+  border: 3px solid var(--ks-border, var(--ion-border-color));
+  margin: 0 auto 6px;
+}
+
+.ks-progress-step.done .dot {
+  background: var(--ks-gradient-brand, var(--ion-color-secondary));
+  border-color: transparent;
+}
+
+.ks-progress-step.done {
+  color: var(--ion-text-color);
+}
+
+.ks-progress-step.current .dot {
+  border-color: var(--ion-color-tertiary);
+}
+
+.ks-progress-step.current {
+  color: var(--ion-color-tertiary);
+}
+
+.ks-progress-fecha {
+  display: block;
+  font-weight: 600;
+  font-size: .68rem;
+  color: var(--ion-color-medium);
+  margin-top: 2px;
+}

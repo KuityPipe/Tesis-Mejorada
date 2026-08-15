@@ -68,6 +68,8 @@ export interface ContratacionDetalle extends ContratacionResumen {
   items_presupuesto: ItemPresupuesto[];
   valoracion: ValoracionDetalle | null;
   pago: Pago | null;
+  publicacion_descripcion: string | null;
+  publicacion_imagenes: string[];
 }
 
 export interface Mensaje {

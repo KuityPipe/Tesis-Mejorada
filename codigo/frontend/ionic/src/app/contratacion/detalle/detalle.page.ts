@@ -111,6 +111,38 @@ export class DetallePage implements OnInit {
     return this.contratacionesApi.etiquetaEstado(estado);
   }
 
+  /**
+   * "Avance del trabajo" — mismo `.ks-progress-steps` de 4 pasos que
+   * contratacion_detalle.html (Solicitada/Confirmada/Pagada-en curso/
+   * Completada), que el historial en lista de abajo no reemplaza (es un
+   * resumen visual rápido, el historial es el detalle completo). Un paso
+   * está "done" si el estado actual ya lo pasó (o es CANCELADA — ningún
+   * paso más que "Solicitada" queda done ahí, mismo criterio que Django:
+   * `estado != 'CANCELADA'` para el primer paso, índice-based para el resto),
+   * "current" si es el paso inmediatamente siguiente al estado actual.
+   */
+  private readonly ORDEN_PASOS = ['SOLICITADA', 'CONFIRMADA', 'EN_CURSO', 'COMPLETADA'];
+
+  clasePaso(paso: string): string {
+    if (!this.contratacion) {
+      return '';
+    }
+    const indicePaso = this.ORDEN_PASOS.indexOf(paso);
+    const indiceEstado = this.ORDEN_PASOS.indexOf(this.contratacion.estado);
+    if (indiceEstado === -1) {
+      // CANCELADA: solo "Solicitada" (índice 0) queda marcada, igual que Django.
+      return indicePaso === 0 ? 'done' : '';
+    }
+    if (indiceEstado >= indicePaso) {
+      return 'done';
+    }
+    return indiceEstado === indicePaso - 1 ? 'current' : '';
+  }
+
+  fechaPaso(paso: string): string | null {
+    return this.contratacion?.historial.find((h) => h.estado === paso)?.fecha ?? null;
+  }
+
   enviarMensaje(): void {
     if (this.formularioMensaje.invalid || this.enviandoMensaje) {
       return;

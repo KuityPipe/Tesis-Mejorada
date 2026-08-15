@@ -20,6 +20,51 @@
       <p *ngIf="c.monto_acordado" style="font-weight:800; margin:4px 0 0;">Monto acordado: ${{ c.monto_acordado | number }}</p>
     </div>
 
+    <!-- Mismo .ks-progress-steps que contratacion_detalle.html: resumen visual rápido de 4 pasos, aparte del historial detallado de más abajo. -->
+    <div class="ks-section">
+      <p class="ks-section-title">Avance del trabajo</p>
+      <ion-card>
+        <ion-card-content>
+          <div class="ks-progress-steps">
+            <div class="ks-progress-step" [ngClass]="clasePaso('SOLICITADA')">
+              <div class="dot"></div>Solicitada
+              <span class="ks-progress-fecha" *ngIf="fechaPaso('SOLICITADA')">{{ fechaPaso('SOLICITADA') | date:'short' }}</span>
+            </div>
+            <div class="ks-progress-step" [ngClass]="clasePaso('CONFIRMADA')">
+              <div class="dot"></div>Confirmada
+              <span class="ks-progress-fecha" *ngIf="fechaPaso('CONFIRMADA')">{{ fechaPaso('CONFIRMADA') | date:'short' }}</span>
+            </div>
+            <div class="ks-progress-step" [ngClass]="clasePaso('EN_CURSO')">
+              <div class="dot"></div>Pagada / en curso
+              <span class="ks-progress-fecha" *ngIf="fechaPaso('EN_CURSO')">{{ fechaPaso('EN_CURSO') | date:'short' }}</span>
+            </div>
+            <div class="ks-progress-step" [ngClass]="clasePaso('COMPLETADA')">
+              <div class="dot"></div>Completada
+              <span class="ks-progress-fecha" *ngIf="fechaPaso('COMPLETADA')">{{ fechaPaso('COMPLETADA') | date:'short' }}</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Descripción e imágenes de la publicación — mismo bloque que contratacion_detalle.html muestra de nuevo acá (no solo en /catalogo/:id), útil para revisar antes de calificar. -->
+    <div class="ks-section" *ngIf="c.publicacion_descripcion || c.publicacion_imagenes.length">
+      <p class="ks-section-title">Descripción del servicio</p>
+      <ion-card>
+        <ion-card-content>
+          <p *ngIf="c.publicacion_descripcion">{{ c.publicacion_descripcion }}</p>
+          <div class="ks-card-grid" *ngIf="c.publicacion_imagenes.length">
+            <img
+              *ngFor="let url of c.publicacion_imagenes"
+              [src]="url"
+              alt=""
+              style="width:100%; border-radius:12px; aspect-ratio:4/3; object-fit:cover;"
+            />
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <div class="ks-section" *ngIf="c.items_presupuesto.length">
       <p class="ks-section-title">Desglose del presupuesto</p>
       <ion-card>
