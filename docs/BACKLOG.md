@@ -49,11 +49,24 @@ en esa categoría.
 
 ## Pendiente — prioridad media (completar lo empezado)
 
+- [x] **Prueba real en viewport de teléfono** (375px y 390px, vía un iframe de ese ancho exacto
+      dentro de una pestaña — el Chrome remoto de esta sesión no soporta redimensionar la ventana
+      de verdad) — 2026-08-15. Las 21 pantallas revisadas no tienen overflow horizontal, pero
+      aparecieron **3 bugs reales de recorte de texto**, todos corregidos:
+      1. El badge de estado ("COMPLETADA", etc.) en `.ks-page-header` se recortaba contra el borde
+         de la pantalla en títulos largos — `.ks-page-header h1` ahora tiene `flex-wrap: wrap` y el
+         badge nunca se achica (`global.scss`).
+      2. El label largo de un `ion-checkbox` ("¿Ofrecés servicios como proveedor?" en `registro`)
+         se truncaba con "…" en vez de bajar de línea — `ion-checkbox::part(label) { white-space:
+         normal }` (`global.scss`).
+      3. El label de un `<input type="file">` nativo junto a su `ion-label` en el mismo `ion-item`
+         se apretaba en una columna angosta (bajaba palabra por palabra) en 4 pantallas
+         (`catalogo/crear`, `contratacion/detalle`, `perfil/editar`, `perfil/proveedor`) — se
+         envolvieron en un `.ks-file-field` propio (flex-column) en vez de depender del layout
+         interno de `ion-item`. De paso, el label flotante de "otra área de servicio" en
+         `perfil/proveedor` (mismo problema, `ion-textarea`) se acortó en vez de parcharse con CSS.
 - [ ] **Reseñas recibidas** en el perfil propio — Django las muestra en `/perfil/`, Ionic
       (`home.page`, "Tu cuenta") no las tiene todavía.
-- [ ] **Prueba real en viewport de teléfono** (375-430px) de las pantallas más densas: barra de
-      filtros del catálogo, `contratacion/detalle`, formulario de registro, el nuevo formulario de
-      "Publicar un servicio". Todo lo verificado hasta ahora fue a ancho de escritorio.
 - [ ] **Toggle de tema claro/oscuro manual** — Ionic solo sigue la preferencia del SO, Django
       tiene un botón explícito con persistencia en `localStorage`.
 - [ ] **Badge + polling de mensajes no leídos** (cada 15s, con beep) en el header — no existe en

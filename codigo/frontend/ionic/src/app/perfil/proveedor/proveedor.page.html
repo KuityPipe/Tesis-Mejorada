@@ -37,11 +37,12 @@
             </ion-item>
 
             <ion-item>
+              <!-- Label corto a propósito — bug real encontrado en viewport de teléfono (390px): el label flotante de Ionic no baja de línea (white-space: nowrap fijo en su .label-text), así que un texto largo quedaba truncado con "…". El resto de la instrucción ("Agrégalo acá, separado por comas si son varias") vive en el placeholder, que sí puede ser más largo porque solo se ve dentro del campo, no como título flotante. -->
               <ion-textarea
-                label="¿Trabajas en algo que no está en la lista? Agrégalo acá"
+                label="Otra área (opcional)"
                 labelPlacement="floating"
                 formControlName="otra_area_servicio"
-                placeholder="Separado por comas si son varias"
+                placeholder="Agrégala acá, separada por comas si son varias"
               ></ion-textarea>
             </ion-item>
 
@@ -56,13 +57,17 @@
 
             <!-- Mismo criterio que editar.page.html: un <input type="file"> nativo, sin componente propio de Ionic para elegir archivos. -->
             <ion-item lines="none">
-              <ion-label>Foto de perfil (opcional)</ion-label>
-              <input type="file" accept="image/*" (change)="alElegirFoto($event)" />
+              <div class="ks-file-field">
+                <ion-label>Foto de perfil (opcional)</ion-label>
+                <input type="file" accept="image/*" (change)="alElegirFoto($event)" />
+              </div>
             </ion-item>
 
             <ion-item lines="none">
-              <ion-label>Certificados / documentos de respaldo (opcional)</ion-label>
-              <input type="file" multiple (change)="alElegirDocumentos($event)" />
+              <div class="ks-file-field">
+                <ion-label>Certificados / documentos de respaldo (opcional)</ion-label>
+                <input type="file" multiple (change)="alElegirDocumentos($event)" />
+              </div>
             </ion-item>
           </ion-list>
 

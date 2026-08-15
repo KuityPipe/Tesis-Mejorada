@@ -64,8 +64,10 @@
 
       <!-- Sin componente propio de Ionic para elegir archivos — un <input type="file"> nativo alcanza (Capacitor Camera es para la app nativa, fase aparte del plan). (change) en vez de formControlName porque un <input type="file"> no es algo que Reactive Forms pueda controlar directamente (el navegador no deja setear su value por seguridad). -->
       <ion-item lines="none">
-        <ion-label>Foto de perfil (opcional)</ion-label>
-        <input type="file" accept="image/*" (change)="alElegirFoto($event)" />
+        <div class="ks-file-field">
+          <ion-label>Foto de perfil (opcional)</ion-label>
+          <input type="file" accept="image/*" (change)="alElegirFoto($event)" />
+        </div>
       </ion-item>
     </ion-list>
 

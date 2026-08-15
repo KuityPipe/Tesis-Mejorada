@@ -110,8 +110,10 @@
                 <ion-textarea label="Comentario (opcional)" labelPlacement="floating" formControlName="comentario"></ion-textarea>
               </ion-item>
               <ion-item lines="none">
-                <ion-label>Fotos (opcional)</ion-label>
-                <input type="file" accept="image/*" multiple (change)="alElegirFotos($event)" />
+                <div class="ks-file-field">
+                  <ion-label>Fotos (opcional)</ion-label>
+                  <input type="file" accept="image/*" multiple (change)="alElegirFotos($event)" />
+                </div>
               </ion-item>
             </ion-list>
             <ion-text color="danger" *ngIf="errorValoracion"><p class="ion-padding-start">{{ errorValoracion }}</p></ion-text>

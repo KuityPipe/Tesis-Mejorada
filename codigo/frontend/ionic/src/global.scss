@@ -208,7 +208,23 @@ ion-card-content {
   margin: 0 0 4px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+// Bug real encontrado probando en viewport de teléfono real (390px, vía
+// un iframe con ese ancho — Chrome remoto de esta sesión no soporta
+// redimensionar la ventana): un ion-badge con texto largo en mayúsculas
+// (ej. "COMPLETADA") se recortaba visualmente contra el borde de la
+// pantalla — su getBoundingClientRect ya cabía dentro del h1, pero el
+// texto renderizado (con text-transform: uppercase + letter-spacing,
+// ver la regla de ion-badge más abajo) ocupaba más ancho real que la
+// caja calculada del Shadow DOM del componente. flex-wrap: wrap arriba
+// ya ayuda (el badge baja de línea si no entra), pero fuerza además que
+// el badge nunca se achique de más ni quede con texto invisible.
+.ks-page-header h1 ion-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .ks-page-header h1 ion-icon {
@@ -226,6 +242,40 @@ ion-badge {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .02em;
+}
+
+// Bug real encontrado probando en viewport de teléfono (390px): el label
+// de un ion-checkbox largo (ej. "¿Ofrecés servicios como proveedor?" en
+// registro.page) se recortaba con "…" en vez de bajar de línea — Ionic
+// trunca el label por defecto (white-space: nowrap en su Shadow DOM).
+// `::part(label)` es la forma soportada de estilar adentro del shadow
+// root de un componente Ionic desde afuera (mismo mecanismo que
+// `ion-content::part(scroll)`, ya usado más abajo).
+ion-checkbox::part(label) {
+  white-space: normal;
+}
+
+// Bug real encontrado probando en viewport de teléfono (390px): un
+// <input type="file"> nativo (sin componente propio de Ionic para elegir
+// archivos, ver comentario en editar.page.html/crear.page.html/etc.)
+// puesto junto a su ion-label directo dentro de un ion-item se apretaba
+// en pantallas angostas — el selector "Elegir archivos" empujaba al
+// label a una columna tan angosta que bajaba de línea palabra por
+// palabra. Intentar forzarlo con flex-wrap/flex-basis sobre los hijos
+// del ion-item no alcanzó (el layout interno del Shadow DOM de ion-item
+// no lo respetaba de forma confiable) — la solución real fue envolver
+// label + input en un `.ks-file-field` propio con su propio flex-column,
+// para no depender del layout interno de ion-item en absoluto.
+.ks-file-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding-block: 10px;
+
+  ion-label {
+    margin: 0;
+  }
 }
 
 ion-toolbar {

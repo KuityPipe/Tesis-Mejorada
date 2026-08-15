@@ -71,13 +71,17 @@
                 </ion-item>
 
                 <ion-item lines="none">
-                  <ion-label>Fotos del servicio (hasta 8, la primera es la portada)</ion-label>
-                  <input type="file" accept="image/*" multiple (change)="alElegirImagenes($event)" />
+                  <div class="ks-file-field">
+                    <ion-label>Fotos del servicio (hasta 8, la primera es la portada)</ion-label>
+                    <input type="file" accept="image/*" multiple (change)="alElegirImagenes($event)" />
+                  </div>
                 </ion-item>
 
                 <ion-item lines="none">
-                  <ion-label>Documentos de respaldo (opcional, hasta 5)</ion-label>
-                  <input type="file" multiple (change)="alElegirDocumentos($event)" />
+                  <div class="ks-file-field">
+                    <ion-label>Documentos de respaldo (opcional, hasta 5)</ion-label>
+                    <input type="file" multiple (change)="alElegirDocumentos($event)" />
+                  </div>
                 </ion-item>
               </ion-list>
 
