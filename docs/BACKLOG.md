@@ -112,6 +112,21 @@ en esa categoría.
 Con esto se cierra también la prioridad media — no queda ningún ítem `[ ]` en esa categoría. Lo que
 resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y publicación).
 
+- [x] **Comparación pantalla por pantalla Ionic vs Django (pedida explícitamente por el usuario,
+      "pulamos la página")** — 2026-08-15. Encontró y cerró varios gaps reales que `AUDITORIA_8000_vs_8100.md`
+      (foto fija del 14) no había capturado: voseo mezclado con tuteo en ~60 strings entre ambos
+      frontends (incluido el propio Django, no solo deuda de la migración — `views.py`, `api/views.py`,
+      8 templates); catálogo sin el encabezado "Todos los servicios/N publicaciones"; login/recuperar
+      sin el título+subtítulo del panel ni "Volver al inicio"; **reservas sin filtros/grid con foto/
+      badges descriptivos** (ahora con paridad completa, ver `reservas.page.ts`); **contratación/detalle
+      sin el indicador visual de 4 pasos ni la descripción/imágenes de la publicación** (agregado,
+      `ContratacionDetailSerializer` suma `publicacion_descripcion`/`publicacion_imagenes`). 263 tests
+      backend + 54 frontend en verde en cada commit, verificado en vivo contra datos demo reales.
+- [ ] **"Exportar chat" sin endpoint API** — `conversacion_exportar_view` (Django) no tiene
+      equivalente en `api/urls.py`; encontrado al comparar contratación/detalle. Es trabajo de backend
+      nuevo (endpoint + descarga de archivo), no solo de frontend — quedó fuera de la pasada de
+      2026-08-15 por alcance, no por dificultad.
+
 ## Pendiente — prioridad baja / decisión de negocio
 
 - [ ] **Espacios reservados para publicidad** (`.ks-ad-slot`) en landing/catálogo/detalle — ver
