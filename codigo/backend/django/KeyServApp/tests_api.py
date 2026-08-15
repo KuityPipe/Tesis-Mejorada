@@ -523,6 +523,38 @@ class PerfilApiTests(APITestCase):
         self.assertTrue(bool(self.usuario.foto_perfil))
 
 
+class AlternarProveedorApiTests(APITestCase):
+    """`POST /api/auth/alternar-proveedor/` — espeja el comportamiento de `alternar_proveedor_view` (tests.py no tiene una clase dedicada para esa vista, solo la cubre indirectamente vía perfil_view)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('alternar_api@test.com', es_proveedor=False, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        token = jwt_utils.generar_access_token(self.usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_sin_token_devuelve_401(self):
+        self.client.credentials()
+        resp = self.client.post('/api/auth/alternar-proveedor/')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_activa_proveedor(self):
+        resp = self.client.post('/api/auth/alternar-proveedor/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['es_proveedor'])
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.es_proveedor)
+
+    def test_alternar_dos_veces_vuelve_al_estado_original(self):
+        self.client.post('/api/auth/alternar-proveedor/')
+        resp = self.client.post('/api/auth/alternar-proveedor/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['es_proveedor'])
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.es_proveedor)
+
+
 class RecuperarApiTests(APITestCase):
     """`POST /api/auth/recuperar/` + `/confirmar/<token>/` — espeja RecuperarPasswordTests (tests.py)."""
 
@@ -1131,6 +1163,61 @@ class PagoApiTests(APITestCase):
         resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/')
         self.assertEqual(resp.data['pago']['metodo'], Pago.WEBPAY)
         self.assertEqual(resp.data['pago']['estado'], Pago.PAGADO)
+
+
+class PagoHistorialApiTests(APITestCase):
+    """`GET /api/pagos/historial/` — equivalente API de `historial_pagos_view` (tests.py no tiene una clase dedicada para esa vista)."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('proveedor_historial_api@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cliente_historial_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.otro_cliente = _crear_usuario('otro_cliente_historial_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(
+            usuario_publicador=self.proveedor, titulo='Jardinería', estado_moderacion=Publicaciones.APROBADA, precio=20000,
+        )
+        token = jwt_utils.generar_access_token(self.cliente)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def _crear_contratacion_con_pago(self, cliente, monto=20000, estado=Pago.PAGADO):
+        contratacion = Contratacion.objects.create(
+            publicacion=self.publicacion, cliente=cliente, proveedor=self.proveedor,
+            estado=Contratacion.EN_CURSO, monto_acordado=monto,
+        )
+        return Pago.objects.create(contratacion=contratacion, monto=monto, metodo=Pago.WEBPAY, estado=estado)
+
+    def test_sin_token_devuelve_401(self):
+        self.client.credentials()
+        resp = self.client.get('/api/pagos/historial/')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_devuelve_solo_los_pagos_propios_como_cliente(self):
+        self._crear_contratacion_con_pago(self.cliente)
+        self._crear_contratacion_con_pago(self.otro_cliente)
+
+        resp = self.client.get('/api/pagos/historial/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]['publicacion_titulo'], 'Jardinería')
+
+    def test_no_devuelve_pagos_donde_es_el_proveedor(self):
+        # El proveedor de self.publicacion es self.proveedor, no self.cliente — así que autenticarse como proveedor no debe traer nada acá.
+        self._crear_contratacion_con_pago(self.cliente)
+        token_proveedor = jwt_utils.generar_access_token(self.proveedor)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token_proveedor}')
+
+        resp = self.client.get('/api/pagos/historial/')
+
+        self.assertEqual(resp.data, [])
+
+    def test_orden_mas_reciente_primero(self):
+        pago1 = self._crear_contratacion_con_pago(self.cliente, monto=10000)
+        pago2 = self._crear_contratacion_con_pago(self.cliente, monto=30000)
+
+        resp = self.client.get('/api/pagos/historial/')
+
+        self.assertEqual([p['id_pago'] for p in resp.data], [pago2.id_pago, pago1.id_pago])
 
 
 class VerificarBiometriaNativaApiTests(APITestCase):

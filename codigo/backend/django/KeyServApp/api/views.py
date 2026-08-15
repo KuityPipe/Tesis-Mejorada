@@ -41,8 +41,9 @@ from ..views import Unaccent
 from . import jwt_utils
 from .serializers import (
     ComunaSerializer, ContratacionDetailSerializer, ContratacionListSerializer, DocumentoPerfilSerializer,
-    LoginSerializer, MensajeSerializer, PublicacionDetailSerializer, PublicacionListSerializer,
-    PublicacionPropiaSerializer, RegionSerializer, TipoCuentaSerializer, UsuarioMeSerializer, ValoracionSerializer,
+    LoginSerializer, MensajeSerializer, PagoHistorialSerializer, PublicacionDetailSerializer,
+    PublicacionListSerializer, PublicacionPropiaSerializer, RegionSerializer, TipoCuentaSerializer,
+    UsuarioMeSerializer, ValoracionSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -304,6 +305,23 @@ class PerfilView(APIView):
         form.save()
         logger.info('Perfil actualizado (api): usuario_id=%s', request.user.id_usuario)
         return Response(UsuarioMeSerializer(request.user).data)
+
+
+class AlternarProveedorView(APIView):
+    """
+    `POST /api/auth/alternar-proveedor/` — equivalente API de
+    `alternar_proveedor_view`: única forma real de cambiar `es_proveedor`
+    después del registro. Sin body ni Form que reusar acá (el original es
+    un botón que solo invierte el booleano) — simple `not` + `save`,
+    devuelve el perfil actualizado para que el cliente Ionic refresque su
+    estado local sin una segunda llamada a `GET /api/auth/me/`.
+    """
+    def post(self, request):
+        usuario = request.user
+        usuario.es_proveedor = not usuario.es_proveedor
+        usuario.save(update_fields=['es_proveedor'])
+        logger.info('Proveedor alternado (api): usuario_id=%s es_proveedor=%s', usuario.id_usuario, usuario.es_proveedor)
+        return Response(UsuarioMeSerializer(usuario).data)
 
 
 class PerfilProveedorView(APIView):
@@ -1129,3 +1147,14 @@ class PagoKhipuEstadoView(APIView):
         else:
             mensaje = 'El pago no se completó.'
         return Response({'aprobado': aprobado, 'mensaje': mensaje})
+
+
+class PagoHistorialView(generics.ListAPIView):
+    """`GET /api/pagos/historial/` — equivalente API de `historial_pagos_view`: pagos del cliente logueado, más recientes primero. Nunca los del proveedor (`contratacion__cliente`, no `contratacion__proveedor`) — el proveedor ve el estado del pago de una contratación puntual dentro de esa contratación, no un historial propio (mismo criterio que el template)."""
+    serializer_class = PagoHistorialSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return Pago.objects.filter(contratacion__cliente=self.request.user).select_related(
+            'contratacion', 'contratacion__publicacion',
+        ).order_by('-fecha_creacion')

@@ -30,16 +30,16 @@ Ver también: `docs/PLAN_MIGRACION_IONIC.md` (fases 1-8 de la migración, más t
 - [x] Publicar un servicio (`/catalogo/crear` + `POST /api/publicaciones/crear/`) y Mis
       publicaciones (`/perfil/publicaciones` + `GET /api/publicaciones/mias/`) — 2026-08-14,
       verificado en vivo creando una publicación real con un proveedor demo.
+- [x] **Alternar proveedor** — `POST /api/auth/alternar-proveedor/` (`AlternarProveedorView`) +
+      botón en `home.page` ("Tu cuenta"), con confirmación solo al desactivar (mismo criterio que
+      Django). — 2026-08-14, verificado en vivo: activar/desactivar actualiza el badge y hace
+      aparecer/desaparecer "Mis publicaciones" del menú al instante. 3 tests.
+- [x] **Historial de pagos** — `GET /api/pagos/historial/` (`PagoHistorialView` +
+      `PagoHistorialSerializer`) + `/perfil/pagos`. — 2026-08-14, verificado en vivo (estado vacío
+      y con un pago real creado a propósito para probar el listado, revertido después). 4 tests.
 
 ## Pendiente — prioridad alta (gaps funcionales reales)
 
-- [ ] **Alternar proveedor** — endpoint API (`POST /api/perfil/alternar-proveedor/` o similar,
-      reusar `alternar_proveedor_view`) + botón en Ionic (candidato: `home.page`, cerca de "Tu
-      cuenta", o dentro de `perfil/proveedor`). Sin esto, alguien que se registró como cliente no
-      puede convertirse en proveedor desde la app — tiene que ir al sitio Django.
-- [ ] **Historial de pagos** (`/historial-pagos/` → nueva pantalla Ionic). El backend ya tiene el
-      modelo `Pago` y la lógica en `historial_pagos_view`; falta el endpoint API (listar pagos
-      propios) y la pantalla.
 - [ ] **Bandeja de entrada de mensajes** (`chat.html` → nueva pantalla Ionic, lista de
       conversaciones). Hoy el chat de Ionic solo es accesible entrando a una contratación puntual.
 

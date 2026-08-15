@@ -104,6 +104,28 @@ class PagoSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PagoHistorialSerializer(serializers.ModelSerializer):
+    """
+    `GET /api/pagos/historial/` — equivalente API de `historial_pagos_view`.
+    A diferencia de `PagoSerializer` (embebido en el detalle de UNA
+    contratación puntual, donde ya se sabe cuál es), acá hace falta
+    `contratacion_id`/`publicacion_titulo` para poder listar varios pagos
+    sueltos y enlazar cada uno de vuelta a su contratación, igual que
+    `historial_pagos.html` hace con `pago.contratacion.id_contratacion`/
+    `pago.contratacion.publicacion.titulo`.
+    """
+    contratacion_id = serializers.IntegerField(source='contratacion.id_contratacion', read_only=True)
+    publicacion_titulo = serializers.CharField(source='contratacion.publicacion.titulo', read_only=True)
+
+    class Meta:
+        model = Pago
+        fields = [
+            'id_pago', 'metodo', 'estado', 'monto', 'fecha_creacion', 'fecha_confirmacion',
+            'contratacion_id', 'publicacion_titulo',
+        ]
+        read_only_fields = fields
+
+
 class ContratacionListSerializer(serializers.ModelSerializer):
     """`GET /api/contrataciones/` — equivalente API de `reservas_view`. `cliente`/`proveedor` vienen como el pk plano (default de DRF para una FK) — el cliente Ionic decide su propio rol comparando contra `GET /api/auth/me/`, no hay un campo `rol` calculado acá."""
     publicacion_titulo = serializers.CharField(source='publicacion.titulo', read_only=True)

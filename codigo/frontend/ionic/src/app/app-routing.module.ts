@@ -58,6 +58,11 @@ const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'perfil/pagos',
+    loadChildren: () => import('./perfil/pagos/pagos.module').then( m => m.PagosPageModule),
+    canActivate: [authGuard],
+  },
+  {
     path: 'preferencias',
     loadChildren: () => import('./preferencias/preferencias.module').then( m => m.PreferenciasPageModule),
     canActivate: [authGuard],

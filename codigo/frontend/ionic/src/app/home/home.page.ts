@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { AlertController } from '@ionic/angular';
 
 import { Auth, Usuario } from '../core/auth';
 import { Contrataciones, ContratacionResumen } from '../contrataciones/contrataciones';
@@ -30,6 +31,7 @@ export class HomePage implements OnInit {
     private readonly auth: Auth,
     private readonly router: Router,
     private readonly contratacionesApi: Contrataciones,
+    private readonly alertController: AlertController,
   ) {}
 
   ngOnInit(): void {
@@ -68,5 +70,35 @@ export class HomePage implements OnInit {
   salir(): void {
     this.auth.logout();
     this.router.navigateByUrl('/login');
+  }
+
+  /**
+   * Equivalente Ionic del botón "Convertirme en proveedor"/"Dejar de
+   * ofrecer servicios" de `perfil.html` — mismo criterio: confirmar antes
+   * de DESACTIVAR (perder la posibilidad de publicar nuevos servicios
+   * hasta reactivarlo), no al activar, que no tiene ninguna consecuencia
+   * que perder.
+   */
+  async alternarProveedor(): Promise<void> {
+    if (!this.usuario) {
+      return;
+    }
+    if (this.usuario.es_proveedor) {
+      const alerta = await this.alertController.create({
+        header: 'Dejar de ofrecer servicios',
+        message: 'No vas a poder crear publicaciones nuevas hasta que lo actives de nuevo. Tus publicaciones existentes siguen visibles.',
+        buttons: [
+          { text: 'Cancelar', role: 'cancel' },
+          { text: 'Dejar de ofrecer', role: 'destructive', handler: () => this.enviarAlternarProveedor() },
+        ],
+      });
+      await alerta.present();
+    } else {
+      this.enviarAlternarProveedor();
+    }
+  }
+
+  private enviarAlternarProveedor(): void {
+    this.auth.alternarProveedor().subscribe((usuario) => (this.usuario = usuario));
   }
 }

@@ -1,0 +1,48 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Historial de pagos</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Mismo encabezado que .ks-page-header en historial_pagos.html del sitio Django. -->
+  <div class="ks-page-header">
+    <h1><ion-icon name="receipt-outline"></ion-icon> Historial de pagos</h1>
+    <p>Los pagos que hiciste al contratar un servicio.</p>
+  </div>
+
+  <div class="ks-info-note">
+    <ion-icon name="shield-checkmark-outline"></ion-icon>
+    Nunca guardamos tu número de tarjeta ni tu CVV — cada pago se ingresa directo en la página de Webpay o Khipu, no acá.
+  </div>
+
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <ion-card *ngIf="!cargando">
+    <ion-card-content>
+      <ion-list lines="full" *ngIf="pagos.length; else sinPagos">
+        <ion-item *ngFor="let pago of pagos" [routerLink]="['/contratacion', pago.contratacion_id]" button detail>
+          <ion-icon [name]="iconoMetodo(pago.metodo)" slot="start" color="medium"></ion-icon>
+          <ion-label class="ion-text-wrap">
+            <h2>{{ pago.publicacion_titulo }}</h2>
+            <p>{{ pago.metodo === 'WEBPAY' ? 'Webpay Plus' : 'Khipu' }} — {{ pago.fecha_creacion | date:'short' }}</p>
+          </ion-label>
+          <div slot="end" class="ion-text-end">
+            <ion-badge [color]="colorEstado(pago.estado)">{{ pago.estado }}</ion-badge>
+            <p style="font-weight:800; margin:4px 0 0;">${{ pago.monto | number }}</p>
+          </div>
+        </ion-item>
+      </ion-list>
+      <ng-template #sinPagos>
+        <p style="color: var(--ks-ink-soft);">
+          Todavía no tenés pagos registrados — <a routerLink="/catalogo">buscá un servicio</a> para contratar.
+        </p>
+      </ng-template>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

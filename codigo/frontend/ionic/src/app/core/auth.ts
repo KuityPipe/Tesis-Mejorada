@@ -217,6 +217,16 @@ export class Auth {
   }
 
   /**
+   * `POST /api/auth/alternar-proveedor/` — equivalente API de
+   * `alternar_proveedor_view`: única forma de cambiar `es_proveedor`
+   * después del registro. Sin body — invierte el booleano del lado del
+   * servidor y devuelve el perfil ya actualizado.
+   */
+  alternarProveedor(): Observable<Usuario> {
+    return this.http.post<Usuario>(`${environment.apiUrl}/auth/alternar-proveedor/`, {});
+  }
+
+  /**
    * `POST /api/auth/verificar-biometria-nativa/` — la llama
    * `biometria/biometria.page` recién después de que
    * `NativeBiometric.verifyIdentity()` (plugin Capacitor) confirmó la
