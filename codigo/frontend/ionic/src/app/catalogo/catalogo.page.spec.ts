@@ -5,6 +5,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { CatalogoPage } from './catalogo.page';
+import { SharedModule } from '../shared/shared.module';
 
 describe('CatalogoPage', () => {
   let component: CatalogoPage;
@@ -14,7 +15,7 @@ describe('CatalogoPage', () => {
     await TestBed.configureTestingModule({
       declarations: [CatalogoPage],
       // FormsModule: la barra de filtros usa [(ngModel)] en ion-searchbar/ion-select (ver catalogo.page.html) — sin importarlo acá, Angular no reconoce el binding y tira NG0303 en consola (el test igual pasa, pero con ruido).
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, FormsModule],
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, FormsModule, SharedModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CatalogoPage);

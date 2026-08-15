@@ -5,6 +5,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { InicioPage } from './inicio.page';
+import { SharedModule } from '../shared/shared.module';
 
 describe('InicioPage', () => {
   let component: InicioPage;
@@ -14,7 +15,7 @@ describe('InicioPage', () => {
     await TestBed.configureTestingModule({
       declarations: [InicioPage],
       // FormsModule: la búsqueda rápida usa [(ngModel)] en ion-searchbar (ver inicio.page.html).
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, FormsModule],
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, FormsModule, SharedModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(InicioPage);

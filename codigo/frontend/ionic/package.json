@@ -30,6 +30,7 @@
     "@capacitor/status-bar": "8.0.3",
     "@capgo/capacitor-native-biometric": "^8.6.5",
     "@ionic/angular": "^8.0.0",
+    "capacitor-secure-storage-plugin": "^0.13.0",
     "ionicons": "^7.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

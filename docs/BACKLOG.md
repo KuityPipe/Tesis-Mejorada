@@ -120,7 +120,23 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
 
 ## Fase 7 — Hardening de producción (después de cerrar los gaps de arriba)
 
-- [ ] Almacenamiento seguro de tokens (Keychain/Keystore vía plugin nativo, no `localStorage`).
+- [x] **Almacenamiento seguro de tokens** (Keychain en iOS / Android Keystore, no `localStorage`) —
+      `capacitor-secure-storage-plugin` (`EncryptedSharedPreferences` en Android nativo; en web el
+      propio plugin cae a su fallback de `localStorage` con prefijo+base64, no hay equivalente real
+      de Keychain/Keystore en un navegador). `core/almacenamiento-seguro.ts` (`AlmacenamientoSeguro`)
+      es el wrapper fino; `Auth` (core/auth.ts) mantiene una copia en memoria de los tokens (para el
+      acceso síncrono que necesitan `authGuard`/`authInterceptor`) poblada una sola vez al arrancar
+      vía `Auth.inicializar()`, enganchado como `APP_INITIALIZER` en `app.module.ts` — Angular no
+      termina de bootstrapear (ni corre ningún guard) hasta que esa carga async desde
+      `AlmacenamientoSeguro` termina. `login()`/`logout()` mantienen memoria + almacenamiento seguro
+      sincronizados en cada escritura. — 2026-08-15, **verificado en vivo con una build nativa Android
+      real** (no solo web): `gradlew assembleDebug` + instalado en el emulador `KeyServ_Test2` (API
+      35) → login real contra el backend (`adb reverse tcp:8000`) → `force-stop` del proceso
+      (simula un cierre real de la app, no solo recargar una pestaña) → relanzar → la sesión seguía
+      iniciada (`/` mostró "Mi perfil", no "Ingresar", y `/home` cargó los datos reales) — confirma
+      que el token sobrevivió en el Keystore real, no solo en memoria del proceso. Logout después
+      también verificado (vuelve a `/login`, el Keystore quedó vacío). 8 tests nuevos
+      (`auth.spec.ts` +4, `almacenamiento-seguro.spec.ts` +4).
 - [ ] Endpoint de refresh token + rotación (`TokenSesion` ya existe, falta la vista).
 - [ ] Tests E2E (Cypress/Playwright para web, Appium si hace falta cubrir nativo).
 - [ ] Pipeline de build para Android/iOS.

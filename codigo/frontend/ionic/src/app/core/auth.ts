@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { AlmacenamientoSeguro } from './almacenamiento-seguro';
 
 const CLAVE_ACCESS_TOKEN = 'keyserv_access_token';
 const CLAVE_REFRESH_TOKEN = 'keyserv_refresh_token';
@@ -90,14 +91,26 @@ export interface DatosRegistro {
  * sin necesidad de declararla en ningún NgModule a mano (a diferencia de
  * componentes/páginas, que sí hay que `declarations: [...]` en su módulo).
  *
- * SEGURIDAD (ver docs/PLAN_MIGRACION_IONIC.md, sección "Nota de
- * seguridad"): los tokens se guardan en `localStorage`, que **no está
- * cifrado en disco**. Esto es aceptable solo mientras el target sea el
- * navegador de desarrollo — antes de una build nativa real (Capacitor)
- * hay que migrar a un plugin de almacenamiento seguro respaldado por
- * Keychain (iOS) / Keystore (Android), no alcanza ni con `localStorage`
- * ni con `@capacitor/preferences` (ninguno de los dos cifra). Eso está
- * planeado para la fase de "Hardening" del plan de migración, no antes.
+ * SEGURIDAD (Fase 7, "Hardening" — ver docs/PLAN_MIGRACION_IONIC.md): los
+ * tokens ahora se persisten vía `AlmacenamientoSeguro` (Keychain en iOS,
+ * Android Keystore en Android nativo — `capacitor-secure-storage-plugin`),
+ * no directamente en `localStorage` como en las fases anteriores de la
+ * migración (`localStorage` ni `@capacitor/preferences` cifran en disco).
+ * En un build de navegador (no nativo) el propio plugin cae a su fallback
+ * de `localStorage`, así que en ese contexto sigue sin ser un cifrado
+ * real — no hay equivalente de Keychain/Keystore en un navegador, es una
+ * limitación del entorno, no algo que este código pueda resolver.
+ *
+ * El acceso síncrono que necesitan `authInterceptor`/`authGuard` (agregar
+ * el header `Authorization` o decidir si una ruta protegida puede activarse
+ * no pueden esperar una Promise en el medio) se resuelve con una copia en
+ * memoria (`accessTokenEnMemoria`/`refreshTokenEnMemoria`) que se carga una
+ * sola vez desde `AlmacenamientoSeguro` en `inicializar()` — enganchado
+ * como `APP_INITIALIZER` en `app.module.ts`, así que Angular no arranca el
+ * router hasta que esa carga inicial (async) terminó, y ningún guard/
+ * interceptor puede correr antes de que la memoria esté poblada. Después
+ * de esa carga inicial, `login()`/`logout()`/etc. mantienen ambas copias
+ * (memoria + almacenamiento seguro) sincronizadas en cada escritura.
  *
  * `estaAutenticado()` solo comprueba que exista un access token, no que
  * siga vigente — todavía no hay endpoint de refresh (ver plan de
@@ -108,10 +121,32 @@ export interface DatosRegistro {
   providedIn: 'root',
 })
 export class Auth {
+  private accessTokenEnMemoria: string | null = null;
+  private refreshTokenEnMemoria: string | null = null;
+
   // Inyección por constructor: Angular resuelve `HttpClient` solo (fue
   // registrado por `provideHttpClient(...)` en app.module.ts) y lo pasa
   // acá — no hace falta instanciarlo a mano en ningún lado.
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly almacenamiento: AlmacenamientoSeguro,
+  ) {}
+
+  /**
+   * `APP_INITIALIZER` (app.module.ts) llama esto una sola vez antes de que
+   * Angular termine de bootstrapear — carga los tokens ya guardados de una
+   * sesión anterior desde `AlmacenamientoSeguro` a la copia en memoria, así
+   * `estaAutenticado()` da la respuesta correcta desde el primer guard que
+   * corra, sin una carrera contra la carga async.
+   */
+  async inicializar(): Promise<void> {
+    const [access, refresh] = await Promise.all([
+      this.almacenamiento.obtener(CLAVE_ACCESS_TOKEN),
+      this.almacenamiento.obtener(CLAVE_REFRESH_TOKEN),
+    ]);
+    this.accessTokenEnMemoria = access ?? null;
+    this.refreshTokenEnMemoria = refresh ?? null;
+  }
 
   /**
    * `HttpClient.post<T>` devuelve un `Observable<T>` (RxJS), no una
@@ -240,21 +275,35 @@ export class Auth {
     return this.http.post<Usuario>(`${environment.apiUrl}/auth/verificar-biometria-nativa/`, {});
   }
 
+  /**
+   * Limpia la copia en memoria de forma síncrona (así `estaAutenticado()`
+   * ya da `false` para el siguiente guard/interceptor que corra, incluso
+   * antes de que termine el borrado async) y dispara el borrado en
+   * `AlmacenamientoSeguro` en segundo plano — ningún caller de este método
+   * espera una Promise hoy (ver `home.page.ts`), así que mantenerlo
+   * síncrono evita tocar esos call sites.
+   */
   logout(): void {
-    localStorage.removeItem(CLAVE_ACCESS_TOKEN);
-    localStorage.removeItem(CLAVE_REFRESH_TOKEN);
+    this.accessTokenEnMemoria = null;
+    this.refreshTokenEnMemoria = null;
+    void this.almacenamiento.eliminar(CLAVE_ACCESS_TOKEN);
+    void this.almacenamiento.eliminar(CLAVE_REFRESH_TOKEN);
   }
 
   estaAutenticado(): boolean {
-    return !!this.obtenerAccessToken();
+    return !!this.accessTokenEnMemoria;
   }
 
+  /** Síncrono a propósito — lo usan `authInterceptor`/`authGuard`, que no pueden esperar una Promise en el medio de una request/navegación. Lee la copia en memoria, poblada por `inicializar()` al arrancar la app. */
   obtenerAccessToken(): string | null {
-    return localStorage.getItem(CLAVE_ACCESS_TOKEN);
+    return this.accessTokenEnMemoria;
   }
 
+  /** Igual que `logout()`: actualiza la memoria en el momento (síncrono, dentro del `tap` de `login()`) y persiste en `AlmacenamientoSeguro` en segundo plano. */
   private guardarTokens(accessToken: string, refreshToken: string): void {
-    localStorage.setItem(CLAVE_ACCESS_TOKEN, accessToken);
-    localStorage.setItem(CLAVE_REFRESH_TOKEN, refreshToken);
+    this.accessTokenEnMemoria = accessToken;
+    this.refreshTokenEnMemoria = refreshToken;
+    void this.almacenamiento.guardar(CLAVE_ACCESS_TOKEN, accessToken);
+    void this.almacenamiento.guardar(CLAVE_REFRESH_TOKEN, refreshToken);
   }
 }

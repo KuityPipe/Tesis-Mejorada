@@ -62,18 +62,30 @@ cual. Reconstruir un panel de administración/moderación en Ionic no aporta
 nada — es una herramienta interna para moderadores/staff, no para los
 usuarios finales que van a instalar la app.
 
-## Nota de seguridad que cambia una decisión ya tomada
+## Nota de seguridad — resuelta en Fase 7
 
-`Auth` (`codigo/frontend/ionic/src/app/core/auth.ts`) guarda los tokens en
-`localStorage` hoy. Investigación (agosto 2026) confirma que **ni
-`localStorage` ni `@capacitor/preferences` son aceptables para un JWT en una
-build nativa real** — ambos son texto plano sin cifrar en el dispositivo.
-Para producción nativa hace falta un plugin de almacenamiento seguro real
-(Keychain en iOS / Keystore en Android) — candidatos: `@capacitor-community/secure-storage`
-o Ionic Identity Vault (este último además da biometría de desbloqueo de
-sesión, relevante para RF001 de KeyServ). Esto se resuelve en la Fase 6
-(Hardening), no antes — mientras el target es solo el navegador de
-desarrollo, `localStorage` alcanza y no vale la pena la complejidad todavía.
+**Resuelto (2026-08-15, Fase 7 "Hardening").** `Auth`
+(`codigo/frontend/ionic/src/app/core/auth.ts`) guardaba los tokens en
+`localStorage`, texto plano sin cifrar en el dispositivo — inaceptable para
+un JWT en una build nativa real, tanto `localStorage` como
+`@capacitor/preferences`. Se resolvió con `capacitor-secure-storage-plugin`
+(Keychain en iOS, `EncryptedSharedPreferences`/Android Keystore en Android
+nativo) detrás de un wrapper (`core/almacenamiento-seguro.ts`,
+`AlmacenamientoSeguro`); `Auth` mantiene una copia en memoria de los tokens
+para el acceso síncrono que necesitan `authGuard`/`authInterceptor`,
+poblada al arrancar vía `APP_INITIALIZER` (`Auth.inicializar()`, en
+`app.module.ts`) desde el almacenamiento seguro. En web (no nativo) el
+propio plugin cae a su fallback de `localStorage` — no hay equivalente real
+de Keychain/Keystore en un navegador, limitación del entorno, no algo que
+el código de la app pueda resolver. **Verificado con una build nativa
+Android real** (no solo web): login → `force-stop` del proceso (simula un
+cierre real de la app) → relanzar → la sesión seguía iniciada, confirmando
+que el token sobrevivió en el Keystore real del dispositivo, no solo en
+memoria del proceso. Detalle completo en `docs/BACKLOG.md`, sección Fase 7.
+Ionic Identity Vault (biometría de desbloqueo de sesión, relevante para
+RF001) queda descartado por ahora — el plugin elegido ya cubre el
+requisito real (cifrado en disco), Identity Vault es una licencia paga
+adicional que no hace falta todavía.
 
 Fuente: [Secure Token Storage: Best Practices for Mobile Developers](https://capgo.app/blog/secure-token-storage-best-practices-for-mobile-developers/), [Capacitor Security guide](https://capacitorjs.com/docs/guides/security).
 

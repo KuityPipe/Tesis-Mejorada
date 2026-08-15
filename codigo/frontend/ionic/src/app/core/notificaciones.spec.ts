@@ -2,7 +2,21 @@ import { TestBed, fakeAsync, tick, discardPeriodicTasks } from '@angular/core/te
 import { HttpClientTestingModule, HttpTestingController, TestRequest } from '@angular/common/http/testing';
 
 import { Notificaciones } from './notificaciones';
+import { Auth } from './auth';
 import { environment } from '../../environments/environment';
+
+/**
+ * Desde Fase 7 (hardening), `Auth.estaAutenticado()` ya no lee
+ * `localStorage` directamente — lee una copia en memoria poblada por
+ * `Auth.inicializar()` desde `AlmacenamientoSeguro` (ver auth.ts). Estos
+ * tests no ejercitan esa capa de almacenamiento (no es lo que `Notificaciones`
+ * necesita probar) — simulan una sesión iniciada escribiendo directo el
+ * campo privado en memoria, mismo patrón de cast que ya usa este archivo
+ * para inspeccionar `Notificaciones.suscripcion`.
+ */
+function simularSesion(token: string | null): void {
+  (TestBed.inject(Auth) as unknown as { accessTokenEnMemoria: string | null }).accessTokenEnMemoria = token;
+}
 
 /**
  * Nota sobre `discardPeriodicTasks()`: bajo esta combinación de versiones de
@@ -30,14 +44,14 @@ describe('Notificaciones', () => {
     });
     servicio = TestBed.inject(Notificaciones);
     httpMock = TestBed.inject(HttpTestingController);
-    localStorage.removeItem('keyserv_access_token');
+    simularSesion(null);
   });
 
   afterEach(fakeAsync(() => {
     discardPeriodicTasks();
     // Drena cualquier request que el discard haya disparado de más (ver nota arriba) antes de verificar que no quede nada suelto.
     httpMock.match(() => true);
-    localStorage.removeItem('keyserv_access_token');
+    simularSesion(null);
   }));
 
   it('no consulta el backend si no hay sesión iniciada', fakeAsync(() => {
@@ -47,7 +61,7 @@ describe('Notificaciones', () => {
   }));
 
   it('consulta y publica el conteo si hay sesión iniciada', fakeAsync(() => {
-    localStorage.setItem('keyserv_access_token', 'token-de-prueba');
+    simularSesion('token-de-prueba');
     servicio.iniciar();
     tick();
 
@@ -65,7 +79,7 @@ describe('Notificaciones', () => {
   }));
 
   it('no vuelve a sonar/consultar el usuario si el conteo no sube', fakeAsync(() => {
-    localStorage.setItem('keyserv_access_token', 'token-de-prueba');
+    simularSesion('token-de-prueba');
     servicio.iniciar();
     tick();
 
@@ -76,7 +90,7 @@ describe('Notificaciones', () => {
   }));
 
   it('iniciar() es idempotente — llamarlo dos veces no rearma la suscripción al polling', fakeAsync(() => {
-    localStorage.setItem('keyserv_access_token', 'token-de-prueba');
+    simularSesion('token-de-prueba');
     servicio.iniciar();
     tick();
     drenarYFlushear(httpMock, `${environment.apiUrl}/mensajes/no-leidos/`, { no_leidos: 0 });
