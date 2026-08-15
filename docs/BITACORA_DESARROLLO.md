@@ -47,8 +47,37 @@ nunca automático.
 | 32 | 2026-08-13 21:07 | `39a5c11` | Fase 3 (API/Ionic, parcial): registro de cuenta — API (reusa RegistroForm), catálogos de referencia, pantalla Ionic con cascada región→comuna | 18 min |
 | 33 | 2026-08-13 21:19 | `83c8143` | Fase 3 (API/Ionic, parcial): editar perfil — API (reusa EditarPerfilForm, sube foto), pantalla Ionic; se agregó la Fase 6 de diseño visual al plan (deferida a después de toda la funcionalidad) | 12 min |
 | 34 | 2026-08-13 21:30 | `fac4e38` | Fase 3 (API/Ionic, parcial): recuperación de contraseña — API (reusa RecuperarForm/NuevaPasswordForm, link apunta al frontend Ionic), pantallas Ionic de los 2 pasos | 11 min |
+| 35 | 2026-08-13 22:33 | `f68e139` | Fase 3 (API/Ionic, completa): perfil de proveedor y preferencias de cuenta | 1 h 03 min |
+| 36 | 2026-08-13 23:03 | `b0d961d` | Fase 4 (API/Ionic, parcial): contrataciones, mensajería y valoraciones | 30 min |
+| 37 | 2026-08-13 23:39 | `6c0105c` | Fase 4 (API/Ionic, completa): pagos Webpay y Khipu | 36 min |
+| 38 | 2026-08-14 01:07 | `fcf317b` | Fase 5 (API/Ionic, parcial): verificación biométrica nativa | 1 h 28 min |
+| 39 | 2026-08-14 02:32 | `b0e253d` | Fase 5 (API/Ionic, completa): reconocimiento facial por cámara | 1 h 25 min |
+| 40 | 2026-08-14 03:22 | `626a236` | Fase 6 (API/Ionic, parcial): identidad visual del sitio Django portada a Ionic | 50 min |
+| 41 | 2026-08-14 23:42 | `96c0ef9` | Fase 6 (API/Ionic, completa): páginas públicas, publicar servicio y fix de login real | — (pausa larga, mismo día calendario) |
+| 42 | 2026-08-15 00:01 | `e748ef6` | Alternar proveedor + historial de pagos en Ionic | 19 min |
+| 43 | 2026-08-15 00:20 | `9514df8` | Bandeja de mensajes en Ionic | 19 min |
+| 44 | 2026-08-15 00:46 | `49e1ec0` | Verificación en viewport móvil real (375–390px) y 3 bugs corregidos | 26 min |
+| 45 | 2026-08-15 01:08 | `aac6801` | Reseñas recibidas en el perfil | 22 min |
+| 46 | 2026-08-15 01:26 | `ae9e851` | Toggle de tema claro/oscuro manual en Ionic | 18 min |
+| 47 | 2026-08-15 01:45 | `481d0dd` | Badge y polling de mensajes no leídos (15s + beep) en Ionic | 19 min |
+| 48 | 2026-08-15 01:51 | `af07f2d` | Footer compartido (marca + links + copyright) en las pantallas raíz | 6 min |
+| 49 | 2026-08-15 02:22 | `e19a58b` | Fase 7 (hardening): almacenamiento seguro de tokens JWT | 31 min |
+| 50 | 2026-08-15 03:01 | `1b20387` | Plan de portafolio en 3 niveles, investigado y documentado | 39 min |
+| 51 | 2026-08-15 15:10 | `fca4e26` | Nivel 1.2: limpieza de estructura para portafolio | — (otro bloque de sesión) |
+| 52 | 2026-08-15 15:22 | `c263f76` | Nivel 1.1: README.md real (bilingüe) para el portafolio | 12 min |
+| 53 | 2026-08-15 15:40 | `94fb4bc` | Nivel 2.1: CI con GitHub Actions (backend + frontend) | 18 min |
+| 54 | 2026-08-15 15:46 | `d7f79f4` | Nivel 2.3: diagrama de arquitectura (Mermaid) en el README | 6 min |
+| 55 | 2026-08-15 16:20 | `fda0467` | Nivel 3: licencia MIT, badges de stack, link a la carta Gantt | 34 min |
+| 56 | 2026-08-15 17:13 | `c9ad073` | Pulido: unificar tuteo (no voseo) en toda la app + contador en catálogo | 53 min |
+| 57 | 2026-08-15 17:26 | `57ebaaf` | Pulido: más voseo residual (esta vez en el propio Django) + encabezados faltantes en login/recuperar de Ionic | 13 min |
+| 58 | 2026-08-15 17:45 | `832bc09` | Pulido: barrida final de voseo (formas sin tilde/irregulares) | 19 min |
+| 59 | 2026-08-15 18:25 | `d30c13d` | Paridad reservas: filtros + grid con fotos + badges descriptivos | 40 min |
+| 60 | 2026-08-15 18:35 | `2833d59` | Paridad contratación/detalle: avance visual + descripción/imágenes | 10 min |
+| 61 | 2026-08-15 18:36 | `20f2854` | Actualiza BACKLOG.md con los hallazgos de la comparación Ionic vs Django | 1 min |
+| 62 | 2026-08-15 18:41 | `b0aed2b` | Paridad preferencias: sección "Términos y condiciones" faltante | 5 min |
+| 63 | 2026-08-15 18:52 | `3bcc434` | Paridad rostro/biometría: avatar-ícono + último voseo residual ("Probá") | 11 min |
 
-**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min. **Hasta el checkpoint #21**: ~17 h 04 min. **Hasta el checkpoint #22**: ~17 h 47 min. **Hasta el checkpoint #27**: ~25 h 35 min. **Hasta el checkpoint #34**: ~27 h 16 min.
+**Tiempo activo estimado hasta el checkpoint #10** (sumando solo los intervalos cortos dentro del mismo día, sin las pausas entre días): ~9 h 45 min. **Hasta el checkpoint #13**: ~13 h 30 min. **Hasta el checkpoint #17**: ~15 h 41 min. **Hasta el checkpoint #19**: ~16 h 33 min. **Hasta el checkpoint #21**: ~17 h 04 min. **Hasta el checkpoint #22**: ~17 h 47 min. **Hasta el checkpoint #27**: ~25 h 35 min. **Hasta el checkpoint #34**: ~27 h 16 min. **Hasta el checkpoint #40** (cierre de Fases 3-6 de la migración API/Ionic): ~33 h 08 min. **Hasta el checkpoint #50** (cierre de la sesión nocturna + plan de portafolio): ~36 h 27 min. **Hasta el checkpoint #63** (cierre de la sesión de portafolio + pulido visual, 15 ago): ~40 h 09 min.
 
 ---
 
