@@ -70,8 +70,20 @@ en esa categoría.
       propósito, igual que `perfil_view`) + sección nueva en `home.page` entre "Tu cuenta" y el
       menú. — 2026-08-15, verificado en vivo con una reseña real de datos demo (Camila ← Javiera,
       ★5). 4 tests.
-- [ ] **Toggle de tema claro/oscuro manual** — Ionic solo sigue la preferencia del SO, Django
-      tiene un botón explícito con persistencia en `localStorage`.
+- [x] **Toggle de tema claro/oscuro manual** — `core/tema.ts` (`Tema`, tres estados: sin elección
+      sigue al SO, `data-theme="light"`/`"dark"` puestos a mano lo pisan en cualquier dirección) +
+      switch nuevo en `/preferencias` ("Apariencia") + bootstrap en `index.html` (aplica el
+      `localStorage['ks-theme']` guardado antes del primer pintado, evita el flash). Detectado y
+      corregido en el camino un bug real de especificidad CSS: la paleta clara de `variables.scss`
+      vivía en un `:root { ... }` a secas, así que con el SO en oscuro `dark.system.css` de Ionic
+      (que usa `:root.ios`/`:root.md`, más específico) le seguía ganando la cascada a la elección
+      explícita "claro" del usuario para `--ion-background-color`/`--ion-card-background`/etc. —
+      mismo patrón que el bug de la paleta oscura ya documentado en `CLAUDE.md`, esta vez del lado
+      claro. Se resolvió con el mismo mecanismo: paleta clara en un `@mixin ks-light-palette`,
+      reaplicada bajo `:root[data-theme="light"], :root.ios[data-theme="light"],
+      :root.md[data-theme="light"]`. — 2026-08-15, verificado en vivo con el SO en modo oscuro:
+      alternar el switch cambia el tema al instante (paleta completa, no solo el header), persiste
+      al navegar a otra página (`/home`) y al recargar. 4 tests nuevos (`tema.spec.ts`).
 - [ ] **Badge + polling de mensajes no leídos** (cada 15s, con beep) en el header — no existe en
       Ionic todavía, existe en Django desde Fase 5.
 - [ ] **Footer** (marca + links + copyright) en el resto de pantallas raíz — hoy solo está en

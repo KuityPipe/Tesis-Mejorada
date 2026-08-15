@@ -19,6 +19,21 @@
   </div>
 
   <ng-container *ngIf="!cargando">
+    <!-- Toggle manual de tema claro/oscuro — equivalente Ionic del botón de base.html en el sitio Django (ver core/tema.ts). -->
+    <div class="ks-section">
+      <p class="ks-section-title">Apariencia</p>
+      <ion-card>
+        <ion-card-content>
+          <ion-item lines="none">
+            <ion-icon [name]="temaActual === 'dark' ? 'moon-outline' : 'sunny-outline'" slot="start"></ion-icon>
+            <ion-toggle [checked]="temaActual === 'dark'" (ionChange)="alternarTema()">
+              Tema oscuro
+            </ion-toggle>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <div class="ks-section">
       <p class="ks-section-title">Notificaciones</p>
       <ion-card>

@@ -8,7 +8,16 @@
    badges de estado) igual que en base.css.
 --------------------------------------------------------------------- */
 
-:root {
+// Paleta clara, en mixin por el mismo motivo que ks-dark-palette más abajo:
+// además de aplicarse por defecto en :root, hace falta reaplicarla
+// explícitamente bajo :root[data-theme="light"] (con :root.ios/:root.md
+// para igualar especificidad) para el caso "SO en oscuro + el usuario
+// eligió claro a mano" — sin eso, dark.system.css de Ionic (que corre bajo
+// @media (prefers-color-scheme: dark) con selectores :root.ios/:root.md,
+// más específicos que un :root a secas) le sigue ganando la cascada a
+// esta paleta para --ion-background-color/--ion-card-background/etc.
+// pese a la elección explícita del usuario.
+@mixin ks-light-palette {
   /* ---------- Paleta de marca (claro) ---------- */
   --ks-cream: #FFF8F1;
   --ks-cream-soft: #FFFFFF;
@@ -113,17 +122,37 @@
   --ion-card-background: var(--ks-surface);
 }
 
-/* Modo oscuro — sigue la preferencia del sistema (misma fuente de verdad
-   que @ionic/angular/css/palettes/dark.system.css, ya importado en
-   global.scss); mismos valores que el bloque [data-bs-theme="dark"] de
-   base.css. */
-@media (prefers-color-scheme: dark) {
-  /* `:root.md`/`:root.ios` (no solo `:root`) para igualar o superar la
-     especificidad de @ionic/angular/css/palettes/dark.system.css, que
-     define --ion-background-color/--ion-toolbar-background/etc. bajo esos
-     mismos selectores compuestos — con solo `:root` esas propiedades
-     puntuales perdían la cascada pese a cargar después en el bundle. */
-  :root, :root.ios, :root.md {
+:root {
+  @include ks-light-palette;
+}
+
+// data-theme="light" puesto a mano: reaplica la paleta clara con la misma
+// especificidad que dark.system.css de Ionic para ganarle la cascada
+// incluso con el SO en modo oscuro (ver comentario del mixin arriba).
+:root[data-theme="light"],
+:root.ios[data-theme="light"],
+:root.md[data-theme="light"] {
+  @include ks-light-palette;
+}
+
+/* Modo oscuro — tres estados posibles, igual que el toggle de base.css en
+   el sitio Django (ver preferencias/preferencias.page.ts, Tema):
+   1. Sin elección explícita guardada: sigue la preferencia del SO
+      (@media, sin ningún data-theme puesto) — :not([data-theme="light"])
+      deja pasar el caso "SO en oscuro, sin elección" pero NO pisa una
+      elección explícita "light" guardada.
+   2. data-theme="dark" puesto a mano (independiente del SO): el segundo
+      bloque de abajo, con la MISMA especificidad que el primero para que
+      lo que se aplicó último en el DOM (el atributo, dinámico) gane
+      sobre lo que decidió el navegador solo por preferencia del SO.
+   3. data-theme="light" puesto a mano: ninguno de los dos bloques
+      aplica, se queda con la paleta clara de :root de arriba.
+   `:root.md`/`:root.ios` (no solo `:root`) en ambos para igualar o
+   superar la especificidad de @ionic/angular/css/palettes/dark.system.css,
+   que define --ion-background-color/--ion-toolbar-background/etc. bajo
+   esos mismos selectores compuestos — con solo `:root` esas propiedades
+   puntuales perdían la cascada pese a cargar después en el bundle. */
+@mixin ks-dark-palette {
     --ks-cream: #10151F;
     --ks-cream-soft: #161D29;
     --ks-navy: #6FA8F0;
@@ -216,5 +245,30 @@
     --ion-item-background: var(--ks-surface);
     --ion-border-color: var(--ks-border);
     --ion-card-background: var(--ks-surface);
+}
+
+// Caso 1: sin elección explícita guardada, sigue la preferencia del SO.
+// :not([data-theme="light"]) deja pasar "SO en oscuro, sin elección" pero
+// no pisa una elección explícita "light" guardada (caso 3, más abajo).
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]),
+  :root.ios:not([data-theme="light"]),
+  :root.md:not([data-theme="light"]) {
+    @include ks-dark-palette;
   }
 }
+
+// Caso 2: data-theme="dark" puesto a mano (el toggle, ver Tema en
+// core/tema.ts) — aplica sin importar la preferencia del SO. Mismos
+// selectores :root.ios/:root.md que el bloque de arriba, por el mismo
+// motivo de especificidad contra dark.system.css de Ionic.
+:root[data-theme="dark"],
+:root.ios[data-theme="dark"],
+:root.md[data-theme="dark"] {
+  @include ks-dark-palette;
+}
+
+// Caso 3 (data-theme="light" puesto a mano): bloque aparte más arriba,
+// junto a la definición de ks-light-palette — hace falta reafirmar la
+// paleta clara explícitamente para ganarle la cascada a dark.system.css
+// cuando el SO está en oscuro (mismo motivo que el caso 2, en espejo).

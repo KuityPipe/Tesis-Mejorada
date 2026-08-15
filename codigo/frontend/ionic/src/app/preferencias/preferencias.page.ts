@@ -3,6 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { Auth } from '../core/auth';
+import { Tema, Tema3Estados } from '../core/tema';
 
 /**
  * Preferencias de la cuenta — equivalente Ionic de `/preferencias-cuenta/`
@@ -38,16 +39,25 @@ export class PreferenciasPage implements OnInit {
   passwordCambiadaOk = false;
   errorPassword: string | null = null;
 
+  temaActual: Tema3Estados = 'light';
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly auth: Auth,
+    private readonly tema: Tema,
   ) {}
 
   ngOnInit(): void {
+    this.temaActual = this.tema.obtenerActual();
     this.auth.me().subscribe((usuario) => {
       this.formularioPreferencias.patchValue({ notificaciones_sonido: usuario.notificaciones_sonido });
       this.cargando = false;
     });
+  }
+
+  alternarTema(): void {
+    this.tema.alternar();
+    this.temaActual = this.tema.obtenerActual();
   }
 
   guardarPreferencias(): void {

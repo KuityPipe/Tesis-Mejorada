@@ -5,6 +5,26 @@
   <meta charset="utf-8" />
   <title>KeyServ</title>
 
+  <script>
+    // Aplica el tema guardado ANTES de pintar la página (evita el flash de
+    // tema incorrecto) — mismo criterio y misma clave semántica que el
+    // <script> de base.html en el sitio Django (allá usa
+    // data-bs-theme/localStorage 'ks-theme'; acá el atributo es
+    // data-theme, que es el que leen los bloques [data-theme="dark"]/
+    // :not([data-theme="light"]) de src/theme/variables.scss). Sin
+    // sesión o con localStorage bloqueado (modo privado), respeta la
+    // preferencia del SO y no hace nada — variables.scss ya cubre ese
+    // caso con @media (prefers-color-scheme: dark).
+    (function () {
+      try {
+        var guardado = localStorage.getItem('ks-theme');
+        if (guardado === 'light' || guardado === 'dark') {
+          document.documentElement.setAttribute('data-theme', guardado);
+        }
+      } catch (e) { /* localStorage bloqueado: queda la preferencia del SO */ }
+    })();
+  </script>
+
   <base href="/" />
 
   <meta name="color-scheme" content="light dark" />
