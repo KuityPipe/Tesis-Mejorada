@@ -312,6 +312,34 @@ h1, h2, h3, .dashboard .module table caption a,
   border-radius: var(--ks-radius-sm);
 }
 
+/* ---------- Uso del espacio en el dashboard — Django admin fija
+   ".dashboard #content { width: 600px }" (pensado para el app-list plano
+   de fábrica), lo que deja todo el ancho a la derecha del sidebar vacío
+   una vez que el dashboard tiene contenido propio (KPIs + paneles). Se
+   libera ese ancho y se lo reparte en columnas reales en vez de un único
+   bloque estirado. ---------- */
+
+.dashboard #content {
+  width: auto;
+  max-width: 1400px;
+}
+
+.ks-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  align-items: start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.ks-panel-grid .app-ks_panel {
+  margin: 0;
+}
+
+.ks-panel-grid .ks-panel-full {
+  grid-column: 1 / -1;
+}
+
 /* ---------- Franja de KPIs del dashboard — equivalente admin de las
    tarjetas de estadística que usan paneles tipo ServiceNow arriba de
    cualquier lista: el número más importante primero, antes de los

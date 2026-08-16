@@ -266,10 +266,10 @@ class RankingAdmin(admin.ModelAdmin):
 class LogEntryAdmin(admin.ModelAdmin):
     """
     Auditoría nativa de Django (quién cambió qué y cuándo — ej. quién aprobó
-    una publicación). Visible SOLO para superusers ("el moderador tiene todo
-    menos los logs"): las tres `has_*_permission` devuelven False para
-    cualquiera que no sea superuser, así Django ni siquiera lo muestra en su
-    panel — no hace falta ocultarlo a mano en la plantilla.
+    una publicación). Visible SOLO para superusers: las tres
+    `has_*_permission` devuelven False para cualquiera que no sea superuser,
+    así Django ni siquiera lo muestra en su panel — no hace falta ocultarlo
+    a mano en la plantilla.
     """
     list_display = ('action_time', 'usuario_responsable', 'content_type', 'object_repr', 'action_flag', 'change_message')
     list_filter = ('action_flag', 'content_type')

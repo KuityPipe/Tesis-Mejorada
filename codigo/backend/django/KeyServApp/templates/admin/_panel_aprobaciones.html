@@ -32,6 +32,8 @@ es 0" (debe seguir mostrando la tarjeta, en verde).
   {% endif %}
 </div>
 
+<div class="ks-panel-grid">
+
 {% if total_pendientes is not None %}
 <div class="app-ks_panel module" id="ks-panel-aprobaciones">
   <table>
@@ -76,7 +78,7 @@ es 0" (debe seguir mostrando la tarjeta, en verde).
 {% endif %}
 
 {% if intentos_sospechosos is not None %}
-<div class="app-ks_panel module" id="ks-panel-sospechosos">
+<div class="app-ks_panel module ks-panel-full" id="ks-panel-sospechosos">
   <table>
     <caption>
       <a href="{% url 'admin:KeyServApp_intentoaccesosospechoso_changelist' %}" class="section" title="{% translate 'Ver todos' %}">
@@ -104,6 +106,7 @@ es 0" (debe seguir mostrando la tarjeta, en verde).
 <div class="app-ks_panel module">
   <table>
     <caption><a href="{% url 'admin:admin_logentry_changelist' %}" class="section">🕓 Auditoría — registro de acciones (solo admin)</a></caption>
+    <tr><td>Quién cambió qué y cuándo en todo el sitio — aprobaciones, ediciones, altas y bajas.</td></tr>
   </table>
 </div>
 
@@ -114,3 +117,5 @@ es 0" (debe seguir mostrando la tarjeta, en verde).
   </table>
 </div>
 {% endif %}
+
+</div>{# .ks-panel-grid #}

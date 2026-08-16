@@ -1560,10 +1560,6 @@ class GrupoModeradorCommandTests(TestCase):
             'view_imagenes',
             'view_documento', 'change_documento',
             'view_consulta', 'change_consulta',
-            'view_contratacion',
-            'view_historialestadocontratacion',
-            'view_conversacion',
-            'view_mensaje',
             'view_valoracion', 'change_valoracion',
             'view_valoracionimagen', 'change_valoracionimagen',
             'view_ranking',
@@ -1571,7 +1567,7 @@ class GrupoModeradorCommandTests(TestCase):
         })
 
     def test_grupo_no_tiene_permisos_sobre_modelos_sensibles(self):
-        """'Todo menos logs y bases de datos' (docstring del comando) — Usuario, pagos e infraestructura quedan afuera."""
+        """Alcance acotado (docstring del comando) — Usuario, pagos e infraestructura quedan afuera."""
         call_command('configurar_grupo_moderador', verbosity=0)
         modelos_sensibles = {'usuario', 'transaccion', 'gasto', 'autentificacion', 'firma', 'usuarioadministrativo', 'pago'}
         modelos_con_permiso = {
@@ -1579,6 +1575,20 @@ class GrupoModeradorCommandTests(TestCase):
             for permiso in Group.objects.get(name='Moderador').permissions.all()
         }
         self.assertEqual(modelos_con_permiso & modelos_sensibles, set())
+
+    def test_grupo_no_ve_conversaciones_ni_contrataciones(self):
+        """
+        Alcance revisado 2026-08-15: el moderador solo ve casos que se le
+        derivan (Consulta) y alertas (IntentoAccesoSospechoso) — no chats
+        privados ni el pipeline de contrataciones/"trabajos pendientes".
+        """
+        call_command('configurar_grupo_moderador', verbosity=0)
+        modelos_excluidos = {'conversacion', 'mensaje', 'contratacion', 'historialestadocontratacion'}
+        modelos_con_permiso = {
+            permiso.content_type.model
+            for permiso in Group.objects.get(name='Moderador').permissions.all()
+        }
+        self.assertEqual(modelos_con_permiso & modelos_excluidos, set())
 
     def test_comando_es_idempotente(self):
         call_command('configurar_grupo_moderador', verbosity=0)
@@ -1627,7 +1637,7 @@ class AdminAgrupacionTests(TestCase):
         moderador = User.objects.create_user('mod_agrupacion', password='ModTest1234', is_staff=True)
         moderador.groups.add(Group.objects.get(name='Moderador'))
         nombres = {grupo['name'] for grupo in self._grupos_para(moderador)}
-        self.assertEqual(nombres, {'Solicitudes y moderación', 'Seguridad', 'Mensajería'})
+        self.assertEqual(nombres, {'Solicitudes y moderación', 'Seguridad'})
 
 
 class PanelAprobacionesTests(TestCase):
