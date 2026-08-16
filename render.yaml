@@ -1,0 +1,56 @@
+# Blueprint de Render para el demo desplegado de KeyServ (docs/PLAN_PORTAFOLIO.md,
+# Nivel 2.2). Levanta el backend Django + una base Postgres administrada —
+# el frontend Ionic va aparte, en Netlify (build estático, ver
+# codigo/frontend/ionic/netlify.toml).
+#
+# Cómo usarlo: en el dashboard de Render, "New" → "Blueprint" → conectar
+# este repo. Render lee este archivo solo, arma ambos servicios y pide
+# completar las variables marcadas `sync: false` (ver más abajo cuáles).
+#
+# Alcance del demo (decisión ya tomada, ver plan): catálogo público + cuenta/
+# login + contrataciones + pagos Webpay (sandbox de integración, sin cuenta
+# real). Sin biometría nativa ni reconocimiento facial — ver
+# requirements-render.txt para por qué esas dependencias ni se instalan acá.
+databases:
+  - name: keyserv-db
+    plan: free
+    databaseName: keyserv
+    user: keyserv
+
+services:
+  - type: web
+    name: keyserv-api
+    runtime: python
+    plan: free
+    buildCommand: "./render_build.sh"
+    startCommand: "cd codigo/backend/django && gunicorn KeyServProject.wsgi:application --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.3
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ""
+      - key: DATABASE_URL
+        fromDatabase:
+          name: keyserv-db
+          property: connectionString
+      # Completar a mano una vez que exista la URL real del sitio en
+      # Netlify (ej. https://keyserv-demo.netlify.app) — ver el paso a paso
+      # del despliegue. Sin esto, el login/registro/recuperación de
+      # contraseña del frontend van a fallar por CORS.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: IONIC_FRONTEND_URL
+        sync: false
+      # Webpay funciona sin completar nada más (usa las credenciales
+      # públicas de integración del propio SDK) — ver pagos.py.
+      - key: TRANSBANK_ENVIRONMENT
+        value: integracion
+      # Khipu no tiene sandbox público — sin KHIPU_API_KEY, pagar por Khipu
+      # falla con un mensaje claro en vez de un 500 (ver pagos.py). No hace
+      # falta completarlo para el demo.
+      - key: GEOIP_HABILITADO
+        value: "False"

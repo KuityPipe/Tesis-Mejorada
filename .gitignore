@@ -27,6 +27,10 @@ codigo/backend/django/media/
 # criterio que MEDIA_ROOT, nunca versionar contenido subido por usuarios.
 codigo/backend/django/media_privado/
 
+# Destino de `collectstatic` (STATIC_ROOT, ver settings.py y render_build.sh)
+# — generado en cada build de producción, no código fuente.
+codigo/backend/django/staticfiles/
+
 # Base de datos GeoIP local (~130 MB, ver KeyServApp/geolocalizacion.py) —
 # se descarga con `manage.py descargar_geoip`, no es código fuente y se
 # actualiza mensualmente sola, no tiene sentido versionarla.

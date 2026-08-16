@@ -1,5 +1,7 @@
 export const environment = {
   production: true,
-  // TODO: completar cuando exista un dominio de backend desplegado — no hay uno todavía (ver CLAUDE.md).
-  apiUrl: '',
+  // Backend en Render (ver render.yaml, servicio "keyserv-api") — si Render
+  // le agregó un sufijo al nombre por una colisión, actualizar esta línea
+  // con la URL real que muestre el dashboard antes del primer deploy a Netlify.
+  apiUrl: 'https://keyserv-api.onrender.com/api',
 };

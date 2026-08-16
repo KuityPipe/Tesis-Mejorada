@@ -1,0 +1,39 @@
+# Dependencias para el demo desplegado en Render (docs/PLAN_PORTAFOLIO.md,
+# Nivel 2.2) — mismo criterio que requirements-ci.txt: un subconjunto
+# deliberado de requirements.txt, no un descuido.
+#
+# El alcance del demo es explícitamente "catálogo público + cuenta/login +
+# contrataciones — sin biometría nativa ni reconocimiento facial" (decidido
+# en el plan de portafolio: esas dos no tienen sentido para un visitante sin
+# cámara/huella configurada, y el video ya las cubre aparte). Eso deja fuera
+# del build de Render el mismo bloque pesado que CI ya evita —
+# opencv-python/dlib-bin/face_recognition/fpdf2 — por la misma razón: el
+# build de Render no tiene margen para compilar/instalar dependencias nativas
+# grandes en el tier gratis, y `KeyServApp/biometria.py` ya las importa
+# con try/except dentro de cada función (nunca al nivel del módulo), así que
+# no tenerlas instaladas no rompe el resto del sitio — solo esas dos rutas
+# puntuales, que el demo no expone.
+#
+# `transbank-sdk` SÍ va (a diferencia del bloque de biometría): el flujo de
+# pago con Webpay es parte central de lo que el demo tiene que mostrar.
+Django==5.2.16
+django-environ>=0.11
+psycopg2-binary>=2.9.9
+Pillow>=10.3
+geoip2>=4.8
+djangorestframework>=3.15
+django-cors-headers>=4.4
+drf-spectacular>=0.27
+PyJWT>=2.9
+requests
+transbank-sdk>=6.1.0
+
+# Servidor WSGI de producción — `manage.py runserver` (usado en todo el
+# resto de este proyecto) no está pensado para servir tráfico real.
+gunicorn>=23.0
+
+# Sirve los estáticos (CSS/admin/DRF browsable API) directo desde el proceso
+# de Django, sin un servidor/CDN aparte — la opción estándar para un
+# despliegue chico de portafolio en un solo dyno/servicio. Ver
+# MIDDLEWARE/STORAGES en settings.py.
+whitenoise>=6.7

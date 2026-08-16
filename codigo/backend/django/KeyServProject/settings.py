@@ -37,6 +37,13 @@ SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-solo-para-desarro
 DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
+# Render inyecta el hostname público real en esta variable (no hay que
+# adivinarlo ni hardcodearlo en DJANGO_ALLOWED_HOSTS) — ver
+# docs/PLAN_PORTAFOLIO.md Nivel 2.2 y render.yaml. En cualquier otro entorno
+# (local, CI) esta variable simplemente no existe y esto no hace nada.
+_render_hostname = env('RENDER_EXTERNAL_HOSTNAME', default='')
+if _render_hostname:
+    ALLOWED_HOSTS.append(_render_hostname)
 
 # URL del panel de administración — configurable para no dejar el default
 # ("admin/") tal cual, que es el primer path que prueba cualquier bot que
@@ -73,6 +80,14 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 # ninguna página del sitio se puede embeber en un <iframe> ajeno (clickjacking).
 X_FRAME_OPTIONS = 'DENY'
 
+# Django exige que el origen exacto (con esquema) que hace un POST (ej. el
+# login de /admin/) esté en esta lista desde Django 4.0 — ALLOWED_HOSTS por
+# sí solo no alcanza. El hostname de Render se agrega solo, igual que en
+# ALLOWED_HOSTS arriba.
+CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
+if _render_hostname:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{_render_hostname}')
+
 
 # Application definition
 
@@ -92,6 +107,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Sirve /static/ directo desde el proceso de Django (whitenoise) — tiene
+    # que ir justo después de SecurityMiddleware, como pide la propia
+    # documentación de whitenoise. Sin costo en local/CI: si no se corrió
+    # `collectstatic` (nadie lo hace fuera de un despliegue real), whitenoise
+    # simplemente no encuentra nada que servir y Django sigue resolviendo
+    # los estáticos como siempre en DEBUG.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     # Debe ir antes que CommonMiddleware (recomendación de django-cors-headers)
     # para poder agregar los headers CORS a toda respuesta, incluidas las de
     # error. Solo afecta a /api/*; el resto del sitio (templates, /admin/) no
@@ -129,18 +151,21 @@ WSGI_APPLICATION = 'KeyServProject.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-# Postgres en vez de MySQL (ver docstring de arriba). Variables esperadas
-# en .env: DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT.
-
+# Postgres en vez de MySQL (ver docstring de arriba). Local/CI siguen
+# usando las variables sueltas DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT
+# de siempre; Render (demo desplegado, ver render.yaml) entrega en cambio
+# una única DATABASE_URL al conectar el servicio a su Postgres administrado
+# — `env.db()` (django-environ) la parsea si existe, y si no, arma el mismo
+# DSN de siempre a partir de las variables sueltas (el default), así que
+# nada cambia para nadie que no tenga DATABASE_URL seteada.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default='keyserv'),
-        'USER': env('DB_USER', default='postgres'),
-        'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
-    }
+    'default': env.db(
+        'DATABASE_URL',
+        default=(
+            f"postgres://{env('DB_USER', default='postgres')}:{env('DB_PASSWORD', default='')}"
+            f"@{env('DB_HOST', default='localhost')}:{env('DB_PORT', default='5432')}/{env('DB_NAME', default='keyserv')}"
+        ),
+    ),
 }
 
 
@@ -190,6 +215,19 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # destino de `collectstatic` en producción
 
+# `CompressedManifestStaticFilesStorage`: whitenoise sirve cada archivo ya
+# comprimido (gzip/brotli) y con un hash en el nombre (cache-busting real —
+# un deploy nuevo no sirve el CSS viejo desde la caché del navegador).
+# Probado localmente con `collectstatic` antes de subir esto: si algún
+# `{% static %}`/`url()` del CSS apuntara a un archivo que no existe, esta
+# storage rompe el build entero (a propósito, es más estricta que la
+# storage por defecto) — no es una elección liviana, ya se verificó que
+# collectstatic corre limpio con esto activado.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
+
 
 # Media files (subidas de usuario: documentos, fotos de perfil, etc.)
 
@@ -235,11 +273,15 @@ GEOIP_DB_PATH = env('GEOIP_DB_PATH', default=str(BASE_DIR / 'geoip' / 'dbip-city
 
 # Envío de correo (recuperación de contraseña, ver views.recuperar_view) —
 # reusa las mismas variables SMTP_* de .env que ya existían para
-# codigo/biometria/huella/AUTENTIFICACION.py (legacy). En DEBUG, sin
-# SMTP_PASSWORD configurado, no tiene sentido intentar una conexión SMTP real
-# que va a fallar — el backend de consola imprime el correo en la terminal
-# de `runserver`, suficiente para probar el flujo en desarrollo.
-if DEBUG and not env('SMTP_PASSWORD', default=''):
+# codigo/biometria/huella/AUTENTIFICACION.py (legacy). Sin SMTP_PASSWORD
+# configurado, no tiene sentido intentar una conexión SMTP real que va a
+# fallar — el backend de consola imprime el correo en la terminal de
+# `runserver` en dev, suficiente para probar el flujo. Ya no depende de
+# DEBUG (antes sí): el demo desplegado en Render corre con DEBUG=False y
+# deliberadamente sin SMTP real configurado (ver render.yaml) — sin este
+# cambio, /recuperar/ ahí intentaría abrir una conexión SMTP con
+# credenciales vacías y respondería 500 en vez de degradar con gracia.
+if not env('SMTP_PASSWORD', default=''):
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

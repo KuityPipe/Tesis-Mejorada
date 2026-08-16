@@ -1719,3 +1719,52 @@ class PanelAprobacionesTests(TestCase):
         response = client.get(reverse('admin:index'))
 
         self.assertContains(response, 'solo admin')
+
+
+class SembrarDatosDemoCommandTests(TestCase):
+    """
+    `sembrar_datos_demo` (management command, demo desplegado — ver
+    docs/PLAN_PORTAFOLIO.md Nivel 2.2) puebla una base de datos vacía con
+    usuarios/publicaciones/contrataciones reproducibles. Se corre contra la
+    base de datos de test (efímera), nunca contra la local con datos reales
+    — así se verifica sin arriesgar la data demo local ya sembrada a mano.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        # El comando asume Region/Comuna ya cargadas (con lat/long, migracion
+        # 0027) -- mismo orden que el pipeline real de deploy: migrate ->
+        # loaddata catalogos_iniciales -> sembrar_datos_demo (ver render_build.sh).
+        call_command('loaddata', 'catalogos_iniciales', verbosity=0)
+
+    def test_comando_es_idempotente_y_crea_lo_esperado(self):
+        call_command('sembrar_datos_demo', verbosity=0)
+        call_command('sembrar_datos_demo', verbosity=0)  # segunda corrida: no debe duplicar nada.
+
+        self.assertEqual(User.objects.filter(username='admin', is_superuser=True).count(), 1)
+        self.assertEqual(User.objects.filter(username='moderador').count(), 1)
+        self.assertTrue(User.objects.get(username='moderador').groups.filter(name='Moderador').exists())
+
+        self.assertEqual(Usuario.objects.filter(es_proveedor=True).count(), 8)
+        self.assertEqual(Publicaciones.objects.filter(estado_moderacion=Publicaciones.APROBADA).count(), 8)
+        self.assertEqual(Contratacion.objects.count(), 4)
+        self.assertEqual(
+            set(Contratacion.objects.values_list('estado', flat=True)),
+            {Contratacion.SOLICITADA, Contratacion.CONFIRMADA, Contratacion.EN_CURSO, Contratacion.COMPLETADA},
+        )
+
+    def test_contratacion_completada_tiene_pago_y_valoracion_aprobada(self):
+        call_command('sembrar_datos_demo', verbosity=0)
+
+        completada = Contratacion.objects.get(estado=Contratacion.COMPLETADA)
+        self.assertTrue(hasattr(completada, 'pago'))
+        self.assertEqual(completada.pago.estado, Pago.PAGADO)
+        self.assertTrue(hasattr(completada, 'valoracion'))
+        self.assertEqual(completada.valoracion.estado_moderacion, Valoracion.APROBADA)
+        self.assertEqual(completada.proveedor.ranking.total_valoraciones, 1)
+
+    def test_proveedores_usan_comunas_geocodificadas(self):
+        call_command('sembrar_datos_demo', verbosity=0)
+
+        for proveedor in Usuario.objects.filter(es_proveedor=True):
+            self.assertIsNotNone(proveedor.comuna.latitud, f'{proveedor.email} sin comuna geocodificada')

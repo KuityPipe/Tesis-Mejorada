@@ -169,19 +169,54 @@ del README — es la señal más barata y más creíble de disciplina de ingenie
 
 ### 2.2 Demo desplegado
 
-- **Backend**: Render (mejor opción que Railway para este caso — sin tarjeta de crédito, Postgres
-  administrado, soporte nativo de Django; el único costo es un cold-start de unos segundos tras 15
-  min de inactividad en el tier gratis, aceptable para un demo de portafolio).
-- **Frontend**: build web de Ionic (`ng build`) como sitio estático — Render Static Site o Netlify,
-  cualquiera de los dos sirve; apuntar `environment.apiUrl` al backend de Render.
-- **Alcance del demo**: solo catálogo público + cuenta/login + contrataciones — **sin** biometría
-  nativa ni reconocimiento facial (no tienen sentido para un visitante sin cámara/huella
-  configurada, y complican el hosting). El video (1.3) cubre esa parte.
-- Seedear con los mismos datos demo que ya existen en el entorno local (12 usuarios, 8
-  publicaciones, etc. — ver `CLAUDE.md`), con credenciales de demo visibles en el propio README.
-- **Antes de desplegar**: revisar qué queda expuesto públicamente — `DEBUG=False`, `ALLOWED_HOSTS`,
-  no exponer `/admin/` con las credenciales por defecto, decidir si Webpay/Khipu quedan
-  deshabilitados o en modo sandbox visible.
+**Backend: Render. Frontend: Netlify** (decidido con el usuario, 2026-08-16) — sin tarjeta de
+crédito, Postgres administrado en Render, `netlify.toml` con el redirect de SPA que necesita el
+router de Angular.
+
+**Toda la configuración de deploy ya está lista en el repo (2026-08-16), falta solo la parte que
+tiene que hacer el usuario a mano (crear las cuentas, conectar el repo — Claude no puede crear
+cuentas de terceros):**
+
+- `render.yaml` (raíz del repo) — Blueprint con el servicio web + una base Postgres. Nombre fijo
+  del servicio (`keyserv-api`) para que la URL sea predecible.
+- `render_build.sh` (raíz) — instala `requirements-render.txt` (subconjunto sin
+  opencv/dlib/face_recognition, mismo criterio que `requirements-ci.txt` — el alcance del demo no
+  los necesita), corre `collectstatic`/`migrate`/`loaddata catalogos_iniciales`/
+  `sembrar_datos_demo`.
+- `KeyServApp/management/commands/sembrar_datos_demo.py` — comando idempotente nuevo: siembra 8
+  proveedores (uno por categoría, en las 9 comunas RM ya geocodificadas — así el filtro de radio
+  muestra distancias reales) + 3 clientes + 4 contrataciones (una por cada estado del BPMN, con
+  historial/chat/pago/reseña según corresponda) + cuentas `admin`/`moderador` de `/admin/`. Cubierto
+  por `SembrarDatosDemoCommandTests` (3 tests) — encontró y corrigió un bug real: `loaddata`
+  corrido después de la migración 0027 pisa las coordenadas de las comunas con `NULL` (el fixture
+  original no las trae); el comando las reaplica él mismo, así que no importa en qué orden corran.
+- `settings.py` — `whitenoise` (estáticos, `CompressedManifestStaticFilesStorage`, probado con
+  `collectstatic` real sin errores), `DATABASES` acepta `DATABASE_URL` (lo que entrega Render) sin
+  romper el `.env` local de siempre, `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` se completan solos con
+  `RENDER_EXTERNAL_HOSTNAME`, y el backend de correo ya no depende de `DEBUG` (sin esto, `/recuperar/`
+  en Render con `DEBUG=False` y sin SMTP real habría respondido 500 en vez de degradar).
+- `codigo/frontend/ionic/netlify.toml` + `environment.prod.ts` (con la URL fija de Render ya
+  cargada) — build de producción probado local (`npm run build`, sin errores ni warnings de budget).
+
+**Alcance del demo** (decisión ya tomada): catálogo público + cuenta/login + contrataciones + pago
+Webpay (sandbox de integración, sin cuenta real) + búsqueda por geolocalización. **Sin** biometría
+nativa ni reconocimiento facial ni Khipu (Khipu ya degrada solo con un error claro sin
+`KHIPU_API_KEY`, no hace falta deshabilitarlo a mano). El video (1.3) cubre lo que el demo no puede.
+
+**Lo que falta — pasos manuales del usuario:**
+1. Crear cuenta en Render (render.com) → "New" → "Blueprint" → conectar el repo de GitHub → Render
+   lee `render.yaml` solo.
+2. Completar en el dashboard de Render las dos variables `sync: false` del servicio
+   (`CORS_ALLOWED_ORIGINS`, `IONIC_FRONTEND_URL`) — con la URL de Netlify del paso 4, así que
+   conviene volver a esto después de tenerla.
+3. Crear cuenta en Netlify (netlify.com) → "Add new site" → "Import an existing project" → conectar
+   el mismo repo, "Base directory" = `codigo/frontend/ionic` (`netlify.toml` ya está ahí).
+4. Con la URL real de Netlify, volver a Render (paso 2) y completar las dos variables pendientes.
+5. Verificar en vivo: catálogo, registro/login, contratar un servicio, pagar con una tarjeta de
+   prueba de Transbank (las credenciales de integración públicas ya están activas por defecto),
+   buscar cerca de mí. Credenciales demo: `cliente.demo@demo.keyserv` / `Demo1234` (cliente),
+   `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (proveedor), `admin` / `KeyServ2026!` (superuser
+   de `/admin/`) — agregar estas al README una vez confirmado que el demo funciona.
 
 ### 2.3 Diagrama de arquitectura
 

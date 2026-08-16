@@ -1,0 +1,20 @@
+# Config de Netlify para el demo desplegado (docs/PLAN_PORTAFOLIO.md,
+# Nivel 2.2). El backend va aparte, en Render (ver render.yaml en la raíz
+# del repo).
+#
+# Cómo usarlo: en el dashboard de Netlify, "Add new site" → "Import an
+# existing project" → conectar este repo, con "Base directory" =
+# codigo/frontend/ionic (Netlify detecta este archivo solo una vez ahí).
+
+[build]
+  command = "npm run build"
+  publish = "www"
+
+# Angular es una SPA con ruteo del lado del cliente (app-routing.module.ts)
+# — sin esto, recargar la página en cualquier ruta que no sea "/" (ej.
+# /catalogo/3) da 404, porque Netlify busca un archivo real en esa ruta en
+# vez de dejar que Angular la resuelva.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
