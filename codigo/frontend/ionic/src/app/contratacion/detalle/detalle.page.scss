@@ -9,6 +9,23 @@
 // solos, no hace falta un bloque @media aparte acá).
 // ---------------------------------------------------------------------
 
+.ks-chat-titulo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  .ks-section-title {
+    margin: 0;
+  }
+
+  ion-button {
+    margin: 0;
+    --padding-start: 6px;
+    --padding-end: 6px;
+  }
+}
+
 .ks-chat-content {
   display: flex;
   flex-direction: column;

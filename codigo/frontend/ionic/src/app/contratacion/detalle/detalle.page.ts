@@ -60,6 +60,8 @@ export class DetallePage implements OnInit, OnDestroy {
     '😀', '😂', '👍', '🙏', '❤️', '😢', '😮', '🎉',
     '✅', '❌', '⏰', '📸', '💰', '🏠', '🔧', '🚚',
   ];
+  exportandoChat = false;
+  errorExportarChat: string | null = null;
   procesandoAccion = false;
   errorAccion: string | null = null;
   fotosValoracion: File[] = [];
@@ -249,6 +251,41 @@ export class DetallePage implements OnInit, OnDestroy {
       },
       error: () => {
         this.enviandoMensaje = false;
+      },
+    });
+  }
+
+  /**
+   * "Backup estilo WhatsApp" del chat, equivalente Ionic de
+   * `conversacion_exportar_view` — el backend exige el JWT en el header
+   * (no un `<a href>` común, mismo motivo que la foto de un mensaje, ver
+   * `cargarImagenSegura`), así que se descarga como blob autenticado y se
+   * dispara la descarga con un `<a download>` armado a mano. Verificado
+   * solo en web (`:8100`) — en un WebView nativo (Android/iOS) el atributo
+   * `download` de un `<a>` no está garantizado, queda pendiente probarlo
+   * ahí si hace falta de verdad.
+   */
+  exportarChat(): void {
+    if (this.exportandoChat) {
+      return;
+    }
+    this.exportandoChat = true;
+    this.errorExportarChat = null;
+    this.contratacionesApi.exportarChat(this.contratacionId).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = `chat_${this.contratacionId}.txt`;
+        document.body.appendChild(enlace);
+        enlace.click();
+        document.body.removeChild(enlace);
+        URL.revokeObjectURL(url);
+        this.exportandoChat = false;
+      },
+      error: () => {
+        this.exportandoChat = false;
+        this.errorExportarChat = 'No se pudo exportar el chat.';
       },
     });
   }

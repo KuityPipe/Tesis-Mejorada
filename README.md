@@ -30,7 +30,7 @@ It also runs locally in a few minutes — see [Running locally](#running-locally
 - **Payments**: Transbank Webpay Plus (cards) + Khipu (bank transfer)
 - **Biometrics**: fingerprint image pipeline, webcam-based facial recognition with blink-liveness detection, and native device biometrics (Face ID / fingerprint via Capacitor)
 - **Location**: geolocation-based search (real device position via `@capacitor/geolocation`, Haversine distance computed in the API, radius filter), with a map preview + Google Maps link on each listing
-- **Tests**: 269 backend tests + 59 frontend tests, both green
+- **Tests**: 294 backend tests + 76 frontend tests, both green
 
 Two frontends currently coexist: the original Django server-rendered templates and the new Ionic/Angular app, talking to a DRF REST API. The Ionic migration follows a strangler-fig approach — screens are retired from the template app one area at a time, not in one big cutover.
 

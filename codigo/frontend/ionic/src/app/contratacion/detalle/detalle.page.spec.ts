@@ -116,4 +116,43 @@ describe('DetallePage', () => {
     httpMock.expectNone(`${environment.apiUrl}/contrataciones/1/mensajes/`);
     expect(component.mensajes.length).toBe(0);
   });
+
+  it('exportarChat() pide el .txt y dispara la descarga', () => {
+    component.contratacionId = 1;
+    const clickSpy = spyOn(HTMLAnchorElement.prototype, 'click');
+
+    component.exportarChat();
+
+    expect(component.exportandoChat).toBeTrue();
+    const req = httpMock.expectOne(`${environment.apiUrl}/contrataciones/1/mensajes/exportar/`);
+    expect(req.request.method).toBe('GET');
+
+    req.flush(new Blob(['Chat: prueba'], { type: 'text/plain' }));
+
+    expect(clickSpy).toHaveBeenCalled();
+    expect(component.exportandoChat).toBeFalse();
+    expect(component.errorExportarChat).toBeNull();
+  });
+
+  it('exportarChat() marca un error si la descarga falla', () => {
+    component.contratacionId = 1;
+
+    component.exportarChat();
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/contrataciones/1/mensajes/exportar/`);
+    req.flush(new Blob(['no autorizado'], { type: 'text/plain' }), { status: 404, statusText: 'Not Found' });
+
+    expect(component.exportandoChat).toBeFalse();
+    expect(component.errorExportarChat).toBe('No se pudo exportar el chat.');
+  });
+
+  it('exportarChat() no dispara una segunda descarga mientras la primera está en curso', () => {
+    component.contratacionId = 1;
+
+    component.exportarChat();
+    component.exportarChat();
+
+    const solicitudes = httpMock.match(`${environment.apiUrl}/contrataciones/1/mensajes/exportar/`);
+    expect(solicitudes.length).toBe(1);
+  });
 });

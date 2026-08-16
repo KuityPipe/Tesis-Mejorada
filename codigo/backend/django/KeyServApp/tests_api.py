@@ -19,7 +19,7 @@ from .models import (
     Usuario, Valoracion, ValoracionImagen,
 )
 from .tests import _crear_region_comuna_tipo, _crear_usuario, _frames_prueba_de_vida, _imagen_de_prueba, _marcar_en_curso
-from .views import _generar_token_recuperacion
+from .views import _generar_token_recuperacion, _obtener_o_crear_conversacion_de_contratacion
 
 
 class LoginApiTests(APITestCase):
@@ -1146,6 +1146,49 @@ class ContratacionDetalleMensajesApiTests(APITestCase):
         mensaje_id = creado.data['id_mensaje']
 
         resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/{mensaje_id}/imagen/')
+        self.assertEqual(resp.status_code, 404)
+
+    def test_exportar_chat_devuelve_txt_descargable(self):
+        self._autenticado_como(self.cliente)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'Hola, ¿seguís disponible?'}, format='json')
+
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/exportar/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Content-Type'], 'text/plain; charset=utf-8')
+        self.assertIn('attachment; filename="chat_', resp['Content-Disposition'])
+        contenido = resp.content.decode('utf-8')
+        self.assertIn('Hola, ¿seguís disponible?', contenido)
+
+    def test_exportar_chat_marca_exportado_en(self):
+        conversacion = _obtener_o_crear_conversacion_de_contratacion(self.contratacion)
+        self.assertIsNone(conversacion.exportado_en)
+
+        self._autenticado_como(self.proveedor)
+        self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/exportar/')
+
+        conversacion.refresh_from_db()
+        self.assertIsNotNone(conversacion.exportado_en)
+
+    def test_exportar_chat_mensaje_solo_con_foto_anota_foto_no_none(self):
+        self._autenticado_como(self.cliente)
+        self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'imagen': _imagen_de_prueba()})
+
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/exportar/')
+
+        contenido = resp.content.decode('utf-8')
+        self.assertIn('[foto]', contenido)
+        self.assertNotIn(': None', contenido)
+
+    def test_exportar_chat_vacio_no_falla(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/exportar/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('Todavía no hay mensajes', resp.content.decode('utf-8'))
+
+    def test_exportar_chat_ajeno_da_404(self):
+        self._autenticado_como(self.intruso)
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/exportar/')
         self.assertEqual(resp.status_code, 404)
 
 

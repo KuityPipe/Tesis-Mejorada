@@ -1667,6 +1667,22 @@ def _obtener_o_crear_conversacion_de_contratacion(contratacion):
     return conversacion
 
 
+def _texto_exportar_conversacion(conversacion):
+    """
+    Arma el `.txt` de backup de una Conversacion — compartido por
+    `conversacion_exportar_view` (Django) y `ContratacionMensajesExportarView`
+    (api/views.py) para que el formato no diverja entre los dos frontends.
+    Un mensaje con solo foto (`Mensaje.imagen`, Fase 7) no tiene `contenido`
+    — se anota "[foto]" en vez de dejar imprimir "None".
+    """
+    mensajes = Mensaje.objects.filter(conversacion=conversacion).select_related('usuario').order_by('fecha_envio')
+    lineas = [f'Chat: {conversacion.nombre_conversacion}', f'Exportado: {timezone.now():%Y-%m-%d %H:%M}', '']
+    for m in mensajes:
+        texto = m.contenido or ('[foto]' if m.imagen else '')
+        lineas.append(f'[{m.fecha_envio:%Y-%m-%d %H:%M}] {m.usuario}: {texto}')
+    return '\n'.join(lineas) if mensajes.exists() else 'Todavía no hay mensajes en esta conversación.'
+
+
 def _mensajes_no_leidos_por_conversacion(usuario):
     """
     Devuelve {conversacion_id: cantidad_no_leida} para todas las Conversacion
@@ -1778,11 +1794,7 @@ def conversacion_exportar_view(request, conversacion_id):
         messages.error(request, 'No participas en esta conversación.')
         return redirect('KeyServApp:chat')
 
-    mensajes = Mensaje.objects.filter(conversacion=conversacion).select_related('usuario').order_by('fecha_envio')
-    lineas = [f'Chat: {conversacion.nombre_conversacion}', f'Exportado: {timezone.now():%Y-%m-%d %H:%M}', '']
-    for m in mensajes:
-        lineas.append(f'[{m.fecha_envio:%Y-%m-%d %H:%M}] {m.usuario}: {m.contenido}')
-    contenido = '\n'.join(lineas) or 'Todavía no hay mensajes en esta conversación.'
+    contenido = _texto_exportar_conversacion(conversacion)
 
     conversacion.exportado_en = timezone.now()
     conversacion.save(update_fields=['exportado_en'])

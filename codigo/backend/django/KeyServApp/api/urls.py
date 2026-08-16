@@ -35,6 +35,7 @@ urlpatterns = [
     path('contrataciones/<int:contratacion_id>/', views.ContratacionDetailView.as_view(), name='contrataciones-detail'),
     path('contrataciones/<int:contratacion_id>/mensajes/', views.ContratacionMensajesView.as_view(), name='contrataciones-mensajes'),
     path('contrataciones/<int:contratacion_id>/mensajes/<int:mensaje_id>/imagen/', views.ContratacionMensajeImagenView.as_view(), name='mensaje-imagen'),
+    path('contrataciones/<int:contratacion_id>/mensajes/exportar/', views.ContratacionMensajesExportarView.as_view(), name='mensajes-exportar'),
     path('contrataciones/<int:contratacion_id>/confirmar/', views.ContratacionConfirmarView.as_view(), name='contrataciones-confirmar'),
     path('contrataciones/<int:contratacion_id>/completar/', views.ContratacionCompletarView.as_view(), name='contrataciones-completar'),
     path('contrataciones/<int:contratacion_id>/valoracion/', views.ValoracionCrearView.as_view(), name='contrataciones-valoracion'),

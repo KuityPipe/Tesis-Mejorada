@@ -187,7 +187,14 @@
 
     <!-- Chat -->
     <div class="ks-section" appReveal>
-      <p class="ks-section-title">Mensajes</p>
+      <div class="ks-chat-titulo-row">
+        <p class="ks-section-title">Mensajes</p>
+        <ion-button fill="clear" size="small" type="button" (click)="exportarChat()" [disabled]="exportandoChat">
+          <ion-icon slot="start" name="download-outline"></ion-icon>
+          {{ exportandoChat ? 'Exportando…' : 'Exportar chat' }}
+        </ion-button>
+      </div>
+      <ion-text color="danger" *ngIf="errorExportarChat"><p class="ion-padding-start">{{ errorExportarChat }}</p></ion-text>
       <ion-card class="ks-chat-card">
         <ion-card-content class="ks-chat-content">
           <!-- Scroll propio, acotado a esta sección — no el de toda la página (pedido explícito del usuario). -->

@@ -15,7 +15,7 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db.models import F, FloatField, Q, Value
 from django.db.models.functions import ASin, Cast, Cos, Power, Radians, Sin, Sqrt
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -969,6 +969,29 @@ class ContratacionMensajeImagenView(APIView):
         if not mensaje.imagen:
             raise Http404()
         return FileResponse(mensaje.imagen.open('rb'), filename=os.path.basename(mensaje.imagen.name))
+
+
+class ContratacionMensajesExportarView(APIView):
+    """
+    `GET /api/contrataciones/<id>/mensajes/exportar/` — equivalente API de
+    `conversacion_exportar_view`: descarga el chat como `.txt`. Reusa
+    `_texto_exportar_conversacion` (views.py) para que el formato del backup
+    no diverja entre el sitio Django y Ionic, y marca `exportado_en` igual
+    que el template (protege la conversación del borrado automático por
+    antigüedad, ver `limpiar_mensajes_antiguos`).
+    """
+
+    def get(self, request, contratacion_id):
+        contratacion = _contratacion_de_participante_api(request, contratacion_id)
+        conversacion = vistas_legacy._obtener_o_crear_conversacion_de_contratacion(contratacion)
+        contenido = vistas_legacy._texto_exportar_conversacion(conversacion)
+
+        conversacion.exportado_en = timezone.now()
+        conversacion.save(update_fields=['exportado_en'])
+
+        respuesta = HttpResponse(contenido, content_type='text/plain; charset=utf-8')
+        respuesta['Content-Disposition'] = f'attachment; filename="chat_{conversacion.id_conversacion}.txt"'
+        return respuesta
 
 
 class ConversacionListView(APIView):

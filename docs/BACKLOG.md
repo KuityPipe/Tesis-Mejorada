@@ -244,10 +244,20 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       KeyServ subido como archivo real) — los tres renderizan como burbuja propia (teal, alineada a la
       derecha) con scroll acotado, y la foto se ve de verdad tras el fix de blob autenticado.
       9 tests frontend nuevos (`detalle.page.spec.ts`). 73 tests frontend en verde.
-- [ ] **"Exportar chat" sin endpoint API** — `conversacion_exportar_view` (Django) no tiene
-      equivalente en `api/urls.py`; encontrado al comparar contratación/detalle. Es trabajo de backend
-      nuevo (endpoint + descarga de archivo), no solo de frontend — quedó fuera de la pasada de
-      2026-08-15 por alcance, no por dificultad.
+- [x] **"Exportar chat" — endpoint API + botón en Ionic** — `GET /api/contrataciones/<id>/mensajes/exportar/`
+      (`ContratacionMensajesExportarView`), equivalente de `conversacion_exportar_view`. La lógica de
+      formateo del `.txt` se sacó a `_texto_exportar_conversacion` (views.py), compartida por el
+      template y la API para que el formato no diverja entre los dos frontends — de paso corrigió un
+      bug real que ya existía en el template desde que se agregó `Mensaje.imagen` (Fase 7, ver arriba):
+      un mensaje solo con foto (`contenido=None`) imprimía literalmente "None" en el backup en vez de
+      algo legible, ahora anota "[foto]". Botón "Exportar chat" nuevo junto al título "Mensajes" en
+      `contratacion/detalle`; como el endpoint exige el JWT en el header (mismo motivo que la foto de
+      un mensaje), se descarga como blob autenticado y se dispara la descarga con un `<a download>`
+      armado a mano — no verificado en un WebView nativo todavía, solo en web. 5 tests backend + 3
+      frontend nuevos, 294 backend + 76 frontend en verde. — 2026-08-16, verificado en vivo contra
+      `:8100` real: la descarga bajó un `chat_23.txt` real con el historial completo, incluyendo
+      "[foto]" para el mensaje con imagen (confirmando el fix de "None") — no un mock, un archivo real
+      en la carpeta de Descargas.
 - [x] **Retema del panel `/admin/` con identidad KeyServ (inspirado en ServiceNow)** — 2026-08-15,
       pedido explícito del usuario tras comparar contra paneles tipo ServiceNow. Franja de tarjetas KPI
       arriba del dashboard, badges de color en los `<select>` de moderación (sin perder la edición

@@ -138,6 +138,16 @@ export class Contrataciones {
     return this.http.post<Mensaje>(`${environment.apiUrl}/contrataciones/${id}/mensajes/`, formData);
   }
 
+  /**
+   * `GET /api/contrataciones/<id>/mensajes/exportar/` — equivalente API de
+   * `conversacion_exportar_view`: baja el chat como `.txt`. `responseType: 'blob'`
+   * porque la respuesta es texto plano para descargar, no JSON — el mismo criterio
+   * que `cargarImagenSegura` en `detalle.page.ts` usa para la foto de un mensaje.
+   */
+  exportarChat(id: number): Observable<Blob> {
+    return this.http.get(`${environment.apiUrl}/contrataciones/${id}/mensajes/exportar/`, { responseType: 'blob' });
+  }
+
   /** El PROVEEDOR confirma (SOLICITADA -> CONFIRMADA), re-ingresando su contraseña. `monto` es opcional — sin él, se usa el precio de la publicación. */
   confirmar(id: number, password: string, monto?: number): Observable<ContratacionDetalle> {
     return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/confirmar/`, { password, monto });
