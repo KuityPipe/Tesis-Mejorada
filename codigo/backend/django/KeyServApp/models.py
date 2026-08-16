@@ -209,8 +209,8 @@ class Usuario(models.Model):
     # NUEVO: encoding de referencia (vector de 128 dimensiones que devuelve
     # face_recognition) para el segundo método de verificación de RF001
     # ("huella, Face ID o clave única" — son alternativas, no las tres a la
-    # vez, por eso comparte `verificado_biometricamente` con la huella en vez
-    # de tener su propio flag). Antes no existía ningún lugar donde guardar
+    # vez, por eso reusa `verificado_biometricamente` en vez de tener su
+    # propio flag). Antes no existía ningún lugar donde guardar
     # esto — ver Known Issues en CLAUDE.md. Se guarda como JSONField (lista
     # de floats) en vez de un tipo binario/vector dedicado: Postgres no tiene
     # `pgvector` instalado en este entorno, y comparar 128 floats con

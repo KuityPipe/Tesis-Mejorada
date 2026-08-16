@@ -322,8 +322,19 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
 - [ ] **Espacios reservados para publicidad** (`.ks-ad-slot`) en landing/catálogo/detalle — ver
       recomendación en `docs/AUDITORIA_8000_vs_8100.md` sección 5. Bloqueado en: qué red de ads,
       políticas de consentimiento — decisión del usuario, no técnica.
-- [ ] Retirar `huella.html` (demo legacy) del propio sitio Django, ya superado por biometría nativa
-      + reconocimiento facial. No migrar a Ionic.
+- [x] **Retirar `huella.html`** (demo legacy) del propio sitio Django — pedido explícito del usuario
+      ("ya tenemos las funcionales mejoradas", biometría nativa + reconocimiento facial). Sacados:
+      `huella_view`/`verificacion_huella_view`, las dos rutas (`/huella/`, `/huella/verificar/`),
+      `huella.html`, `biometria.procesar_huella_dactilar()` (y el `sys.path.insert` que solo ella
+      necesitaba en `biometria.py`), y sus dos clases de test dedicadas (`BiometriaImportTests`,
+      `VerificacionHuellaSeguridadTests`). Los dos links que apuntaban ahí (`perfil.html`,
+      `registroinicio.html`) y las menciones de "huella dactilar" en copy de marketing
+      (`Acercadeenosotros.html`/`paginicio.html`/`preferencias_cuenta.html`) se actualizaron para
+      no prometer algo que ya no existe en este frontend — ahora dicen "reconocimiento facial".
+      `codigo/biometria/huella/IMAGEN_HUELLA.py` (el pipeline en sí) queda intacto y sigue
+      corriendo standalone, como muestra de código — solo se cortó el lado Django. No se tocó
+      `/rostro/` ni la biometría nativa (`VerificarBiometriaNativaView`), ambas siguen igual en
+      los dos frontends. 290 tests backend (4 menos que antes, por las dos clases borradas) en verde.
 
 ## Fase 7 — Hardening de producción (después de cerrar los gaps de arriba)
 

@@ -54,8 +54,6 @@ urlpatterns = [
     path('contrataciones/<int:contratacion_id>/valorar/', views.valoracion_crear_view, name='valoracion_crear'),
 
     # Biometría
-    path('huella/', views.huella_view, name='huella'),
-    path('huella/verificar/', views.verificacion_huella_view, name='verificacion_huella'),
     path('rostro/', views.rostro_view, name='rostro'),
     path('rostro/registrar/', views.registro_rostro_view, name='registro_rostro'),
     path('rostro/verificar/', views.verificacion_facial_view, name='verificacion_facial'),

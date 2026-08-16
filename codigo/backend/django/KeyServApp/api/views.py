@@ -235,11 +235,10 @@ class VerificarBiometriaNativaView(APIView):
     biométrico nativo exitoso en el dispositivo (Face ID / huella del
     teléfono, vía `@capgo/capacitor-native-biometric` del lado Ionic,
     ver Fase 5 del plan de migración), en vez del reconocimiento facial
-    pesado del servidor (`/rostro/`) o la huella dactilar por imagen
-    (`/huella/`).
+    pesado del servidor (`/rostro/`).
 
     Sin verificación adicional más allá del JWT a propósito — decisión
-    tomada con el usuario: a diferencia de esos dos flujos, acá el
+    tomada con el usuario: a diferencia de ese flujo, acá el
     servidor nunca ve ni puede ver el dato biométrico en sí (Face ID/
     huella nativos se validan enteramente dentro del enclave seguro del
     dispositivo; el plugin solo le informa a la app "sí" o "no"). La

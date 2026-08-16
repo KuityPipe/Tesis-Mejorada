@@ -1628,7 +1628,7 @@ class PagoHistorialApiTests(APITestCase):
 
 
 class VerificarBiometriaNativaApiTests(APITestCase):
-    """`POST /api/auth/verificar-biometria-nativa/` — Fase 5 del plan de migración (biometría nativa vía Capacitor, en vez del reconocimiento facial/huella pesados del servidor)."""
+    """`POST /api/auth/verificar-biometria-nativa/` — Fase 5 del plan de migración (biometría nativa vía Capacitor, en vez del reconocimiento facial pesado del servidor)."""
 
     def setUp(self):
         _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()

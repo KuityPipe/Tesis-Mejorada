@@ -1436,70 +1436,8 @@ def _recalcular_ranking(usuario):
 # Biometría (RF001 — verificación obligatoria en el registro)
 # ---------------------------------------------------------------------------
 
-@login_requerido
-def huella_view(request):
-    """Muestra la pantalla de captura de huella. El envío real se procesa en `verificacion_huella_view`."""
-    return render(request, 'KeyServApp/huella.html')
-
-
-@login_requerido
-@require_POST
-def verificacion_huella_view(request):
-    """
-    Procesa la imagen de huella subida y marca al usuario como verificado si
-    el pipeline de `biometria.py` corre sin errores.
-
-    SEGURIDAD: esta vista aceptaba `ruta_imagen` como texto plano en el POST
-    y se lo pasaba directo a `Image.open()` dentro del pipeline — cualquier
-    usuario logueado podía mandar la ruta de CUALQUIER archivo del servidor
-    (lectura arbitraria de archivos / path traversal). Ahora exige un
-    archivo subido de verdad (`request.FILES`), validado con las mismas
-    reglas que el resto de las imágenes del sitio (validators.validar_imagen:
-    extensión, firma de bytes, que Pillow logre decodificarla), y se guarda
-    en un archivo temporal generado por el propio servidor — nunca en una
-    ruta que decide el cliente.
-
-    TODO (sin resolver, no es de seguridad): hoy solo confirma que el
-    pipeline corrió, no compara contra una huella previamente registrada —
-    falta decidir dónde se guarda el hash de referencia por usuario para
-    poder comparar en logins futuros.
-    """
-    usuario = obtener_usuario_actual(request)
-    archivo = request.FILES.get('huella_imagen')
-    if not archivo:
-        messages.error(request, 'Sube una imagen de huella para verificar.')
-        return redirect('KeyServApp:huella')
-
-    try:
-        validators.validar_imagen(archivo)
-    except ValidationError as error:
-        messages.error(request, ' '.join(error.messages))
-        return redirect('KeyServApp:huella')
-
-    ruta_temporal = None
-    try:
-        extension = os.path.splitext(archivo.name)[1].lower()
-        with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as destino:
-            for fragmento in archivo.chunks():
-                destino.write(fragmento)
-            ruta_temporal = destino.name
-
-        hash_resultado = biometria.procesar_huella_dactilar(ruta_temporal)
-    finally:
-        if ruta_temporal and os.path.exists(ruta_temporal):
-            os.remove(ruta_temporal)
-
-    if hash_resultado:
-        usuario.verificado_biometricamente = True
-        usuario.save()
-        messages.success(request, 'Huella verificada correctamente.')
-    else:
-        messages.error(request, 'No se pudo procesar la huella. Intenta nuevamente.')
-    return redirect('KeyServApp:perfil')
-
-
 def _guardar_archivo_temporal(archivo):
-    """Vuelca un `UploadedFile` a un archivo temporal en disco y devuelve su ruta — mismo patrón que `verificacion_huella_view`."""
+    """Vuelca un `UploadedFile` a un archivo temporal en disco y devuelve su ruta."""
     extension = os.path.splitext(archivo.name)[1].lower()
     with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as destino:
         for fragmento in archivo.chunks():
@@ -1563,9 +1501,7 @@ def rostro_view(request):
     Muestra la pantalla de reconocimiento facial. Si el usuario todavía no
     tiene una foto de referencia guardada (`encoding_facial`), pide
     registrarla primero (`registro_rostro_view`); si ya la tiene, pide
-    verificar contra ella (`verificacion_facial_view`) — mismo criterio "1 de 2
-    métodos" de RF001 que la huella, pero acá sí hay una referencia real
-    contra la que comparar (ver Known Issues en CLAUDE.md sobre la huella).
+    verificar contra ella (`verificacion_facial_view`).
     """
     usuario = obtener_usuario_actual(request)
     return render(request, 'KeyServApp/rostro.html', {'tiene_referencia': bool(usuario.encoding_facial)})
@@ -1578,9 +1514,8 @@ def registro_rostro_view(request):
     Sube una ráfaga de referencia (prueba de vida por parpadeo, ver
     `biometria.calcular_encoding_facial`), calcula su encoding y lo guarda en
     `Usuario.encoding_facial`. No marca al usuario como verificado todavía —
-    eso lo hace `verificacion_facial_view` en una captura posterior, igual
-    que huella exige un envío separado. Reemplaza cualquier encoding anterior
-    si el usuario vuelve a registrar su rostro.
+    eso lo hace `verificacion_facial_view` en una captura posterior. Reemplaza
+    cualquier encoding anterior si el usuario vuelve a registrar su rostro.
     """
     usuario = obtener_usuario_actual(request)
     try:

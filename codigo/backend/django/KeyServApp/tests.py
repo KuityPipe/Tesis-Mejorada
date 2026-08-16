@@ -614,53 +614,6 @@ class LoadComunasTests(TestCase):
         self.assertEqual(data[0]['nombre_comuna'], 'Comuna A')
 
 
-class BiometriaImportTests(TestCase):
-    """Un test de import trivial habría detectado el AttributeError de CONEXION_BD.cur antes de llegar a producción."""
-
-    def test_modulo_huella_importa_sin_reventar(self):
-        # No requiere que Pillow/la imagen de ejemplo funcionen — solo que el import no explote.
-        self.assertTrue(hasattr(biometria, 'procesar_huella_dactilar'))
-
-    def test_procesar_huella_con_ruta_invalida_devuelve_none_no_excepcion(self):
-        resultado = biometria.procesar_huella_dactilar('/ruta/que/no/existe.png')
-        self.assertIsNone(resultado)
-
-
-class VerificacionHuellaSeguridadTests(TestCase):
-    """
-    `verificacion_huella_view` tomaba `ruta_imagen` como texto plano del
-    POST y se lo pasaba directo a Image.open() dentro del pipeline —
-    cualquier usuario logueado podía pedirle al servidor que abriera
-    cualquier archivo de su filesystem (lectura arbitraria de archivos).
-    Ahora exige un archivo subido de verdad y valida su contenido.
-    """
-
-    def setUp(self):
-        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
-        self.usuario = _crear_usuario('huella@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
-
-    def _login(self, client):
-        session = client.session
-        session['usuario_id'] = self.usuario.id_usuario
-        session.save()
-
-    def test_ya_no_acepta_una_ruta_de_archivo_como_texto(self):
-        """Aunque alguien mande `ruta_imagen` (el parámetro viejo y vulnerable), la vista lo ignora por completo."""
-        client = Client()
-        self._login(client)
-        client.post(reverse('KeyServApp:verificacion_huella'), {'ruta_imagen': '/etc/passwd'})
-        self.usuario.refresh_from_db()
-        self.assertFalse(self.usuario.verificado_biometricamente)
-
-    def test_archivo_que_no_es_una_imagen_real_se_rechaza(self):
-        client = Client()
-        self._login(client)
-        falso = SimpleUploadedFile('huella.png', b'no es una imagen real', content_type='image/png')
-        client.post(reverse('KeyServApp:verificacion_huella'), {'huella_imagen': falso})
-        self.usuario.refresh_from_db()
-        self.assertFalse(self.usuario.verificado_biometricamente)
-
-
 def _frames_prueba_de_vida(cantidad=8):
     """Ráfaga de `cantidad` archivos para postear a registro_rostro/verificacion_facial (campo `rostro_frames`) — instancias frescas cada vez, mismo motivo que `_imagen_de_prueba`."""
     return {'rostro_frames': [_imagen_de_prueba() for _ in range(cantidad)]}
@@ -669,9 +622,8 @@ def _frames_prueba_de_vida(cantidad=8):
 class ReconocimientoFacialTests(TestCase):
     """
     `Usuario.encoding_facial` (migración 0024) es lo que le faltaba al
-    reconocimiento facial para poder comparar contra algo real (ver Known
-    Issues en CLAUDE.md — a diferencia de la huella, ahora sí hay una
-    referencia guardada). `opencv-python`/`face_recognition`/`dlib` están
+    reconocimiento facial para poder comparar contra algo real, no solo
+    confirmar que el pipeline corrió. `opencv-python`/`face_recognition`/`dlib` están
     instalados y el pipeline real se probó en vivo contra una webcam (ver
     CLAUDE.md) — pero acá se sigue mockeando `biometria.calcular_encoding_facial`/
     `verificar_rostro_usuario` para probar el flujo de las vistas (prueba de
