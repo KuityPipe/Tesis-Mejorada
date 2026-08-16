@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { Auth, DatosRegistro } from '../core/auth';
+import { Retroalimentacion } from '../core/retroalimentacion';
 import { Catalogos, ComunaCatalogo, RegionCatalogo, TipoCuentaCatalogo } from './catalogos';
 
 /**
@@ -46,6 +47,7 @@ export class RegistroPage implements OnInit {
     private readonly auth: Auth,
     private readonly catalogos: Catalogos,
     private readonly router: Router,
+    private readonly retroalimentacion: Retroalimentacion,
   ) {}
 
   ngOnInit(): void {
@@ -84,6 +86,7 @@ export class RegistroPage implements OnInit {
     this.auth.registrar(datos).subscribe({
       next: () => {
         this.enviando = false;
+        this.retroalimentacion.exito('Cuenta creada — ahora inicia sesión.');
         // Sin auto-login (ver Auth.registrar) — vuelve a /login con la cuenta ya creada.
         this.router.navigateByUrl('/login');
       },

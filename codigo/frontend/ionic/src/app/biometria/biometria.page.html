@@ -14,8 +14,8 @@
 
   <ng-container *ngIf="!cargando">
     <!-- Mismo avatar-ícono circular con gradiente que rostro.page (y .ks-fingerprint-scanner en base.css) — misma familia visual pese a que esta pantalla no tiene equivalente Django directo (nueva de Fase 5). -->
-    <div class="ks-bio-header">
-      <div class="ks-fingerprint-scanner"><ion-icon name="finger-print-outline"></ion-icon></div>
+    <div class="ks-bio-header" appReveal>
+      <div class="ks-fingerprint-scanner" [class.ks-scanning]="verificando"><ion-icon name="finger-print-outline"></ion-icon></div>
       <h1 *ngIf="yaVerificado">Ya estás verificado biométricamente</h1>
       <h1 *ngIf="!yaVerificado && !disponible">Biometría no disponible en este dispositivo</h1>
       <h1 *ngIf="!yaVerificado && disponible">Verifica tu identidad con {{ tipoBiometria }}</h1>

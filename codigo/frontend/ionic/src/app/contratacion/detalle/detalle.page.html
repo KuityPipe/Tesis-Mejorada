@@ -21,7 +21,7 @@
     </div>
 
     <!-- Mismo .ks-progress-steps que contratacion_detalle.html: resumen visual rápido de 4 pasos, aparte del historial detallado de más abajo. -->
-    <div class="ks-section">
+    <div class="ks-section" appReveal>
       <p class="ks-section-title">Avance del trabajo</p>
       <ion-card>
         <ion-card-content>
@@ -48,7 +48,7 @@
     </div>
 
     <!-- Descripción e imágenes de la publicación — mismo bloque que contratacion_detalle.html muestra de nuevo acá (no solo en /catalogo/:id), útil para revisar antes de calificar. -->
-    <div class="ks-section" *ngIf="c.publicacion_descripcion || c.publicacion_imagenes.length">
+    <div class="ks-section" *ngIf="c.publicacion_descripcion || c.publicacion_imagenes.length" appReveal [appRevealDelay]="60">
       <p class="ks-section-title">Descripción del servicio</p>
       <ion-card>
         <ion-card-content>
@@ -65,7 +65,7 @@
       </ion-card>
     </div>
 
-    <div class="ks-section" *ngIf="c.items_presupuesto.length">
+    <div class="ks-section" *ngIf="c.items_presupuesto.length" appReveal [appRevealDelay]="100">
       <p class="ks-section-title">Desglose del presupuesto</p>
       <ion-card>
         <ion-card-content>
@@ -79,7 +79,7 @@
       </ion-card>
     </div>
 
-    <div class="ks-section">
+    <div class="ks-section" appReveal [appRevealDelay]="140">
       <p class="ks-section-title">Historial</p>
       <ion-card>
         <ion-card-content>
@@ -94,7 +94,7 @@
     </div>
 
     <!-- Pago + botones para pagar (cliente, CONFIRMADA) — el pago siempre navega fuera de la SPA (a Transbank/Khipu), no vuelve a esta página hasta el retorno. -->
-    <div class="ks-section" *ngIf="c.pago || puedePagar">
+    <div class="ks-section" *ngIf="c.pago || puedePagar" appReveal>
       <p class="ks-section-title">Pago</p>
       <ion-card>
         <ion-card-content>
@@ -117,7 +117,7 @@
     </div>
 
     <!-- Confirmar (proveedor, SOLICITADA) / Completar (cliente, EN_CURSO) — ambas piden reautenticación, mismo <form> reusado para las dos acciones. -->
-    <div class="ks-section" *ngIf="puedeConfirmar || puedeCompletar">
+    <div class="ks-section" *ngIf="puedeConfirmar || puedeCompletar" appReveal>
       <p class="ks-section-title">{{ puedeConfirmar ? 'Confirmar contratación' : 'Marcar como completada' }}</p>
       <ion-card>
         <ion-card-content>
@@ -140,7 +140,7 @@
     </div>
 
     <!-- Valorar (cliente, COMPLETADA, todavía sin reseña) -->
-    <div class="ks-section" *ngIf="puedeValorar">
+    <div class="ks-section" *ngIf="puedeValorar" appReveal>
       <p class="ks-section-title">Califica este trabajo</p>
       <ion-card>
         <ion-card-content>
@@ -170,7 +170,7 @@
       </ion-card>
     </div>
 
-    <div class="ks-section" *ngIf="c.valoracion">
+    <div class="ks-section" *ngIf="c.valoracion" appReveal>
       <p class="ks-section-title">Tu calificación</p>
       <ion-card>
         <ion-card-content>
@@ -186,12 +186,12 @@
     </div>
 
     <!-- Chat -->
-    <div class="ks-section">
+    <div class="ks-section" appReveal>
       <p class="ks-section-title">Mensajes</p>
       <ion-card>
         <ion-card-content>
           <ion-list lines="full">
-            <ion-item *ngFor="let m of mensajes" lines="full">
+            <ion-item *ngFor="let m of mensajes; let i = index" lines="full" appReveal [appRevealDelay]="(i % 10) * 40">
               <ion-label class="ion-text-wrap">
                 <h3>{{ m.usuario_nombre }}</h3>
                 <p>{{ m.contenido }}</p>

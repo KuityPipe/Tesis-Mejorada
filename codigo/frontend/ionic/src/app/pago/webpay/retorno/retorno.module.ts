@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { RetornoPageRoutingModule } from './retorno-routing.module';
+import { SharedModule } from '../../../shared/shared.module';
 
 import { RetornoPage } from './retorno.page';
 
@@ -13,7 +14,8 @@ import { RetornoPage } from './retorno.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    RetornoPageRoutingModule
+    RetornoPageRoutingModule,
+    SharedModule
   ],
   declarations: [RetornoPage]
 })

@@ -19,14 +19,12 @@
     Nunca guardamos tu número de tarjeta ni tu CVV — cada pago se ingresa directo en la página de Webpay o Khipu, no acá.
   </div>
 
-  <div *ngIf="cargando" class="ion-text-center ion-padding">
-    <ion-spinner></ion-spinner>
-  </div>
+  <app-skeleton *ngIf="cargando" variante="fila" [cantidad]="4"></app-skeleton>
 
-  <ion-card *ngIf="!cargando">
+  <ion-card *ngIf="!cargando && pagos.length">
     <ion-card-content>
-      <ion-list lines="full" *ngIf="pagos.length; else sinPagos">
-        <ion-item *ngFor="let pago of pagos" [routerLink]="['/contratacion', pago.contratacion_id]" button detail>
+      <ion-list lines="full">
+        <ion-item *ngFor="let pago of pagos; let i = index" [routerLink]="['/contratacion', pago.contratacion_id]" button detail appReveal [appRevealDelay]="i * 50">
           <ion-icon [name]="iconoMetodo(pago.metodo)" slot="start" color="medium"></ion-icon>
           <ion-label class="ion-text-wrap">
             <h2>{{ pago.publicacion_titulo }}</h2>
@@ -38,11 +36,15 @@
           </div>
         </ion-item>
       </ion-list>
-      <ng-template #sinPagos>
-        <p style="color: var(--ks-ink-soft);">
-          Todavía no tienes pagos registrados — <a routerLink="/catalogo">busca un servicio</a> para contratar.
-        </p>
-      </ng-template>
     </ion-card-content>
   </ion-card>
+
+  <app-empty-state
+    *ngIf="!cargando && !pagos.length"
+    icono="receipt-outline"
+    titulo="Todavía no tienes pagos registrados"
+    mensaje="Cuando contrates y pagues un servicio, va a aparecer acá."
+    ctaTexto="Explorar catálogo"
+    ctaLink="/catalogo"
+  ></app-empty-state>
 </ion-content>

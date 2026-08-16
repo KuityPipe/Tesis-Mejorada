@@ -11,9 +11,14 @@
   </div>
 
   <ng-container *ngIf="!cargando">
-    <ion-text [color]="aprobado ? 'success' : 'danger'">
-      <p>{{ mensaje }}</p>
-    </ion-text>
-    <ion-button expand="block" (click)="volver()">Volver a la contratación</ion-button>
+    <div class="ks-resultado-pago" appReveal>
+      <div class="ks-resultado-pago-icon" [class.ks-ok]="aprobado" [class.ks-error]="!aprobado">
+        <ion-icon [name]="aprobado ? 'checkmark-circle' : 'close-circle'"></ion-icon>
+      </div>
+      <ion-text [color]="aprobado ? 'success' : 'danger'">
+        <p>{{ mensaje }}</p>
+      </ion-text>
+      <ion-button expand="block" (click)="volver()">Volver a la contratación</ion-button>
+    </div>
   </ng-container>
 </ion-content>

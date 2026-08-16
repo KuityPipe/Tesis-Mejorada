@@ -14,9 +14,7 @@
     <p>Solicitudes, confirmaciones y servicios completados.</p>
   </div>
 
-  <div *ngIf="cargando" class="ion-text-center ion-padding">
-    <ion-spinner></ion-spinner>
-  </div>
+  <app-skeleton *ngIf="cargando" variante="card" [cantidad]="4"></app-skeleton>
 
   <ng-container *ngIf="!cargando && contrataciones.length">
     <!-- Mismo .ks-reservas-toolbar que reservas.html: busqueda + rango de fechas, filtrado en memoria (reservas_view tampoco filtra del lado del servidor). -->
@@ -48,13 +46,16 @@
       </button>
     </div>
 
-    <ion-text color="medium" *ngIf="!filtradas.length">
-      <p>Ningún resultado con esos filtros.</p>
-    </ion-text>
+    <app-empty-state
+      *ngIf="!filtradas.length"
+      icono="filter-outline"
+      titulo="Ningún resultado con esos filtros"
+      mensaje="Prueba limpiando la búsqueda o el rango de fechas."
+    ></app-empty-state>
 
     <!-- Mismo .ks-reservas-grid que reservas.html: foto de portada, badge de estado superpuesto, etiqueta de rol (Contraté / Me contrataron), y la acción según estado+rol. -->
     <div class="ks-reservas-grid" *ngIf="filtradas.length">
-      <div class="ks-reserva-card" *ngFor="let c of filtradas">
+      <div class="ks-reserva-card" *ngFor="let c of filtradas; let i = index" appReveal [appRevealDelay]="(i % 12) * 50">
         <a class="ks-reserva-card-img" [routerLink]="['/contratacion', c.id_contratacion]">
           <img *ngIf="c.publicacion_imagen; else sinImagen" [src]="c.publicacion_imagen" [alt]="c.publicacion_titulo" />
           <ng-template #sinImagen>
@@ -91,7 +92,12 @@
     </div>
   </ng-container>
 
-  <ion-text color="medium" *ngIf="!cargando && !contrataciones.length">
-    <p>Todavía no tienes contrataciones — <a routerLink="/catalogo">busca un servicio</a> para empezar.</p>
-  </ion-text>
+  <app-empty-state
+    *ngIf="!cargando && !contrataciones.length"
+    icono="calendar-outline"
+    titulo="Todavía no tienes contrataciones"
+    mensaje="Cuando solicites o recibas un trabajo, va a aparecer acá."
+    ctaTexto="Explorar catálogo"
+    ctaLink="/catalogo"
+  ></app-empty-state>
 </ion-content>

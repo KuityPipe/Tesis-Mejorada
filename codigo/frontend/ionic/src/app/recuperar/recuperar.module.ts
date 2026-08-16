@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { RecuperarPageRoutingModule } from './recuperar-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { RecuperarPage } from './recuperar.page';
 
@@ -14,7 +15,8 @@ import { RecuperarPage } from './recuperar.page';
     FormsModule,
     ReactiveFormsModule,
     IonicModule,
-    RecuperarPageRoutingModule
+    RecuperarPageRoutingModule,
+    SharedModule
   ],
   declarations: [RecuperarPage]
 })

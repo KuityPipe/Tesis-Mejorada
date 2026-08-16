@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { RostroPageRoutingModule } from './rostro-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { RostroPage } from './rostro.page';
 
@@ -13,7 +14,8 @@ import { RostroPage } from './rostro.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    RostroPageRoutingModule
+    RostroPageRoutingModule,
+    SharedModule
   ],
   declarations: [RostroPage]
 })

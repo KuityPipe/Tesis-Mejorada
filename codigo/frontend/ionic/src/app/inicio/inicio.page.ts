@@ -1,8 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { Auth } from '../core/auth';
-import { Notificaciones } from '../core/notificaciones';
 import { Publicaciones, PublicacionResumen } from '../catalogo/publicaciones';
 
 /**
@@ -30,13 +28,10 @@ export class InicioPage implements OnInit {
   destacadas: PublicacionResumen[] = [];
   cargandoDestacadas = true;
   q = '';
-  readonly mensajesNoLeidos$ = this.notificaciones.noLeidos$;
 
   constructor(
     private readonly api: Publicaciones,
     private readonly router: Router,
-    private readonly notificaciones: Notificaciones,
-    readonly auth: Auth,
   ) {}
 
   ngOnInit(): void {

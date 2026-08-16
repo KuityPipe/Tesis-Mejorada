@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { ContactoPageRoutingModule } from './contacto-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { ContactoPage } from './contacto.page';
 
@@ -14,7 +15,8 @@ import { ContactoPage } from './contacto.page';
     FormsModule,
     ReactiveFormsModule,
     IonicModule,
-    ContactoPageRoutingModule
+    ContactoPageRoutingModule,
+    SharedModule
   ],
   declarations: [ContactoPage]
 })

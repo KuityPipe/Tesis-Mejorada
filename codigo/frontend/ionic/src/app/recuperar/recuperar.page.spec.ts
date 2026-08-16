@@ -4,6 +4,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { RecuperarPage } from './recuperar.page';
+import { SharedModule } from '../shared/shared.module';
 
 describe('RecuperarPage', () => {
   let component: RecuperarPage;
@@ -12,7 +13,7 @@ describe('RecuperarPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [RecuperarPage],
-      imports: [IonicModule.forRoot(), ReactiveFormsModule, HttpClientTestingModule],
+      imports: [IonicModule.forRoot(), ReactiveFormsModule, HttpClientTestingModule, SharedModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RecuperarPage);

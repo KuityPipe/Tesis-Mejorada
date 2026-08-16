@@ -2,19 +2,8 @@
   <ion-toolbar>
     <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Servicios</ion-title>
-    <!-- `auth` es público (no `private`) en catalogo.page.ts justo para poder llamarlo desde acá, del template. -->
-    <ion-buttons slot="end">
-      <ng-container *ngIf="auth.estaAutenticado(); else botonIngresar">
-        <ion-button routerLink="/mensajes">
-          <ion-icon slot="icon-only" name="chatbubbles-outline"></ion-icon>
-          <ion-badge color="danger" *ngIf="mensajesNoLeidos$ | async as n" class="ks-toolbar-badge">{{ n }}</ion-badge>
-        </ion-button>
-        <ion-button routerLink="/home">Mi perfil</ion-button>
-      </ng-container>
-      <ng-template #botonIngresar>
-        <ion-button routerLink="/login">Ingresar</ion-button>
-      </ng-template>
-    </ion-buttons>
+    <app-top-nav slot="end"></app-top-nav>
+    <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
 
@@ -53,9 +42,7 @@
     </form>
   </div>
 
-  <div *ngIf="cargandoInicial" class="ion-text-center ion-padding">
-    <ion-spinner></ion-spinner>
-  </div>
+  <app-skeleton *ngIf="cargandoInicial" variante="card" [cantidad]="6"></app-skeleton>
 
   <!-- Mismo .ks-section-header que catalogo.html: título dinámico (resultados de búsqueda vs. listado completo) + contador. -->
   <div class="ks-section-header" *ngIf="!cargandoInicial">
@@ -65,7 +52,7 @@
 
   <!-- Grid de cards con imagen — mismo .ks-card-grid/.ks-card que catalogo.html del sitio Django, en vez de una lista ion-item plana. [routerLink] arma la navegación a /catalogo/:id sin recargar la página (SPA). -->
   <div class="ks-card-grid" *ngIf="!cargandoInicial && publicaciones.length">
-    <a class="ks-card-tile" *ngFor="let publicacion of publicaciones" [routerLink]="['/catalogo', publicacion.id_publicacion]">
+    <a class="ks-card-tile" *ngFor="let publicacion of publicaciones; let i = index" [routerLink]="['/catalogo', publicacion.id_publicacion]" appReveal [appRevealDelay]="(i % 12) * 50">
       <div class="ks-card-tile-img">
         <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
         <ng-template #sinImagen>
@@ -86,9 +73,12 @@
     </a>
   </div>
 
-  <ion-text color="medium" *ngIf="!cargandoInicial && !publicaciones.length">
-    <p class="ion-text-center">No hay servicios publicados todavía.</p>
-  </ion-text>
+  <app-empty-state
+    *ngIf="!cargandoInicial && !publicaciones.length"
+    icono="search-outline"
+    titulo="Sin resultados"
+    [mensaje]="filtros.q ? 'No encontramos servicios para &quot;' + filtros.q + '&quot;. Prueba con otra búsqueda o quita algún filtro.' : 'Todavía no hay servicios publicados con estos filtros.'"
+  ></app-empty-state>
 
   <!-- ionInfinite se dispara cuando el usuario se acerca al final del scroll — .complete() (llamado en catalogo.page.ts) le avisa al componente que ya terminó de cargar y puede volver a armarse para la próxima vez. -->
   <ion-infinite-scroll (ionInfinite)="cargarMas($event)" [disabled]="!hayMas">

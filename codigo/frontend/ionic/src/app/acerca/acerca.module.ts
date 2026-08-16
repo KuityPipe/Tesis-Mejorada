@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { AcercaPageRoutingModule } from './acerca-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { AcercaPage } from './acerca.page';
 
@@ -13,7 +14,8 @@ import { AcercaPage } from './acerca.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    AcercaPageRoutingModule
+    AcercaPageRoutingModule,
+    SharedModule
   ],
   declarations: [AcercaPage]
 })

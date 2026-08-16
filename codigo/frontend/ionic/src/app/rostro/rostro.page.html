@@ -14,8 +14,8 @@
 
   <ng-container *ngIf="!cargando">
     <!-- Mismo avatar-ícono circular con gradiente que .ks-fingerprint-scanner en rostro.html del sitio Django — a esta pantalla le faltaba ese encabezado, quedaba directo al segment/card. -->
-    <div class="ks-bio-header">
-      <div class="ks-fingerprint-scanner"><ion-icon name="body-outline"></ion-icon></div>
+    <div class="ks-bio-header" appReveal>
+      <div class="ks-fingerprint-scanner" [class.ks-scanning]="capturando || enviando"><ion-icon name="body-outline"></ion-icon></div>
       <h1 *ngIf="modo === 'verificar'">Verificación facial</h1>
       <h1 *ngIf="modo === 'registrar'">{{ tieneReferencia ? 'Registrar un nuevo rostro de referencia' : 'Registrar rostro de referencia' }}</h1>
       <p>{{ instruccion }}</p>

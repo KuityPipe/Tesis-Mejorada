@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { PreferenciasPageRoutingModule } from './preferencias-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { PreferenciasPage } from './preferencias.page';
 
@@ -14,7 +15,8 @@ import { PreferenciasPage } from './preferencias.page';
     FormsModule,
     ReactiveFormsModule,
     IonicModule,
-    PreferenciasPageRoutingModule
+    PreferenciasPageRoutingModule,
+    SharedModule
   ],
   declarations: [PreferenciasPage]
 })

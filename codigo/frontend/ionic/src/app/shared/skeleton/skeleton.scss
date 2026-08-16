@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+.ks-skeleton-card {
+  background: var(--ks-surface, var(--ion-card-background));
+  border: 1px solid var(--ks-border, var(--ion-border-color));
+  border-radius: var(--ks-radius-lg, 20px);
+  overflow: hidden;
+}
+
+.ks-skeleton-card-img {
+  height: 140px;
+  margin: 0;
+  border-radius: 0;
+}
+
+.ks-skeleton-card-body {
+  padding: 16px;
+}
+
+.ks-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ks-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--ks-surface, var(--ion-card-background));
+  border: 1px solid var(--ks-border, var(--ion-border-color));
+  border-radius: var(--ks-radius-md, 14px);
+}
+
+.ks-skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.ks-skeleton-row-body {
+  flex: 1;
+}

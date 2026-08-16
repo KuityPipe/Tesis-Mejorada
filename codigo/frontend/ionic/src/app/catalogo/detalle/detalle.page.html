@@ -21,11 +21,11 @@
       <p *ngIf="pub.precio" style="font-weight:800; font-size:1.3rem; margin:6px 0 0;">${{ pub.precio | number }} CLP</p>
     </div>
 
-    <div class="imagenes" *ngIf="pub.imagenes.length">
+    <div class="imagenes" *ngIf="pub.imagenes.length" appReveal>
       <img *ngFor="let imagen of pub.imagenes" [src]="imagen.url" [alt]="pub.titulo" />
     </div>
 
-    <ion-card class="ion-margin-top">
+    <ion-card class="ion-margin-top" appReveal [appRevealDelay]="60">
       <ion-card-content>
         <p>{{ pub.descripcion_publicacion }}</p>
 
@@ -51,7 +51,7 @@
       </ion-card-content>
     </ion-card>
 
-    <div class="ks-section">
+    <div class="ks-section" appReveal [appRevealDelay]="120">
       <p class="ks-section-title">Reseñas</p>
       <ion-card>
         <ion-card-content>

@@ -303,6 +303,94 @@ ion-checkbox::part(label) {
 ion-toolbar {
   border-bottom: 3px solid transparent;
   border-image: var(--ks-gradient-brand) 1;
+  // Márgenes del header — sin esto el logo/los íconos de los extremos
+  // quedaban pegados al borde de la pantalla ("se ve cortado", pedido
+  // explícito del usuario tras probar la barra de navegación en vivo).
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+.ks-toolbar-logo {
+  margin-inline-start: 2px;
+  // Ionic le pone `order` propio a lo que cae en el slot "start" de un
+  // ion-toolbar (los `ion-buttons` van con order más bajo que cualquier
+  // otra cosa, ej. un <img> suelto, sin importar el orden real en el
+  // DOM) — sin este override el logo terminaba renderizado DESPUÉS de
+  // los links de app-top-nav (que también viven en "start"), pese a
+  // estar declarado primero en el HTML. -1 lo fuerza siempre primero.
+  order: -1;
+}
+
+// ---------- Barra de navegación superior compartida — ver
+// shared/top-nav/. Layout de 3 columnas en el mismo `ion-toolbar` que el
+// logo (pedido explícito del usuario): logo a la izquierda, título de la
+// página al centro (`ion-title`, ver `::part(content)` más abajo), y a la
+// derecha el botón de menú (Inicio/Servicios/Acerca de nosotros/Contacto,
+// en un `ion-popover`, en cualquier ancho de pantalla — no solo un
+// botón hamburguesa en móvil) + `AccountMenuComponent`. Un solo botón en
+// vez de la fila horizontal completa de la primera versión: con el
+// título y el menú de cuenta compartiendo el mismo renglón, esa fila de
+// más competía por espacio y truncaba el título ("usa el espacio de
+// manera inteligente" — feedback en vivo).
+//
+// Ancho del popover — por defecto quedaba tan angosto que una fila larga
+// ("Acerca de nosotros", "Bandeja de entrada" en AccountMenuComponent)
+// envolvía a dos líneas dentro de su propio ion-item; pedido explícito
+// del usuario de agrandarlo. `--width` sola no alcanzaba (el `ion-list`
+// de adentro seguía angostándose a su contenido pese a que el panel del
+// popover sí medía 300px) — hace falta `size="fixed"` en el
+// `<ion-popover>` (top-nav.html/account-menu.html) para que Ionic use
+// `--width` como el ancho real en vez de solo una referencia con el modo
+// "auto" por defecto.
+ion-popover {
+  --width: 300px;
+}
+
+ion-item.ks-nav-active {
+  --color: var(--ks-teal-dark, var(--ion-color-secondary));
+  --background: var(--ks-teal-light, var(--ion-color-light));
+  font-weight: 700;
+}
+
+ion-item.ks-nav-active ion-icon {
+  color: var(--ks-teal-dark, var(--ion-color-secondary));
+}
+
+// Botón de cuenta (nombre + avatar) que abre el menú desplegable —
+// reemplaza el ícono de perfil suelto que tenía la primera versión.
+.ks-cuenta-btn {
+  --padding-start: 6px;
+  --padding-end: 10px;
+  text-transform: none;
+}
+
+.ks-cuenta-btn ion-icon {
+  font-size: 1rem;
+  margin-inline-start: 2px;
+  color: var(--ks-ink-soft, var(--ion-color-medium));
+}
+
+.ks-avatar-brand.ks-avatar-nav {
+  width: 26px;
+  height: 26px;
+  font-size: .8rem;
+  margin-inline-end: 6px;
+}
+
+.ks-cuenta-nombre {
+  font-weight: 700;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// El botón de "Ingresar" pasó de texto a ícono (pedido del usuario: "la
+// parte de ingresar es fea") — sin texto no hace falta el padding extra
+// que trae un ion-button normal, se ve más chico/apretado sin esto.
+ion-popover ion-content {
+  --padding-top: 6px;
+  --padding-bottom: 6px;
 }
 
 // La app arrancó pensada mobile-first (Ionic asume que el viewport es el
@@ -315,6 +403,48 @@ ion-toolbar {
 ion-content::part(scroll) {
   max-width: 720px;
   margin-inline: auto;
+}
+
+// La regla de arriba centra bien una página angosta cuyo contenido
+// naturalmente quiere ser ancho (grids/formularios) — pero el mismo
+// truco (`position:absolute; left:0; right:0` con `margin-inline:auto`
+// y `width:auto`, ver `.inner-scroll` en el CSS de Ionic) hace que, para
+// contenido angosto por naturaleza como una lista corta de menú dentro
+// de un `ion-popover`, el ancho se calcule "shrink-to-fit" (se encoge al
+// contenido) en vez de llenar el espacio disponible — causa real de que
+// "Acerca de nosotros"/"Bandeja de entrada" envolvieran a dos líneas
+// pese al `--width` del popover. Se resetea acá específicamente dentro
+// de popovers para volver al comportamiento normal (llenar el ancho).
+ion-popover ion-content::part(scroll) {
+  max-width: none;
+  margin-inline: 0;
+}
+
+// Mismo ancho de lectura que el body de arriba, aplicado también al
+// header — sin esto, en pantallas anchas el logo/título/accesos quedaban
+// pegados cada uno a su borde con un vacío enorme en el medio, mientras
+// el contenido de abajo ya vivía en una columna angosta centrada. `part`
+// es la misma vía soportada que `ion-content::part(scroll)` para estilar
+// dentro del shadow DOM de un componente Ionic desde afuera.
+ion-toolbar::part(container) {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+// El `ion-title` del medio (`.toolbar-content` adentro del shadow DOM de
+// ion-toolbar) trae `order: 3` por diseño de Ionic — con contenido real
+// en slot="end" (como acá, ver app-top-nav/app-account-menu) eso lo
+// manda a renderizar DESPUÉS de esos botones en vez de en el medio real
+// entre el logo (slot="start") y ellos, rompiendo el layout de 3
+// columnas "Logo / página actual / accesos" pedido explícitamente.
+// `::part(content)` es el mismo mecanismo que `::part(scroll)`/
+// `::part(container)` ya usados arriba. Igualándolo a 0 (el order de
+// "start"/"end", ambos sin declarar el suyo propio) alcanza: entre
+// elementos con el mismo order, el navegador desempata por orden real en
+// el DOM del shadow template (start, secondary, content, primary, end),
+// que ya es exactamente el que corresponde.
+ion-toolbar::part(content) {
+  order: 0;
 }
 
 // Agrupa bloques de contenido sueltos (ion-list/ion-item consecutivos sin
@@ -842,6 +972,213 @@ ion-button:has(.ks-toolbar-badge) {
   color: #fff;
   background: var(--ks-gradient-brand, var(--ion-color-secondary));
   box-shadow: 0 0 0 8px var(--ks-teal-light, rgba(var(--ion-color-secondary-rgb), .15));
+}
+
+// ---------------------------------------------------------------------
+// Microinteracciones + animaciones (pulido de diseño, sin funcionalidad
+// nueva) — investigadas contra patrones de sitios corporativos 2026
+// (Hostinger, tendencias SaaS, Canva): motion con propósito (guía la
+// vista, confirma que algo respondió al toque), nunca decorativo, y
+// siempre respetando `prefers-reduced-motion`. Base global de una sola
+// vez acá; se usa desde cualquier página sin repetir CSS por pantalla.
+// ---------------------------------------------------------------------
+
+// ---------- Feedback de toque/hover — cards y botones se sienten "vivos"
+// al presionarlos, no solo al hacer click. `::part(native)` es la forma
+// soportada de estilar el botón real dentro del shadow root de
+// `ion-button` (mismo mecanismo ya usado para `ion-content::part(scroll)`).
+ion-button::part(native) {
+  transition: transform .12s ease;
+}
+
+ion-button:not([disabled]):active::part(native) {
+  transform: scale(.96);
+}
+
+@media (hover: hover) {
+  ion-button:not([disabled]):hover::part(native) {
+    transform: translateY(-1px);
+  }
+}
+
+.ks-card-tile,
+.ks-reserva-card,
+.ks-contact-tile,
+.ks-filtro-chip {
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.ks-reserva-card:hover,
+.ks-contact-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ks-shadow);
+}
+
+.ks-card-tile:active,
+.ks-reserva-card:active,
+.ks-contact-tile:active,
+.ks-filtro-chip:active {
+  transform: scale(.98);
+}
+
+// Zoom sutil de la imagen de portada al pasar el mouse por la card —
+// mismo lenguaje que catálogos de ecommerce/portfolio, sin tocar el marco
+// de la card (overflow: hidden ya lo recorta).
+.ks-card-tile-img,
+.ks-reserva-card-img {
+  overflow: hidden;
+}
+
+.ks-card-tile-img img,
+.ks-reserva-card-img img {
+  transition: transform .25s ease;
+}
+
+@media (hover: hover) {
+  .ks-card-tile:hover .ks-card-tile-img img,
+  .ks-reserva-card:hover .ks-reserva-card-img img {
+    transform: scale(1.06);
+  }
+}
+
+// ---------- Reveal al hacer scroll — ver shared/reveal.directive.ts
+// (`appReveal`). Estado inicial oculto+desplazado, la directiva agrega
+// `.ks-revealed` vía IntersectionObserver cuando el elemento entra en
+// pantalla. `prefers-reduced-motion` apaga el movimiento (el contenido
+// igual aparece, solo sin la animación) — accesibilidad, no opcional.
+.ks-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+
+.ks-reveal.ks-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+// ---------- Estado vacío compartido — ver shared/empty-state/.
+.ks-empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--ks-ink-soft);
+}
+
+.ks-empty-state-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.ks-empty-state h3 {
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+  color: var(--ks-ink);
+}
+
+.ks-empty-state p {
+  margin: 0 0 16px;
+  font-size: .92rem;
+}
+
+// ---------- Check animado en campos válidos de un formulario — Ionic ya
+// agrega solo las clases `ion-valid`/`ion-touched` a cualquier
+// `ion-item`/`ion-input` que participe de un formulario reactivo (no hace
+// falta ningún cambio de TypeScript por página para que esto aplique en
+// login/registro/perfil/preferencias/etc.). El ícono entra con un pop
+// sutil en vez de aparecer de golpe.
+ion-item.ion-valid.ion-touched {
+  --highlight-color-valid: var(--ion-color-secondary);
+  position: relative;
+}
+
+ion-item.ion-valid.ion-touched::after {
+  content: "✓";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%) scale(1);
+  color: var(--ion-color-secondary);
+  font-weight: 800;
+  font-size: 1.1rem;
+  animation: ks-pop-in .25s ease;
+  pointer-events: none;
+}
+
+@keyframes ks-pop-in {
+  from { transform: translateY(-50%) scale(0); opacity: 0; }
+  to { transform: translateY(-50%) scale(1); opacity: 1; }
+}
+
+// ---------- Resultado de pago (pago/webpay|khipu/retorno) — ícono grande
+// con pop de entrada en vez de solo texto de color, mismo criterio de
+// "confirmación visible" que el resto del pulido. Deliberadamente sin
+// `ion-card` alrededor (ver nota en CLAUDE.md: en estas dos pantallas
+// envolver en card no agregaba nada, solo mensaje + botón).
+.ks-resultado-pago {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.ks-resultado-pago-icon {
+  font-size: 4rem;
+  margin-bottom: 12px;
+  animation: ks-pop-in-block .35s ease;
+}
+
+@keyframes ks-pop-in-block {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.ks-resultado-pago-icon.ks-ok { color: var(--ks-teal-dark, var(--ion-color-success)); }
+.ks-resultado-pago-icon.ks-error { color: var(--ks-coral-dark, var(--ion-color-danger)); }
+.ks-resultado-pago-icon.ks-pendiente { color: var(--ks-amber, var(--ion-color-medium)); }
+
+// ---------- Toast de éxito — ver core/retroalimentacion.ts.
+.ks-toast-exito {
+  --background: var(--ks-teal-dark, var(--ion-color-secondary));
+  --color: #fff;
+  --border-radius: 999px;
+  --box-shadow: var(--ks-shadow);
+  text-align: center;
+  font-weight: 700;
+}
+
+// Pulso mientras se está verificando (huella/rostro) — refuerza que la app
+// está esperando una respuesta del sensor/backend, no solo el texto del
+// botón cambiando a "Verificando…". Respeta `prefers-reduced-motion`
+// (el anillo estático de `.ks-fingerprint-scanner` ya comunica lo mismo
+// sin movimiento).
+.ks-fingerprint-scanner.ks-scanning {
+  animation: ks-pulso-anillo 1.4s ease-out infinite;
+}
+
+@keyframes ks-pulso-anillo {
+  0% { box-shadow: 0 0 0 8px var(--ks-teal-light, rgba(var(--ion-color-secondary-rgb), .15)); }
+  70% { box-shadow: 0 0 0 18px transparent; }
+  100% { box-shadow: 0 0 0 8px var(--ks-teal-light, rgba(var(--ion-color-secondary-rgb), .15)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-fingerprint-scanner.ks-scanning {
+    animation: none;
+  }
 }
 
 .ks-bio-header {

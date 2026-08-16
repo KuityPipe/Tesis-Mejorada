@@ -1,0 +1,8 @@
+// `display: contents` — el host de este componente no debe generar su
+// propia caja dentro del slot "start" del ion-toolbar padre; sin esto, el
+// <ion-buttons> de adentro queda un nivel más anidado de lo que espera el
+// layout flex del toolbar (mismo motivo por el que AccountMenuComponent
+// usa esto también, ver account-menu.scss).
+:host {
+  display: contents;
+}

@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { ConfirmarPageRoutingModule } from './confirmar-routing.module';
+import { SharedModule } from '../../shared/shared.module';
 
 import { ConfirmarPage } from './confirmar.page';
 
@@ -14,7 +15,8 @@ import { ConfirmarPage } from './confirmar.page';
     FormsModule,
     ReactiveFormsModule,
     IonicModule,
-    ConfirmarPageRoutingModule
+    ConfirmarPageRoutingModule,
+    SharedModule
   ],
   declarations: [ConfirmarPage]
 })

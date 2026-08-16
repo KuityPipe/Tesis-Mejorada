@@ -9,7 +9,7 @@
 
 <ion-content [fullscreen]="true" class="ion-padding">
   <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
-    <div class="ks-section">
+    <div class="ks-section" appReveal>
       <p class="ks-section-title">Datos personales</p>
       <ion-card>
         <ion-card-content>
@@ -60,7 +60,7 @@
       </ion-card>
     </div>
 
-    <div class="ks-section">
+    <div class="ks-section" appReveal [appRevealDelay]="80">
       <p class="ks-section-title">Ubicación</p>
       <ion-card>
         <ion-card-content>
@@ -84,7 +84,7 @@
       </ion-card>
     </div>
 
-    <div class="ks-section">
+    <div class="ks-section" appReveal [appRevealDelay]="160">
       <p class="ks-section-title">Cuenta</p>
       <ion-card>
         <ion-card-content>

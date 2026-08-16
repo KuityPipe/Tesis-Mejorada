@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { MensajesPageRoutingModule } from './mensajes-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { MensajesPage } from './mensajes.page';
 
@@ -13,7 +14,8 @@ import { MensajesPage } from './mensajes.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    MensajesPageRoutingModule
+    MensajesPageRoutingModule,
+    SharedModule
   ],
   declarations: [MensajesPage]
 })

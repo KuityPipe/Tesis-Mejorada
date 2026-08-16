@@ -4,6 +4,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { Auth } from '../../core/auth';
+import { Retroalimentacion } from '../../core/retroalimentacion';
 import { Contrataciones, ContratacionDetalle, Mensaje } from '../../contrataciones/contrataciones';
 import { Pagos } from '../../pago/pagos';
 
@@ -54,6 +55,7 @@ export class DetallePage implements OnInit {
     private readonly auth: Auth,
     private readonly contratacionesApi: Contrataciones,
     private readonly pagosApi: Pagos,
+    private readonly retroalimentacion: Retroalimentacion,
   ) {}
 
   ngOnInit(): void {
@@ -173,6 +175,7 @@ export class DetallePage implements OnInit {
         this.contratacion = contratacion;
         this.formularioReauth.reset({ password: '', monto: null });
         this.procesandoAccion = false;
+        this.retroalimentacion.exito('Contratación confirmada.');
       },
       error: (error: HttpErrorResponse) => {
         this.procesandoAccion = false;
@@ -193,6 +196,7 @@ export class DetallePage implements OnInit {
         this.contratacion = contratacion;
         this.formularioReauth.reset({ password: '', monto: null });
         this.procesandoAccion = false;
+        this.retroalimentacion.exito('Trabajo marcado como completado.');
       },
       error: (error: HttpErrorResponse) => {
         this.procesandoAccion = false;

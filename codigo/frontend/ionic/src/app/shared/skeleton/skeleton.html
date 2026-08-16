@@ -1,0 +1,20 @@
+<div *ngIf="variante === 'card'" class="ks-card-grid">
+  <div class="ks-skeleton-card" *ngFor="let i of repeticiones">
+    <ion-skeleton-text [animated]="true" class="ks-skeleton-card-img"></ion-skeleton-text>
+    <div class="ks-skeleton-card-body">
+      <ion-skeleton-text [animated]="true" style="width: 70%; height: 16px;"></ion-skeleton-text>
+      <ion-skeleton-text [animated]="true" style="width: 45%; height: 12px;"></ion-skeleton-text>
+      <ion-skeleton-text [animated]="true" style="width: 55%; height: 12px; margin-top: 8px;"></ion-skeleton-text>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="variante === 'fila'" class="ks-skeleton-list">
+  <div class="ks-skeleton-row" *ngFor="let i of repeticiones">
+    <ion-skeleton-text [animated]="true" class="ks-skeleton-avatar"></ion-skeleton-text>
+    <div class="ks-skeleton-row-body">
+      <ion-skeleton-text [animated]="true" style="width: 50%; height: 15px;"></ion-skeleton-text>
+      <ion-skeleton-text [animated]="true" style="width: 80%; height: 12px; margin-top: 6px;"></ion-skeleton-text>
+    </div>
+  </div>
+</div>

@@ -4,6 +4,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { PagosPage } from './pagos.page';
+import { SharedModule } from '../../shared/shared.module';
 
 describe('PagosPage', () => {
   let component: PagosPage;
@@ -12,7 +13,7 @@ describe('PagosPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [PagosPage],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule],
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, SharedModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PagosPage);

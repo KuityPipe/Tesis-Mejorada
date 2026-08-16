@@ -4,6 +4,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { BiometriaPage } from './biometria.page';
+import { SharedModule } from '../shared/shared.module';
 
 describe('BiometriaPage', () => {
   let component: BiometriaPage;
@@ -12,7 +13,7 @@ describe('BiometriaPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [BiometriaPage],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule],
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, SharedModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(BiometriaPage);

@@ -1,0 +1,49 @@
+<ion-buttons>
+  <ng-container *ngIf="auth.estaAutenticado(); else botonIngresar">
+    <ion-button routerLink="/mensajes" aria-label="Bandeja de entrada">
+      <ion-icon slot="icon-only" name="chatbubbles-outline"></ion-icon>
+      <ion-badge color="danger" *ngIf="mensajesNoLeidos$ | async as n" class="ks-toolbar-badge">{{ n }}</ion-badge>
+    </ion-button>
+
+    <ion-button id="ks-cuenta-trigger" class="ks-cuenta-btn" aria-label="Mi cuenta">
+      <div class="ks-avatar-brand ks-avatar-nav">{{ inicialUsuario }}</div>
+      <span class="ks-cuenta-nombre">{{ nombreUsuario }}</span>
+      <ion-icon name="chevron-down-outline"></ion-icon>
+    </ion-button>
+  </ng-container>
+
+  <ng-template #botonIngresar>
+    <ion-button routerLink="/login" aria-label="Iniciar sesión">
+      <ion-icon slot="icon-only" name="log-in-outline"></ion-icon>
+    </ion-button>
+  </ng-template>
+</ion-buttons>
+
+<ion-popover *ngIf="auth.estaAutenticado()" trigger="ks-cuenta-trigger" [dismissOnSelect]="true" side="bottom" alignment="end" size="fixed">
+  <ng-template>
+    <ion-content>
+      <ion-list lines="full">
+        <ion-item button routerLink="/home" detail="false">
+          <ion-icon name="person-circle-outline" slot="start"></ion-icon>
+          <ion-label>Mi cuenta</ion-label>
+        </ion-item>
+        <ion-item button routerLink="/mensajes" detail="false">
+          <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+          <ion-label>Bandeja de entrada</ion-label>
+        </ion-item>
+        <ion-item button routerLink="/reservas" detail="false">
+          <ion-icon name="calendar-outline" slot="start"></ion-icon>
+          <ion-label>Mis contrataciones</ion-label>
+        </ion-item>
+        <ion-item button routerLink="/preferencias" detail="false">
+          <ion-icon name="settings-outline" slot="start"></ion-icon>
+          <ion-label>Preferencias</ion-label>
+        </ion-item>
+        <ion-item button (click)="salir()" detail="false" lines="none">
+          <ion-icon name="log-out-outline" slot="start" color="danger"></ion-icon>
+          <ion-label color="danger">Cerrar sesión</ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-popover>

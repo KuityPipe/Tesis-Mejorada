@@ -14,18 +14,18 @@
     <p>Un chat por cada trabajo — así no se mezclan conversaciones de contrataciones distintas.</p>
   </div>
 
-  <div *ngIf="cargando" class="ion-text-center ion-padding">
-    <ion-spinner></ion-spinner>
-  </div>
+  <app-skeleton *ngIf="cargando" variante="fila" [cantidad]="5"></app-skeleton>
 
-  <ion-card *ngIf="!cargando">
+  <ion-card *ngIf="!cargando && conversaciones.length">
     <ion-card-content>
-      <ion-list lines="full" *ngIf="conversaciones.length; else sinConversaciones">
+      <ion-list lines="full">
         <ion-item
-          *ngFor="let conv of conversaciones"
+          *ngFor="let conv of conversaciones; let i = index"
           [routerLink]="conv.contratacion_id ? ['/contratacion', conv.contratacion_id] : null"
           [button]="!!conv.contratacion_id"
           [detail]="!!conv.contratacion_id"
+          appReveal
+          [appRevealDelay]="i * 50"
         >
           <div class="ks-avatar-brand" slot="start">{{ (conv.contraparte_nombre || '?').charAt(0) }}</div>
           <ion-label class="ion-text-wrap">
@@ -45,9 +45,15 @@
           <ion-note slot="end" *ngIf="conv.ultimo_mensaje_fecha">{{ conv.ultimo_mensaje_fecha | date:'short' }}</ion-note>
         </ion-item>
       </ion-list>
-      <ng-template #sinConversaciones>
-        <p style="color: var(--ks-ink-soft);">Todavía no tienes conversaciones — se crean automáticamente al contratar o recibir una solicitud de servicio.</p>
-      </ng-template>
     </ion-card-content>
   </ion-card>
+
+  <app-empty-state
+    *ngIf="!cargando && !conversaciones.length"
+    icono="chatbubbles-outline"
+    titulo="Todavía no tienes conversaciones"
+    mensaje="Se crean automáticamente al contratar o recibir una solicitud de servicio."
+    ctaTexto="Explorar catálogo"
+    ctaLink="/catalogo"
+  ></app-empty-state>
 </ion-content>

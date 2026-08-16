@@ -8,14 +8,12 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
-  <div *ngIf="cargando" class="ion-text-center ion-padding">
-    <ion-spinner></ion-spinner>
-  </div>
+  <app-skeleton *ngIf="cargando" variante="card" [cantidad]="4"></app-skeleton>
 
   <ng-container *ngIf="!cargando">
     <!-- Mismo grid .ks-card-grid que usa la sección "Mis publicaciones" de perfil.html en Django (con el badge de estado, a diferencia del catálogo público). -->
     <div class="ks-card-grid" *ngIf="publicaciones.length">
-      <a class="ks-card-tile" *ngFor="let publicacion of publicaciones" [routerLink]="['/catalogo', publicacion.id_publicacion]">
+      <a class="ks-card-tile" *ngFor="let publicacion of publicaciones; let i = index" [routerLink]="['/catalogo', publicacion.id_publicacion]" appReveal [appRevealDelay]="(i % 12) * 50">
         <div class="ks-card-tile-img">
           <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
           <ng-template #sinImagen>
@@ -34,9 +32,12 @@
       </a>
     </div>
 
-    <ion-text color="medium" *ngIf="!publicaciones.length">
-      <p class="ion-text-center">Todavía no publicaste ningún servicio.</p>
-    </ion-text>
+    <app-empty-state
+      *ngIf="!publicaciones.length"
+      icono="megaphone-outline"
+      titulo="Todavía no publicaste ningún servicio"
+      mensaje="Publica tu primer servicio para que los clientes puedan encontrarte."
+    ></app-empty-state>
 
     <ion-button expand="block" fill="outline" class="ion-margin-top" routerLink="/catalogo/crear">
       <ion-icon name="add-outline" slot="start"></ion-icon> Publicar un nuevo servicio

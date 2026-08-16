@@ -5,6 +5,7 @@ import { AlertController } from '@ionic/angular';
 import { Auth, Usuario } from '../core/auth';
 import { Contrataciones, ContratacionResumen } from '../contrataciones/contrataciones';
 import { Notificaciones } from '../core/notificaciones';
+import { Retroalimentacion } from '../core/retroalimentacion';
 import { Resenas, ResenaRecibida } from './resenas';
 
 const ESTADOS_ACTIVOS = ['SOLICITADA', 'CONFIRMADA', 'EN_CURSO'];
@@ -43,6 +44,7 @@ export class HomePage implements OnInit {
     private readonly notificaciones: Notificaciones,
     private readonly resenasApi: Resenas,
     private readonly alertController: AlertController,
+    private readonly retroalimentacion: Retroalimentacion,
   ) {}
 
   ngOnInit(): void {
@@ -93,11 +95,6 @@ export class HomePage implements OnInit {
     return this.contratacionesApi.etiquetaEstado(estado);
   }
 
-  salir(): void {
-    this.auth.logout();
-    this.router.navigateByUrl('/login');
-  }
-
   /**
    * Equivalente Ionic del botón "Convertirme en proveedor"/"Dejar de
    * ofrecer servicios" de `perfil.html` — mismo criterio: confirmar antes
@@ -125,6 +122,9 @@ export class HomePage implements OnInit {
   }
 
   private enviarAlternarProveedor(): void {
-    this.auth.alternarProveedor().subscribe((usuario) => (this.usuario = usuario));
+    this.auth.alternarProveedor().subscribe((usuario) => {
+      this.usuario = usuario;
+      this.retroalimentacion.exito(usuario.es_proveedor ? 'Ahora ofreces servicios en KeyServ.' : 'Dejaste de ofrecer servicios.');
+    });
   }
 }

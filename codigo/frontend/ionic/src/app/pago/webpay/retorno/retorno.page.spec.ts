@@ -4,6 +4,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { RetornoPage } from './retorno.page';
+import { SharedModule } from '../../../shared/shared.module';
 
 describe('RetornoPage (webpay)', () => {
   let component: RetornoPage;
@@ -12,7 +13,7 @@ describe('RetornoPage (webpay)', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [RetornoPage],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule],
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, SharedModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RetornoPage);

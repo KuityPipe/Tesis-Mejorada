@@ -22,7 +22,7 @@
     <ion-text color="warning" *ngIf="!puedePublicar">
       <div class="ks-info-note">
         <ion-icon name="alert-circle-outline"></ion-icon>
-        Solo los proveedores pueden publicar servicios. Activá el modo proveedor desde
+        Solo los proveedores pueden publicar servicios. Activa el modo proveedor desde
         <a routerLink="/perfil/proveedor">tu perfil de proveedor</a>.
       </div>
     </ion-text>
@@ -36,7 +36,7 @@
       </ion-text>
 
       <form [formGroup]="formulario" (ngSubmit)="enviar()" *ngIf="!enviadoOk">
-        <div class="ks-section">
+        <div class="ks-section" appReveal>
           <ion-card>
             <ion-card-content>
               <ion-list lines="none">

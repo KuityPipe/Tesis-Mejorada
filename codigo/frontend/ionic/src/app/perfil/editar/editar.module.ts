@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { EditarPageRoutingModule } from './editar-routing.module';
+import { SharedModule } from '../../shared/shared.module';
 
 import { EditarPage } from './editar.page';
 
@@ -14,7 +15,8 @@ import { EditarPage } from './editar.page';
     FormsModule,
     ReactiveFormsModule,
     IonicModule,
-    EditarPageRoutingModule
+    EditarPageRoutingModule,
+    SharedModule
   ],
   declarations: [EditarPage]
 })

@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 
 import { BiometriaPageRoutingModule } from './biometria-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { BiometriaPage } from './biometria.page';
 
@@ -15,7 +16,8 @@ import { BiometriaPage } from './biometria.page';
     FormsModule,
     RouterModule,
     IonicModule,
-    BiometriaPageRoutingModule
+    BiometriaPageRoutingModule,
+    SharedModule
   ],
   declarations: [BiometriaPage]
 })

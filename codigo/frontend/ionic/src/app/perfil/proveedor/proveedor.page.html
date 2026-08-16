@@ -18,7 +18,7 @@
     <ion-spinner></ion-spinner>
   </div>
 
-  <div class="ks-section" *ngIf="!cargando">
+  <div class="ks-section" *ngIf="!cargando" appReveal>
     <p class="ks-section-title">Áreas y experiencia</p>
     <ion-card>
       <ion-card-content>
@@ -93,7 +93,7 @@
     </ion-card>
   </div>
 
-  <div class="ks-section" *ngIf="!cargando">
+  <div class="ks-section" *ngIf="!cargando" appReveal [appRevealDelay]="80">
     <p class="ks-section-title">Certificados ya subidos</p>
     <ion-card>
       <ion-card-content>

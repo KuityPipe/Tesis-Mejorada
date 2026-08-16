@@ -8,6 +8,8 @@
   <ion-toolbar>
     <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Iniciar sesión</ion-title>
+    <app-top-nav slot="end"></app-top-nav>
+    <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
 
@@ -21,7 +23,7 @@
     un campo, o el botón) y llama a enviar() en la clase.
   -->
   <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
-    <ion-card>
+    <ion-card appReveal>
       <ion-card-content>
         <!-- Mismo h1+subtítulo centrado que .ks-panel en sesion.html del sitio Django (el título del toolbar de arriba no reemplaza este encabezado dentro del panel). -->
         <div class="ion-text-center ion-margin-bottom">

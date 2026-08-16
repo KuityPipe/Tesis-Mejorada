@@ -17,7 +17,7 @@
 
     <div *ngIf="tokenValido && !exito">
       <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
-        <ion-card>
+        <ion-card appReveal>
           <ion-card-content>
             <!-- Mismo h1+subtítulo centrado que .ks-panel en recuperar_confirmar.html del sitio Django. -->
             <div class="ion-text-center ion-margin-bottom">

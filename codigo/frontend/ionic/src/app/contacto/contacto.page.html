@@ -14,7 +14,7 @@
     <p>¿Necesitas ayuda? Este es el canal directo con el equipo de soporte.</p>
   </div>
 
-  <div class="ks-feature-grid">
+  <div class="ks-feature-grid" appReveal>
     <div class="ks-contact-tile">
       <ion-icon name="person-outline"></ion-icon>
       <p class="label">Ingeniero de soporte</p>
@@ -32,7 +32,7 @@
     </a>
   </div>
 
-  <div class="ks-section">
+  <div class="ks-section" appReveal [appRevealDelay]="80">
     <ion-card>
       <ion-card-content>
         <h3 style="display:flex; align-items:center; gap:8px;"><ion-icon name="chatbox-ellipses-outline"></ion-icon> ¿Tienes un problema o una consulta?</h3>

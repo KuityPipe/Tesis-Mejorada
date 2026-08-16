@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 
 import { ReservasPageRoutingModule } from './reservas-routing.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { ReservasPage } from './reservas.page';
 
@@ -15,7 +16,8 @@ import { ReservasPage } from './reservas.page';
     FormsModule,
     RouterModule,
     IonicModule,
-    ReservasPageRoutingModule
+    ReservasPageRoutingModule,
+    SharedModule
   ],
   declarations: [ReservasPage]
 })

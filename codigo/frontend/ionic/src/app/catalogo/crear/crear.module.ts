@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { CrearPageRoutingModule } from './crear-routing.module';
+import { SharedModule } from '../../shared/shared.module';
 
 import { CrearPage } from './crear.page';
 
@@ -14,7 +15,8 @@ import { CrearPage } from './crear.page';
     FormsModule,
     ReactiveFormsModule,
     IonicModule,
-    CrearPageRoutingModule
+    CrearPageRoutingModule,
+    SharedModule
   ],
   declarations: [CrearPage]
 })

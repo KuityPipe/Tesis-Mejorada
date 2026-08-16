@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { Auth } from '../../core/auth';
+import { Retroalimentacion } from '../../core/retroalimentacion';
 import { Contrataciones } from '../../contrataciones/contrataciones';
 import { Publicaciones, PublicacionDetalle } from '../publicaciones';
 
@@ -32,6 +33,7 @@ export class DetallePage implements OnInit {
     private readonly api: Publicaciones,
     private readonly auth: Auth,
     private readonly contratacionesApi: Contrataciones,
+    private readonly retroalimentacion: Retroalimentacion,
   ) {}
 
   ngOnInit(): void {
@@ -69,6 +71,7 @@ export class DetallePage implements OnInit {
     this.contratacionesApi.solicitar(this.publicacion.id_publicacion).subscribe({
       next: (contratacion) => {
         this.contratando = false;
+        this.retroalimentacion.exito('Solicitud enviada al proveedor.');
         this.router.navigateByUrl(`/contratacion/${contratacion.id_contratacion}`);
       },
       error: (error) => {

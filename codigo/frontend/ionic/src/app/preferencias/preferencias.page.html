@@ -20,7 +20,7 @@
 
   <ng-container *ngIf="!cargando">
     <!-- Toggle manual de tema claro/oscuro — equivalente Ionic del botón de base.html en el sitio Django (ver core/tema.ts). -->
-    <div class="ks-section">
+    <div class="ks-section" appReveal>
       <p class="ks-section-title">Apariencia</p>
       <ion-card>
         <ion-card-content>
@@ -34,7 +34,7 @@
       </ion-card>
     </div>
 
-    <div class="ks-section">
+    <div class="ks-section" appReveal [appRevealDelay]="60">
       <p class="ks-section-title">Notificaciones</p>
       <ion-card>
         <ion-card-content>
@@ -59,7 +59,7 @@
       </ion-card>
     </div>
 
-    <div class="ks-section">
+    <div class="ks-section" appReveal [appRevealDelay]="120">
       <p class="ks-section-title">Cambiar contraseña</p>
       <ion-card>
         <ion-card-content>
@@ -97,7 +97,7 @@
     </div>
 
     <!-- Mismo texto legal estático que preferencias_cuenta.html — se le había quedado afuera a este pantalla. -->
-    <div class="ks-section">
+    <div class="ks-section" appReveal [appRevealDelay]="180">
       <p class="ks-section-title"><ion-icon name="document-text-outline"></ion-icon> Términos y condiciones</p>
       <ion-card>
         <ion-card-content>

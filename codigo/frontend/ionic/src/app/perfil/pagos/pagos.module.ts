@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { PagosPageRoutingModule } from './pagos-routing.module';
+import { SharedModule } from '../../shared/shared.module';
 
 import { PagosPage } from './pagos.page';
 
@@ -13,7 +14,8 @@ import { PagosPage } from './pagos.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    PagosPageRoutingModule
+    PagosPageRoutingModule,
+    SharedModule
   ],
   declarations: [PagosPage]
 })

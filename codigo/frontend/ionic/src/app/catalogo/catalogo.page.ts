@@ -2,8 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { InfiniteScrollCustomEvent } from '@ionic/angular';
 
-import { Auth } from '../core/auth';
-import { Notificaciones } from '../core/notificaciones';
 import { Catalogos, RegionCatalogo } from '../registro/catalogos';
 import { FiltrosCatalogo, Publicaciones, PublicacionResumen } from './publicaciones';
 
@@ -43,15 +41,10 @@ export class CatalogoPage implements OnInit {
 
   filtros: FiltrosCatalogo = { orden: 'recientes' };
 
-  /** Badge de no leídos del ícono de mensajes del header (ver core/notificaciones.ts) — solo tiene sentido si `auth.estaAutenticado()`, mismo guard que ya usa el template para mostrar el ícono. */
-  readonly mensajesNoLeidos$ = this.notificaciones.noLeidos$;
-
   constructor(
     private readonly api: Publicaciones,
     private readonly catalogos: Catalogos,
     private readonly ruta: ActivatedRoute,
-    private readonly notificaciones: Notificaciones,
-    readonly auth: Auth,
   ) {}
 
   ngOnInit(): void {

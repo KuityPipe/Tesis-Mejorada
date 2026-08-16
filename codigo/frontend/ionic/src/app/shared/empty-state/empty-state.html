@@ -1,0 +1,10 @@
+<div class="ks-empty-state" appReveal>
+  <div class="ks-empty-state-icon">
+    <ion-icon [name]="icono"></ion-icon>
+  </div>
+  <h3>{{ titulo }}</h3>
+  <p *ngIf="mensaje">{{ mensaje }}</p>
+  <ion-button *ngIf="ctaTexto && ctaLink" [routerLink]="ctaLink" fill="outline" size="small">
+    {{ ctaTexto }}
+  </ion-button>
+</div>

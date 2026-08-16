@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { PublicacionesPageRoutingModule } from './publicaciones-routing.module';
+import { SharedModule } from '../../shared/shared.module';
 
 import { PublicacionesPage } from './publicaciones.page';
 
@@ -13,7 +14,8 @@ import { PublicacionesPage } from './publicaciones.page';
     CommonModule,
     FormsModule,
     IonicModule,
-    PublicacionesPageRoutingModule
+    PublicacionesPageRoutingModule,
+    SharedModule
   ],
   declarations: [PublicacionesPage]
 })

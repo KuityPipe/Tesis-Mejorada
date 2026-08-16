@@ -1,0 +1,39 @@
+<!-- Un solo botón que abre/cierra los 4 links en un popover, en cualquier
+ancho de pantalla — no solo en móvil. La primera versión mostraba la fila
+horizontal completa en escritorio y el menú solo aparecía por debajo de
+768px, pero con el título de la página y el menú de cuenta compartiendo
+el mismo renglón (pedido explícito del usuario: layout de 3 columnas
+logo/título/accesos), la fila de 4 links de más competía por espacio y
+truncaba el título ("usa el espacio de manera inteligente" — feedback en
+vivo). `ion-popover` con `trigger` se posiciona solo (sin números mágicos
+de altura de toolbar) y ya se usa con el mismo patrón en
+AccountMenuComponent. -->
+<ion-buttons>
+  <ion-button id="ks-nav-trigger" aria-label="Abrir menú de navegación">
+    <ion-icon slot="icon-only" name="menu-outline"></ion-icon>
+  </ion-button>
+</ion-buttons>
+<ion-popover trigger="ks-nav-trigger" [dismissOnSelect]="true" side="bottom" alignment="start" size="fixed">
+  <ng-template>
+    <ion-content>
+      <ion-list lines="full">
+        <ion-item button routerLink="/" routerLinkActive="ks-nav-active" [routerLinkActiveOptions]="{ exact: true }" detail="false">
+          <ion-icon name="home-outline" slot="start"></ion-icon>
+          <ion-label>Inicio</ion-label>
+        </ion-item>
+        <ion-item button routerLink="/catalogo" routerLinkActive="ks-nav-active" detail="false">
+          <ion-icon name="grid-outline" slot="start"></ion-icon>
+          <ion-label>Servicios</ion-label>
+        </ion-item>
+        <ion-item button routerLink="/acerca-de-nosotros" routerLinkActive="ks-nav-active" detail="false">
+          <ion-icon name="information-circle-outline" slot="start"></ion-icon>
+          <ion-label>Acerca de nosotros</ion-label>
+        </ion-item>
+        <ion-item button routerLink="/contacto" routerLinkActive="ks-nav-active" detail="false" lines="none">
+          <ion-icon name="mail-outline" slot="start"></ion-icon>
+          <ion-label>Contacto</ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-popover>

@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { ProveedorPageRoutingModule } from './proveedor-routing.module';
+import { SharedModule } from '../../shared/shared.module';
 
 import { ProveedorPage } from './proveedor.page';
 
@@ -14,7 +15,8 @@ import { ProveedorPage } from './proveedor.page';
     FormsModule,
     ReactiveFormsModule,
     IonicModule,
-    ProveedorPageRoutingModule
+    ProveedorPageRoutingModule,
+    SharedModule
   ],
   declarations: [ProveedorPage]
 })

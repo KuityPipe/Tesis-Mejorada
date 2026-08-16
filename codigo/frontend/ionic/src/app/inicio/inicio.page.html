@@ -1,26 +1,15 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
-    <ion-title>KeyServ</ion-title>
-    <ion-buttons slot="end">
-      <ion-button routerLink="/catalogo">Catálogo</ion-button>
-      <ng-container *ngIf="auth.estaAutenticado(); else botonIngresar">
-        <ion-button routerLink="/mensajes">
-          <ion-icon slot="icon-only" name="chatbubbles-outline"></ion-icon>
-          <ion-badge color="danger" *ngIf="mensajesNoLeidos$ | async as n" class="ks-toolbar-badge">{{ n }}</ion-badge>
-        </ion-button>
-        <ion-button routerLink="/home">Mi perfil</ion-button>
-      </ng-container>
-      <ng-template #botonIngresar>
-        <ion-button routerLink="/login">Ingresar</ion-button>
-      </ng-template>
-    </ion-buttons>
+    <ion-title>Inicio</ion-title>
+    <app-top-nav slot="end"></app-top-nav>
+    <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
   <!-- Mismo .ks-hero que paginicio.html del sitio Django (banda de marca + búsqueda rápida + tags populares). -->
-  <div class="ks-hero">
+  <div class="ks-hero" appReveal>
     <h1>Encuentra profesionales de confianza, verificados con huella digital</h1>
     <p>Servicios del hogar cerca de ti, con proveedores verificados biométricamente.</p>
 
@@ -39,21 +28,21 @@
 
   <!-- Mismos 3 paneles ("Identidad verificada"/"Calificaciones reales"/"Mensajería directa") que paginicio.html. -->
   <div class="ks-feature-grid">
-    <ion-card>
+    <ion-card appReveal [appRevealDelay]="0">
       <ion-card-content>
         <ion-icon name="finger-print-outline"></ion-icon>
         <h3>Identidad verificada</h3>
         <p>Huella dactilar y reconocimiento facial antes de operar en la plataforma.</p>
       </ion-card-content>
     </ion-card>
-    <ion-card>
+    <ion-card appReveal [appRevealDelay]="80">
       <ion-card-content>
         <ion-icon name="star-outline"></ion-icon>
         <h3>Calificaciones reales</h3>
         <p>Cada servicio completado se califica — elige con reseñas de verdad.</p>
       </ion-card-content>
     </ion-card>
-    <ion-card>
+    <ion-card appReveal [appRevealDelay]="160">
       <ion-card-content>
         <ion-icon name="chatbubbles-outline"></ion-icon>
         <h3>Mensajería directa</h3>
@@ -66,12 +55,10 @@
   <div class="ks-section">
     <p class="ks-section-title">Servicios destacados</p>
 
-    <div *ngIf="cargandoDestacadas" class="ion-text-center ion-padding">
-      <ion-spinner></ion-spinner>
-    </div>
+    <app-skeleton *ngIf="cargandoDestacadas" variante="card" [cantidad]="3"></app-skeleton>
 
     <div class="ks-card-grid" *ngIf="!cargandoDestacadas && destacadas.length">
-      <a class="ks-card-tile" *ngFor="let publicacion of destacadas" [routerLink]="['/catalogo', publicacion.id_publicacion]">
+      <a class="ks-card-tile" *ngFor="let publicacion of destacadas; let i = index" [routerLink]="['/catalogo', publicacion.id_publicacion]" appReveal [appRevealDelay]="i * 60">
         <div class="ks-card-tile-img">
           <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
           <ng-template #sinImagen>

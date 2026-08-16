@@ -1,21 +1,16 @@
-<!-- (click) es el binding de evento de Angular — llama a salir() (home.page.ts) al tocar el botón, sin addEventListener manual. -->
 <ion-header [translucent]="true">
   <ion-toolbar>
     <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
-    <ion-title>KeyServ</ion-title>
-    <ion-buttons slot="end">
-      <ion-button routerLink="/catalogo">Catálogo</ion-button>
-      <ion-button routerLink="/mensajes">
-        <ion-icon slot="icon-only" name="chatbubbles-outline"></ion-icon>
-        <ion-badge color="danger" *ngIf="mensajesNoLeidos$ | async as n" class="ks-toolbar-badge">{{ n }}</ion-badge>
-      </ion-button>
-      <ion-button (click)="salir()">Cerrar sesión</ion-button>
-    </ion-buttons>
+    <ion-title>Mi cuenta</ion-title>
+    <app-top-nav slot="end"></app-top-nav>
+    <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
-  <div *ngIf="cargando">Cargando…</div>
+  <div *ngIf="cargando" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+  </div>
 
   <ng-container *ngIf="usuario">
     <!-- Equivalente Ionic de /inicio/ del sitio Django: banda de saludo + accesos rápidos + trabajos activos, en vez de solo un menú de opciones. -->
@@ -25,14 +20,14 @@
     </div>
 
     <div class="ks-quick-actions">
-      <div class="ks-card-tile" routerLink="/catalogo">
+      <div class="ks-card-tile" routerLink="/catalogo" appReveal [appRevealDelay]="0">
         <div class="ks-card-tile-body">
           <h3><ion-icon name="search-outline"></ion-icon> Buscar servicios</h3>
           <p>Explora el catálogo de proveedores verificados.</p>
         </div>
       </div>
       <!-- Mismo orden que Sesioniniciadainicio.html en Django: Buscar servicios, Mensajes, Mi perfil. -->
-      <div class="ks-card-tile" routerLink="/mensajes">
+      <div class="ks-card-tile" routerLink="/mensajes" appReveal [appRevealDelay]="60">
         <div class="ks-card-tile-body">
           <h3>
             <ion-icon name="chatbubbles-outline"></ion-icon> Mensajes
@@ -41,20 +36,20 @@
           <p>Conversa con clientes o proveedores.</p>
         </div>
       </div>
-      <div class="ks-card-tile" routerLink="/reservas">
+      <div class="ks-card-tile" routerLink="/reservas" appReveal [appRevealDelay]="120">
         <div class="ks-card-tile-body">
           <h3><ion-icon name="briefcase-outline"></ion-icon> Mis contrataciones</h3>
           <p>Sigue el estado de tus servicios contratados.</p>
         </div>
       </div>
-      <div class="ks-card-tile" routerLink="/perfil/editar">
+      <div class="ks-card-tile" routerLink="/perfil/editar" appReveal [appRevealDelay]="180">
         <div class="ks-card-tile-body">
           <h3><ion-icon name="person-outline"></ion-icon> Mi perfil</h3>
           <p>Verifica tu identidad y revisa tus datos.</p>
         </div>
       </div>
       <!-- Mismo tile condicional "Publicar un servicio" que Sesioniniciadainicio.html muestra solo si usuario.es_proveedor. -->
-      <div class="ks-card-tile" routerLink="/catalogo/crear" *ngIf="usuario.es_proveedor">
+      <div class="ks-card-tile" routerLink="/catalogo/crear" *ngIf="usuario.es_proveedor" appReveal [appRevealDelay]="240">
         <div class="ks-card-tile-body">
           <h3><ion-icon name="megaphone-outline"></ion-icon> Publicar un servicio</h3>
           <p>Crea una nueva publicación para tus clientes.</p>

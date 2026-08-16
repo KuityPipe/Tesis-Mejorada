@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { Auth } from '../../core/auth';
+import { Retroalimentacion } from '../../core/retroalimentacion';
 import { Catalogos, ComunaCatalogo, RegionCatalogo } from '../../registro/catalogos';
 
 /**
@@ -41,6 +42,7 @@ export class EditarPage implements OnInit {
     private readonly auth: Auth,
     private readonly catalogos: Catalogos,
     private readonly router: Router,
+    private readonly retroalimentacion: Retroalimentacion,
   ) {}
 
   ngOnInit(): void {
@@ -115,6 +117,7 @@ export class EditarPage implements OnInit {
     this.auth.actualizarPerfil(formData).subscribe({
       next: () => {
         this.enviando = false;
+        this.retroalimentacion.exito('Perfil actualizado.');
         this.router.navigateByUrl('/home');
       },
       error: (error: HttpErrorResponse) => {
