@@ -156,6 +156,34 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       descriptiva, igual que ya tenía su panel vecino. Verificado en vivo como superuser y como
       cuenta Moderador (sidebar sin "Mensajería" ni "Contratación" en ningún lado de la página).
       264 tests backend en verde (+1 test de regresión).
+- [x] **Microinteracciones/animaciones + rediseño del header con menú de cuenta** — 2026-08-15,
+      pedido explícito del usuario ("busca páginas bonitas y corporativas... Canva, Hostinger...
+      que mejoras podemos hacer en diseño") tras investigar patrones de sitios corporativos 2026
+      (fuentes en el resumen de la sesión al usuario). Base compartida nueva (`shared/
+      reveal.directive.ts`, `shared/empty-state/`, `shared/skeleton/`, `core/retroalimentacion.ts`)
+      aplicada de forma sistemática en ~20 pantallas: reveal al hacer scroll (fade+slide
+      escalonado), skeleton screens en vez de `ion-spinner` en catálogo/reservas/mensajes/mis
+      publicaciones/historial de pagos, estados vacíos con ícono+CTA en vez de un `<ion-text>`
+      suelto, toast de éxito donde antes se navegaba en silencio (editar perfil, publicar servicio,
+      confirmar/completar contratación, alternar proveedor, registro), y feedback táctil/hover
+      global (cards, botones, zoom de imagen) — todo respetando `prefers-reduced-motion`.
+      Por pedido explícito del usuario, el header de las 4 pantallas raíz (login/catálogo/home/
+      inicio) pasó por varias vueltas de rediseño en vivo hasta terminar en un layout de 3 columnas
+      (logo / título de la página / accesos): `TopNavComponent` (Inicio/Servicios/Acerca de
+      nosotros/Contacto en un solo botón que abre un `ion-popover` — probado primero como fila
+      horizontal siempre visible, cambiado a "siempre popover" cuando el título quedaba truncado
+      compitiendo por espacio) + `AccountMenuComponent` (ícono de bandeja de entrada con badge +
+      nombre de usuario que abre un menú con Mi cuenta/Bandeja de entrada/Mis contrataciones/
+      Preferencias/Cerrar sesión, reemplazando el botón de texto "Ingresar" por un ícono). Tres
+      bugs reales de Ionic encontrados y corregidos en el camino (ver detalle en el mensaje del
+      commit `0c97c4d`): `slot="start"/"end"` no funciona en un elemento anidado dentro de OTRO
+      componente Angular (solo en hijos directos del shadow host); Ionic le pone `order:3` al área
+      del `ion-title` rompiendo el orden visual cuando hay contenido en `slot="end"`; y
+      `ion-content::part(scroll)` con `max-width`+`margin-inline:auto` (la regla que centra el
+      contenido de cada página) colapsa a "shrink-to-fit" dentro de un `ion-popover` angosto en vez
+      de llenar el ancho disponible, causando que "Acerca de nosotros"/"Bandeja de entrada"
+      envolvieran a dos líneas. Verificado en vivo con datos demo reales, con sesión y sin ella,
+      en cada vuelta de feedback. 54 tests frontend en verde.
 
 ## Pendiente — prioridad baja / decisión de negocio
 
