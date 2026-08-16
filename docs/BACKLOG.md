@@ -126,6 +126,17 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       equivalente en `api/urls.py`; encontrado al comparar contratación/detalle. Es trabajo de backend
       nuevo (endpoint + descarga de archivo), no solo de frontend — quedó fuera de la pasada de
       2026-08-15 por alcance, no por dificultad.
+- [x] **Retema del panel `/admin/` con identidad KeyServ (inspirado en ServiceNow)** — 2026-08-15,
+      pedido explícito del usuario tras comparar contra paneles tipo ServiceNow. Franja de tarjetas KPI
+      arriba del dashboard, badges de color en los `<select>` de moderación (sin perder la edición
+      inline) y en `Contratacion.estado`/`Pago.estado`, borde de severidad en "Intentos de acceso
+      sospechoso", login/sidebar/formularios con la paleta navy/teal/coral + Quicksand/Nunito — todo
+      sobre la misma base de Django admin (permisos, validación, auditoría intactos, nada reescrito
+      desde cero). De paso se corrigió un bug real: 3 de los paneles del dashboard se mostraban (sin
+      datos) a cualquier usuario staff aunque no tuviera el permiso real, porque el template no
+      chequeaba si la clave existía en el contexto — ahora si un usuario no tiene permiso, el panel ni
+      aparece. Verificado en vivo como superuser y como cuenta Moderador, modo claro y oscuro
+      explícitos. 263 tests backend en verde.
 
 ## Pendiente — prioridad baja / decisión de negocio
 
