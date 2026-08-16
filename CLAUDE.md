@@ -90,13 +90,24 @@ With `runserver` up, the REST API is browsable at `http://localhost:8000/api/doc
 cd codigo/frontend/ionic
 npm install            # node_modules is gitignored (codigo/frontend/ionic/.gitignore), not committed
 npm start               # = ng serve, http://localhost:8100 by default — must match CORS_ALLOWED_ORIGINS in .env
-npm test                # = ng test (Karma/Jasmine) — 36 spec files, ~54 tests as of the last count
+npm test                # = ng test (Karma/Jasmine) — 76 tests as of the last count, unit-level (HttpClient mocked)
 npm run lint             # = ng lint
 ```
 
+### E2E tests (Playwright, Fase 7 — real browser against the real app)
+
+```powershell
+cd codigo/frontend/ionic
+npx playwright install chromium   # una vez — descarga el binario de Chromium que usa Playwright
+npm run test:e2e                   # corre e2e/*.spec.ts contra la app real
+npm run test:e2e:ui                # mismo suite, con el UI mode de Playwright (ver cada paso/trace)
+```
+
+A diferencia de `npm test` (Karma/Jasmine, `HttpClient` mockeado con `HttpClientTestingModule`, no habla con ningún backend real), estos tests corren contra la app de verdad: un Chromium real clickea el Ionic servido (`ng serve`, `:8100`) que a su vez habla con la API Django real (`:8000`, Postgres real, datos demo reales vía `sembrar_datos_demo`). **Requiere el backend ya corriendo** (`manage.py runserver 8000`, con migraciones + datos demo aplicados) — `playwright.config.ts` solo levanta el frontend él mismo (`npm start`, reusa uno ya corriendo si existe vía `reuseExistingServer`), no el backend. Los tests deliberadamente no tocan transiciones de estado de una contratación (confirmar/completar/pagar/valorar) — la data demo sembrada trae un ejemplo de cada estado del BPMN a propósito para el portafolio, y una transición real la rompería; sí prueban mandar un mensaje de chat (agrega una fila, no cambia ningún estado). Cubre: login (real y con credenciales incorrectas), guard de rutas protegidas, catálogo público (listado/búsqueda/detalle) y el chat de una contratación (mandar un mensaje de texto y verlo aparecer como burbuja, contra el rediseño de Fase 7). **Alcance solo web por ahora** — Appium (E2E nativo Android/iOS) quedó deliberadamente fuera, decisión explícita del usuario, para una sesión aparte.
+
 ### Continuous Integration
 
-`.github/workflows/tests.yml` runs on every push to `master`/`api-ionic-migration` and every PR into `master`: a `backend` job (Postgres 17 service container, `pip install -r requirements-ci.txt` then `manage.py test KeyServApp`) and a `frontend` job (`npm ci` then `ng test --watch=false --browsers=ChromeHeadlessCI`). **`requirements-ci.txt` is a deliberate subset of `requirements.txt`** — it skips `dlib-bin`/`opencv-python`/`face_recognition`/`transbank-sdk`, since CI tests mock those or never exercise them for real (see "Known Issues" for why those packages are heavy to install).
+`.github/workflows/tests.yml` runs on every push to `master`/`api-ionic-migration` and every PR into `master`: a `backend` job (Postgres 17 service container, `pip install -r requirements-ci.txt` then `manage.py test KeyServApp`), a `frontend` job (`npm ci` then `ng test --watch=false --browsers=ChromeHeadlessCI`), and an `e2e` job (its own Postgres service, migrates + seeds real demo data, starts `manage.py runserver` in the background, waits for it to respond, then `npx playwright install --with-deps chromium` + `npx playwright test` — uploads the HTML report as a build artifact only if something fails). **`requirements-ci.txt` is a deliberate subset of `requirements.txt`** — it skips `dlib-bin`/`opencv-python`/`face_recognition`/`transbank-sdk`, since CI tests mock those or never exercise them for real (see "Known Issues" for why those packages are heavy to install).
 
 See "API + Ionic migration" under Architecture → Data Flow below for what's actually built (Fases 1-4 done, Fase 5 in progress — this Commands section only covers running things, not what exists).
 

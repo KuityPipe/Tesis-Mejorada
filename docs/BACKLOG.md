@@ -372,7 +372,29 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       login → refresh (rota) → reusar el token viejo da 401 → logout (204) → refrescar después del
       logout también da 401. 9 tests backend + 10 tests frontend nuevos — 278 tests backend + 67
       frontend en verde, build de producción de Ionic sin errores.
-- [ ] Tests E2E (Cypress/Playwright para web, Appium si hace falta cubrir nativo).
+- [x] **Tests E2E web (Playwright)** — pedido explícito del usuario, con alcance acotado a propósito
+      a solo web (Appium para nativo queda para una sesión aparte, decisión explícita del usuario:
+      es un esfuerzo bastante más grande — armar el proyecto Appium, page objects nativos, etc.).
+      `codigo/frontend/ionic/e2e/` (`playwright.config.ts` + 3 specs) corre contra la app real — un
+      Chromium real clickeando el Ionic servido (`ng serve`) contra la API Django real (Postgres +
+      datos demo reales vía `sembrar_datos_demo`), a diferencia de `ng test` que mockea `HttpClient`.
+      Cubre: login (real y con credenciales incorrectas) + guard de rutas protegidas, catálogo
+      público (listado/búsqueda/detalle), y el chat de una contratación (mandar un mensaje y verlo
+      aparecer como burbuja — ejercita en vivo el rediseño de chat de este mismo checkpoint).
+      Deliberadamente no toca transiciones de estado de una contratación (confirmar/completar/
+      pagar/valorar): la data demo trae un ejemplo de cada estado del BPMN a propósito para el
+      portafolio, y una transición real la rompería. Nuevo job `e2e` en
+      `.github/workflows/tests.yml` (su propio Postgres, migra+siembra datos demo, levanta el
+      backend en segundo plano con un health-check antes de correr los tests, sube el reporte HTML
+      de Playwright como artefacto solo si algo falla). Dos ajustes reales necesarios contra la app
+      de verdad, no anticipados al escribir los tests: los componentes Ionic (`ion-searchbar`/
+      `ion-input`) exponen el mismo placeholder tanto en el custom element como en su `<input>`
+      interno de shadow DOM, así que un locator por placeholder solo (`getByPlaceholder`) da
+      "strict mode violation" — hay que apuntar al `<input>` real; y el filtro de búsqueda del
+      catálogo dispara en `(ionChange)`, que `ion-searchbar` solo emite al perder el foco/Enter (no
+      en cada tecleo como `ionInput`), así que hace falta un blur explícito después de escribir, no
+      solo esperar. — 2026-08-16, verificado en vivo contra `:8000`/`:8100` reales corriendo: 7/7
+      tests en verde, repetido dos veces seguidas (14/14) para confirmar que no eran flaky.
 - [ ] Pipeline de build para Android/iOS.
 
 ## Fase 8 — Publicación / portafolio

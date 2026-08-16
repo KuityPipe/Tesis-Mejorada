@@ -29,6 +29,12 @@ log.txt
 /out-tsc
 /bazel-out
 
+# Playwright (E2E)
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+
 # Node
 /node_modules
 npm-debug.log
