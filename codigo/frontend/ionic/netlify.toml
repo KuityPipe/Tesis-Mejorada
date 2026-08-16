@@ -9,6 +9,15 @@
 [build]
   command = "npm run build"
   publish = "www"
+  # Sin esto, un commit que solo toca docs/, el backend Django o el README
+  # igual dispara un `ng build` completo acá (varios minutos) — y varios
+  # pushes seguidos terminan cancelándose entre sí en el dashboard. "Base
+  # directory" ya está en codigo/frontend/ionic (ver dashboard de Netlify),
+  # así que "." son los paths relativos a esta misma carpeta: se salta el
+  # build si nada cambió acá. Exit 0 = saltar, no-cero = construir (git
+  # diff --quiet devuelve 0 sin diferencias) — ver docs.netlify.com/build/
+  # configure-builds/ignore-builds.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."
 
 # Angular es una SPA con ruteo del lado del cliente (app-routing.module.ts)
 # — sin esto, recargar la página en cualquier ruta que no sea "/" (ej.

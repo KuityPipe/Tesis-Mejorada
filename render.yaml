@@ -24,6 +24,17 @@ services:
     plan: free
     buildCommand: "./render_build.sh"
     startCommand: "cd codigo/backend/django && gunicorn KeyServProject.wsgi:application --bind 0.0.0.0:$PORT"
+    # Sin esto, cualquier commit (un cambio en docs/, en el frontend Ionic,
+    # en el propio README) dispara un rebuild completo acá — migrate +
+    # collectstatic + sembrar_datos_demo tardan ~50s por las puras, y varios
+    # pushes seguidos terminan cancelándose entre sí. `render.yaml` mismo
+    # siempre gatilla un deploy sea cual sea este filtro (comportamiento de
+    # Render, no hace falta listarlo a mano acá).
+    buildFilter:
+      paths:
+        - codigo/backend/django/**
+        - requirements-render.txt
+        - render_build.sh
     envVars:
       - key: PYTHON_VERSION
         value: 3.14.3

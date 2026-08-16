@@ -199,6 +199,15 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       en vivo en el sitio real: catálogo con las 8 publicaciones demo, login real con
       `cliente.demo@demo.keyserv`, dashboard mostrando la contratación sembrada. Detalle completo en
       `docs/PLAN_PORTAFOLIO.md`, Nivel 2.2.
+- [x] **Build filters en Render/Netlify** — pedido explícito del usuario tras ver varios deploys
+      "Canceled" en los dashboards durante la sesión de Fase 7 (varios commits seguidos, cada uno
+      disparando un rebuild completo de ~50s en cada lado, así que el más nuevo cancelaba al anterior
+      antes de terminar — no eran fallas reales, pero se veían como tal). `render.yaml` ahora tiene
+      `buildFilter.paths` acotado a `codigo/backend/django/**`/`requirements-render.txt`/
+      `render_build.sh`; `netlify.toml` tiene `ignore = "git diff --quiet $CACHED_COMMIT_REF
+      $COMMIT_REF ."` (relativo al Base Directory, que ya es `codigo/frontend/ionic`). Un commit que
+      solo toca `docs/`/`README`/el otro lado del stack ya no dispara ningún build en ninguno de los
+      dos — `render.yaml` sigue gatillando siempre (comportamiento de Render, no del filtro).
 - [ ] **"Exportar chat" sin endpoint API** — `conversacion_exportar_view` (Django) no tiene
       equivalente en `api/urls.py`; encontrado al comparar contratación/detalle. Es trabajo de backend
       nuevo (endpoint + descarga de archivo), no solo de frontend — quedó fuera de la pasada de
