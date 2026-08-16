@@ -67,7 +67,7 @@ cd codigo/backend/django
 python manage.py migrate
 python manage.py runserver 8000
 python manage.py createsuperuser
-python manage.py test KeyServApp   # 228 tests, all passing (1 skipped) — runs both tests.py (template views, 134) and tests_api.py (REST API, 94); Django's discovery picks up any test*.py in the app
+python manage.py test KeyServApp   # 264 tests as of the last count (135 in tests.py, template views; 129 in tests_api.py, REST API) — Django's discovery picks up any test*.py in the app; this count grows steadily, treat it as approximate
 python manage.py test KeyServApp.tests.ContratacionFlowTests            # single test class
 python manage.py test KeyServApp.tests.ContratacionFlowTests.test_flujo_completo_de_contratacion_y_valoracion  # single test method
 python manage.py test KeyServApp.tests_api               # just the REST API tests (login/me/JWT)
@@ -90,9 +90,13 @@ With `runserver` up, the REST API is browsable at `http://localhost:8000/api/doc
 cd codigo/frontend/ionic
 npm install            # node_modules is gitignored (codigo/frontend/ionic/.gitignore), not committed
 npm start               # = ng serve, http://localhost:8100 by default — must match CORS_ALLOWED_ORIGINS in .env
-npm test                # = ng test (Karma/Jasmine)
+npm test                # = ng test (Karma/Jasmine) — 36 spec files, ~54 tests as of the last count
 npm run lint             # = ng lint
 ```
+
+### Continuous Integration
+
+`.github/workflows/tests.yml` runs on every push to `master`/`api-ionic-migration` and every PR into `master`: a `backend` job (Postgres 17 service container, `pip install -r requirements-ci.txt` then `manage.py test KeyServApp`) and a `frontend` job (`npm ci` then `ng test --watch=false --browsers=ChromeHeadlessCI`). **`requirements-ci.txt` is a deliberate subset of `requirements.txt`** — it skips `dlib-bin`/`opencv-python`/`face_recognition`/`transbank-sdk`, since CI tests mock those or never exercise them for real (see "Known Issues" for why those packages are heavy to install).
 
 See "API + Ionic migration" under Architecture → Data Flow below for what's actually built (Fases 1-4 done, Fase 5 in progress — this Commands section only covers running things, not what exists).
 
@@ -178,24 +182,33 @@ codigo/frontend/ionic/       Ionic/Angular app, in progress — see docs/PLAN_MI
   ├── src/global.scss           Quicksand/Nunito fonts, pill-shaped ion-button/ion-badge, rounded+shadowed ion-card, brand-gradient ion-toolbar border, `ion-content::part(scroll)` max-width centering (720px) + `.ks-section`/`.ks-section-title` (Quicksand-titled card per content group) — global touches that aren't just color variables
   ├── src/assets/logo.png       KeyServ wordmark (downscaled from a 2.6MB source to ~80KB), shown in the header of root-level pages only (login/catálogo/home)
   └── src/app/
-      ├── core/              Auth (JWT client + localStorage token storage + registrar()/actualizarPerfil()/recuperación), authInterceptor, authGuard
+      ├── core/              Auth (JWT client + secure-storage token storage, see "Tokens are stored via..." below + registrar()/actualizarPerfil()/recuperación), authInterceptor, authGuard
+      ├── shared/             Reusable UI, not routed pages — account-menu/ (header account dropdown), footer/ (brand+links+copyright, root-level pages only), empty-state/, skeleton/ (loading placeholders), top-nav/
+      ├── inicio/             Public landing (`/`) — marketing + quick search, Ionic equivalent of paginicio_view; distinct from catalogo/ (full filterable listing, equivalent of /servicios/) and home/ (authenticated dashboard, equivalent of /inicio/) — same 3-route split Django uses
       ├── login/              /login screen (reactive form → POST /api/auth/login/)
-      ├── home/               Protected landing page (GET /api/auth/me/), repurposed from the ionic start scaffold
-      ├── catalogo/           Public catalog — Publicaciones (service) + catalogo.page (list, infinite scroll) + detalle/ (catalogo/:id)
-      ├── registro/           Sign-up — Catalogos (service, region/comuna/tipo_cuenta lookups) + registro.page (→ POST /api/auth/registro/)
+      ├── home/               Authenticated dashboard (`/home`, GET /api/auth/me/) — greeting banner, quick-action tiles, active-jobs panel; mirrors Django's /inicio/, not to be confused with the ionic/inicio/ public landing above
+      ├── catalogo/           Public catalog — Publicaciones (service) + catalogo.page (list, infinite scroll) + detalle/ (catalogo/:id) + crear/ (publish a service, → POST /api/publicaciones/crear/, multipart images/documents)
+      ├── acerca/             Static "Acerca de nosotros" page
+      ├── contacto/           Contact form → POST /api/contacto/ (ContactoView, writes a Consulta same as the template's /contacto/)
+      ├── registro/           Sign-up — Catalogos (service, region/comuna lookups) + registro.page (→ POST /api/auth/registro/)
       ├── perfil/editar/      Edit profile — editar.page (→ PUT /api/auth/perfil/, multipart for foto_perfil), reuses Catalogos from registro/
       ├── perfil/proveedor/   Provider profile — proveedor.page (→ PUT /api/auth/perfil-proveedor/, multipart for foto_perfil + documentos; lists/deletes certificates via GET/DELETE /api/auth/perfil-proveedor/documentos/), reuses Catalogos.categorias()
+      ├── perfil/publicaciones/  "Mis publicaciones" — publicaciones.page (GET /api/publicaciones/mias/), grid with moderation-status badge
+      ├── perfil/pagos/       Payment history — pagos.page (GET /api/pagos/historial/), renamed from the old "Mis tarjetas"/tarjeta-credito concept, same as the Django /historial-pagos/ rename
       ├── preferencias/       Account preferences — preferencias.page (→ PUT /api/auth/preferencias/ for the notification toggle, POST /api/auth/cambiar-password/ for the in-session password change)
       ├── recuperar/          Password recovery — recuperar.page (step 1) + confirmar/confirmar.page (step 2, recuperar/confirmar/:token)
       ├── contrataciones/     Contrataciones (service) — GET/POST /api/contrataciones/(<id>/...), shared by reservas/ and contratacion/detalle/; also owns colorEstado() (Fase 6), the single estado→color mapping (coral/teal/navy/gray, matching .ks-badge-* in base.css) both pages' status ion-badges use, instead of each duplicating its own
       ├── reservas/           Contrataciones list — reservas.page (GET /api/contrataciones/), links to /contratacion/:id
       ├── contratacion/detalle/  Per-job detail — detalle.page (chat, status timeline, confirmar/completar with re-auth, valorar, pagar), all embedded on one page like the template
+      ├── mensajes/           Conversations inbox — mensajes.page (GET /api/conversaciones/), each row navigates to /contratacion/:id (the chat itself stays embedded there, no separate conversation screen); unread badge also polls GET /api/mensajes/no-leidos/ (15s, matching the Django header's beep-on-new-message behavior)
       ├── pago/                  Pagos (service) — POST/GET /api/contrataciones/<id>/pagos/*, /api/pagos/webpay/confirmar/
       │   ├── webpay/retorno/    Webpay return leg — retorno.page (reads token_ws/TBK_TOKEN from the query string, confirms, shows result)
       │   └── khipu/retorno/     Khipu return leg — retorno.page (:id, reconsults payment status, shows result)
       ├── biometria/             Native biometric verification — biometria.page (`@capgo/capacitor-native-biometric`'s isAvailable()/verifyIdentity(), then POST /api/auth/verificar-biometria-nativa/); android/ native platform now present under codigo/frontend/ionic/ (gitignored build artifacts aside), see Known Issues for the local Android SDK/emulator setup
       └── rostro/                Camera-based facial recognition (fallback when native Face ID/fingerprint isn't available) — Rostro (service) + rostro.page (`getUserMedia`/`<canvas>` blink-liveness capture, TS port of `_captura_camara.html`'s JS; `@capacitor/camera` primes the native camera permission on entry) → GET /api/auth/rostro/estado/, POST /api/auth/rostro/registrar/, POST /api/auth/rostro/verificar/; linked from home.page and biometria.page's "not available" fallback
 ```
+
+Also new since the table above was last updated: `perfil/resenas-recibidas/` (`GET /api/perfil/resenas-recibidas/`, ratings received by a provider, surfaced on `home.page`), a manual light/dark theme toggle (Ionic previously only followed the OS preference), and `catalogos/regiones/`/`catalogos/tipos-cuenta/` list endpoints alongside the existing `catalogos/comunas/`/`catalogos/categorias/`.
 
 ### Data Flow
 
@@ -222,6 +235,8 @@ codigo/frontend/ionic/       Ionic/Angular app, in progress — see docs/PLAN_MI
 - **`RostroEstadoView`/`RostroRegistrarView`/`RostroVerificarView` (`GET /api/auth/rostro/estado/`, `POST /api/auth/rostro/registrar/`, `POST /api/auth/rostro/verificar/`) are the API equivalents of `rostro_view`/`registro_rostro_view`/`verificacion_facial_view`.** `estado` just exposes `bool(request.user.encoding_facial)` (never the encoding itself) so `rostro.page` knows whether to default to "registrar" or "verificar" mode from one call, same as the template does server-side. `registrar`/`verificar` reuse `vistas_legacy._obtener_frames_captura(request)` unchanged (it only reads `request.FILES`, no session-specific logic) to pull the `rostro_frames` multipart burst, then call the same `biometria.calcular_encoding_facial`/`verificar_rostro_usuario` the template views call — same blink-liveness pipeline, same `probando_face_recognition.verificar_prueba_de_vida_parpadeo`, just a DRF response instead of a redirect+message. `KeyServApp/tests_api.py`'s `RostroApiTests` (9 tests) mirror `tests.py`'s `ReconocimientoFacialTests`, mocking `biometria.calcular_encoding_facial`/`verificar_rostro_usuario` at the same level.
 - `KeyServApp/tests_api.py` is a separate test module from `tests.py` on purpose, for the duration of the migration, so template-view and API-view tests don't collide in one giant file — each API scenario mirrors an equivalent one already covered in `tests.py`'s `LoginViewTests`.
 - The face-recognition biometric stack (`codigo/biometria/reconocimiento_facial/`, `KeyServApp/biometria.py`) was originally expected to stay in place only until a native biometric lock (via Capacitor) was built and verified on the Ionic side, at which point it and its dependencies (`opencv-python`/`face_recognition`/`dlib-bin`, see Known Issues) would get retired together. **That native biometric lock now exists and is verified** (`VerificarBiometriaNativaView` + `biometria.page`, above) — but instead of retiring the face-recognition stack, the user asked to extend it to Ionic too (as the fallback for devices without native Face ID/fingerprint, see the Phase 5 paragraph above and `RostroEstadoView`/etc. bullet). Retiring `codigo/biometria/reconocimiento_facial/`/`KeyServApp/biometria.py` is therefore no longer a natural next step — both the Django templates and the Ionic app (web + native) now depend on it.
+
+**Fase 7 ("Hardening") and a subsequent portfolio pass are also done, past what's narrated in detail above** — see `docs/PLAN_MIGRACION_IONIC.md`, `docs/BACKLOG.md`, and `docs/AUDITORIA_8000_vs_8100.md` (a 2026-08-14 point-in-time Django-vs-Ionic feature comparison, superseded by `BACKLOG.md`'s live tracking) for the detail this file doesn't carry. In outline: Fase 7 added the secure-storage JWT hardening described above. A subsequent Django/Ionic **parity pass** closed every functional gap `AUDITORIA_8000_vs_8100.md` had found — publish-a-service (`catalogo/crear/`), "Mis publicaciones" (`perfil/publicaciones/`), toggling provider status (`AlternarProveedorView`), payment history (`perfil/pagos/`), a conversations inbox (`mensajes/`), reviews-received on the profile, and visual/copy parity passes on `reservas`/`contratacion/detalle`/`rostro`/`biometria`/`preferencias` — plus a project-wide Chilean-Spanish "tú" vs "voseo" cleanup and a mobile-viewport (375-390px) verification pass. A separate **portfolio-readiness pass** (`docs/PLAN_PORTAFOLIO.md`, 3 levels) added: `README.md`/`README.es.md` (bilingual, with a Mermaid architecture diagram, stack badges, an "About AI usage" section, and a "what broke, and how it got fixed" section — read `README.md` itself for that content rather than duplicating it here), the MIT `LICENSE`, and `.github/workflows/tests.yml` (see "Continuous Integration" under Commands). The admin (`/admin/`) also got a full re-theme ("ServiceNow-inspired", per commit history) with a full-width dashboard and a further-narrowed Moderador scope.
 
 **User registration:** HTML form → Django `/registro/` → `RegistroForm` validation → `Usuario.set_password()` (PBKDF2 via `django.contrib.auth.hashers`) → PostgreSQL
 
