@@ -44,7 +44,7 @@ from .models import (
     Comuna, Contratacion, Conversacion, Documento, EstadoConsulta,
     EstadoDocumento, HistorialEstadoContratacion, Imagenes,
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
-    Ranking, Region, TipoCuenta, Transaccion, Usuario, UsuarioConversacion,
+    Ranking, Region, Transaccion, Usuario, UsuarioConversacion,
     Valoracion, ValoracionImagen,
 )
 from . import biometria, geolocalizacion, pagos
@@ -431,9 +431,9 @@ def register_view(request):
     if request.method == 'POST':
         form = RegistroForm(request.POST)
         if form.is_valid():
-            tipo_cuenta = form.cleaned_data['tipo_cuenta']
             # Toda alta de cuenta genera una Transaccion de referencia (mismo patrón que la versión anterior).
-            transaccion = Transaccion.objects.create(tipo_cuenta=tipo_cuenta)
+            # Sin tipo_cuenta: ver comentario en forms.py sobre por qué ya no se elige acá.
+            transaccion = Transaccion.objects.create()
             usuario = form.crear_usuario(transaccion)
             logger.info('Usuario registrado: id=%s email=%s', usuario.id_usuario, usuario.email)
             messages.success(request, 'Usuario creado exitosamente. Ahora inicia sesión.')
@@ -445,7 +445,6 @@ def register_view(request):
 
     return render(request, 'KeyServApp/registroinicio.html', {
         'regiones': Region.objects.all(),
-        'tipos_cuenta': TipoCuenta.objects.all(),
         'form': form,
     })
 

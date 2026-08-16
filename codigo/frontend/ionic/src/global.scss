@@ -306,19 +306,33 @@ ion-toolbar {
   // Márgenes del header — sin esto el logo/los íconos de los extremos
   // quedaban pegados al borde de la pantalla ("se ve cortado", pedido
   // explícito del usuario tras probar la barra de navegación en vivo).
-  --padding-start: 12px;
-  --padding-end: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  // Alto del header — pedido explícito del usuario dos veces seguidas
+  // ("agrandar el header para que el logo se vea un poco más"), le da
+  // lugar de sobra al logo de 52px (ver .ks-toolbar-logo) sin que quede
+  // apretado contra el borde superior/inferior.
+  --min-height: 76px;
+}
+
+// Ionic le da a CUALQUIER hijo directo de un ion-toolbar con slot="start"
+// un `order:2` propio (vía `::slotted([slot=start])` en su CSS interno),
+// más alto que el `order:0` que este archivo ya le fuerza al título
+// (`ion-toolbar::part(content)`, más abajo) — sin este override, lo que
+// sea que viva en "start" (el logo, el back-button de registro, el link
+// clickeable del logo) renderiza DESPUÉS del título en vez de antes.
+// Selector general (no una clase puntual como `.ks-toolbar-logo` sola)
+// para que cubra cualquier cosa nueva que se agregue a "start" a futuro
+// sin tener que acordarse de repetir el mismo fix — bug real encontrado
+// al agregarle a registro.page.html un link de logo + back-button juntos
+// en "start" (ninguno de los dos tenía este override todavía, el título
+// "Crear cuenta" terminaba a la izquierda y ambos a la derecha).
+ion-toolbar > [slot="start"] {
+  order: -1;
 }
 
 .ks-toolbar-logo {
   margin-inline-start: 2px;
-  // Ionic le pone `order` propio a lo que cae en el slot "start" de un
-  // ion-toolbar (los `ion-buttons` van con order más bajo que cualquier
-  // otra cosa, ej. un <img> suelto, sin importar el orden real en el
-  // DOM) — sin este override el logo terminaba renderizado DESPUÉS de
-  // los links de app-top-nav (que también viven en "start"), pese a
-  // estar declarado primero en el HTML. -1 lo fuerza siempre primero.
-  order: -1;
 }
 
 // ---------- Barra de navegación superior compartida — ver
@@ -370,6 +384,17 @@ ion-item.ks-nav-active ion-icon {
   color: var(--ks-ink-soft, var(--ion-color-medium));
 }
 
+// El ícono de persona (botón "Ingresar/Registrar", sin sesión) es el
+// contenido principal del botón, a diferencia del chevron chiquito de
+// arriba (un acento junto al nombre) — necesita más tamaño y el color de
+// marca en vez del gris apagado.
+.ks-ingresar-btn ion-icon {
+  font-size: 1.35rem;
+  margin-inline-start: 0;
+  margin-inline-end: 6px;
+  color: var(--ks-teal-dark, var(--ion-color-secondary));
+}
+
 .ks-avatar-brand.ks-avatar-nav {
   width: 26px;
   height: 26px;
@@ -379,10 +404,29 @@ ion-item.ks-nav-active ion-icon {
 
 .ks-cuenta-nombre {
   font-weight: 700;
-  max-width: 110px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+// Bug real encontrado probando en el emulador Android (viewport angosto
+// de teléfono real, ~412px lógicos, no solo el desktop angostado):
+// "Ingresar/Registrar" completo + logo + hamburguesa dejaban tan poco
+// espacio que el título de la página ("Inicio") se truncaba a "I…". En
+// pantallas de teléfono el ícono solo ya es suficiente affordance (mismo
+// criterio que cualquier app nativa con toolbar angosto) — el nombre de
+// usuario logueado también se esconde acá por consistencia, no solo el
+// texto "Ingresar/Registrar".
+@media (max-width: 480px) {
+  .ks-cuenta-nombre {
+    display: none;
+  }
+
+  .ks-cuenta-btn {
+    --padding-start: 8px;
+    --padding-end: 8px;
+  }
 }
 
 // El botón de "Ingresar" pasó de texto a ícono (pedido del usuario: "la
@@ -400,9 +444,30 @@ ion-popover ion-content {
 // ancho de lectura razonable en pantallas anchas, sin achicar nada en un
 // viewport angosto (móvil real o la mayoría de las ventanas de escritorio
 // no maximizadas).
+//
+// El primer valor (720px) dejaba ~600px de espacio muerto a cada lado en
+// un monitor de 1920px (pedido explícito del usuario: "se ve un espacio
+// izquierdo gigantesco... y otro en el lado derecho", se veía amateur).
+// Tres anchos según qué tan bien aprovecha el espacio el contenido de
+// cada página, en vez de un solo número para todas:
+//   - `.ks-content-narrow` (login/registro/recuperar): formularios de una
+//     sola columna corta — verse "ancho" ahí es lo que se ve amateur.
+//   - por defecto (900px, esta regla): páginas de configuración/detalle
+//     con secciones en tarjeta (perfil, preferencias, contratación).
+//   - `.ks-content-wide` (catálogo/reservas/home/inicio/mis
+//     publicaciones): grids que sí aprovechan más ancho mostrando más
+//     columnas — el punto entero de "usar el espacio inteligentemente".
 ion-content::part(scroll) {
-  max-width: 720px;
+  max-width: 900px;
   margin-inline: auto;
+}
+
+ion-content.ks-content-narrow::part(scroll) {
+  max-width: 560px;
+}
+
+ion-content.ks-content-wide::part(scroll) {
+  max-width: 1200px;
 }
 
 // La regla de arriba centra bien una página angosta cuyo contenido
@@ -420,14 +485,18 @@ ion-popover ion-content::part(scroll) {
   margin-inline: 0;
 }
 
-// Mismo ancho de lectura que el body de arriba, aplicado también al
-// header — sin esto, en pantallas anchas el logo/título/accesos quedaban
-// pegados cada uno a su borde con un vacío enorme en el medio, mientras
-// el contenido de abajo ya vivía en una columna angosta centrada. `part`
-// es la misma vía soportada que `ion-content::part(scroll)` para estilar
-// dentro del shadow DOM de un componente Ionic desde afuera.
+// El header (compartido por las 4 pantallas raíz) usa siempre el ancho
+// "wide" — no el mismo ancho que el body de cada página de abajo: login
+// tiene body angosto (`.ks-content-narrow`) pero igual necesita lugar
+// para el logo + los accesos a la derecha, y un header más ancho que la
+// tarjeta centrada de abajo es un patrón común (cualquier sitio con
+// barra superior completa + formulario de acceso angosto centrado). Sin
+// esto, el logo/título/accesos quedaban pegados cada uno a su borde con
+// un vacío enorme en el medio. `part` es la misma vía soportada que
+// `ion-content::part(scroll)` para estilar dentro del shadow DOM de un
+// componente Ionic desde afuera.
 ion-toolbar::part(container) {
-  max-width: 720px;
+  max-width: 1200px;
   margin-inline: auto;
 }
 
@@ -628,9 +697,19 @@ ion-toolbar::part(content) {
 // Logo de marca en el header de las pantallas de entrada (login, registro,
 // home, catálogo) — mismo activo que .ks-logo img en base.css del sitio
 // Django, adaptado al alto de un ion-toolbar en vez de un header de sitio.
+// Envoltorio clickeable del logo en pantallas con back-button (registro,
+// por ahora) — ver registro.page.html. `display:flex` para que el `<img>`
+// de adentro no le agregue el espacio fantasma que un `<a>` inline suele
+// tener debajo (line-height del texto), y sin subrayado/color de link.
+.ks-header-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .ks-toolbar-logo {
-  height: 32px;
-  margin-inline-end: 8px;
+  height: 52px;
+  margin-inline-end: 10px;
 }
 
 // Badge de mensajes no leídos sobre el ícono de chat del header (ver
@@ -1094,6 +1173,53 @@ ion-button:not([disabled]):active::part(native) {
 .ks-empty-state p {
   margin: 0 0 16px;
   font-size: .92rem;
+}
+
+// ---------- Campos de formulario con caja visible — pedido explícito del
+// usuario ("no se alcanzan a ver los bloques de texto para escribir los
+// datos"). Cada `ion-item` que envuelve un `ion-input`/`ion-select`/
+// `ion-textarea` en el sitio usa `lines="none"` (sin el guión inferior
+// de Ionic) pero nunca tuvo fondo/borde propio — quedaba completamente
+// invisible contra el fondo oscuro de la card, así que no había forma de
+// saber dónde tocar para escribir. `:has()` (soportado en Chrome/WebView
+// modernos, que es lo único que corre esta app — web, Android, iOS) para
+// no afectar los `ion-item` de lista simple (menús, popovers) que no
+// envuelven ningún control de formulario.
+ion-item:has(> ion-input),
+ion-item:has(> ion-select),
+ion-item:has(> ion-textarea) {
+  --background: var(--ks-surface, var(--ion-item-background));
+  --border-color: var(--ks-border, var(--ion-border-color));
+  // `!important` real y necesario acá, no por costumbre: Ionic define
+  // `:host(.item-lines-none){--border-width:0}` dentro de SU PROPIO
+  // shadow stylesheet (ver ion-item_8.entry.js) — como acá se usa
+  // `lines="none"` en todos los formularios (para sacar el guión inferior
+  // por defecto, ver comentario de arriba), esa regla interna le sigue
+  // ganando a este override externo sin el `!important` pese a que
+  // `--border-color`/`--background` sí se aplican bien sin necesitarlo.
+  --border-width: 1.5px !important;
+  --border-style: solid;
+  --border-radius: var(--ks-radius-sm, 10px);
+  --padding-start: 14px;
+  --inner-padding-end: 14px;
+  --min-height: 56px;
+  // Fallback para versiones de Ionic donde `--border-radius` no recorta
+  // el fondo interno del item — el radio + overflow en el host logran lo
+  // mismo desde afuera.
+  border-radius: var(--ks-radius-sm, 10px);
+  overflow: hidden;
+  margin-bottom: 10px;
+  transition: border-color .15s ease;
+}
+
+// Resalta el campo activo — mismo criterio que cualquier formulario
+// "serio": confirma con un cambio de color cuál casilla tiene el foco
+// ahora mismo, no solo el cursor parpadeando adentro.
+ion-item:has(> ion-input):focus-within,
+ion-item:has(> ion-select):focus-within,
+ion-item:has(> ion-textarea):focus-within {
+  --border-color: var(--ks-teal, var(--ion-color-secondary));
+  --border-width: 2px !important;
 }
 
 // ---------- Check animado en campos válidos de un formulario — Ionic ya

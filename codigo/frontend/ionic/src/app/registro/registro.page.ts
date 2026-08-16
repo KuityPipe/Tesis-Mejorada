@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 
 import { Auth, DatosRegistro } from '../core/auth';
 import { Retroalimentacion } from '../core/retroalimentacion';
-import { Catalogos, ComunaCatalogo, RegionCatalogo, TipoCuentaCatalogo } from './catalogos';
+import { Catalogos, ComunaCatalogo, RegionCatalogo } from './catalogos';
 
 /**
  * Registro de cuenta — equivalente Ionic de `/registro/` (`register_view`).
@@ -30,7 +30,6 @@ export class RegistroPage implements OnInit {
     direccion: [''],
     region: [null as number | null, Validators.required],
     comuna: [{ value: null as number | null, disabled: true }, Validators.required],
-    tipo_cuenta: [null as number | null, Validators.required],
     es_proveedor: [false],
     password: ['', [Validators.required, Validators.minLength(8)]],
     password_confirm: ['', Validators.required],
@@ -38,7 +37,6 @@ export class RegistroPage implements OnInit {
 
   regiones: RegionCatalogo[] = [];
   comunas: ComunaCatalogo[] = [];
-  tiposCuenta: TipoCuentaCatalogo[] = [];
   enviando = false;
   errorGeneral: string | null = null;
 
@@ -52,7 +50,6 @@ export class RegistroPage implements OnInit {
 
   ngOnInit(): void {
     this.catalogos.regiones().subscribe((regiones) => (this.regiones = regiones));
-    this.catalogos.tiposCuenta().subscribe((tipos) => (this.tiposCuenta = tipos));
   }
 
   /** Se dispara con (ionChange) del <ion-select> de región — repuebla el de comuna, mismo patrón que el <select onchange> de registroinicio.html. */
@@ -77,12 +74,12 @@ export class RegistroPage implements OnInit {
 
     this.enviando = true;
     this.errorGeneral = null;
-    // region/comuna/tipo_cuenta quedan tipados `number | null` porque
-    // arrancan en `null` — Angular typed forms no estrecha el tipo solo
-    // por tener Validators.required. El `!` acá es seguro porque
-    // `formulario.invalid` ya se chequeó arriba.
+    // region/comuna quedan tipados `number | null` porque arrancan en
+    // `null` — Angular typed forms no estrecha el tipo solo por tener
+    // Validators.required. El `!` acá es seguro porque `formulario.invalid`
+    // ya se chequeó arriba.
     const valores = this.formulario.getRawValue();
-    const datos: DatosRegistro = { ...valores, region: valores.region!, comuna: valores.comuna!, tipo_cuenta: valores.tipo_cuenta! };
+    const datos: DatosRegistro = { ...valores, region: valores.region!, comuna: valores.comuna! };
     this.auth.registrar(datos).subscribe({
       next: () => {
         this.enviando = false;

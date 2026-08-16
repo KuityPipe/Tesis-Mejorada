@@ -4,6 +4,13 @@ import { Router } from '@angular/router';
 import { Auth } from '../../core/auth';
 import { Notificaciones } from '../../core/notificaciones';
 
+// Contador a nivel de módulo — mismo motivo que en top-nav.ts: cada
+// instancia nueva de este componente (una por navegación entre las 4
+// pantallas raíz) se lleva ids de trigger propios, para que el
+// `ion-popover` de turno nunca pueda quedar mirando un id reciclado de
+// una instancia anterior ya destruida.
+let contadorInstancias = 0;
+
 /**
  * Accesos rápidos de cuenta, lado derecho del header — ver `TopNavComponent`
  * (mismo directorio padre) para por qué esto vive en un componente propio
@@ -26,6 +33,8 @@ import { Notificaciones } from '../../core/notificaciones';
 })
 export class AccountMenuComponent implements OnInit {
   readonly mensajesNoLeidos$ = this.notificaciones.noLeidos$;
+  readonly idTriggerCuenta = `ks-cuenta-trigger-${contadorInstancias++}`;
+  readonly idTriggerIngresar = `ks-ingresar-trigger-${contadorInstancias++}`;
   nombreUsuario = '';
 
   constructor(

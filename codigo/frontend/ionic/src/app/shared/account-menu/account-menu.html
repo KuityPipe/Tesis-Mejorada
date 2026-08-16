@@ -5,7 +5,7 @@
       <ion-badge color="danger" *ngIf="mensajesNoLeidos$ | async as n" class="ks-toolbar-badge">{{ n }}</ion-badge>
     </ion-button>
 
-    <ion-button id="ks-cuenta-trigger" class="ks-cuenta-btn" aria-label="Mi cuenta">
+    <ion-button [id]="idTriggerCuenta" class="ks-cuenta-btn" aria-label="Mi cuenta">
       <div class="ks-avatar-brand ks-avatar-nav">{{ inicialUsuario }}</div>
       <span class="ks-cuenta-nombre">{{ nombreUsuario }}</span>
       <ion-icon name="chevron-down-outline"></ion-icon>
@@ -13,13 +13,35 @@
   </ng-container>
 
   <ng-template #botonIngresar>
-    <ion-button routerLink="/login" aria-label="Iniciar sesión">
-      <ion-icon slot="icon-only" name="log-in-outline"></ion-icon>
+    <ion-button [id]="idTriggerIngresar" class="ks-cuenta-btn ks-ingresar-btn" aria-label="Ingresar o registrarse">
+      <ion-icon name="person-circle-outline"></ion-icon>
+      <span class="ks-cuenta-nombre">Ingresar/Registrar</span>
     </ion-button>
   </ng-template>
 </ion-buttons>
 
-<ion-popover *ngIf="auth.estaAutenticado()" trigger="ks-cuenta-trigger" [dismissOnSelect]="true" side="bottom" alignment="end" size="fixed">
+<!-- Sin sesión: siempre abre este menú aunque ya se esté en /login (ahí
+"Iniciar sesión" no hace nada — es la misma ruta — pero "Crear cuenta"
+sigue siendo una acción real; antes el botón solo enlazaba a /login
+directo y se sentía "roto" al tocarlo estando ya ahí). -->
+<ion-popover *ngIf="!auth.estaAutenticado()" [trigger]="idTriggerIngresar" [dismissOnSelect]="true" side="bottom" alignment="end" size="fixed">
+  <ng-template>
+    <ion-content>
+      <ion-list lines="full">
+        <ion-item button routerLink="/login" detail="false">
+          <ion-icon name="log-in-outline" slot="start"></ion-icon>
+          <ion-label>Iniciar sesión</ion-label>
+        </ion-item>
+        <ion-item button routerLink="/registro" detail="false" lines="none">
+          <ion-icon name="person-add-outline" slot="start"></ion-icon>
+          <ion-label>Crear cuenta</ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-popover>
+
+<ion-popover *ngIf="auth.estaAutenticado()" [trigger]="idTriggerCuenta" [dismissOnSelect]="true" side="bottom" alignment="end" size="fixed">
   <ng-template>
     <ion-content>
       <ion-list lines="full">

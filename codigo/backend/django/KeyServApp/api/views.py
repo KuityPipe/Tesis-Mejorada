@@ -127,8 +127,8 @@ class RegistroView(APIView):
         if not form.is_valid():
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        tipo_cuenta = form.cleaned_data['tipo_cuenta']
-        transaccion = Transaccion.objects.create(tipo_cuenta=tipo_cuenta)
+        # Sin tipo_cuenta: ver comentario en forms.py sobre por qué ya no se elige acá.
+        transaccion = Transaccion.objects.create()
         usuario = form.crear_usuario(transaccion)
         logger.info('Usuario registrado (api): id=%s email=%s', usuario.id_usuario, usuario.email)
         # Sin tokens acá a propósito, mismo criterio que register_view:

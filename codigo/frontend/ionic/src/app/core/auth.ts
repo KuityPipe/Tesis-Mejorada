@@ -60,8 +60,10 @@ interface RespuestaLogin {
 // Mismos nombres de campo que `RegistroForm` (KeyServApp/forms.py) — el
 // backend reusa ese Form directamente en vez de un serializer aparte (ver
 // api/views.py `RegistroView`), así que el contrato es literalmente el
-// mismo formulario de siempre, solo que ahora en JSON. `region`/`comuna`/
-// `tipo_cuenta` son los IDs (pk) elegidos en los <ion-select>, no objetos.
+// mismo formulario de siempre, solo que ahora en JSON. `region`/`comuna`
+// son los IDs (pk) elegidos en los <ion-select>, no objetos. No hay
+// `tipo_cuenta` — ver comentario en forms.py sobre por qué ya no se elige
+// al registrarse (era redundante con `es_proveedor`).
 export interface DatosRegistro {
   rut: string;
   nombre1: string;
@@ -74,7 +76,6 @@ export interface DatosRegistro {
   direccion?: string;
   region: number;
   comuna: number;
-  tipo_cuenta: number;
   es_proveedor: boolean;
   password: string;
   password_confirm: string;

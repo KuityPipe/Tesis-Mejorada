@@ -89,16 +89,6 @@
         <input type="text" name="direccion" id="direccion">
       </div>
 
-      <div class="ks-field">
-        <label for="tipo_cuenta">Tipo de cuenta</label>
-        <select name="tipo_cuenta" id="tipo_cuenta" required>
-          <option value="" selected disabled>Selecciona el tipo de cuenta</option>
-          {% for tipo in tipos_cuenta %}
-          <option value="{{ tipo.id_tipo_cuenta }}">{{ tipo.nombre_tipo_cuenta }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
       <label class="ks-checkbox">
         <input type="checkbox" name="es_proveedor" id="es_proveedor">
         ¿Ofreces servicios como proveedor?

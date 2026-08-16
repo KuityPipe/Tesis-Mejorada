@@ -121,7 +121,7 @@ class RegistroViewTests(TestCase):
             'rut': '11111111-1', 'nombre1': 'Test', 'nombre2': '', 'apellido1': 'Usuario', 'apellido2': '',
             'edad': 30, 'telefono': 912345678, 'email': 'nuevo@test.com',
             'region': self.region.id_region, 'comuna': self.comuna.id_comuna, 'direccion': 'Calle Falsa 123',
-            'tipo_cuenta': self.tipo_cuenta.id_tipo_cuenta, 'password': 'ClaveSegura2026!', 'password_confirm': 'ClaveSegura2026!',
+            'password': 'ClaveSegura2026!', 'password_confirm': 'ClaveSegura2026!',
         }
         datos.update(overrides)
         return datos

@@ -1,14 +1,31 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/catalogo"></ion-back-button>
+      <ion-back-button defaultHref="/"></ion-back-button>
     </ion-buttons>
+    <!-- Logo clickeable → Inicio (pedido explícito del usuario: "agrega una interacción para
+    volver al inicio" en el header) — el back-button ya vuelve a la pantalla anterior en el
+    historial, esto es la acción explícita de "ir a Inicio" directo, sin importar de dónde se
+    llegó, mismo patrón de logo-lleva-al-inicio que cualquier sitio. Las otras 3 pantallas raíz
+    (login/catálogo/home/inicio) ya muestran el logo pero nunca lo hicieron clickeable — acá sí
+    hace falta, porque es la única pantalla sin esos accesos rápidos en el header. -->
+    <a routerLink="/" slot="start" class="ks-header-logo-link" aria-label="Volver al inicio">
+      <img src="assets/logo.png" alt="KeyServ" class="ks-toolbar-logo">
+    </a>
     <ion-title>Crear cuenta</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-  <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-narrow">
+  <!-- Mismo h1+subtítulo centrado que login.page.html — sin esto la pantalla arrancaba directo en
+  "Datos personales" sin ningún saludo, se sentía como un formulario tirado ahí en vez de un paso
+  considerado ("se ve muy a la rápida", feedback en vivo del usuario). -->
+  <div class="ion-text-center ion-margin-bottom" appReveal>
+    <h1>Crea tu cuenta</h1>
+    <p>Completa tus datos para empezar a usar KeyServ.</p>
+  </div>
+
+  <form [formGroup]="formulario" (ngSubmit)="enviar()">
     <div class="ks-section" appReveal>
       <p class="ks-section-title">Datos personales</p>
       <ion-card>
@@ -89,13 +106,6 @@
       <ion-card>
         <ion-card-content>
           <ion-list lines="none">
-            <ion-item>
-              <ion-select label="Tipo de cuenta" labelPlacement="floating" formControlName="tipo_cuenta">
-                <ion-select-option *ngFor="let tipo of tiposCuenta" [value]="tipo.id_tipo_cuenta">{{ tipo.nombre_tipo_cuenta }}</ion-select-option>
-              </ion-select>
-            </ion-item>
-            <ion-text color="danger" *ngIf="mensajeError('tipo_cuenta')"><p class="ion-padding-start">{{ mensajeError('tipo_cuenta') }}</p></ion-text>
-
             <ion-item>
               <ion-checkbox formControlName="es_proveedor">¿Ofreces servicios como proveedor?</ion-checkbox>
             </ion-item>

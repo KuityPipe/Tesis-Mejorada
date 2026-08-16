@@ -9,11 +9,11 @@ vivo). `ion-popover` con `trigger` se posiciona solo (sin números mágicos
 de altura de toolbar) y ya se usa con el mismo patrón en
 AccountMenuComponent. -->
 <ion-buttons>
-  <ion-button id="ks-nav-trigger" aria-label="Abrir menú de navegación">
+  <ion-button [id]="idTrigger" aria-label="Abrir menú de navegación">
     <ion-icon slot="icon-only" name="menu-outline"></ion-icon>
   </ion-button>
 </ion-buttons>
-<ion-popover trigger="ks-nav-trigger" [dismissOnSelect]="true" side="bottom" alignment="start" size="fixed">
+<ion-popover [trigger]="idTrigger" [dismissOnSelect]="true" side="bottom" alignment="start" size="fixed">
   <ng-template>
     <ion-content>
       <ion-list lines="full">

@@ -1,5 +1,32 @@
 # Backlog — migración Ionic + producto KeyServ
 
+## PRÓXIMA SESIÓN — empezar por acá
+
+**Búsqueda de servicios por ubicación geográfica (radio en km).** Pedido explícito del usuario
+2026-08-15 noche: poder buscar/filtrar el catálogo de publicaciones por cercanía a la ubicación del
+usuario, con un radio elegible en múltiplos de 3 km (3, 6, 9, 12...). Debe seguir siendo posible ver
+proveedores fuera del radio elegido (se recomiendan igual, el tema de costo de transporte por
+distancia es un problema aparte, fuera de alcance por ahora) — el radio es un *filtro*, no un límite
+duro de qué se muestra. Antes de codear, definir con el usuario:
+- Origen de la ubicación: la comuna/dirección ya guardada del `Usuario`, o geolocalización real del
+  dispositivo (`navigator.geolocation` en web / `@capacitor/geolocation` en nativo, ya que el resto
+  del proyecto distingue explícitamente entre ambas plataformas)? Probablemente ambas: comuna como
+  fallback, geolocalización real como opción más precisa.
+- Qué coordenadas tiene hoy `Publicaciones`/`Usuario` — ninguna todavía (`Comuna` no tiene lat/long
+  en el dump original). Hace falta una migración para agregar lat/long a `Comuna` (aproximado, centro
+  de la comuna) y/o a `Publicaciones`/`Usuario` (coordenada real del proveedor, más preciso). Revisar
+  si el dump de comunas tiene esa data disponible en alguna fuente pública (INE, geocoding manual) o
+  si hay que geocodificar las 330 comunas una sola vez.
+- Cálculo de distancia: fórmula de Haversine en Python/SQL alcanza (no hace falta PostGIS/extensión
+  geoespacial para este volumen de datos) — filtrar en el queryset de `PublicacionListView`
+  (api/views.py) además del filtro de `catalogo_view` (views.py), mismo patrón de "reusar lógica, no
+  duplicarla" que ya sigue el resto del código (ver `Unaccent` en catálogo).
+- UI: un selector de radio (3/6/9/12 km) en el panel de filtros del catálogo (`catalogo.page.html`,
+  Ionic) y su equivalente en `catalogo_view`/`servicios/` (Django) si se sigue manteniendo paridad —
+  confirmar con el usuario si esto va solo a Ionic o a ambos frontends.
+
+## Otros ítems pendientes
+
 Documento vivo (se actualiza cada sesión, a diferencia de `docs/AUDITORIA_8000_vs_8100.md`, que es
 una foto fija del 2026-08-14). Acá se anota qué falta, en qué orden, y por qué — para no perder el
 hilo entre sesiones y para tener un registro real del trabajo (útil también para portafolio: es la

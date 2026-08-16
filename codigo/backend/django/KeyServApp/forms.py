@@ -12,7 +12,7 @@ from django import forms
 from django.contrib.auth import password_validation
 from django.contrib.auth.hashers import make_password
 
-from .models import Consulta, Usuario, Region, Comuna, TipoCuenta, Publicaciones, Valoracion, Mensaje
+from .models import Consulta, Usuario, Region, Comuna, Publicaciones, Valoracion, Mensaje
 
 
 class RegistroForm(forms.Form):
@@ -29,7 +29,12 @@ class RegistroForm(forms.Form):
     direccion = forms.CharField(max_length=80, required=False, label='Dirección')
     region = forms.ModelChoiceField(queryset=Region.objects.all(), label='Región')
     comuna = forms.ModelChoiceField(queryset=Comuna.objects.all(), label='Comuna')
-    tipo_cuenta = forms.ModelChoiceField(queryset=TipoCuenta.objects.all(), label='Tipo de cuenta')
+    # `tipo_cuenta` (CLIENTE/CLIENTE PREMIUM/COLABORADOR/COLABORADOR PREMIUM)
+    # ya no es un campo elegible acá — era redundante con `es_proveedor` (la
+    # distinción real de RF001/RF002 es cliente vs. proveedor) y los tiers
+    # PREMIUM no son algo que tenga sentido auto-asignarse al registrarse.
+    # Queda sin asignar (Usuario.tipo_cuenta y Transaccion.tipo_cuenta son
+    # nullable) hasta que exista un flujo de upgrade real.
     es_proveedor = forms.BooleanField(required=False, label='¿Ofreces servicios como proveedor?')
     # RNF010 del PDF pedía mínimo 6 — se subió a 8 (mínimo real que además
     # aplica AUTH_PASSWORD_VALIDATORS.MinimumLengthValidator en settings.py,
@@ -92,7 +97,6 @@ class RegistroForm(forms.Form):
             email=self.cleaned_data['email'],
             direccion_usuario=self.cleaned_data.get('direccion') or None,
             comuna=self.cleaned_data['comuna'],
-            tipo_cuenta=self.cleaned_data['tipo_cuenta'],
             es_proveedor=self.cleaned_data.get('es_proveedor', False),
             transaccion=transaccion,
             password=make_password(self.cleaned_data['password']),

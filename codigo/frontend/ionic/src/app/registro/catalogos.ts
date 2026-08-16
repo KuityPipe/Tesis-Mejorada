@@ -15,13 +15,7 @@ export interface ComunaCatalogo {
   region_id: number;
 }
 
-export interface TipoCuentaCatalogo {
-  id_tipo_cuenta: number;
-  nombre_tipo_cuenta: string;
-  valor_cuenta: number;
-}
-
-/** Catálogos de referencia fijos (`/api/catalogos/*`) — usados por los selects del formulario de registro. Sin paginar del lado del backend (son chicos: 16 regiones, 330 comunas, 4 tipos de cuenta). */
+/** Catálogos de referencia fijos (`/api/catalogos/*`) — usados por los selects del formulario de registro. Sin paginar del lado del backend (son chicos: 16 regiones, 330 comunas). */
 @Injectable({
   providedIn: 'root',
 })
@@ -36,10 +30,6 @@ export class Catalogos {
   comunas(regionId: number): Observable<ComunaCatalogo[]> {
     const params = new HttpParams().set('region', regionId);
     return this.http.get<ComunaCatalogo[]>(`${environment.apiUrl}/catalogos/comunas/`, { params });
-  }
-
-  tiposCuenta(): Observable<TipoCuentaCatalogo[]> {
-    return this.http.get<TipoCuentaCatalogo[]>(`${environment.apiUrl}/catalogos/tipos-cuenta/`);
   }
 
   /** `GET /api/catalogos/categorias/` — lista fija de categorías de servicio (`CATEGORIAS_PUBLICACION`, forms.py), usada por el perfil de proveedor (`perfil/proveedor/proveedor.page.ts`). */
