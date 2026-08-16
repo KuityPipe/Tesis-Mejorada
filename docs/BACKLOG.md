@@ -208,6 +208,42 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       $COMMIT_REF ."` (relativo al Base Directory, que ya es `codigo/frontend/ionic`). Un commit que
       solo toca `docs/`/`README`/el otro lado del stack ya no dispara ningún build en ninguno de los
       dos — `render.yaml` sigue gatillando siempre (comportamiento de Render, no del filtro).
+- [x] **Rediseño del chat embebido en `contratacion/detalle`** — pedido explícito del usuario ("se ve
+      muy soso"): scroll propio acotado a la sección (no el de toda la página), burbujas
+      estilo WhatsApp/iMessage (propia a la derecha en teal, ajena a la izquierda con nombre), fotos
+      adjuntas (nuevo `Mensaje.imagen` — migración `0028`, mismas validaciones `validar_imagen` que el
+      resto del sitio, storage privada), picker de emojis frecuentes (16, curado — sin librería
+      externa ni stickers, decisión explícita del usuario) y auto-scroll al fondo al cargar/enviar.
+      Backend: `ContratacionMensajesView.post` acepta texto y/o foto (al menos uno de los dos, ninguno
+      = 400) vía `MensajeForm` + `request.FILES`; `ContratacionMensajeImagenView` sirve la foto solo al
+      participante de la contratación (404, no 403, mismo criterio que `documento_descargar_view`).
+      12 tests nuevos (`ContratacionDetalleMensajesApiTests`).
+      **Dos bugs reales encontrados recién en la verificación en vivo, ninguno lo agarraron los tests**
+      (los tests usan la BD de test, que sí corre las migraciones nuevas — el bug era de la BD de
+      *desarrollo*, que se quedó atrás):
+      1. La migración `0028_mensaje_imagen` nunca se aplicó contra el Postgres local (`manage.py
+         migrate` no se corrió después de generarla) — el primer envío real de mensaje daba 500
+         (`ProgrammingError: column "IMAGEN" of relation "MENSAJE" does not exist"`). Corregido
+         corriendo `migrate`; deja como recordatorio que "tests en verde" no prueba que la migración
+         se haya aplicado en un entorno real.
+      2. La foto adjunta se veía como ícono roto en el chat: `imagen_url` apunta al endpoint privado
+         (exige `Authorization: Bearer` en el header), y un `<img [src]>` común no puede mandar ese
+         header — el navegador pedía la imagen sin token y el backend la rechazaba con 401 (confirmado
+         vía `fetch()` desde la consola del navegador; la extensión de Chrome usada para verificar
+         reportaba erróneamente 503 para esa misma request en su log de red, un artefacto de la
+         extensión, no del backend real). Corregido descargando la imagen como blob autenticado con el
+         mismo `HttpClient`/interceptor (`cargarImagenSegura()` en `detalle.page.ts`, cachea por
+         `id_mensaje` en un `Map`, revocado en `ngOnDestroy`) y mostrando un spinner mientras carga en
+         vez del `<img>` directo a la URL de la API.
+      También encontrado en el camino (no un bug, un artefacto de interacción): con el picker de
+      emojis abierto, el layout empuja hacia abajo el botón de enviar, así que un clic con coordenada
+      fija (en vez de por referencia del elemento) le erraba — no afecta a un usuario real tocando la
+      pantalla, solo a cómo se automatizó la verificación. — 2026-08-16, verificado en vivo contra
+      `:8100` real con datos demo (`cliente.demo@demo.keyserv`): mensaje de solo texto (botón Enviar y
+      tecla Enter), mensaje con emoji insertado desde el picker, y mensaje con foto adjunta (logo de
+      KeyServ subido como archivo real) — los tres renderizan como burbuja propia (teal, alineada a la
+      derecha) con scroll acotado, y la foto se ve de verdad tras el fix de blob autenticado.
+      9 tests frontend nuevos (`detalle.page.spec.ts`). 73 tests frontend en verde.
 - [ ] **"Exportar chat" sin endpoint API** — `conversacion_exportar_view` (Django) no tiene
       equivalente en `api/urls.py`; encontrado al comparar contratación/detalle. Es trabajo de backend
       nuevo (endpoint + descarga de archivo), no solo de frontend — quedó fuera de la pasada de

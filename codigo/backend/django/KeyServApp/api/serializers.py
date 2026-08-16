@@ -1,3 +1,4 @@
+from django.urls import reverse
 from rest_framework import serializers
 
 from ..models import (
@@ -209,11 +210,29 @@ class ContratacionDetailSerializer(ContratacionListSerializer):
 class MensajeSerializer(serializers.ModelSerializer):
     """Un mensaje del chat de una Contratacion — `conversacion`/`usuario` los fija la vista (`ContratacionMensajesView`), nunca el cliente."""
     usuario_nombre = serializers.CharField(source='usuario.nombre_usuario', read_only=True)
+    imagen_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Mensaje
-        fields = ['id_mensaje', 'contenido', 'fecha_envio', 'usuario', 'usuario_nombre']
-        read_only_fields = ['id_mensaje', 'fecha_envio', 'usuario', 'usuario_nombre']
+        fields = ['id_mensaje', 'contenido', 'fecha_envio', 'usuario', 'usuario_nombre', 'imagen_url']
+        read_only_fields = ['id_mensaje', 'fecha_envio', 'usuario', 'usuario_nombre', 'imagen_url']
+
+    def get_imagen_url(self, mensaje) -> str | None:
+        """
+        `None` si el mensaje no tiene foto. Nunca `mensaje.imagen.url`
+        directo — la storage es privada (ver models.py), esa propiedad ni
+        siquiera resuelve. Arma la URL absoluta del endpoint protegido
+        (`ContratacionMensajeImagenView`) a mano con `request.build_absolute_uri`
+        — sin `request` en el context (no debería pasar, todas las vistas
+        que usan este serializer lo pasan), cae a la ruta relativa.
+        """
+        if not mensaje.imagen:
+            return None
+        ruta = reverse('KeyServApp_api:mensaje-imagen', kwargs={
+            'contratacion_id': mensaje.conversacion.contratacion_id, 'mensaje_id': mensaje.pk,
+        })
+        request = self.context.get('request')
+        return request.build_absolute_uri(ruta) if request else ruta
 
 
 class ConversacionResumenSerializer(serializers.Serializer):

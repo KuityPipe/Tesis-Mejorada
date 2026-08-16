@@ -388,7 +388,24 @@ class UsuarioConversacion(models.Model):
 class Mensaje(models.Model):
     """Mensaje individual dentro de una Conversacion."""
     id_mensaje = models.BigAutoField(primary_key=True, db_column='ID_MENSAJE')
-    contenido = models.TextField(null=True, db_column='CONTENIDO')
+    # `blank=True` (no solo `null=True`, ya estaba): un mensaje puede ser
+    # solo una imagen, sin texto — antes el ModelForm lo exigía igual.
+    contenido = models.TextField(null=True, blank=True, db_column='CONTENIDO')
+    # NUEVO: foto adjunta al mensaje (chat, pedido explícito del usuario).
+    # Misma storage privada que Documento (ver storage.py) — a diferencia
+    # de las imágenes de una Publicacion (públicas a propósito, cualquiera
+    # las tiene que poder ver en el catálogo), la foto de un chat es
+    # comunicación privada entre cliente y proveedor de ESA contratación
+    # puntual, así que nunca se sirve por una URL de MEDIA_URL adivinable —
+    # solo a través de un endpoint autenticado que verifica participación
+    # (ver ContratacionMensajeImagenView, api/views.py), mismo criterio que
+    # `documento_descargar_view`. Mismo `validar_imagen` (firma real +
+    # Pillow + antivirus opcional) que ya usan las fotos de publicaciones/
+    # reseñas.
+    imagen = models.ImageField(
+        upload_to='mensajes/imagenes/', storage=almacenamiento_documentos,
+        null=True, blank=True, validators=[validar_imagen], db_column='IMAGEN',
+    )
     fecha_envio = models.DateTimeField(auto_now_add=True, db_column='FECHA_ENVIO')
     conversacion = models.ForeignKey(Conversacion, on_delete=models.CASCADE, db_column='FK_CONVERSACION')
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column='FK_USUARIO')

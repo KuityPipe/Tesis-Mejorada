@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, Validators } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import { Auth } from '../../core/auth';
 import { Retroalimentacion } from '../../core/retroalimentacion';
@@ -22,14 +22,26 @@ import { Pagos } from '../../pago/pagos';
   styleUrls: ['./detalle.page.scss'],
   standalone: false,
 })
-export class DetallePage implements OnInit {
+export class DetallePage implements OnInit, OnDestroy {
   contratacionId!: number;
   contratacion: ContratacionDetalle | null = null;
   mensajes: Mensaje[] = [];
   usuarioActualId: number | null = null;
   cargando = true;
 
-  formularioMensaje = this.fb.nonNullable.group({ contenido: ['', Validators.required] });
+  /**
+   * `imagen_url` apunta al endpoint privado de descarga (`ContratacionMensajeImagenView`,
+   * exige el JWT en el header `Authorization`) — un `<img [src]>` común no puede mandar ese
+   * header, así que renderizarla directo daría 401. Se descarga como blob autenticado (mismo
+   * `HttpClient` con el interceptor de auth) y se guarda acá como `blob:` URL, por id de
+   * mensaje. Revocadas en `ngOnDestroy` para no filtrar memoria.
+   */
+  private readonly imagenesSeguras = new Map<number, string>();
+
+  /** Referencia al contenedor con scroll propio de la lista de mensajes (ver detalle.page.html) — a diferencia del resto de la página, el chat tiene su propio scroll acotado, no el de `ion-content` entero. */
+  @ViewChild('listaMensajes') listaMensajesRef?: ElementRef<HTMLDivElement>;
+
+  formularioMensaje = this.fb.nonNullable.group({ contenido: [''] });
   formularioReauth = this.fb.nonNullable.group({
     password: ['', Validators.required],
     monto: [null as number | null],
@@ -40,6 +52,14 @@ export class DetallePage implements OnInit {
   });
 
   enviandoMensaje = false;
+  imagenMensaje: File | null = null;
+  previsualizacionImagenMensaje: string | null = null;
+  mostrarEmojis = false;
+  /** Set chico y curado, no un picker completo — alcanza para el uso real del chat (coordinar un trabajo), sin sumar una librería externa de emojis. */
+  readonly emojisFrecuentes = [
+    '😀', '😂', '👍', '🙏', '❤️', '😢', '😮', '🎉',
+    '✅', '❌', '⏰', '📸', '💰', '🏠', '🔧', '🚚',
+  ];
   procesandoAccion = false;
   errorAccion: string | null = null;
   fotosValoracion: File[] = [];
@@ -52,6 +72,7 @@ export class DetallePage implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly fb: FormBuilder,
+    private readonly http: HttpClient,
     private readonly auth: Auth,
     private readonly contratacionesApi: Contrataciones,
     private readonly pagosApi: Pagos,
@@ -63,6 +84,12 @@ export class DetallePage implements OnInit {
     this.auth.me().subscribe((usuario) => (this.usuarioActualId = usuario.id_usuario));
     this.cargarDetalle();
     this.cargarMensajes();
+  }
+
+  ngOnDestroy(): void {
+    for (const url of this.imagenesSeguras.values()) {
+      URL.revokeObjectURL(url);
+    }
   }
 
   private cargarDetalle(): void {
@@ -78,7 +105,65 @@ export class DetallePage implements OnInit {
   }
 
   private cargarMensajes(): void {
-    this.contratacionesApi.mensajes(this.contratacionId).subscribe((mensajes) => (this.mensajes = mensajes));
+    this.contratacionesApi.mensajes(this.contratacionId).subscribe((mensajes) => {
+      this.mensajes = mensajes;
+      mensajes.forEach((m) => this.cargarImagenSegura(m));
+      this.desplazarAlFinal();
+    });
+  }
+
+  esPropio(mensaje: Mensaje): boolean {
+    return mensaje.usuario === this.usuarioActualId;
+  }
+
+  /** `undefined` mientras descarga — la burbuja no muestra la imagen hasta tenerla, en vez de un ícono roto. */
+  urlSeguraImagen(mensaje: Mensaje): string | undefined {
+    return this.imagenesSeguras.get(mensaje.id_mensaje);
+  }
+
+  private cargarImagenSegura(mensaje: Mensaje): void {
+    if (!mensaje.imagen_url || this.imagenesSeguras.has(mensaje.id_mensaje)) {
+      return;
+    }
+    this.http.get(mensaje.imagen_url, { responseType: 'blob' }).subscribe((blob) => {
+      this.imagenesSeguras.set(mensaje.id_mensaje, URL.createObjectURL(blob));
+    });
+  }
+
+  /** Corre después de que Angular ya pintó los mensajes nuevos en el DOM — sin el `setTimeout`, `scrollHeight` todavía mediría el alto de antes de agregar el mensaje. */
+  private desplazarAlFinal(): void {
+    setTimeout(() => {
+      const contenedor = this.listaMensajesRef?.nativeElement;
+      if (contenedor) {
+        contenedor.scrollTop = contenedor.scrollHeight;
+      }
+    });
+  }
+
+  alElegirImagenMensaje(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const archivo = input.files?.[0] ?? null;
+    this.quitarImagenMensaje();
+    this.imagenMensaje = archivo;
+    this.previsualizacionImagenMensaje = archivo ? URL.createObjectURL(archivo) : null;
+    input.value = ''; // permite elegir el mismo archivo dos veces seguidas (ej. si se saca y se vuelve a adjuntar) sin que el navegador se lo trague por ser el mismo path.
+  }
+
+  quitarImagenMensaje(): void {
+    if (this.previsualizacionImagenMensaje) {
+      URL.revokeObjectURL(this.previsualizacionImagenMensaje);
+    }
+    this.imagenMensaje = null;
+    this.previsualizacionImagenMensaje = null;
+  }
+
+  insertarEmoji(emoji: string): void {
+    const actual = this.formularioMensaje.controls.contenido.value;
+    this.formularioMensaje.controls.contenido.setValue(actual + emoji);
+  }
+
+  get puedeEnviarMensaje(): boolean {
+    return !this.enviandoMensaje && (!!this.formularioMensaje.value.contenido?.trim() || !!this.imagenMensaje);
   }
 
   get esCliente(): boolean {
@@ -146,16 +231,21 @@ export class DetallePage implements OnInit {
   }
 
   enviarMensaje(): void {
-    if (this.formularioMensaje.invalid || this.enviandoMensaje) {
+    if (!this.puedeEnviarMensaje) {
       return;
     }
     this.enviandoMensaje = true;
     const { contenido } = this.formularioMensaje.getRawValue();
-    this.contratacionesApi.enviarMensaje(this.contratacionId, contenido).subscribe({
+    const imagen = this.imagenMensaje ?? undefined;
+    this.contratacionesApi.enviarMensaje(this.contratacionId, contenido.trim(), imagen).subscribe({
       next: (mensaje) => {
         this.mensajes = [...this.mensajes, mensaje];
+        this.cargarImagenSegura(mensaje);
         this.formularioMensaje.reset({ contenido: '' });
+        this.quitarImagenMensaje();
+        this.mostrarEmojis = false;
         this.enviandoMensaje = false;
+        this.desplazarAlFinal();
       },
       error: () => {
         this.enviandoMensaje = false;

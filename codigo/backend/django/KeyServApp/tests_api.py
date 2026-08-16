@@ -1086,6 +1086,68 @@ class ContratacionDetalleMensajesApiTests(APITestCase):
         resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/')
         self.assertEqual(resp.status_code, 404)
 
+    def test_mensaje_vacio_sin_texto_ni_foto_da_400(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': ''})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_mensaje_solo_con_foto_sin_texto(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'imagen': _imagen_de_prueba()})
+        self.assertEqual(resp.status_code, 201)
+        self.assertIsNone(resp.data['contenido'])
+        self.assertIsNotNone(resp.data['imagen_url'])
+
+    def test_mensaje_con_texto_y_foto(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {
+            'contenido': 'Mira cómo quedó', 'imagen': _imagen_de_prueba(),
+        })
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['contenido'], 'Mira cómo quedó')
+        self.assertIsNotNone(resp.data['imagen_url'])
+
+    def test_foto_invalida_da_400_no_se_guarda_a_medias(self):
+        archivo_falso = SimpleUploadedFile('no-es-imagen.jpg', b'esto no es una imagen real', content_type='image/jpeg')
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'imagen': archivo_falso})
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Mensaje.objects.count(), 0)
+
+    def test_imagen_url_apunta_al_endpoint_protegido_no_a_una_url_publica(self):
+        self._autenticado_como(self.cliente)
+        resp = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'imagen': _imagen_de_prueba()})
+        self.assertIn(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', resp.data['imagen_url'])
+        self.assertIn('/imagen/', resp.data['imagen_url'])
+        self.assertNotIn('/media/', resp.data['imagen_url'])
+
+    def test_descargar_imagen_de_mensaje(self):
+        self._autenticado_como(self.cliente)
+        creado = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'imagen': _imagen_de_prueba()})
+        mensaje_id = creado.data['id_mensaje']
+
+        self._autenticado_como(self.proveedor)
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/{mensaje_id}/imagen/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Content-Type'], 'image/gif')
+
+    def test_descargar_imagen_de_mensaje_ajeno_da_404(self):
+        self._autenticado_como(self.cliente)
+        creado = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'imagen': _imagen_de_prueba()})
+        mensaje_id = creado.data['id_mensaje']
+
+        self._autenticado_como(self.intruso)
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/{mensaje_id}/imagen/')
+        self.assertEqual(resp.status_code, 404)
+
+    def test_descargar_imagen_de_mensaje_sin_foto_da_404(self):
+        self._autenticado_como(self.cliente)
+        creado = self.client.post(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/', {'contenido': 'solo texto'}, format='json')
+        mensaje_id = creado.data['id_mensaje']
+
+        resp = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/mensajes/{mensaje_id}/imagen/')
+        self.assertEqual(resp.status_code, 404)
+
 
 class ConversacionListApiTests(APITestCase):
     """`GET /api/conversaciones/` — espeja `chat_view` (bandeja de entrada), sin equivalente propio en tests.py."""

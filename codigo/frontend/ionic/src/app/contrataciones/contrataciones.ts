@@ -74,10 +74,12 @@ export interface ContratacionDetalle extends ContratacionResumen {
 
 export interface Mensaje {
   id_mensaje: number;
-  contenido: string;
+  contenido: string | null;
   fecha_envio: string;
   usuario: number;
   usuario_nombre: string;
+  /** `null` si el mensaje no tiene foto adjunta (Fase 7) — nunca una URL de /media/ directa, la storage es privada del lado del backend (ver ContratacionMensajeImagenView). */
+  imagen_url: string | null;
 }
 
 interface RespuestaValoracion {
@@ -117,8 +119,23 @@ export class Contrataciones {
     return this.http.get<Mensaje[]>(`${environment.apiUrl}/contrataciones/${id}/mensajes/`);
   }
 
-  enviarMensaje(id: number, contenido: string): Observable<Mensaje> {
-    return this.http.post<Mensaje>(`${environment.apiUrl}/contrataciones/${id}/mensajes/`, { contenido });
+  /**
+   * `FormData`, no un objeto plano (Fase 7: foto adjunta) — mismo criterio
+   * que `Auth.actualizarPerfil`/`Publicaciones.crear`: `HttpClient` arma
+   * `Content-Type: multipart/form-data` con el boundary correcto solo, a
+   * mano quedaría mal formado. `contenido`/`imagen` son ambos opcionales
+   * acá (el backend exige al menos uno de los dos) — un mensaje puede ser
+   * solo una foto, sin texto.
+   */
+  enviarMensaje(id: number, contenido: string, imagen?: File): Observable<Mensaje> {
+    const formData = new FormData();
+    if (contenido) {
+      formData.set('contenido', contenido);
+    }
+    if (imagen) {
+      formData.set('imagen', imagen);
+    }
+    return this.http.post<Mensaje>(`${environment.apiUrl}/contrataciones/${id}/mensajes/`, formData);
   }
 
   /** El PROVEEDOR confirma (SOLICITADA -> CONFIRMADA), re-ingresando su contraseña. `monto` es opcional — sin él, se usa el precio de la publicación. */

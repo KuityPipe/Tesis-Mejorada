@@ -15,7 +15,7 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db.models import F, FloatField, Q, Value
 from django.db.models.functions import ASin, Cast, Cos, Power, Radians, Sin, Sqrt
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -889,37 +889,86 @@ class ContratacionDetailView(APIView):
         return Response(ContratacionDetailSerializer(contratacion).data)
 
 
-class ContratacionMensajesView(APIView):
-    """`GET`/`POST /api/contrataciones/<id>/mensajes/` — equivalente API de la parte de chat embebida en `contratacion_detalle_view`. `GET` también marca `ultimo_leido`, igual que el template."""
+def _contratacion_de_participante_api(request, contratacion_id):
+    """
+    Compartida por todas las vistas de chat de una contratación (mensajes +
+    la imagen de un mensaje) — reusada, no reimplementada en cada una, para
+    que el control de acceso no pueda divergir entre endpoints que
+    protegen el mismo dato.
+    """
+    contratacion = get_object_or_404(Contratacion, pk=contratacion_id)
+    if request.user not in (contratacion.cliente, contratacion.proveedor):
+        vistas_legacy._registrar_intento_sospechoso(request, request.user, 'contratacion', contratacion_id, 'contratación ajena (api, mensajes)')
+        raise Http404()
+    return contratacion
 
-    def _obtener_contratacion(self, request, contratacion_id):
-        contratacion = get_object_or_404(Contratacion, pk=contratacion_id)
-        if request.user not in (contratacion.cliente, contratacion.proveedor):
-            vistas_legacy._registrar_intento_sospechoso(request, request.user, 'contratacion', contratacion_id, 'contratación ajena (api, mensajes)')
-            raise Http404()
-        return contratacion
+
+class ContratacionMensajesView(APIView):
+    """
+    `GET`/`POST /api/contrataciones/<id>/mensajes/` — equivalente API de la
+    parte de chat embebida en `contratacion_detalle_view`. `GET` también
+    marca `ultimo_leido`, igual que el template.
+
+    `POST` acepta `multipart/form-data` (Fase 7: foto adjunta en el chat,
+    pedido explícito del usuario) — `contenido` sigue viniendo del
+    `MensajeForm` de siempre (reusado, no reimplementado), pero `imagen`
+    se lee de `request.FILES` directo, mismo criterio que
+    `PublicacionCrearView` con sus imágenes/documentos (Django no tiene un
+    equivalente de campo-archivo dentro de un `ModelForm` que valga la pena
+    forzar acá). A diferencia de esa vista, acá una imagen inválida sí
+    tira 400 (no se descarta en silencio): en un chat 1 a 1, "mandé una
+    foto y no pasó nada" es peor experiencia que un error claro. Exige que
+    venga texto o imagen (o ambos) — un mensaje completamente vacío no se
+    guarda.
+    """
 
     def get(self, request, contratacion_id):
-        contratacion = self._obtener_contratacion(request, contratacion_id)
+        contratacion = _contratacion_de_participante_api(request, contratacion_id)
         conversacion = vistas_legacy._obtener_o_crear_conversacion_de_contratacion(contratacion)
         participacion = UsuarioConversacion.objects.filter(usuario=request.user, conversacion=conversacion).first()
         if participacion:
             participacion.ultimo_leido = timezone.now()
             participacion.save(update_fields=['ultimo_leido'])
         mensajes = Mensaje.objects.filter(conversacion=conversacion).select_related('usuario').order_by('fecha_envio')
-        return Response(MensajeSerializer(mensajes, many=True).data)
+        return Response(MensajeSerializer(mensajes, many=True, context={'request': request}).data)
 
     def post(self, request, contratacion_id):
-        contratacion = self._obtener_contratacion(request, contratacion_id)
+        contratacion = _contratacion_de_participante_api(request, contratacion_id)
         form = MensajeForm(request.data)
         if not form.is_valid():
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        contenido = form.cleaned_data['contenido'].strip()
+        imagen = request.FILES.get('imagen')
+        if not contenido and not imagen:
+            return Response({'detail': 'Escribe un mensaje o adjunta una foto.'}, status=status.HTTP_400_BAD_REQUEST)
+
         conversacion = vistas_legacy._obtener_o_crear_conversacion_de_contratacion(contratacion)
-        mensaje = form.save(commit=False)
-        mensaje.conversacion = conversacion
-        mensaje.usuario = request.user
+        mensaje = Mensaje(conversacion=conversacion, usuario=request.user, contenido=contenido or None, imagen=imagen)
+        try:
+            mensaje.full_clean()
+        except ValidationError:
+            return Response({'detail': 'No se pudo procesar la foto adjunta — revisa que sea una imagen real (JPG, PNG, WEBP o GIF).'}, status=status.HTTP_400_BAD_REQUEST)
         mensaje.save()
-        return Response(MensajeSerializer(mensaje).data, status=status.HTTP_201_CREATED)
+        return Response(MensajeSerializer(mensaje, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+
+class ContratacionMensajeImagenView(APIView):
+    """
+    `GET /api/contrataciones/<id>/mensajes/<mensaje_id>/imagen/` — único
+    punto de acceso a la foto de un mensaje, mismo criterio que
+    `documento_descargar_view`: `Mensaje.imagen` vive en storage privada
+    (ver models.py), así que `imagen.url` ni siquiera resuelve — todo el
+    control de acceso pasa por acá. 404, no 403, para alguien ajeno a la
+    contratación (no confirma que el mensaje/la contratación existan).
+    """
+
+    def get(self, request, contratacion_id, mensaje_id):
+        _contratacion_de_participante_api(request, contratacion_id)
+        mensaje = get_object_or_404(Mensaje, pk=mensaje_id, conversacion__contratacion_id=contratacion_id)
+        if not mensaje.imagen:
+            raise Http404()
+        return FileResponse(mensaje.imagen.open('rb'), filename=os.path.basename(mensaje.imagen.name))
 
 
 class ConversacionListView(APIView):
@@ -953,7 +1002,9 @@ class ConversacionListView(APIView):
                 'contratacion_estado': conv.contratacion.estado if conv.contratacion_id else None,
                 'contraparte_nombre': str(contraparte) if contraparte else conv.nombre_conversacion,
                 'no_leidos': no_leidos_map.get(conv.id_conversacion, 0),
-                'ultimo_mensaje_contenido': ultimo.contenido if ultimo else None,
+                # Mensaje solo-foto (Fase 7): sin esto, la bandeja mostraría
+                # la vista previa vacía en vez de algo que explique por qué.
+                'ultimo_mensaje_contenido': (ultimo.contenido or ('📷 Foto' if ultimo.imagen else None)) if ultimo else None,
                 'ultimo_mensaje_fecha': ultimo.fecha_envio if ultimo else None,
                 'ultimo_mensaje_es_propio': bool(ultimo and ultimo.usuario_id == usuario.id_usuario),
             })

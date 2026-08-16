@@ -223,9 +223,27 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'  # destino de `collectstatic` en producci
 # storage rompe el build entero (a propósito, es más estricta que la
 # storage por defecto) — no es una elección liviana, ya se verificó que
 # collectstatic corre limpio con esto activado.
+#
+# SOLO en producción (`not DEBUG`) — bug real encontrado probando el chat
+# rediseñado (Fase 7): esta storage exige que exista el manifest que arma
+# `collectstatic` (`staticfiles.json` en STATIC_ROOT); local/CI nunca
+# corren `collectstatic` (ver requirements-ci.txt/Commands en CLAUDE.md),
+# así que CUALQUIER template con `{% static %}` — prácticamente todos,
+# todos extienden base.html — reventaba con "Missing staticfiles manifest
+# entry" en cuanto un test renderizaba una página real. Sin condicionar a
+# `DEBUG`, esto se coló porque los tests que corrieron justo después del
+# cambio no habían renderizado ninguna página con `{% static %}` en el
+# medio. En dev/test, Django sirve estáticos directo desde
+# STATICFILES_DIRS de todos modos (vía runserver o el propio test client),
+# no hace falta el hash de cache-busting ahí.
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
-    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+    'staticfiles': {
+        'BACKEND': (
+            'whitenoise.storage.CompressedManifestStaticFilesStorage' if not DEBUG
+            else 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        ),
+    },
 }
 
 

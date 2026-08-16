@@ -822,7 +822,10 @@ def contratacion_detalle_view(request, contratacion_id):
 
     if request.method == 'POST':
         form = MensajeForm(request.POST)
-        if form.is_valid():
+        # `contenido` es opcional a nivel de formulario (permite el mensaje
+        # solo-foto de la API, ver MensajeForm) — este template no tiene
+        # subida de foto, así que acá sí hace falta texto de verdad.
+        if form.is_valid() and form.cleaned_data['contenido'].strip():
             mensaje = form.save(commit=False)
             mensaje.conversacion = conversacion
             mensaje.usuario = usuario
@@ -1735,7 +1738,10 @@ def conversacion_detalle_view(request, conversacion_id):
 
     if request.method == 'POST':
         form = MensajeForm(request.POST)
-        if form.is_valid():
+        # Mismo motivo que en contratacion_detalle_view: `contenido` es
+        # opcional a nivel de formulario para el mensaje solo-foto de la
+        # API, este template no tiene subida de foto.
+        if form.is_valid() and form.cleaned_data['contenido'].strip():
             mensaje = form.save(commit=False)
             mensaje.conversacion = conversacion
             mensaje.usuario = usuario

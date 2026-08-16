@@ -324,12 +324,22 @@ class ValoracionForm(forms.ModelForm):
 
 
 class MensajeForm(forms.ModelForm):
-    """Formulario para enviar un mensaje dentro de una Conversacion (mensajería, Fase 4)."""
+    """
+    Formulario para enviar un mensaje dentro de una Conversacion (mensajería,
+    Fase 4). `contenido` es opcional a nivel de formulario (`required=False`,
+    pisando lo que Django generaría solo a partir de `blank=True` del
+    modelo — un `ModelForm` no lo infiere para un `TextField`) porque un
+    mensaje puede ser solo una foto adjunta, sin texto (chat, Fase 7). Que
+    al menos uno de los dos (texto o foto) esté presente lo valida la vista
+    (`ContratacionMensajesView`, api/views.py), no este form — la foto ni
+    siquiera es un campo acá (mismo motivo que `PublicacionForm` con sus
+    imágenes: se lee de `request.FILES` directo).
+    """
+    contenido = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Escribe tu mensaje...'}))
 
     class Meta:
         model = Mensaje
         fields = ['contenido']
-        widgets = {'contenido': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Escribe tu mensaje...'})}
 
 
 class ReautenticacionForm(forms.Form):
