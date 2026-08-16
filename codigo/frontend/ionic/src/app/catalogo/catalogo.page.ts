@@ -2,8 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { InfiniteScrollCustomEvent } from '@ionic/angular';
 
+import { Ubicacion } from '../core/ubicacion';
 import { Catalogos, RegionCatalogo } from '../registro/catalogos';
 import { FiltrosCatalogo, Publicaciones, PublicacionResumen } from './publicaciones';
+
+/** Múltiplos de 3 km, como se definió con el usuario (ver docs/BACKLOG.md, "Búsqueda por geolocalización"). */
+export const RADIOS_KM = [3, 6, 9, 12, 15, 18];
 
 /**
  * Catálogo público (Fase 2 del plan de migración, ver
@@ -41,9 +45,16 @@ export class CatalogoPage implements OnInit {
 
   filtros: FiltrosCatalogo = { orden: 'recientes' };
 
+  radiosKm = RADIOS_KM;
+  /** true mientras se espera el permiso/posición del dispositivo — deshabilita el botón para no disparar dos pedidos de permiso en paralelo si el usuario lo toca dos veces. */
+  buscandoUbicacion = false;
+  /** true si ya se obtuvo una posición real — recién ahí se muestra el selector de radio; si el usuario negó el permiso, el filtro de radio no aparece (sin fallback a comuna todavía, ver core/ubicacion.ts). */
+  ubicacionActiva = false;
+
   constructor(
     private readonly api: Publicaciones,
     private readonly catalogos: Catalogos,
+    private readonly ubicacion: Ubicacion,
     private readonly ruta: ActivatedRoute,
   ) {}
 
@@ -64,6 +75,41 @@ export class CatalogoPage implements OnInit {
   cargarMas(evento: InfiniteScrollCustomEvent): void {
     this.pagina++;
     this.cargarPagina(evento);
+  }
+
+  /**
+   * Se llama al tocar "Buscar cerca de mí" — pide la posición real del
+   * dispositivo (`Ubicacion.posicionActual()`, cubre web y nativo con la
+   * misma llamada) y, si el usuario da el permiso, la deja cargada en
+   * `filtros.lat`/`lng` para que el catálogo empiece a mostrar
+   * `distancia_km` y habilite el selector de radio. Si el usuario niega el
+   * permiso o el dispositivo no puede resolver la posición, no rompe nada:
+   * el catálogo sigue mostrando todo, sin filtro de radio.
+   */
+  async usarMiUbicacion(): Promise<void> {
+    this.buscandoUbicacion = true;
+    const posicion = await this.ubicacion.posicionActual();
+    this.buscandoUbicacion = false;
+    if (!posicion) {
+      this.ubicacionActiva = false;
+      return;
+    }
+    this.ubicacionActiva = true;
+    this.filtros.lat = posicion.lat;
+    this.filtros.lng = posicion.lng;
+    this.aplicarFiltros();
+  }
+
+  /** Se llama al sacar el filtro de radio ("Ver todos") — la ubicación es un filtro de conveniencia, no un límite duro: siempre tiene que ser posible volver a ver el catálogo completo. */
+  quitarUbicacion(): void {
+    this.ubicacionActiva = false;
+    delete this.filtros.lat;
+    delete this.filtros.lng;
+    delete this.filtros.radio_km;
+    if (this.filtros.orden === 'cercania') {
+      this.filtros.orden = 'recientes';
+    }
+    this.aplicarFiltros();
   }
 
   /** Se llama al tocar "Aplicar filtros" — reinicia la paginación en vez de acumular sobre resultados de otro filtro. */

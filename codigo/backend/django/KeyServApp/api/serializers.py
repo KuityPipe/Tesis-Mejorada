@@ -283,12 +283,24 @@ class ProveedorSerializer(serializers.ModelSerializer):
     region = serializers.SerializerMethodField()
     puntuacion_promedio = serializers.SerializerMethodField()
     total_valoraciones = serializers.SerializerMethodField()
+    # Coordenada aproximada de la comuna (ver Comuna.latitud/longitud,
+    # migración 0027) — alimenta el mini-mapa + link a Google Maps de
+    # catalogo/detalle en Ionic. `None` si la comuna todavía no está
+    # geocodificada (la mayoría, por ahora), no la dirección exacta del
+    # proveedor. `float()`, no el Decimal crudo: un mapa no necesita la
+    # precisión exacta, y así el cliente recibe un number de JS directo en
+    # vez de tener que parsear un string (a diferencia de
+    # `puntuacion_promedio`, que si es un `DecimalField` real y por eso DRF
+    # lo manda como texto por `COERCE_DECIMAL_TO_STRING`).
+    latitud = serializers.SerializerMethodField()
+    longitud = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
         fields = [
             'id_usuario', 'nombre_usuario', 'apellido_usuario', 'foto_perfil',
             'comuna', 'region', 'puntuacion_promedio', 'total_valoraciones',
+            'latitud', 'longitud',
         ]
         read_only_fields = fields
 
@@ -297,6 +309,16 @@ class ProveedorSerializer(serializers.ModelSerializer):
 
     def get_region(self, usuario) -> str | None:
         return usuario.comuna.region.nombre_region if usuario.comuna else None
+
+    def get_latitud(self, usuario) -> float | None:
+        if not usuario.comuna or usuario.comuna.latitud is None:
+            return None
+        return float(usuario.comuna.latitud)
+
+    def get_longitud(self, usuario) -> float | None:
+        if not usuario.comuna or usuario.comuna.longitud is None:
+            return None
+        return float(usuario.comuna.longitud)
 
     def get_puntuacion_promedio(self, usuario):
         ranking = getattr(usuario, 'ranking', None)
@@ -321,12 +343,13 @@ class PublicacionListSerializer(serializers.ModelSerializer):
     """`GET /api/publicaciones/` — versión liviana para el listado (una imagen de portada, no todas), equivalente API de `catalogo_view`."""
     proveedor = ProveedorSerializer(source='usuario_publicador', read_only=True)
     imagen_portada = serializers.SerializerMethodField()
+    distancia_km = serializers.SerializerMethodField()
 
     class Meta:
         model = Publicaciones
         fields = [
             'id_publicacion', 'titulo', 'sub_titulo', 'categoria', 'precio',
-            'fecha_publicacion', 'imagen_portada', 'proveedor',
+            'fecha_publicacion', 'imagen_portada', 'proveedor', 'distancia_km',
         ]
         read_only_fields = fields
 
@@ -336,6 +359,12 @@ class PublicacionListSerializer(serializers.ModelSerializer):
         # cada publicación del listado (evitaría el problema N+1 si no).
         primera = publicacion.imagenes.first()
         return primera.url if primera else None
+
+    def get_distancia_km(self, publicacion) -> float | None:
+        # Solo viene anotada (`_anotar_distancia_km`) cuando la request trae
+        # `lat`/`lng` — si no, `getattr` cae a `None` en vez de reventar.
+        distancia = getattr(publicacion, 'distancia_km', None)
+        return round(distancia, 1) if distancia is not None else None
 
 
 class PublicacionPropiaSerializer(serializers.ModelSerializer):

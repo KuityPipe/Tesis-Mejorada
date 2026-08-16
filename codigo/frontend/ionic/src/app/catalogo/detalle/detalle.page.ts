@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 import { Auth } from '../../core/auth';
 import { Retroalimentacion } from '../../core/retroalimentacion';
@@ -27,6 +28,11 @@ export class DetallePage implements OnInit {
   contratando = false;
   errorContratar: string | null = null;
 
+  /** Embed de Google Maps sin API key (`output=embed`) — `SafeResourceUrl` porque Angular sanitiza cualquier URL puesta en `[src]` de un iframe por defecto; acá es seguro saltarse eso porque la URL se arma solo con los números de latitud/longitud del backend, nunca con texto libre. */
+  mapaUrl: SafeResourceUrl | null = null;
+  /** Mismas coordenadas, para el link "Abrir en Google Maps" (`https://www.google.com/maps?q=lat,lng`) — ese sí es un `<a>` normal, no hace falta sanitizar nada. */
+  enlaceGoogleMaps: string | null = null;
+
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
@@ -34,6 +40,7 @@ export class DetallePage implements OnInit {
     private readonly auth: Auth,
     private readonly contratacionesApi: Contrataciones,
     private readonly retroalimentacion: Retroalimentacion,
+    private readonly sanitizer: DomSanitizer,
   ) {}
 
   ngOnInit(): void {
@@ -47,6 +54,11 @@ export class DetallePage implements OnInit {
       next: (publicacion) => {
         this.publicacion = publicacion;
         this.cargando = false;
+        const { latitud, longitud } = publicacion.proveedor;
+        if (latitud !== null && longitud !== null) {
+          this.enlaceGoogleMaps = `https://www.google.com/maps?q=${latitud},${longitud}`;
+          this.mapaUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`https://maps.google.com/maps?q=${latitud},${longitud}&z=14&output=embed`);
+        }
       },
       error: () => {
         this.cargando = false;

@@ -45,6 +45,12 @@ class Comuna(models.Model):
     id_comuna = models.IntegerField(primary_key=True, db_column='ID_COMUNA')
     nombre_comuna = models.CharField(max_length=60, null=True, db_column='NOMBRE_COMUNA')
     region = models.ForeignKey(Region, on_delete=models.PROTECT, null=True, db_column='FK_REGION')
+    # Coordenada aproximada (plaza principal / centro cívico de la comuna), no
+    # la dirección exacta de cada proveedor — alcanza para un filtro de
+    # cercanía por radio en el catálogo. NULL hasta geocodificar; se completa
+    # comuna por comuna, no todas de una vez (ver docs/BACKLOG.md).
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, db_column='LATITUD')
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, db_column='LONGITUD')
 
     class Meta:
         db_table = 'COMUNA'

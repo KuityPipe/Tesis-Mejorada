@@ -197,6 +197,20 @@ class PublicacionesApiTests(APITestCase):
         # anidados en ProveedorSerializer tiene que cubrir esto sin romper.
         self.assertIsNone(proveedor['puntuacion_promedio'])
         self.assertEqual(proveedor['total_valoraciones'], 0)
+        # Comuna sin geocodificar (la de _crear_region_comuna_tipo no trae lat/long) — None, no revienta.
+        self.assertIsNone(proveedor['latitud'])
+        self.assertIsNone(proveedor['longitud'])
+
+    def test_listado_incluye_coordenadas_de_la_comuna_del_proveedor(self):
+        self.comuna.latitud, self.comuna.longitud = '-33.423700', '-70.611200'
+        self.comuna.save()
+        Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Electricidad', estado_moderacion=Publicaciones.APROBADA)
+
+        resp = self.client.get('/api/publicaciones/')
+
+        proveedor = resp.data['results'][0]['proveedor']
+        self.assertAlmostEqual(proveedor['latitud'], -33.4237, places=3)
+        self.assertAlmostEqual(proveedor['longitud'], -70.6112, places=3)
 
     def test_filtro_region(self):
         otra_region = Region.objects.create(id_region=5, nombre_region='Valparaíso')
@@ -232,6 +246,67 @@ class PublicacionesApiTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.data['resenas']), 1)
         self.assertEqual(resp.data['resenas'][0]['comentario'], 'Aprobada')
+
+
+class PublicacionGeolocalizacionApiTests(APITestCase):
+    """`GET /api/publicaciones/?lat=&lng=&radio_km=&orden=cercania` — ver `_anotar_distancia_km`."""
+
+    def setUp(self):
+        region, comuna_cercana, tipo_cuenta = _crear_region_comuna_tipo()
+        # Providencia (según migración 0027) — mismo punto que uso como
+        # "ubicación del cliente" en los tests.
+        comuna_cercana.latitud, comuna_cercana.longitud = '-33.423700', '-70.611200'
+        comuna_cercana.save()
+        self.comuna_cercana = comuna_cercana
+
+        # Puente Alto — bastante más lejos de Providencia (~21 km reales).
+        comuna_lejana = Comuna.objects.create(id_comuna=27, nombre_comuna='Puente Alto', region=region, latitud='-33.611000', longitud='-70.575700')
+        self.comuna_lejana = comuna_lejana
+
+        comuna_sin_coordenada = Comuna.objects.create(id_comuna=99, nombre_comuna='Sin geocodificar', region=region)
+
+        self.tipo_cuenta = tipo_cuenta
+        self.proveedor_cercano = _crear_usuario('cercano@test.com', es_proveedor=True, comuna=comuna_cercana, tipo_cuenta=tipo_cuenta)
+        self.proveedor_lejano = _crear_usuario('lejano@test.com', es_proveedor=True, comuna=comuna_lejana, tipo_cuenta=tipo_cuenta)
+        self.proveedor_sin_geocodificar = _crear_usuario('sin_geo@test.com', es_proveedor=True, comuna=comuna_sin_coordenada, tipo_cuenta=tipo_cuenta)
+
+        Publicaciones.objects.create(usuario_publicador=self.proveedor_cercano, titulo='Cercana', estado_moderacion=Publicaciones.APROBADA)
+        Publicaciones.objects.create(usuario_publicador=self.proveedor_lejano, titulo='Lejana', estado_moderacion=Publicaciones.APROBADA)
+        Publicaciones.objects.create(usuario_publicador=self.proveedor_sin_geocodificar, titulo='Sin geocodificar', estado_moderacion=Publicaciones.APROBADA)
+
+        # "Ubicación del cliente" para los tests: el mismo punto de Providencia.
+        self.lat_cliente, self.lng_cliente = '-33.4237', '-70.6112'
+
+    def test_sin_lat_lng_no_anota_distancia(self):
+        resp = self.client.get('/api/publicaciones/')
+        self.assertEqual(resp.data['count'], 3)
+        for resultado in resp.data['results']:
+            self.assertIsNone(resultado['distancia_km'])
+
+    def test_con_lat_lng_anota_distancia_y_ordena_por_cercania(self):
+        resp = self.client.get('/api/publicaciones/', {'lat': self.lat_cliente, 'lng': self.lng_cliente, 'orden': 'cercania'})
+
+        titulos = [r['titulo'] for r in resp.data['results']]
+        # La sin geocodificar no tiene distancia (NULL) — Postgres la ordena
+        # al final de un ORDER BY ascendente por defecto (NULLS LAST).
+        self.assertEqual(titulos, ['Cercana', 'Lejana', 'Sin geocodificar'])
+        self.assertLess(resp.data['results'][0]['distancia_km'], 1)
+        self.assertGreater(resp.data['results'][1]['distancia_km'], 15)
+        self.assertIsNone(resp.data['results'][2]['distancia_km'])
+
+    def test_radio_km_filtra_y_no_es_limite_duro(self):
+        """El radio excluye lo lejano/sin-geocodificar, pero sigue siendo posible ver todo sin el filtro (no es un límite duro)."""
+        resp_con_radio = self.client.get('/api/publicaciones/', {'lat': self.lat_cliente, 'lng': self.lng_cliente, 'radio_km': '5'})
+        self.assertEqual(resp_con_radio.data['count'], 1)
+        self.assertEqual(resp_con_radio.data['results'][0]['titulo'], 'Cercana')
+
+        resp_sin_radio = self.client.get('/api/publicaciones/', {'lat': self.lat_cliente, 'lng': self.lng_cliente})
+        self.assertEqual(resp_sin_radio.data['count'], 3)
+
+    def test_lat_lng_invalidos_se_ignoran_sin_reventar(self):
+        resp = self.client.get('/api/publicaciones/', {'lat': 'no-es-un-numero', 'lng': 'tampoco'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['count'], 3)
 
 
 class PublicacionCrearApiTests(APITestCase):

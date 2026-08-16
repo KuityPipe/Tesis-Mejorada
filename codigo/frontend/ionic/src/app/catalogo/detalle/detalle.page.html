@@ -42,6 +42,14 @@
           </ion-label>
         </ion-item>
 
+        <!-- Solo aparece si la comuna del proveedor ya está geocodificada (Comuna.latitud/longitud, ver migración 0027) — la mayoría todavía no lo está, así que esto no se muestra para cualquier publicación. -->
+        <div class="mini-mapa" *ngIf="mapaUrl">
+          <iframe [src]="mapaUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Ubicación aproximada del proveedor"></iframe>
+          <a [href]="enlaceGoogleMaps" target="_blank" rel="noopener">
+            <ion-icon name="map-outline"></ion-icon> Abrir en Google Maps
+          </a>
+        </div>
+
         <ion-button expand="block" (click)="contratar()" [disabled]="contratando">
           {{ contratando ? 'Enviando…' : 'Contratar' }}
         </ion-button>

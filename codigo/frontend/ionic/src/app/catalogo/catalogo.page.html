@@ -35,7 +35,25 @@
         <ion-select label="Ordenar por" labelPlacement="stacked" interface="popover" [(ngModel)]="filtros.orden" name="orden">
           <ion-select-option value="recientes">Más recientes</ion-select-option>
           <ion-select-option value="calificacion">Mejor calificados</ion-select-option>
+          <ion-select-option value="cercania" *ngIf="ubicacionActiva">Más cerca de mí</ion-select-option>
         </ion-select>
+
+        <!-- Selector de radio: solo aparece con una posición real cargada (ver usarMiUbicacion()) — el radio es un filtro de conveniencia, no un límite duro, así que "Cualquier distancia" siempre está disponible para volver a ver todo. -->
+        <ion-select *ngIf="ubicacionActiva" label="Radio" labelPlacement="stacked" interface="popover" placeholder="Cualquier distancia" [(ngModel)]="filtros.radio_km" name="radio_km">
+          <ion-select-option [value]="undefined">Cualquier distancia</ion-select-option>
+          <ion-select-option *ngFor="let km of radiosKm" [value]="km">{{ km }} km</ion-select-option>
+        </ion-select>
+      </div>
+
+      <div class="ks-filter-row">
+        <ion-button *ngIf="!ubicacionActiva" type="button" fill="outline" [disabled]="buscandoUbicacion" (click)="usarMiUbicacion()">
+          <ion-icon name="locate-outline" slot="start"></ion-icon>
+          {{ buscandoUbicacion ? 'Buscando tu ubicación…' : 'Buscar cerca de mí' }}
+        </ion-button>
+        <ion-button *ngIf="ubicacionActiva" type="button" fill="clear" (click)="quitarUbicacion()">
+          <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+          Quitar ubicación
+        </ion-button>
       </div>
 
       <ion-button type="submit" fill="outline" expand="block">Aplicar filtros</ion-button>
@@ -65,6 +83,7 @@
         <p *ngIf="publicacion.precio" style="font-weight:800; color: var(--ks-navy-dark); margin:0 0 10px;">${{ publicacion.precio | number }}</p>
         <div class="ks-card-tile-footer">
           <span><ion-icon name="person-circle-outline"></ion-icon> {{ publicacion.proveedor.nombre_usuario }}</span>
+          <span *ngIf="publicacion.distancia_km !== null"><ion-icon name="navigate-outline"></ion-icon> {{ publicacion.distancia_km }} km</span>
           <span class="ks-card-tile-rating" *ngIf="publicacion.proveedor.total_valoraciones">
             <ion-icon name="star"></ion-icon> {{ publicacion.proveedor.puntuacion_promedio }}
           </span>

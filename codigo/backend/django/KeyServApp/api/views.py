@@ -13,7 +13,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
-from django.db.models import Q, Value
+from django.db.models import F, FloatField, Q, Value
+from django.db.models.functions import ASin, Cast, Cos, Power, Radians, Sin, Sqrt
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -543,6 +544,42 @@ class TipoCuentaListView(generics.ListAPIView):
     queryset = TipoCuenta.objects.all().order_by('id_tipo_cuenta')
 
 
+RADIO_TIERRA_KM = 6371.0
+
+
+def _anotar_distancia_km(queryset, lat_usuario, lng_usuario):
+    """
+    Anota `distancia_km` (fórmula de Haversine, círculo máximo) entre
+    `(lat_usuario, lng_usuario)` y la coordenada de la comuna del proveedor
+    de cada publicación — alcanza para un filtro de cercanía con el volumen
+    de datos de este proyecto, no hace falta PostGIS/una extensión
+    geoespacial. La comuna todavía puede no tener coordenada cargada
+    (`Comuna.latitud`/`longitud`, ver migración 0027 — solo unas pocas
+    comunas están geocodificadas por ahora): en ese caso `distancia_km` sale
+    `NULL` y un filtro `distancia_km__lte=...` la excluye solo, sin
+    necesidad de un `isnull=False` explícito (semántica normal de SQL con
+    NULL en comparaciones).
+
+    Sin clamp de `a` al dominio [-1, 1] del `asin` a propósito: se probó con
+    `Least(a, 1.0)` primero, pero `LEAST()`/`GREATEST()` en Postgres
+    *ignoran* los NULL en vez de propagarlos (a diferencia del resto de las
+    funciones SQL) — eso convertía silenciosamente una comuna sin
+    geocodificar en `LEAST(NULL, 1.0) = 1.0`, es decir ~20015 km (medio
+    círculo máximo) en vez de `NULL` (bug real, encontrado por
+    `PublicacionGeolocalizacionApiTests`). A la escala de Chile, `a` nunca
+    se acerca al borde del dominio (eso solo pasa entre puntos
+    antipodales), así que el clamp no hacía falta para este caso de uso.
+    """
+    lat1 = Radians(Value(lat_usuario, output_field=FloatField()))
+    lat2 = Radians(Cast(F('usuario_publicador__comuna__latitud'), FloatField()))
+    lng1 = Radians(Value(lng_usuario, output_field=FloatField()))
+    lng2 = Radians(Cast(F('usuario_publicador__comuna__longitud'), FloatField()))
+    dlat = lat2 - lat1
+    dlng = lng2 - lng1
+    a = Power(Sin(dlat / 2.0), 2) + Cos(lat1) * Cos(lat2) * Power(Sin(dlng / 2.0), 2)
+    return queryset.annotate(distancia_km=RADIO_TIERRA_KM * 2 * ASin(Sqrt(a)))
+
+
 class PaginacionPublicaciones(PageNumberPagination):
     """
     Mismo tamaño de página que el catálogo por templates
@@ -564,6 +601,16 @@ class PublicacionListView(generics.ListAPIView):
     (`AllowAny`, pisa el `IsAuthenticated` por defecto de
     `REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES']`): el catálogo es
     visible sin sesión tanto en el sitio Django como en la futura app.
+
+    `lat`/`lng` (posición del cliente — comuna guardada o geolocalización
+    real del dispositivo, resuelta del lado de Ionic) habilitan
+    `distancia_km` en cada resultado (`_anotar_distancia_km`); `radio_km`
+    junto con `lat`/`lng` además *filtra* por cercanía — igual que
+    `region`/`calificacion`, es un filtro más que se puede sacar para
+    volver a ver todo el catálogo, no un límite duro (ver docs/BACKLOG.md,
+    "Búsqueda por geolocalización"). Solo existe en esta vista API — el
+    catálogo por templates (`catalogo_view`) no lo tiene, es Ionic-only por
+    decisión explícita del usuario.
     """
     permission_classes = [AllowAny]
     serializer_class = PublicacionListSerializer
@@ -574,6 +621,9 @@ class PublicacionListView(generics.ListAPIView):
         region_id = self.request.query_params.get('region', '').strip()
         calificacion_min = self.request.query_params.get('calificacion', '').strip()
         orden = self.request.query_params.get('orden', 'recientes')
+        lat = self.request.query_params.get('lat', '').strip()
+        lng = self.request.query_params.get('lng', '').strip()
+        radio_km = self.request.query_params.get('radio_km', '').strip()
 
         publicaciones = Publicaciones.objects.filter(estado_moderacion=Publicaciones.APROBADA)
         if query:
@@ -592,12 +642,29 @@ class PublicacionListView(generics.ListAPIView):
         if calificacion_min:
             publicaciones = publicaciones.filter(usuario_publicador__ranking__puntuacion_promedio__gte=calificacion_min)
 
+        tiene_ubicacion = False
+        if lat and lng:
+            try:
+                lat_usuario, lng_usuario = float(lat), float(lng)
+            except ValueError:
+                lat_usuario = lng_usuario = None
+            if lat_usuario is not None:
+                tiene_ubicacion = True
+                publicaciones = _anotar_distancia_km(publicaciones, lat_usuario, lng_usuario)
+                if radio_km:
+                    try:
+                        publicaciones = publicaciones.filter(distancia_km__lte=float(radio_km))
+                    except ValueError:
+                        pass
+
         publicaciones = publicaciones.select_related(
             'usuario_publicador__ranking', 'usuario_publicador__comuna__region',
         ).prefetch_related('imagenes')
 
         if orden == 'calificacion':
             return publicaciones.order_by('-usuario_publicador__ranking__puntuacion_promedio', '-fecha_publicacion')
+        if orden == 'cercania' and tiene_ubicacion:
+            return publicaciones.order_by('distancia_km', '-fecha_publicacion')
         return publicaciones.order_by('-fecha_publicacion')
 
 

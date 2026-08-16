@@ -2,28 +2,19 @@
 
 ## PRÓXIMA SESIÓN — empezar por acá
 
-**Búsqueda de servicios por ubicación geográfica (radio en km).** Pedido explícito del usuario
-2026-08-15 noche: poder buscar/filtrar el catálogo de publicaciones por cercanía a la ubicación del
-usuario, con un radio elegible en múltiplos de 3 km (3, 6, 9, 12...). Debe seguir siendo posible ver
-proveedores fuera del radio elegido (se recomiendan igual, el tema de costo de transporte por
-distancia es un problema aparte, fuera de alcance por ahora) — el radio es un *filtro*, no un límite
-duro de qué se muestra. Antes de codear, definir con el usuario:
-- Origen de la ubicación: la comuna/dirección ya guardada del `Usuario`, o geolocalización real del
-  dispositivo (`navigator.geolocation` en web / `@capacitor/geolocation` en nativo, ya que el resto
-  del proyecto distingue explícitamente entre ambas plataformas)? Probablemente ambas: comuna como
-  fallback, geolocalización real como opción más precisa.
-- Qué coordenadas tiene hoy `Publicaciones`/`Usuario` — ninguna todavía (`Comuna` no tiene lat/long
-  en el dump original). Hace falta una migración para agregar lat/long a `Comuna` (aproximado, centro
-  de la comuna) y/o a `Publicaciones`/`Usuario` (coordenada real del proveedor, más preciso). Revisar
-  si el dump de comunas tiene esa data disponible en alguna fuente pública (INE, geocoding manual) o
-  si hay que geocodificar las 330 comunas una sola vez.
-- Cálculo de distancia: fórmula de Haversine en Python/SQL alcanza (no hace falta PostGIS/extensión
-  geoespacial para este volumen de datos) — filtrar en el queryset de `PublicacionListView`
-  (api/views.py) además del filtro de `catalogo_view` (views.py), mismo patrón de "reusar lógica, no
-  duplicarla" que ya sigue el resto del código (ver `Unaccent` en catálogo).
-- UI: un selector de radio (3/6/9/12 km) en el panel de filtros del catálogo (`catalogo.page.html`,
-  Ionic) y su equivalente en `catalogo_view`/`servicios/` (Django) si se sigue manteniendo paridad —
-  confirmar con el usuario si esto va solo a Ionic o a ambos frontends.
+**Búsqueda por geolocalización — terminar lo que quedó pendiente de la sesión 2026-08-16.** El filtro
+de radio ya funciona de punta a punta (ver "Hecho" más abajo), pero quedaron dos cosas explícitamente
+fuera de alcance de esa sesión:
+- **Fallback a la comuna guardada del usuario** cuando no da el permiso de geolocalización real —
+  hoy, sin geolocalización real, el filtro de radio simplemente no aparece (`catalogo.page.ts`,
+  `usarMiUbicacion()`). Implica: exponer `latitud`/`longitud` en `ComunaSerializer`
+  (api/serializers.py), y en `Ubicacion`/`catalogo.page.ts` resolver la comuna del usuario logueado
+  (`Auth.me()` → `comuna`/`region`) y buscar sus coordenadas si `posicionActual()` devuelve `null`.
+- **Geocodificar más comunas.** Migración `0027_comuna_coordenadas_demo.py` solo cargó las 9 comunas
+  RM que usa la data demo (coordenadas de la plaza principal, de memoria general — no verificadas con
+  un geocoder real, ver el comentario en esa migración). El resto de las ~330 queda con
+  `latitud`/`longitud` en `NULL` — no se completan todas de una, se van agregando según haga falta.
+  Cualquier corrección a las 9 ya cargadas va en una migración nueva, no editando la `0027`.
 
 ## Otros ítems pendientes
 
@@ -149,6 +140,51 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       sin el indicador visual de 4 pasos ni la descripción/imágenes de la publicación** (agregado,
       `ContratacionDetailSerializer` suma `publicacion_descripcion`/`publicacion_imagenes`). 263 tests
       backend + 54 frontend en verde en cada commit, verificado en vivo contra datos demo reales.
+- [x] **Búsqueda por geolocalización (radio en km) — solo Ionic, decisión explícita del usuario** (el
+      filtro de radio no se portó a `catalogo_view`/Django). Backend: `Comuna.latitud`/`longitud`
+      (migración `0026`) + 9 comunas RM geocodificadas con la plaza principal como referencia
+      (migración `0027`, solo las que usa la data demo — el resto queda `NULL`, se completa después);
+      `_anotar_distancia_km` (api/views.py, fórmula de Haversine vía funciones trigonométricas del
+      ORM, sin PostGIS) anota `distancia_km` en `PublicacionListView` cuando la request trae
+      `lat`/`lng`, y `radio_km` además filtra — igual que `region`/`calificación`, se puede sacar y
+      volver a ver todo el catálogo (no es un límite duro). Encontrado y corregido en el camino: un
+      bug real donde `LEAST(a, 1.0)` en Postgres ignora los `NULL` en vez de propagarlos, convirtiendo
+      una comuna sin geocodificar en ~20015 km en vez de excluirla (atrapado por
+      `PublicacionGeolocalizacionApiTests`, no en producción). Frontend: `core/ubicacion.ts`
+      (`@capacitor/geolocation`, cubre web y nativo) + botón "Buscar cerca de mí"/selector de radio
+      (múltiplos de 3 km) en `catalogo.page`. Sin fallback a la comuna guardada del usuario todavía —
+      ver "PRÓXIMA SESIÓN" arriba. — 2026-08-16, verificado en vivo contra `:8100` real con los 9
+      proveedores demo geocodificados: activar ubicación anota las distancias correctas en cada card,
+      el radio de 12 km filtra de 8 a 4 publicaciones (todas dentro del radio real), y "Quitar
+      ubicación" vuelve a mostrar las 8. Esa misma prueba en vivo encontró un segundo bug real: la
+      implementación web de `@capacitor/geolocation` no tiene `requestPermissions()` implementado
+      (tira excepción siempre), así que el botón no hacía nada en el navegador — corregido
+      distinguiendo con `Capacitor.isNativePlatform()`. 4 tests backend
+      (`PublicacionGeolocalizacionApiTests`) + 3 tests frontend (`catalogo.page.spec.ts`); sin test
+      unitario directo de `Ubicacion`/Capacitor (mismo motivo que `rostro`/`biometria`: el Proxy que
+      arma `@capacitor/core` para cada plugin ignora las reasignaciones de `spyOn`, así que un test así
+      no probaría nada real — la verificación es en vivo). 268 tests backend + 57 frontend en verde.
+      **Verificado también en el emulador Android real** (`KeyServ_Test2`, API 35, ver Known Issues en
+      CLAUDE.md) — `adb emu geo fix` simula la posición GPS. Encontró un tercer bug real (además de
+      los dos de arriba, específico de nativo): con `enableHighAccuracy: false`, `getCurrentPosition()`
+      siempre daba timeout ahí porque `adb emu geo fix` solo alimenta al proveedor GPS, no al de red
+      (`IONGeolocationController: Location request timed out`, visto en logcat) — cambiado a
+      `enableHighAccuracy: true, timeout: 15000` en `core/ubicacion.ts` (razonable de todos modos para
+      un botón que el usuario toca activamente esperando su ubicación). Con eso: el diálogo real de
+      permiso de Android apareció, se concedió, y el catálogo mostró "3.8 km" para la publicación de
+      Ñuñoa desde una posición mock en Providencia — igual que en web. El mini-mapa de
+      `catalogo/detalle` también se probó ahí: tardó unos segundos en cargar dentro del WebView nativo
+      pero terminó mostrando el mapa real con el pin junto a Plaza Ñuñoa, igual que en Chrome.
+- [x] **Mini-mapa + "Abrir en Google Maps" en `catalogo/detalle`** — pedido explícito del usuario tras
+      probar el filtro de radio ("lo más importante"). `ProveedorSerializer` suma
+      `latitud`/`longitud` (mismo dato que ya carga `Comuna`, ver arriba, expuesto como `float` en vez
+      de string a diferencia de `puntuacion_promedio`). `detalle.page` arma un embed de Google Maps
+      sin API key (`output=embed`, sanitizado con `DomSanitizer.bypassSecurityTrustResourceUrl` porque
+      la URL sale solo de números del backend) + un link `https://www.google.com/maps?q=lat,lng`; nada
+      de esto aparece si la comuna del proveedor todavía no está geocodificada. — 2026-08-16,
+      verificado en vivo en `/catalogo/3` (Ñuñoa): el pin cae justo al lado de Plaza Ñuñoa (la
+      referencia que se cargó), y el link "Abrir en Google Maps" trae las coordenadas correctas.
+      2 tests backend + 3 tests frontend nuevos.
 - [ ] **"Exportar chat" sin endpoint API** — `conversacion_exportar_view` (Django) no tiene
       equivalente en `api/urls.py`; encontrado al comparar contratación/detalle. Es trabajo de backend
       nuevo (endpoint + descarga de archivo), no solo de frontend — quedó fuera de la pasada de

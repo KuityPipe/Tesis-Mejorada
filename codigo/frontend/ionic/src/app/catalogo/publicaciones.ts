@@ -18,6 +18,9 @@ export interface Proveedor {
   region: string | null;
   puntuacion_promedio: string | null;
   total_valoraciones: number;
+  /** Coordenada aproximada de la comuna (plaza principal, no la dirección exacta) — `null` si esa comuna todavía no está geocodificada. A diferencia de `puntuacion_promedio`, llega como `number` de JS directo (ver el comentario en ProveedorSerializer.get_latitud, api/serializers.py). */
+  latitud: number | null;
+  longitud: number | null;
 }
 
 // Campos de PublicacionListSerializer — versión liviana para el listado.
@@ -30,6 +33,8 @@ export interface PublicacionResumen {
   fecha_publicacion: string;
   imagen_portada: string | null;
   proveedor: Proveedor;
+  /** Solo viene si la request llevó `lat`/`lng` (ver FiltrosCatalogo) — `null` si no se pidió, o si la comuna del proveedor todavía no está geocodificada (ver `_anotar_distancia_km`, api/views.py). */
+  distancia_km: number | null;
 }
 
 export interface Imagen {
@@ -105,7 +110,12 @@ export interface FiltrosCatalogo {
   q?: string;
   region?: number | string;
   calificacion?: number | string;
-  orden?: 'recientes' | 'calificacion';
+  orden?: 'recientes' | 'calificacion' | 'cercania';
+  /** Posición del cliente (ver core/ubicacion.ts) — habilita `distancia_km` en cada resultado; junto con `radio_km` además filtra por cercanía. */
+  lat?: number | string;
+  lng?: number | string;
+  /** Solo tiene efecto si `lat`/`lng` también están seteados — filtro de conveniencia, no un límite duro (se puede sacar y se vuelve a ver todo el catálogo). Múltiplos de 3 km (3/6/9/12…) en la UI, ver catalogo.page.html. */
+  radio_km?: number | string;
 }
 
 /** Cliente de `/api/publicaciones/` — ver PublicacionListView/PublicacionDetailView (KeyServApp/api/views.py). Público: no pasa por authInterceptor con token porque no hace falta uno (endpoint AllowAny), aunque el interceptor igual se fijaría si hay uno guardado. */
