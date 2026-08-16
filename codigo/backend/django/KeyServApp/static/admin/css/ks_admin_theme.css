@@ -1,0 +1,424 @@
+/* ---------------------------------------------------------------------
+   Retema visual de /admin/ con la identidad de KeyServ — pedido explícito
+   del usuario tras comparar contra paneles tipo ServiceNow: misma base de
+   Django admin (permisos, validación, auditoría intactos — nada de esto
+   toca admin.py más allá de agregar renderizado de badges/KPIs), pero con
+   la paleta navy/teal/coral + tipografía Quicksand/Nunito que ya tiene el
+   resto del sitio (ver KeyServApp/static/KeyServApp/css/base.css, misma
+   fuente de verdad de valores hex — no se duplica por accidente, se copian
+   a propósito porque las clases de Django admin (.module, .button, etc.)
+   colisionarían si se cargara base.css directo acá).
+
+   Django admin (4.2+) ya expone su tema como variables CSS custom
+   properties sobre :root / html[data-theme], exactamente el mismo patrón
+   de 3 estados (claro / sistema vía prefers-color-scheme / oscuro
+   explícito) que usa el resto de la app — no se reinventa nada, solo se
+   redefinen los valores. Ver django/contrib/admin/static/admin/css/base.css
+   y dark_mode.css para la lista completa de variables y dónde se usan.
+--------------------------------------------------------------------- */
+
+:root,
+html[data-theme="light"] {
+  --primary: #12A38C;
+  --secondary: #0B3D78;
+  --accent: #FF7A50;
+  --primary-fg: #fff;
+
+  --body-fg: #16233A;
+  --body-bg: #FFF8F1;
+  --body-quiet-color: #5B6B82;
+  --body-medium-color: #16233A;
+  --body-loud-color: #082C57;
+
+  --header-color: #fff;
+  --header-branding-color: #fff;
+  --header-bg: linear-gradient(135deg, #0B3D78 0%, #0C8272 100%);
+  --header-link-color: #fff;
+
+  --breadcrumbs-fg: #E9F0FA;
+  --breadcrumbs-link-fg: #fff;
+  --breadcrumbs-bg: #082C57;
+
+  --link-fg: #0C8272;
+  --link-hover-color: #082C57;
+  --link-selected-fg: #0B3D78;
+
+  --hairline-color: #E7ECF3;
+  --border-color: #E7ECF3;
+
+  --error-fg: #E85A30;
+
+  --message-success-bg: #E1F7F2;
+  --message-warning-bg: #FBF0D9;
+  --message-error-bg: #FFE4D6;
+
+  --darkened-bg: #F4EFE7;
+  --selected-bg: #FFE4D6;
+  --selected-row: #FFE4D6;
+
+  --button-fg: #fff;
+  --button-bg: #12A38C;
+  --button-hover-bg: #0C8272;
+  --default-button-bg: #0B3D78;
+  --default-button-hover-bg: #082C57;
+  --close-button-bg: #5B6B82;
+  --close-button-hover-bg: #16233A;
+  --delete-button-bg: #E85A30;
+  --delete-button-hover-bg: #c94620;
+
+  --object-tools-fg: #fff;
+  --object-tools-bg: #0B3D78;
+  --object-tools-hover-bg: #082C57;
+
+  --font-family-primary: 'Nunito', "Segoe UI", system-ui, sans-serif;
+
+  /* Extras propios (no son variables nativas de Django admin) — badges/KPIs de abajo. */
+  --ks-navy: #0B3D78;
+  --ks-navy-dark: #082C57;
+  --ks-navy-light: #E9F0FA;
+  --ks-teal: #12A38C;
+  --ks-teal-dark: #0C8272;
+  --ks-teal-light: #E1F7F2;
+  --ks-coral: #FF7A50;
+  --ks-coral-dark: #E85A30;
+  --ks-coral-light: #FFE4D6;
+  --ks-amber: #C98A1B;
+  --ks-amber-light: #FBF0D9;
+  --ks-radius-lg: 20px;
+  --ks-radius-md: 14px;
+  --ks-radius-sm: 10px;
+  --ks-shadow: 0 10px 30px -12px rgba(11, 61, 120, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --primary: #2BD6B8;
+    --secondary: #6FA8F0;
+    --accent: #FF9270;
+    --primary-fg: #0E1420;
+
+    --body-fg: #E9EFF8;
+    --body-bg: #10151F;
+    --body-quiet-color: #9FB0C7;
+    --body-medium-color: #E9EFF8;
+    --body-loud-color: #fff;
+
+    --header-color: #fff;
+    --header-branding-color: #fff;
+    --header-bg: linear-gradient(135deg, #082C57 0%, #123A34 100%);
+    --header-link-color: #fff;
+
+    --breadcrumbs-fg: #9FB0C7;
+    --breadcrumbs-link-fg: #fff;
+    --breadcrumbs-bg: #161D29;
+
+    --link-fg: #2BD6B8;
+    --link-hover-color: #8FF0DC;
+    --link-selected-fg: #6FA8F0;
+
+    --hairline-color: #29344A;
+    --border-color: #29344A;
+
+    --error-fg: #FF9270;
+
+    --message-success-bg: #123A34;
+    --message-warning-bg: #332405;
+    --message-error-bg: #3A2318;
+
+    --darkened-bg: #161D29;
+    --selected-bg: #232E40;
+    --selected-row: #3A2318;
+
+    --button-fg: #0E1420;
+    --button-bg: #2BD6B8;
+    --button-hover-bg: #8FF0DC;
+    --default-button-bg: #6FA8F0;
+    --default-button-hover-bg: #E7F0FE;
+    --close-button-bg: #9FB0C7;
+    --close-button-hover-bg: #E9EFF8;
+    --delete-button-bg: #FF9270;
+    --delete-button-hover-bg: #FFC1A6;
+
+    --object-tools-fg: #0E1420;
+    --object-tools-bg: #6FA8F0;
+    --object-tools-hover-bg: #E7F0FE;
+
+    --ks-navy: #6FA8F0;
+    --ks-navy-dark: #E7F0FE;
+    --ks-navy-light: #1B2A42;
+    --ks-teal: #2BD6B8;
+    --ks-teal-dark: #8FF0DC;
+    --ks-teal-light: #123A34;
+    --ks-coral: #FF9270;
+    --ks-coral-dark: #FFC1A6;
+    --ks-coral-light: #3A2318;
+    --ks-amber: #E8B84B;
+    --ks-amber-light: #332405;
+    --ks-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  }
+}
+
+html[data-theme="dark"] {
+  --primary: #2BD6B8;
+  --secondary: #6FA8F0;
+  --accent: #FF9270;
+  --primary-fg: #0E1420;
+
+  --body-fg: #E9EFF8;
+  --body-bg: #10151F;
+  --body-quiet-color: #9FB0C7;
+  --body-medium-color: #E9EFF8;
+  --body-loud-color: #fff;
+
+  --header-color: #fff;
+  --header-branding-color: #fff;
+  --header-bg: linear-gradient(135deg, #082C57 0%, #123A34 100%);
+  --header-link-color: #fff;
+
+  --breadcrumbs-fg: #9FB0C7;
+  --breadcrumbs-link-fg: #fff;
+  --breadcrumbs-bg: #161D29;
+
+  --link-fg: #2BD6B8;
+  --link-hover-color: #8FF0DC;
+  --link-selected-fg: #6FA8F0;
+
+  --hairline-color: #29344A;
+  --border-color: #29344A;
+
+  --error-fg: #FF9270;
+
+  --message-success-bg: #123A34;
+  --message-warning-bg: #332405;
+  --message-error-bg: #3A2318;
+
+  --darkened-bg: #161D29;
+  --selected-bg: #232E40;
+  --selected-row: #3A2318;
+
+  --button-fg: #0E1420;
+  --button-bg: #2BD6B8;
+  --button-hover-bg: #8FF0DC;
+  --default-button-bg: #6FA8F0;
+  --default-button-hover-bg: #E7F0FE;
+  --close-button-bg: #9FB0C7;
+  --close-button-hover-bg: #E9EFF8;
+  --delete-button-bg: #FF9270;
+  --delete-button-hover-bg: #FFC1A6;
+
+  --object-tools-fg: #0E1420;
+  --object-tools-bg: #6FA8F0;
+  --object-tools-hover-bg: #E7F0FE;
+
+  --ks-navy: #6FA8F0;
+  --ks-navy-dark: #E7F0FE;
+  --ks-navy-light: #1B2A42;
+  --ks-teal: #2BD6B8;
+  --ks-teal-dark: #8FF0DC;
+  --ks-teal-light: #123A34;
+  --ks-coral: #FF9270;
+  --ks-coral-dark: #FFC1A6;
+  --ks-coral-light: #3A2318;
+  --ks-amber: #E8B84B;
+  --ks-amber-light: #332405;
+  --ks-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Tipografía ---------- */
+
+#header, #branding, .module h2, .module caption, fieldset h2,
+h1, h2, h3, .dashboard .module table caption a,
+.ks-kpi-card .ks-kpi-n {
+  font-family: 'Quicksand', var(--font-family-primary);
+  font-weight: 700;
+}
+
+/* ---------- Branding / header ---------- */
+
+.ks-admin-brand {
+  display: flex;
+  align-items: center;
+}
+
+.ks-admin-brand a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--header-link-color);
+}
+
+.ks-admin-brand img {
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+  background: #fff;
+  padding: 2px;
+}
+
+.ks-admin-brand .ks-brand-name {
+  font-family: 'Quicksand', var(--font-family-primary);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: .01em;
+}
+
+.ks-admin-brand .ks-brand-name small {
+  display: block;
+  font-family: var(--font-family-primary);
+  font-weight: 600;
+  font-size: .62rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .8;
+}
+
+#branding a:link, #branding a:visited { color: var(--header-link-color); }
+
+/* ---------- Bordes redondeados + sombras — mismo lenguaje que .ks-card/.ks-panel del sitio ---------- */
+
+.module, .dashboard .module, fieldset.module, .card {
+  border-radius: var(--ks-radius-md);
+  overflow: hidden;
+  box-shadow: var(--ks-shadow);
+  border: 1px solid var(--border-color);
+}
+
+.module h2, .module caption {
+  border-radius: 0;
+}
+
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ---------- Sidebar de navegación ---------- */
+
+#nav-sidebar .current-app .section:link, #nav-sidebar .current-app .section:visited {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+#nav-sidebar a:link, #nav-sidebar a:visited {
+  border-radius: var(--ks-radius-sm);
+}
+
+#nav-sidebar .current-model a {
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
+  font-weight: 700;
+  border-radius: var(--ks-radius-sm);
+}
+
+/* ---------- Franja de KPIs del dashboard — equivalente admin de las
+   tarjetas de estadística que usan paneles tipo ServiceNow arriba de
+   cualquier lista: el número más importante primero, antes de los
+   detalles. Color por urgencia: coral = necesita acción, navy = informativo. ---------- */
+
+.ks-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 0 0 24px;
+}
+
+.ks-kpi-card {
+  background: var(--body-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--ks-radius-md);
+  box-shadow: var(--ks-shadow);
+  padding: 18px 20px;
+  display: block;
+  color: var(--body-fg);
+  border-top: 4px solid var(--ks-navy);
+}
+
+.ks-kpi-card:link, .ks-kpi-card:visited { color: var(--body-fg); text-decoration: none; }
+.ks-kpi-card:hover { color: var(--body-fg); text-decoration: none; transform: translateY(-2px); transition: transform .12s ease; }
+
+.ks-kpi-card.ks-kpi-urgent { border-top-color: var(--ks-coral); }
+.ks-kpi-card.ks-kpi-ok { border-top-color: var(--ks-teal); }
+.ks-kpi-card.ks-kpi-neutral { border-top-color: var(--ks-navy); }
+
+.ks-kpi-card .ks-kpi-n {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ks-kpi-card.ks-kpi-urgent .ks-kpi-n { color: var(--ks-coral-dark); }
+.ks-kpi-card.ks-kpi-ok .ks-kpi-n { color: var(--ks-teal-dark); }
+.ks-kpi-card.ks-kpi-neutral .ks-kpi-n { color: var(--ks-navy); }
+
+.ks-kpi-card .ks-kpi-l {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--body-quiet-color);
+}
+
+/* ---------- Paneles del dashboard (_panel_aprobaciones.html) ---------- */
+
+.app-ks_panel.module caption {
+  font-family: 'Quicksand', var(--font-family-primary);
+}
+
+.app-ks_panel .ks-panel-empty {
+  padding: 12px 16px;
+  color: var(--body-quiet-color);
+}
+
+/* Fila de "intento sospechoso" — tratamiento de severidad tipo ITSM
+   (borde izquierdo de color, no solo texto) para que salte a la vista
+   sin tener que leerla entera. */
+.ks-severity-row td, .ks-severity-row th {
+  border-left: 4px solid var(--ks-coral);
+}
+
+/* ---------- Badges de estado — mismo lenguaje que .ks-badge-* en
+   base.css del sitio público, aplicado acá vía JS (ks_admin_badges.js)
+   sobre los <select> de list_editable, para no perder la edición
+   inline que ya existía. ---------- */
+
+select[data-ks-tono] {
+  border-radius: 999px;
+  font-weight: 700;
+  border-width: 1.5px;
+  padding-inline: 10px;
+}
+
+select[data-ks-tono="urgente"] {
+  background: var(--ks-coral-light);
+  color: var(--ks-coral-dark);
+  border-color: var(--ks-coral);
+}
+
+select[data-ks-tono="ok"] {
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
+  border-color: var(--ks-teal);
+}
+
+select[data-ks-tono="neutral"] {
+  background: var(--darkened-bg);
+  color: var(--body-quiet-color);
+  border-color: var(--border-color);
+}
+
+/* Badges de solo lectura (format_html en admin.py) — Contratacion.estado, Pago.estado. */
+.ks-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ks-badge-coral { background: var(--ks-coral-light); color: var(--ks-coral-dark); }
+.ks-badge-teal { background: var(--ks-teal-light); color: var(--ks-teal-dark); }
+.ks-badge-navy { background: var(--ks-navy-light); color: var(--ks-navy); }
+.ks-badge-gray { background: var(--darkened-bg); color: var(--body-quiet-color); }

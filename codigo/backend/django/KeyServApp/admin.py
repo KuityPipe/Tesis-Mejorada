@@ -45,6 +45,34 @@ def _ver_documento(documento):
     )
 
 
+def _badge(texto, tono):
+    """
+    Badge de color para un estado de solo lectura en list_display — mismo
+    lenguaje visual que `.ks-badge-*` del sitio público y que los <select>
+    de list_editable coloreados por ks_admin_badges.js (ver
+    static/admin/css/ks_admin_theme.css). `tono` es 'coral'/'teal'/'navy'/
+    'gray', no el código del estado — cada ModelAdmin decide el mapeo
+    porque los estados de Contratacion y de Pago no comparten vocabulario.
+    """
+    return format_html('<span class="ks-badge ks-badge-{}">{}</span>', tono, texto)
+
+
+_TONOS_ESTADO_CONTRATACION = {
+    'SOLICITADA': 'coral',
+    'CONFIRMADA': 'teal',
+    'EN_CURSO': 'teal',
+    'COMPLETADA': 'navy',
+    'CANCELADA': 'gray',
+}
+
+_TONOS_ESTADO_PAGO = {
+    'PENDIENTE': 'coral',
+    'PAGADO': 'teal',
+    'RECHAZADO': 'gray',
+    'ANULADO': 'gray',
+}
+
+
 class ImagenesInline(admin.TabularInline):
     """Fotos de la publicación, visibles directo en su ficha — antes había que ir a buscarlas aparte en 'Imágenes' por id."""
     model = Imagenes
@@ -136,11 +164,15 @@ class ItemPresupuestoInline(admin.TabularInline):
 @admin.register(Contratacion)
 class ContratacionAdmin(admin.ModelAdmin):
     """`fecha_creacion` (inicio del trabajo) y `fecha_actualizacion` son de solo lectura — timestamps fijos por integridad, no se puede reescribir cuándo empezó un trabajo."""
-    list_display = ('id_contratacion', 'publicacion', 'cliente', 'proveedor', 'estado', 'monto_acordado', 'fecha_creacion')
+    list_display = ('id_contratacion', 'publicacion', 'cliente', 'proveedor', 'estado_badge', 'monto_acordado', 'fecha_creacion')
     list_filter = ('estado',)
     search_fields = ('publicacion__titulo', 'cliente__nombre_usuario', 'proveedor__nombre_usuario')
     readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
     inlines = [ItemPresupuestoInline]
+
+    @admin.display(description='Estado', ordering='estado')
+    def estado_badge(self, obj):
+        return _badge(obj.get_estado_display(), _TONOS_ESTADO_CONTRATACION.get(obj.estado, 'gray'))
 
 
 @admin.register(HistorialEstadoContratacion)
@@ -310,7 +342,7 @@ class DocumentoAdmin(admin.ModelAdmin):
 @admin.register(Pago)
 class PagoAdmin(admin.ModelAdmin):
     """Solo lectura de la parte financiera (nadie edita un pago a mano) — respuesta_bruta queda como referencia de auditoría/soporte."""
-    list_display = ('id_pago', 'contratacion', 'metodo', 'estado', 'monto', 'fecha_creacion', 'fecha_confirmacion')
+    list_display = ('id_pago', 'contratacion', 'metodo', 'estado_badge', 'monto', 'fecha_creacion', 'fecha_confirmacion')
     list_filter = ('metodo', 'estado')
     search_fields = ('orden_compra', 'token_webpay', 'khipu_payment_id', 'contratacion__id_contratacion')
     readonly_fields = (
@@ -320,6 +352,10 @@ class PagoAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+    @admin.display(description='Estado', ordering='estado')
+    def estado_badge(self, obj):
+        return _badge(obj.get_estado_display(), _TONOS_ESTADO_PAGO.get(obj.estado, 'gray'))
 
 
 # Catálogos y modelos sin necesidad de una vista de admin a medida —

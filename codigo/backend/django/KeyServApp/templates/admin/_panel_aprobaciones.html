@@ -1,4 +1,38 @@
 {% load i18n %}
+{% comment %}
+Panel del dashboard de /admin/ — panel_aprobaciones (templatetags/admin_extras.py) arma el contexto,
+este template solo lo dibuja. Retema 2026-08-15 con paridad ServiceNow (franja de KPIs primero, el
+número más importante antes que el detalle) sobre la misma paleta/tipografía de KeyServ — la lógica
+de qué se muestra a quién no se tocó, sigue siendo 100% el mismo has_perm() de siempre.
+
+"is not None" (no un {% templatetag openblock %} if {% templatetag closeblock %} a secas) es a
+propósito en cada bloque de abajo: distingue "el usuario no tiene permiso para esto" (la clave ni
+existe en el contexto, se resuelve a None dentro de un tag if) de "tiene permiso y el conteo real
+es 0" (debe seguir mostrando la tarjeta, en verde).
+{% endcomment %}
+
+<div class="ks-kpi-strip">
+  {% if total_pendientes is not None %}
+  <a class="ks-kpi-card {% if total_pendientes %}ks-kpi-urgent{% else %}ks-kpi-ok{% endif %}" href="{% url 'admin:KeyServApp_publicaciones_changelist' %}?estado_moderacion__exact=PENDIENTE">
+    <span class="ks-kpi-n">{{ total_pendientes }}</span>
+    <span class="ks-kpi-l">Publicaciones pendientes de aprobación</span>
+  </a>
+  {% endif %}
+  {% if total_abiertas is not None %}
+  <a class="ks-kpi-card {% if total_abiertas %}ks-kpi-urgent{% else %}ks-kpi-ok{% endif %}" href="{% url 'admin:KeyServApp_consulta_changelist' %}?estado_consulta__exact=1">
+    <span class="ks-kpi-n">{{ total_abiertas }}</span>
+    <span class="ks-kpi-l">Incidencias abiertas</span>
+  </a>
+  {% endif %}
+  {% if total_sospechosos is not None %}
+  <a class="ks-kpi-card {% if total_sospechosos %}ks-kpi-urgent{% else %}ks-kpi-ok{% endif %}" href="{% url 'admin:KeyServApp_intentoaccesosospechoso_changelist' %}">
+    <span class="ks-kpi-n">{{ total_sospechosos }}</span>
+    <span class="ks-kpi-l">Intentos de acceso sospechoso (48h)</span>
+  </a>
+  {% endif %}
+</div>
+
+{% if total_pendientes is not None %}
 <div class="app-ks_panel module" id="ks-panel-aprobaciones">
   <table>
     <caption>
@@ -14,11 +48,13 @@
       <td>{{ pub.fecha_publicacion|date:"d/m/Y" }}</td>
     </tr>
     {% empty %}
-    <tr><td>No hay publicaciones pendientes 🎉</td></tr>
+    <tr><td class="ks-panel-empty">No hay publicaciones pendientes 🎉</td></tr>
     {% endfor %}
   </table>
 </div>
+{% endif %}
 
+{% if total_abiertas is not None %}
 <div class="app-ks_panel module" id="ks-panel-incidencias">
   <table>
     <caption>
@@ -33,10 +69,11 @@
       <td>{{ consulta.fecha_consulta|date:"d/m/Y" }}</td>
     </tr>
     {% empty %}
-    <tr><td>No hay incidencias abiertas 🎉</td></tr>
+    <tr><td class="ks-panel-empty">No hay incidencias abiertas 🎉</td></tr>
     {% endfor %}
   </table>
 </div>
+{% endif %}
 
 {% if intentos_sospechosos is not None %}
 <div class="app-ks_panel module" id="ks-panel-sospechosos">
@@ -47,14 +84,14 @@
       </a>
     </caption>
     {% for intento in intentos_sospechosos %}
-    <tr>
+    <tr class="ks-severity-row">
       <th scope="row">{{ intento.usuario|default:"Anónimo" }}</th>
       <td>{{ intento.recurso }} #{{ intento.recurso_id }}</td>
       <td>{{ intento.ip }}{% if intento.ciudad %} — {{ intento.ciudad }}, {{ intento.pais }}{% endif %}</td>
       <td>{{ intento.fecha|date:"d/m/Y H:i" }}</td>
     </tr>
     {% empty %}
-    <tr><td>Sin intentos sospechosos recientes 🎉</td></tr>
+    <tr><td class="ks-panel-empty">Sin intentos sospechosos recientes 🎉</td></tr>
     {% endfor %}
   </table>
   {% if intentos_sospechosos %}

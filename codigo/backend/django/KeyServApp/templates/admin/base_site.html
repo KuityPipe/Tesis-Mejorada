@@ -3,6 +3,24 @@
 
 {% block extrahead %}
 {{ block.super }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="{% static 'KeyServApp/imagenes/logokeyserv_v2.png' %}">
+<link rel="stylesheet" href="{% static 'admin/css/ks_admin_theme.css' %}">
 <link rel="stylesheet" href="{% static 'admin/css/ks_admin_extra.css' %}">
+<script src="{% static 'admin/js/ks_admin_badges.js' %}" defer></script>
 <script src="{% static 'admin/js/ks_admin_toggle.js' %}" defer></script>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name" class="ks-admin-brand">
+  <a href="{% url 'admin:index' %}">
+    <img src="{% static 'KeyServApp/imagenes/logokeyserv_v2.png' %}" alt="">
+    <span class="ks-brand-name">KeyServ<small>Panel administrativo</small></span>
+  </a>
+</div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
 {% endblock %}
