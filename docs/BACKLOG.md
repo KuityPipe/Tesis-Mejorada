@@ -185,6 +185,20 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       verificado en vivo en `/catalogo/3` (Ñuñoa): el pin cae justo al lado de Plaza Ñuñoa (la
       referencia que se cargó), y el link "Abrir en Google Maps" trae las coordenadas correctas.
       2 tests backend + 3 tests frontend nuevos.
+- [x] **Demo desplegado (Nivel 2.2 del plan de portafolio)** — backend en Render
+      (`https://keyserv-api.onrender.com`) + Postgres administrado, frontend en Netlify
+      (`https://keyserv.netlify.app`). Config de deploy (`render.yaml`, `render_build.sh`,
+      `requirements-render.txt`, `netlify.toml`, `sembrar_datos_demo`) ya había quedado lista antes
+      (ver el ítem de más arriba); esta sesión fue crear las cuentas y desplegar de verdad. Tres bugs
+      reales encontrados en el proceso, ninguno anticipado: Netlify tomaba `master` como rama de
+      producción por defecto (todo Ionic vive en `api-ionic-migration`, nunca se mergeó — build
+      fallaba con "Base directory does not exist"), `CORS_ALLOWED_ORIGINS`/`IONIC_FRONTEND_URL` en
+      Render habían quedado con el placeholder de `localhost` en vez de la URL real de Netlify
+      (bloqueaba todo fetch con "Failed to fetch", confirmado en la consola del navegador), y el sitio
+      de Netlify nacía privado por una feature nueva ("Private by default"). — 2026-08-16, verificado
+      en vivo en el sitio real: catálogo con las 8 publicaciones demo, login real con
+      `cliente.demo@demo.keyserv`, dashboard mostrando la contratación sembrada. Detalle completo en
+      `docs/PLAN_PORTAFOLIO.md`, Nivel 2.2.
 - [ ] **"Exportar chat" sin endpoint API** — `conversacion_exportar_view` (Django) no tiene
       equivalente en `api/urls.py`; encontrado al comparar contratación/detalle. Es trabajo de backend
       nuevo (endpoint + descarga de archivo), no solo de frontend — quedó fuera de la pasada de

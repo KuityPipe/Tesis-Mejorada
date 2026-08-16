@@ -14,7 +14,13 @@ Un marketplace chileno de servicios del hogar con verificación biométrica de i
 
 ## Demo en vivo
 
-Todavía no está desplegado (ver [Roadmap](#roadmap)). Mientras tanto, corre local en pocos minutos — ver [Cómo correrlo local](#cómo-correrlo-local) abajo.
+**[keyserv.netlify.app](https://keyserv.netlify.app)** — backend en Render (tier gratis, puede tardar ~50s en despertar en el primer request tras un rato inactivo), frontend en Netlify. Catálogo, cuenta/login, contrataciones y búsqueda por geolocalización están en vivo; la biometría nativa y el reconocimiento facial no son parte de este demo (para eso, el video, cuando exista). Credenciales demo:
+
+- `cliente.demo@demo.keyserv` / `Demo1234` (cliente)
+- `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (proveedor)
+- `admin` / `KeyServ2026!` (superuser, `/admin/` en el host de la API)
+
+También corre local en pocos minutos — ver [Cómo correrlo local](#cómo-correrlo-local) abajo.
 
 ## Stack
 
@@ -107,7 +113,6 @@ Este proyecto se construyó con Claude Code como par de desarrollo. Cada decisi�
 
 ## Roadmap
 
-- Un demo desplegado (catálogo + cuenta + contrataciones; la biometría nativa queda solo local, cubierta por un video demo en su lugar)
 - Un video corto (flujo de contratación, pago, app nativa Android con biometría)
 
 ## Licencia

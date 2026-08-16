@@ -14,7 +14,13 @@ A Chilean home-services marketplace with biometric identity verification (finger
 
 ## Live demo
 
-Not deployed yet (see [Roadmap](#roadmap)). In the meantime, it runs locally in a few minutes — see [Running locally](#running-locally) below.
+**[keyserv.netlify.app](https://keyserv.netlify.app)** — backend on Render (free tier, may take ~50s to wake up on the first request after inactivity), frontend on Netlify. Catalog, account/login, contracting and geolocation search are live; native biometrics and facial recognition aren't part of this demo (see the video instead, once it exists). Demo logins:
+
+- `cliente.demo@demo.keyserv` / `Demo1234` (client)
+- `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (provider)
+- `admin` / `KeyServ2026!` (superuser, `/admin/` on the API host)
+
+It also runs locally in a few minutes — see [Running locally](#running-locally) below.
 
 ## Stack
 
@@ -107,7 +113,6 @@ This project was built with Claude Code as a development pair. Every architectur
 
 ## Roadmap
 
-- A deployed demo (catalog + auth + contracting; native biometrics stay local-only, covered by a demo video instead)
 - A short video walkthrough (contracting flow, payment, native Android app with biometrics)
 
 ## License

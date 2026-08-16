@@ -203,20 +203,27 @@ Webpay (sandbox de integración, sin cuenta real) + búsqueda por geolocalizaci�
 nativa ni reconocimiento facial ni Khipu (Khipu ya degrada solo con un error claro sin
 `KHIPU_API_KEY`, no hace falta deshabilitarlo a mano). El video (1.3) cubre lo que el demo no puede.
 
-**Lo que falta — pasos manuales del usuario:**
-1. Crear cuenta en Render (render.com) → "New" → "Blueprint" → conectar el repo de GitHub → Render
-   lee `render.yaml` solo.
-2. Completar en el dashboard de Render las dos variables `sync: false` del servicio
-   (`CORS_ALLOWED_ORIGINS`, `IONIC_FRONTEND_URL`) — con la URL de Netlify del paso 4, así que
-   conviene volver a esto después de tenerla.
-3. Crear cuenta en Netlify (netlify.com) → "Add new site" → "Import an existing project" → conectar
-   el mismo repo, "Base directory" = `codigo/frontend/ionic` (`netlify.toml` ya está ahí).
-4. Con la URL real de Netlify, volver a Render (paso 2) y completar las dos variables pendientes.
-5. Verificar en vivo: catálogo, registro/login, contratar un servicio, pagar con una tarjeta de
-   prueba de Transbank (las credenciales de integración públicas ya están activas por defecto),
-   buscar cerca de mí. Credenciales demo: `cliente.demo@demo.keyserv` / `Demo1234` (cliente),
-   `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (proveedor), `admin` / `KeyServ2026!` (superuser
-   de `/admin/`) — agregar estas al README una vez confirmado que el demo funciona.
+**Hecho — desplegado y verificado en vivo, 2026-08-16.** Backend en Render
+(`https://keyserv-api.onrender.com`, servicio `keyserv-api`), frontend en Netlify
+(`https://keyserv.netlify.app`). Tres problemas reales encontrados y corregidos en el camino, ninguno
+anticipado en el plan original:
+
+- **Netlify tomaba `master` como rama de producción por defecto** (el proyecto se conecta al repo
+  completo, no a una rama específica al crear el Blueprint como sí pide Render) — y todo el código de
+  Ionic vive solo en `api-ionic-migration`, nunca se mergeó a `master`. Build fallaba con "Base
+  directory does not exist". Arreglado en Netlify → Project configuration → Build & deploy → Branches
+  and deploy contexts → Production branch.
+- **CORS bloqueaba todo el sitio** — las dos variables `sync: false` de Render (`CORS_ALLOWED_ORIGINS`/
+  `IONIC_FRONTEND_URL`) habían quedado con el placeholder `http://localhost:8100` de las instrucciones
+  originales; sin actualizarlas con la URL real de Netlify, cualquier fetch desde el sitio desplegado
+  fallaba con "Failed to fetch" (confirmado en la consola del navegador antes de arreglarlo).
+- **El sitio de Netlify nacía privado** ("Private by default", feature nueva de Netlify) — solo
+  miembros del team podían verlo aunque el deploy funcionara. Project configuration → Visitor access →
+  Edit visibility → Public.
+
+Verificado en vivo en el sitio real (no solo curl): catálogo con las 8 publicaciones demo, login real
+con `cliente.demo@demo.keyserv`, dashboard mostrando la contratación demo sembrada. Credenciales y URL
+ya están en el README.
 
 ### 2.3 Diagrama de arquitectura
 
