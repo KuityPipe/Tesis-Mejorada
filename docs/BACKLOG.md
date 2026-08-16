@@ -289,7 +289,23 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       que el token sobrevivió en el Keystore real, no solo en memoria del proceso. Logout después
       también verificado (vuelve a `/login`, el Keystore quedó vacío). 8 tests nuevos
       (`auth.spec.ts` +4, `almacenamiento-seguro.spec.ts` +4).
-- [ ] Endpoint de refresh token + rotación (`TokenSesion` ya existe, falta la vista).
+- [x] **Endpoint de refresh token + rotación** — `POST /api/auth/refresh/` (`RefreshView`) cambia un
+      refresh token vigente por un par access+refresh nuevo y revoca el usado en el mismo movimiento
+      (rotación: un refresh token es de un solo uso, reusar uno ya usado da 401) vía
+      `jwt_utils.obtener_sesion_vigente`/`revocar_sesion`/`crear_sesion`, ya existentes desde Fase 7
+      pero sin vista que los expusiera. `POST /api/auth/logout/` (`LogoutView`) revoca el refresh
+      token del lado del servidor — antes `Auth.logout()` (Ionic) solo borraba los tokens locales, el
+      refresh seguía técnicamente vigente en `TokenSesion`. Ambos `AllowAny`: el caso real que
+      motivan es justo que el access token ya esté vencido. Lado Ionic: `Auth.refrescarToken()`
+      (comparte una única request en vuelo entre llamadas concurrentes vía `shareReplay(1)`, evita que
+      dos 401 simultáneos disparen dos refresh y el segundo pise el token que el primero acaba de
+      rotar) + `authInterceptor` reintenta automáticamente una request que volvió con 401 (si hay
+      refresh token guardado) en vez de dejar al usuario varado hasta que vuelva a loguearse a mano —
+      si el refresh también falla, deslogueo local y el siguiente `authGuard` redirige a `/login`. —
+      2026-08-16, verificado en vivo contra el backend real corriendo (`runserver`, no solo tests):
+      login → refresh (rota) → reusar el token viejo da 401 → logout (204) → refrescar después del
+      logout también da 401. 9 tests backend + 10 tests frontend nuevos — 278 tests backend + 67
+      frontend en verde, build de producción de Ionic sin errores.
 - [ ] Tests E2E (Cypress/Playwright para web, Appium si hace falta cubrir nativo).
 - [ ] Pipeline de build para Android/iOS.
 

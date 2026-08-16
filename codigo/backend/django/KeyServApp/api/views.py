@@ -42,7 +42,7 @@ from ..views import Unaccent
 from . import jwt_utils
 from .serializers import (
     ComunaSerializer, ContratacionDetailSerializer, ContratacionListSerializer, ConversacionResumenSerializer,
-    DocumentoPerfilSerializer, LoginSerializer, MensajeSerializer, PagoHistorialSerializer,
+    DocumentoPerfilSerializer, LoginSerializer, MensajeSerializer, PagoHistorialSerializer, RefreshTokenSerializer,
     PublicacionDetailSerializer, PublicacionListSerializer, PublicacionPropiaSerializer, RegionSerializer,
     ResenaRecibidaSerializer, TipoCuentaSerializer, UsuarioMeSerializer, ValoracionSerializer,
 )
@@ -96,6 +96,60 @@ class LoginView(APIView):
             cache.set(clave_intentos, 1, vistas_legacy.VENTANA_INTENTOS_LOGIN)
         logger.warning('Login fallido (api): email=%s', email)
         return Response({'detail': 'Correo o contraseña incorrectos.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class RefreshView(APIView):
+    """
+    `POST /api/auth/refresh/` — Fase 7 (hardening): hasta ahora el access
+    token stateless (`JWT_ACCESS_TOKEN_MINUTOS`, 20 min por defecto) no
+    tenía forma de renovarse — vencido, la única salida era loguearse de
+    nuevo a mano. `authInterceptor` (Ionic) llama acá cuando un request
+    real devuelve 401, no por polling.
+
+    Con **rotación**: el refresh token usado queda revocado en el mismo
+    movimiento en que se emite el par nuevo — nunca se puede reusar dos
+    veces. Si alguien lo intenta (el refresh ya fue revocado), `AllowAny`
+    porque el access token puede estar vencido en este mismo momento — es
+    justo el caso que este endpoint existe para resolver.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RefreshTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        sesion = jwt_utils.obtener_sesion_vigente(serializer.validated_data['refresh_token'])
+        if sesion is None:
+            return Response({'detail': 'Refresh token inválido o vencido.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        jwt_utils.revocar_sesion(sesion)
+        access_token, refresh_token, _nueva_sesion = jwt_utils.crear_sesion(sesion.usuario, dispositivo=sesion.dispositivo)
+        return Response({'access_token': access_token, 'refresh_token': refresh_token})
+
+
+class LogoutView(APIView):
+    """
+    `POST /api/auth/logout/` — revoca el refresh token del lado del
+    servidor. Hasta ahora `Auth.logout()` (Ionic) solo borraba los tokens
+    guardados localmente — el refresh token seguía técnicamente vigente en
+    `TokenSesion` si alguien lo hubiera copiado antes de ese logout
+    (dispositivo compartido, backup del almacenamiento, etc.). Mismo
+    criterio `AllowAny` que `RefreshView`: nada le impide a alguien
+    desloguearse con el access token ya vencido.
+
+    Si el refresh token que llega ya no corresponde a una sesión vigente
+    (vencido, ya revocado, o simplemente no vino ninguno), igual responde
+    204 — el resultado que le importa al cliente ("ya no estoy logueado")
+    es el mismo en cualquier caso, no hace falta que sepa por qué.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.data.get('refresh_token', '')
+        if refresh_token:
+            sesion = jwt_utils.obtener_sesion_vigente(refresh_token)
+            if sesion is not None:
+                jwt_utils.revocar_sesion(sesion)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RegistroView(APIView):

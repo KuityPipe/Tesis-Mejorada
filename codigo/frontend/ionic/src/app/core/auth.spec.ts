@@ -56,7 +56,7 @@ describe('Auth', () => {
     expect(guardarSpy).toHaveBeenCalledWith(jasmine.stringMatching(/refresh/), 'nuevo-refresh');
   });
 
-  it('logout() limpia la sesión en memoria de inmediato y pide borrar ambos tokens del almacenamiento seguro', () => {
+  it('logout() limpia la sesión en memoria de inmediato, pide borrar ambos tokens del almacenamiento seguro, y revoca el refresh token en el servidor', () => {
     const eliminarSpy = spyOn(almacenamiento, 'eliminar').and.returnValue(Promise.resolve());
     spyOn(almacenamiento, 'guardar').and.returnValue(Promise.resolve());
 
@@ -69,5 +69,54 @@ describe('Auth', () => {
     expect(service.estaAutenticado()).toBeFalse();
     expect(service.obtenerAccessToken()).toBeNull();
     expect(eliminarSpy).toHaveBeenCalledTimes(2);
+    const logoutReq = httpMock.expectOne(`${environment.apiUrl}/auth/logout/`);
+    expect(logoutReq.request.body).toEqual({ refresh_token: 'r' });
+    logoutReq.flush(null, { status: 204, statusText: 'No Content' });
+  });
+
+  it('logout() no llama al backend si no había sesión (nada que revocar)', () => {
+    spyOn(almacenamiento, 'eliminar').and.returnValue(Promise.resolve());
+
+    service.logout();
+
+    expect(service.estaAutenticado()).toBeFalse();
+    httpMock.expectNone(`${environment.apiUrl}/auth/logout/`);
+  });
+
+  it('refrescarToken() cambia el par de tokens y persiste el nuevo refresh token', () => {
+    spyOn(almacenamiento, 'guardar').and.returnValue(Promise.resolve());
+    (service as any).refreshTokenEnMemoria = 'refresh-viejo';
+
+    service.refrescarToken().subscribe();
+    const req = httpMock.expectOne(`${environment.apiUrl}/auth/refresh/`);
+    expect(req.request.body).toEqual({ refresh_token: 'refresh-viejo' });
+    req.flush({ access_token: 'access-nuevo', refresh_token: 'refresh-nuevo' });
+
+    expect(service.obtenerAccessToken()).toBe('access-nuevo');
+    expect(service.obtenerRefreshToken()).toBe('refresh-nuevo');
+  });
+
+  it('refrescarToken() comparte una única request en vuelo entre llamadas concurrentes', () => {
+    spyOn(almacenamiento, 'guardar').and.returnValue(Promise.resolve());
+    (service as any).refreshTokenEnMemoria = 'refresh-viejo';
+
+    let primeraRespuesta: unknown;
+    let segundaRespuesta: unknown;
+    service.refrescarToken().subscribe((r) => (primeraRespuesta = r));
+    service.refrescarToken().subscribe((r) => (segundaRespuesta = r));
+
+    httpMock.expectOne(`${environment.apiUrl}/auth/refresh/`).flush({ access_token: 'a2', refresh_token: 'r2' });
+
+    expect(primeraRespuesta).toEqual(segundaRespuesta);
+  });
+
+  it('refrescarToken() sin refresh token guardado falla sin llamar al backend', (done) => {
+    service.refrescarToken().subscribe({
+      error: (err) => {
+        expect(err).toBeTruthy();
+        httpMock.expectNone(`${environment.apiUrl}/auth/refresh/`);
+        done();
+      },
+    });
   });
 });

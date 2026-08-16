@@ -164,6 +164,81 @@ class JWTUtilsTests(APITestCase):
         self.assertIsNone(jwt_utils.obtener_sesion_vigente('token-que-no-existe'))
 
 
+class RefreshApiTests(APITestCase):
+    """`POST /api/auth/refresh/` — Fase 7, renueva el access token sin obligar a loguearse de nuevo. Con rotación: el refresh usado queda revocado."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('refresh@test.com', 'claveok', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        _access, self.refresh_plano, self.sesion = jwt_utils.crear_sesion(self.usuario, dispositivo='pytest')
+
+    def test_refresh_valido_devuelve_par_nuevo(self):
+        resp = self.client.post('/api/auth/refresh/', {'refresh_token': self.refresh_plano}, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('access_token', resp.data)
+        self.assertIn('refresh_token', resp.data)
+        self.assertNotEqual(resp.data['refresh_token'], self.refresh_plano)
+
+    def test_refresh_usado_no_sirve_dos_veces(self):
+        """La rotación es el punto — un refresh token es de un solo uso."""
+        primera = self.client.post('/api/auth/refresh/', {'refresh_token': self.refresh_plano}, format='json')
+        self.assertEqual(primera.status_code, 200)
+
+        segunda = self.client.post('/api/auth/refresh/', {'refresh_token': self.refresh_plano}, format='json')
+        self.assertEqual(segunda.status_code, 401)
+
+    def test_refresh_token_invalido(self):
+        resp = self.client.post('/api/auth/refresh/', {'refresh_token': 'no-existe'}, format='json')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_refresh_no_necesita_access_token_vigente(self):
+        """El caso real que motiva este endpoint: el access token ya venció."""
+        resp = self.client.post(
+            '/api/auth/refresh/', {'refresh_token': self.refresh_plano}, format='json',
+            HTTP_AUTHORIZATION='Bearer token-invalido-o-vencido',
+        )
+        self.assertEqual(resp.status_code, 200)
+
+    def test_access_token_nuevo_funciona_en_endpoint_protegido(self):
+        resp = self.client.post('/api/auth/refresh/', {'refresh_token': self.refresh_plano}, format='json')
+        nuevo_access = resp.data['access_token']
+
+        me = self.client.get('/api/auth/me/', HTTP_AUTHORIZATION=f'Bearer {nuevo_access}')
+        self.assertEqual(me.status_code, 200)
+        self.assertEqual(me.data['email'], self.usuario.email)
+
+
+class LogoutApiTests(APITestCase):
+    """`POST /api/auth/logout/` — revoca el refresh token del lado del servidor, no solo lo borra localmente."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('logout@test.com', 'claveok', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        _access, self.refresh_plano, self.sesion = jwt_utils.crear_sesion(self.usuario)
+
+    def test_logout_revoca_la_sesion(self):
+        resp = self.client.post('/api/auth/logout/', {'refresh_token': self.refresh_plano}, format='json')
+
+        self.assertEqual(resp.status_code, 204)
+        self.assertIsNone(jwt_utils.obtener_sesion_vigente(self.refresh_plano))
+
+    def test_refresh_token_ya_no_sirve_despues_del_logout(self):
+        self.client.post('/api/auth/logout/', {'refresh_token': self.refresh_plano}, format='json')
+
+        resp = self.client.post('/api/auth/refresh/', {'refresh_token': self.refresh_plano}, format='json')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_logout_con_refresh_token_invalido_igual_devuelve_204(self):
+        """No le importa al cliente por qué ya no está logueado, solo que lo esté."""
+        resp = self.client.post('/api/auth/logout/', {'refresh_token': 'no-existe'}, format='json')
+        self.assertEqual(resp.status_code, 204)
+
+    def test_logout_sin_refresh_token_no_revienta(self):
+        resp = self.client.post('/api/auth/logout/', {}, format='json')
+        self.assertEqual(resp.status_code, 204)
+
+
 class PublicacionesApiTests(APITestCase):
     """`GET /api/publicaciones/` y `/api/publicaciones/<pk>/` — públicos, sin token (ver PublicacionListView/PublicacionDetailView)."""
 

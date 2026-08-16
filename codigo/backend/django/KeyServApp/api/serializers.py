@@ -12,6 +12,11 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, trim_whitespace=False)
 
 
+class RefreshTokenSerializer(serializers.Serializer):
+    """Usado por `RefreshView` y `LogoutView` (api/views.py) — el mismo campo en ambas."""
+    refresh_token = serializers.CharField(trim_whitespace=False)
+
+
 class UsuarioMeSerializer(serializers.ModelSerializer):
     """
     Perfil del usuario autenticado — `GET /api/auth/me/`. Nunca incluye

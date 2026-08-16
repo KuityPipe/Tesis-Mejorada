@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { finalize, Observable, shareReplay, tap, throwError } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { AlmacenamientoSeguro } from './almacenamiento-seguro';
@@ -55,6 +55,11 @@ interface RespuestaLogin {
   access_token: string;
   refresh_token: string;
   usuario: Usuario;
+}
+
+interface RespuestaRefresh {
+  access_token: string;
+  refresh_token: string;
 }
 
 // Mismos nombres de campo que `RegistroForm` (KeyServApp/forms.py) — el
@@ -114,9 +119,10 @@ export interface DatosRegistro {
  * (memoria + almacenamiento seguro) sincronizadas en cada escritura.
  *
  * `estaAutenticado()` solo comprueba que exista un access token, no que
- * siga vigente — todavía no hay endpoint de refresh (ver plan de
- * migración), así que un token expirado recién se detecta cuando el
- * backend responde 401 a una request real.
+ * siga vigente — un token expirado recién se detecta cuando el backend
+ * responde 401 a una request real; `authInterceptor` (Fase 7) es quien
+ * reacciona a eso llamando a `refrescarToken()`, no este servicio por sí
+ * solo (evita medir el reloj del cliente contra el del servidor).
  */
 @Injectable({
   providedIn: 'root',
@@ -124,6 +130,18 @@ export interface DatosRegistro {
 export class Auth {
   private accessTokenEnMemoria: string | null = null;
   private refreshTokenEnMemoria: string | null = null;
+
+  /**
+   * Fase 7 ("hardening"): comparte una única request de refresh en vuelo
+   * entre todos los que la pidan al mismo tiempo — si tres requests reciben
+   * 401 juntas, `authInterceptor` no dispara tres `POST /auth/refresh/`
+   * (el primero rotaría el refresh token y dejaría a los otros dos con uno
+   * ya revocado). `shareReplay(1)` hace que quien se suscriba mientras
+   * sigue en vuelo reciba el mismo resultado, no una request nueva;
+   * `finalize` limpia la referencia cuando termina (éxito o error) para
+   * que la próxima vez sí dispare una request real.
+   */
+  private refrescoEnVuelo$: Observable<RespuestaRefresh> | null = null;
 
   // Inyección por constructor: Angular resuelve `HttpClient` solo (fue
   // registrado por `provideHttpClient(...)` en app.module.ts) y lo pasa
@@ -161,6 +179,37 @@ export class Auth {
     return this.http
       .post<RespuestaLogin>(`${environment.apiUrl}/auth/login/`, { email, password })
       .pipe(tap((respuesta) => this.guardarTokens(respuesta.access_token, respuesta.refresh_token)));
+  }
+
+  /**
+   * `POST /api/auth/refresh/` (Fase 7) — la llama `authInterceptor` cuando
+   * una request real devuelve 401, no por polling. El backend rota el
+   * refresh token (el usado queda revocado), así que `guardarTokens` acá
+   * es obligatorio, no solo una optimización: si no se guardara el
+   * refresh token nuevo, el siguiente 401 fallaría con el viejo ya
+   * revocado.
+   */
+  refrescarToken(): Observable<RespuestaRefresh> {
+    if (this.refrescoEnVuelo$) {
+      return this.refrescoEnVuelo$;
+    }
+    const refreshToken = this.refreshTokenEnMemoria;
+    if (!refreshToken) {
+      return throwError(() => new Error('No hay sesión que refrescar.'));
+    }
+    this.refrescoEnVuelo$ = this.http
+      .post<RespuestaRefresh>(`${environment.apiUrl}/auth/refresh/`, { refresh_token: refreshToken })
+      .pipe(
+        tap((respuesta) => this.guardarTokens(respuesta.access_token, respuesta.refresh_token)),
+        finalize(() => (this.refrescoEnVuelo$ = null)),
+        shareReplay(1),
+      );
+    return this.refrescoEnVuelo$;
+  }
+
+  /** Síncrono, igual que `obtenerAccessToken()` — lo necesita `authInterceptor` para decidir si vale la pena intentar `refrescarToken()` o directamente dejar pasar el 401. */
+  obtenerRefreshToken(): string | null {
+    return this.refreshTokenEnMemoria;
   }
 
   /** El `Authorization: Bearer <token>` lo agrega `authInterceptor` (core/auth-interceptor.ts) — esta llamada no necesita pasarlo a mano. */
@@ -283,12 +332,25 @@ export class Auth {
    * `AlmacenamientoSeguro` en segundo plano — ningún caller de este método
    * espera una Promise hoy (ver `home.page.ts`), así que mantenerlo
    * síncrono evita tocar esos call sites.
+   *
+   * Fase 7: también dispara `POST /api/auth/logout/` para revocar el
+   * refresh token del lado del servidor — antes de esto, "cerrar sesión"
+   * solo borraba los tokens del dispositivo, pero el refresh token seguía
+   * técnicamente vigente en `TokenSesion` (alguien con acceso previo al
+   * almacenamiento del dispositivo, o un backup de él, lo podría haber
+   * copiado antes del logout). Fire-and-forget: no hay nada útil que hacer
+   * si esta llamada falla (el logout local ya pasó) más que loguear el
+   * error, y ningún caller necesita esperarla.
    */
   logout(): void {
+    const refreshToken = this.refreshTokenEnMemoria;
     this.accessTokenEnMemoria = null;
     this.refreshTokenEnMemoria = null;
     void this.almacenamiento.eliminar(CLAVE_ACCESS_TOKEN);
     void this.almacenamiento.eliminar(CLAVE_REFRESH_TOKEN);
+    if (refreshToken) {
+      this.http.post(`${environment.apiUrl}/auth/logout/`, { refresh_token: refreshToken }).subscribe({ error: () => {} });
+    }
   }
 
   estaAutenticado(): boolean {
