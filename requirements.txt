@@ -16,6 +16,12 @@ Django==5.2.16
 django-environ>=0.11
 psycopg2-binary>=2.9.9
 Pillow>=10.3
+# Sirve /static/ directo desde el proceso de Django (ver MIDDLEWARE en settings.py) — se agregó
+# ahí sin agregarse acá, un gap real: quedó solo en requirements-render.txt, así que instalar
+# `requirements.txt` a secas (lo que pide el propio README para correr local) daba
+# ModuleNotFoundError al arrancar. Sin costo real en local/CI: si nadie corrió `collectstatic`,
+# whitenoise simplemente no encuentra el manifest y no hace nada (ver STORAGES, condicional a DEBUG).
+whitenoise>=6.7
 
 # Geolocalización aproximada por IP para IntentoAccesoSospechoso (ver
 # codigo/backend/django/KeyServApp/geolocalizacion.py) — lee una base DB-IP

@@ -395,6 +395,20 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       en cada tecleo como `ionInput`), así que hace falta un blur explícito después de escribir, no
       solo esperar. — 2026-08-16, verificado en vivo contra `:8000`/`:8100` reales corriendo: 7/7
       tests en verde, repetido dos veces seguidas (14/14) para confirmar que no eran flaky.
+- [x] **CI roto en silencio desde el checkpoint #69, corregido** — encontrado al revisar el
+      historial de runs (API pública de GitHub Actions, `gh` no está disponible en este entorno)
+      antes de dar por buena la config del job `e2e` nuevo. `whitenoise` se agregó a `MIDDLEWARE`
+      (`settings.py`, para el demo desplegado en Render) sin agregarse a `requirements.txt`/
+      `requirements-ci.txt` — solo quedó en `requirements-render.txt`. Cualquier `manage.py` en un
+      entorno limpio (CI, o un checkout nuevo local siguiendo el README) ni arrancaba
+      (`ModuleNotFoundError`); no se notó en esta sesión porque el venv de desarrollo ya tenía
+      `whitenoise` instalado al margen del archivo, arrastrado de cuando se armó el deploy. El job
+      `frontend` seguía en verde — solo `backend` fallaba, silenciosamente, en cada push desde
+      entonces. Corregido agregando `whitenoise>=6.7` a ambos archivos. Verificado con un venv
+      *limpio de verdad* (no el de desarrollo): `pip install -r requirements-ci.txt` +
+      `manage.py test KeyServApp` (290 tests) en verde — algo que nunca se había probado desde que
+      se armó `requirements-ci.txt`, y que el badge verde de "Tests" del README venía prometiendo
+      sin que fuera cierto.
 - [ ] Pipeline de build para Android/iOS.
 
 ## Fase 8 — Publicación / portafolio
