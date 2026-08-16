@@ -23,7 +23,8 @@ Todavía no está desplegado (ver [Roadmap](#roadmap)). Mientras tanto, corre lo
 - **Auth**: JWT hecho a mano (PyJWT), no `djangorestframework-simplejwt` — ver [Decisiones técnicas](#decisiones-técnicas)
 - **Pagos**: Transbank Webpay Plus (tarjetas) + Khipu (transferencia bancaria)
 - **Biometría**: pipeline de imagen de huella dactilar, reconocimiento facial por cámara con detección de vida por parpadeo, y biometría nativa del dispositivo (Face ID / huella vía Capacitor)
-- **Tests**: 263 tests de backend + 54 de frontend, todos en verde
+- **Ubicación**: búsqueda por geolocalización (posición real del dispositivo vía `@capacitor/geolocation`, distancia Haversine calculada en la API, filtro de radio), con vista previa de mapa + link a Google Maps en cada publicación
+- **Tests**: 269 tests de backend + 59 de frontend, todos en verde
 
 Actualmente coexisten dos frontends: los templates originales renderizados por Django y la nueva app Ionic/Angular, que habla con una API REST hecha con DRF. La migración a Ionic sigue un enfoque "strangler fig" — las pantallas se retiran del app de templates área por área, no en un solo corte grande.
 
