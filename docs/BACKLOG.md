@@ -137,6 +137,25 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       chequeaba si la clave existía en el contexto — ahora si un usuario no tiene permiso, el panel ni
       aparece. Verificado en vivo como superuser y como cuenta Moderador, modo claro y oscuro
       explícitos. 263 tests backend en verde.
+- [x] **Ancho del dashboard de `/admin/` + alcance del Moderador acotado** — 2026-08-15, pedido
+      explícito del usuario tras usar el retema: "usa el espacio de página de manera inteligente" y
+      "el moderador solo debe ver casos que deriven... no trabajos pendientes, solo las alertas".
+      El dashboard quedaba limitado a ~600px por una regla de fábrica de Django
+      (`.dashboard #content { width: 600px }`, pensada para el app-list plano sin contenido propio) —
+      se sacó y los paneles se reacomodaron en una grilla responsive (`.ks-panel-grid`,
+      `ks_admin_theme.css`): KPIs y paneles pareados en 2 columnas, "Intentos sospechosos" a ancho
+      completo. `PERMISOS_MODERADOR` (`configurar_grupo_moderador.py`) bajó de 17 a 13 permisos —
+      se sacó `Contratacion`/`HistorialEstadoContratacion` (pipeline de contrataciones) y
+      `Conversacion`/`Mensaje` (chats privados); se mantuvo `Consulta` (casos derivados),
+      moderación de contenido (`Publicaciones`/`Documento`/`Valoracion`/`ValoracionImagen`/
+      `Imagenes`), `Ranking` (resultado de las valoraciones que sí modera) e
+      `IntentoAccesoSospechoso` (las alertas). La categoría "Mensajería" del sidebar desaparece sola
+      para Moderador (Django omite categorías sin modelos visibles). Bug real encontrado de paso: el
+      panel "Auditoría" (sin filas `<tr>`, solo `<caption>`) colapsaba a un ancho absurdo con el
+      texto envuelto palabra por palabra dentro de la grilla — corregido agregándole una fila
+      descriptiva, igual que ya tenía su panel vecino. Verificado en vivo como superuser y como
+      cuenta Moderador (sidebar sin "Mensajería" ni "Contratación" en ningún lado de la página).
+      264 tests backend en verde (+1 test de regresión).
 
 ## Pendiente — prioridad baja / decisión de negocio
 
