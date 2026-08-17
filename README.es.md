@@ -8,7 +8,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue)](LICENSE)
 
-Un marketplace chileno de servicios del hogar con verificación biométrica de identidad (huella dactilar, reconocimiento facial por cámara, y Face ID/huella nativos del teléfono). Empezó como proyecto de tesis universitaria; hoy se sigue desarrollando como producto real.
+Un marketplace chileno de servicios del hogar con verificación biométrica de identidad (reconocimiento facial por cámara y Face ID/huella nativos del teléfono). Empezó como proyecto de tesis universitaria; hoy se sigue desarrollando como producto real.
 
 ![Catálogo de servicios de KeyServ](assets/imagenes/catalogo-keyserv.jpg)
 
@@ -28,9 +28,9 @@ También corre local en pocos minutos — ver [Cómo correrlo local](#cómo-corr
 - **Frontend**: Ionic 8 + Angular 20 + Capacitor — un solo código para web, Android e iOS
 - **Auth**: JWT hecho a mano (PyJWT), no `djangorestframework-simplejwt` — ver [Decisiones técnicas](#decisiones-técnicas)
 - **Pagos**: Transbank Webpay Plus (tarjetas) + Khipu (transferencia bancaria)
-- **Biometría**: pipeline de imagen de huella dactilar, reconocimiento facial por cámara con detección de vida por parpadeo, y biometría nativa del dispositivo (Face ID / huella vía Capacitor)
+- **Biometría**: reconocimiento facial por cámara con detección de vida por parpadeo, y biometría nativa del dispositivo (Face ID / huella vía Capacitor) — un demo anterior de huella dactilar por imagen en el navegador se retiró una vez que estas dos quedaron listas
 - **Ubicación**: búsqueda por geolocalización (posición real del dispositivo vía `@capacitor/geolocation`, distancia Haversine calculada en la API, filtro de radio), con vista previa de mapa + link a Google Maps en cada publicación
-- **Tests**: 294 tests de backend + 76 de frontend, todos en verde
+- **Tests**: 290 tests de backend + 77 de frontend, todos en verde (más una suite E2E con Playwright que corre contra la app real en CI)
 
 Actualmente coexisten dos frontends: los templates originales renderizados por Django y la nueva app Ionic/Angular, que habla con una API REST hecha con DRF. La migración a Ionic sigue un enfoque "strangler fig" — las pantallas se retiran del app de templates área por área, no en un solo corte grande.
 

@@ -90,7 +90,7 @@ With `runserver` up, the REST API is browsable at `http://localhost:8000/api/doc
 cd codigo/frontend/ionic
 npm install            # node_modules is gitignored (codigo/frontend/ionic/.gitignore), not committed
 npm start               # = ng serve, http://localhost:8100 by default — must match CORS_ALLOWED_ORIGINS in .env
-npm test                # = ng test (Karma/Jasmine) — 76 tests as of the last count, unit-level (HttpClient mocked)
+npm test                # = ng test (Karma/Jasmine) — 77 tests as of the last count, unit-level (HttpClient mocked)
 npm run lint             # = ng lint
 ```
 

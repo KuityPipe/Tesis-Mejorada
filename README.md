@@ -8,7 +8,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-A Chilean home-services marketplace with biometric identity verification (fingerprint, webcam-based facial recognition, and native Face ID/fingerprint). Started as a university thesis project, now being developed as a real product.
+A Chilean home-services marketplace with biometric identity verification (webcam-based facial recognition and native Face ID/fingerprint). Started as a university thesis project, now being developed as a real product.
 
 ![KeyServ service catalog](assets/imagenes/catalogo-keyserv.jpg)
 
@@ -28,9 +28,9 @@ It also runs locally in a few minutes — see [Running locally](#running-locally
 - **Frontend**: Ionic 8 + Angular 20 + Capacitor — one codebase for web, Android and iOS
 - **Auth**: hand-rolled JWT (PyJWT), not `djangorestframework-simplejwt` — see [Technical decisions](#technical-decisions)
 - **Payments**: Transbank Webpay Plus (cards) + Khipu (bank transfer)
-- **Biometrics**: fingerprint image pipeline, webcam-based facial recognition with blink-liveness detection, and native device biometrics (Face ID / fingerprint via Capacitor)
+- **Biometrics**: webcam-based facial recognition with blink-liveness detection, and native device biometrics (Face ID / fingerprint via Capacitor) — an earlier browser-based fingerprint-image demo was retired once these two shipped
 - **Location**: geolocation-based search (real device position via `@capacitor/geolocation`, Haversine distance computed in the API, radius filter), with a map preview + Google Maps link on each listing
-- **Tests**: 294 backend tests + 76 frontend tests, both green
+- **Tests**: 290 backend tests + 77 frontend tests, both green (plus a Playwright E2E suite running against the real app in CI)
 
 Two frontends currently coexist: the original Django server-rendered templates and the new Ionic/Angular app, talking to a DRF REST API. The Ionic migration follows a strangler-fig approach — screens are retired from the template app one area at a time, not in one big cutover.
 
