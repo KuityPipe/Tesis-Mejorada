@@ -8,7 +8,7 @@ Este documento **no es esa entrega académica**. Es su continuación: mantiene l
 
 - **No repite el formato institucional** — sin portada, sin sección de agradecimientos, sin nombrar autores ni académico guía. El contenido queda escrito en la voz del proyecto, no de un equipo evaluado.
 - **Reemplaza las secciones de gestión académica** (desglose formal de costos, flujo de caja, plan de auditoría, matrices de responsabilidades de equipo) por lo que realmente pasó después de la entrega: el proyecto se convirtió en un producto que se siguió desarrollando en solitario, usando Claude Code como par de desarrollo, con una disciplina real de control de versiones y checkpoints en lugar de un cronograma académico.
-- **No duplica lo que ya está documentado en detalle en otros archivos de este repositorio.** Donde existe documentación técnica exhaustiva (`API_DOCUMENTATION.md`, `DATABASE_DOCUMENTATION.md`, `PLAN_MIGRACION_IONIC.md`, `BACKLOG.md`, `README.md`), este informe sintetiza y referencia en vez de copiar — la misma regla de "una sola fuente de verdad" que rige el resto del proyecto.
+- **No duplica lo que ya está documentado en detalle en otros archivos de ingeniería de este repositorio.** Donde existe documentación técnica exhaustiva (`API_DOCUMENTATION.md`, `DATABASE_DOCUMENTATION.md`, `PLAN_MIGRACION_IONIC.md`, `BACKLOG.md`, `README.md`), este informe sintetiza y referencia en vez de copiar — la misma regla de "una sola fuente de verdad" que rige el resto del proyecto. Donde el contenido **no** existe en ningún otro lugar del repositorio —el contexto de negocio, el marco teórico, el análisis competitivo y la justificación del problema del informe de 2023— sí se trae de vuelta, condensado y actualizado, porque es lo que hace de este documento un informe completo y no solo un changelog técnico.
 - **Está pensado para un lector técnico externo** (un futuro colaborador, potencial socio o cualquiera evaluando el proyecto técnicamente) que quiere entender qué es KeyServ hoy, de dónde viene, y por qué está construido como está — no para un evaluador académico.
 
 El texto original de abril de 2023 sigue disponible sin modificar en `docs/academico/` (texto extraído y PDF de la plantilla institucional), para quien quiera compararlo con este documento o consultar el detalle académico completo (marco teórico extendido, IEEE 830, wireframes originales, anexos).
@@ -45,6 +45,30 @@ El diagnóstico original se sostiene: la desconfianza en la contratación de ser
 
 - La verificación biométrica **por sí sola** no basta como mecanismo de confianza completo — hace falta además un flujo de contratación con estados verificables (solicitud → confirmación → pago → ejecución → calificación), historial auditable, y un canal de comunicación entre las partes. La biometría certifica identidad; el resto del sistema certifica que la transacción ocurrió como se acordó.
 - El pago es parte del problema de confianza, no un añadido aparte: sin un mecanismo de pago dentro de la plataforma, cliente y proveedor terminan negociando y pagando por fuera, exactamente el punto ciego que la propuesta original buscaba cerrar.
+
+#### 1.1 Contexto de negocio (2023, resumen)
+
+El documento original justificaba el problema con datos concretos que siguen siendo el respaldo de la propuesta de valor: según la CEP Chile, la adquisición de servicios informales representa un índice estable del **27% del total de servicios prestados** en el país — un nicho de mercado grande, mal cubierto por seguridad real. La Brigada Investigadora de Delitos Económicos (PDI) registró, en su balance cuatrimestral de 2022, más de 7.300 denuncias por estafas y defraudaciones contra particulares, de las cuales cerca de 4.200 se cometieron por canales digitales — con el *phishing* (obtención de RUT, teléfono, correo y credenciales bancarias) como vector recurrente.
+
+**Misión (2023, vigente):** disminuir las estafas durante el proceso de contratación de servicios y facilitar el reporte de fraude mediante los registros que deja la verificación biométrica.
+
+**Visión (2023, vigente):** convertirse en la plataforma en línea líder de intercambio de servicios en Chile, ofreciendo una experiencia de contratación segura y confiable.
+
+**Valores declarados:** respeto mutuo, claridad de propósito, creación conjunta entre áreas, transparencia, responsabilidad sobre datos sensibles, integridad, y disponibilidad al cambio — este último es, en retrospectiva, el que más se puso a prueba: el proyecto cambió de un equipo de tres personas con metodología Scrum a un desarrollador único trabajando con IA como par, y de una restricción académica de stack (Django + MySQL + AWS) a un stack elegido libremente para producto comercial (ver sección 4).
+
+**Marco de indicadores (Cuadro de Mando Integral, 2023):** el diseño original proponía medir el proyecto desde tres perspectivas — financiera (ingresos, márgenes, costos operativos, retorno de inversión), de cliente (tasa de conversión, tasa de abandono, reclamos, tiempo de respuesta) e interna (eficiencia de procesos, conformidad de los usuarios con la verificación biométrica). Ninguna de las tres es medible todavía con datos reales, porque el producto no tiene tráfico de usuarios finales más allá del demo de portafolio — sigue siendo el marco correcto para adoptar en cuanto exista ese tráfico.
+
+**Análisis competitivo (2023, vigente en su conclusión central):** el documento original comparó KeyServ contra TaskRabbit, Thumbtack, Fiverr, Upwork, Handy y el Marketplace de Facebook — la conclusión de entonces sigue siendo cierta hoy: ninguno de esos competidores ofrece verificación de identidad biométrica real como mecanismo central de confianza; la mayoría se limita a un perfil descriptivo y un sistema de reportes post-hecho, no a una verificación previa. Esa brecha competitiva es la que la propuesta de valor de KeyServ sigue explotando, ahora con evidencia real de que la verificación biométrica funciona en producción (Capítulo III), no solo en diseño.
+
+**Estándares considerados (2023):** ISO 27001 (gestión de seguridad de la información), ISO/IEC 19794 (formatos de intercambio de datos biométricos), ISO 22301 (continuidad y resiliencia) e ISO 9001 (gestión de calidad). Ninguno de los cuatro tiene una certificación formal obtenida — se documentan como marco de referencia de diseño, no como cumplimiento certificado, tanto en 2023 como hoy.
+
+#### 1.2 Marco teórico (2023, condensado)
+
+**Informalidad laboral.** Según la Organización Internacional del Trabajo, más de dos mil millones de personas —alrededor del 61% del empleo mundial— trabajan de manera informal (sin imponibilidad, sin beneficios ni garantías laborales). Chile registra una tasa cercana al 53%, similar al resto de Latinoamérica. Los autores Fernández y Villar (2016) atribuyen la informalidad principalmente a la baja productividad: quienes recurren a trabajos temporales suelen carecer de la reputación o las credenciales formales para competir por el mismo trabajo de manera regularizada. Esta es, precisamente, la población que una plataforma de verificación de identidad y reputación puede formalizar de facto sin exigir formalización laboral — el nicho que la propuesta de KeyServ apunta a servir.
+
+**Verificación biométrica, como marco teórico.** La biometría —el análisis de características físicas o de comportamiento para identificar a una persona (huella dactilar, iris, reconocimiento facial)— no es una tecnología sin contrapartidas: los datos biométricos son, por naturaleza, información pública (una huella o un rostro no son secretos como una contraseña), lo que genera desconfianza legítima ("¿qué pasa si alguien usa mis datos?") y una responsabilidad real de manejo. A favor: es instantánea, no depende de recordar una contraseña, y es una tecnología ya normalizada en la vida diaria (desbloqueo de teléfonos, banca, trámites de salud). Una encuesta de Google Intelligence (abril 2021) citada en el documento original reportó que 73% de las empresas encuestadas ya usaba biometría para mejorar la experiencia de cliente, y 75% para autenticación de identidad — el terreno no era una apuesta especulativa incluso en 2023.
+
+Esta tensión (confianza vs. exposición de datos públicos) es exactamente la que informó, años después, el diseño del modelo de confianza de la biometría nativa (Capítulo II, sección 8): en vez de que el servidor procese y almacene datos biométricos —el riesgo que el marco teórico de 2023 ya identificaba—, la verificación nativa ocurre enteramente dentro del enclave seguro del teléfono, y el servidor nunca ve el dato biométrico crudo. El reconocimiento facial por cámara sí sigue procesando en servidor, pero solo persiste un *encoding* matemático, nunca la imagen — una mitigación directa del mismo riesgo teórico planteado en 2023.
 
 ### 2. Formulación de la solución actualizada
 
@@ -160,9 +184,23 @@ Ausentes por completo del diseño de 2023 más allá de mencionar a Transbank y 
 
 ### 10. Metodología de desarrollo (reemplaza la planificación académica de 2023)
 
-El desarrollo posterior a la entrega no siguió Scrum con sprints y roles de equipo — se hizo en solitario, en sesiones de trabajo iterativas ("Fases", numeradas y documentadas una por una), usando **Claude Code como par de desarrollo**: cada decisión de arquitectura y producto fue del autor del proyecto, revisada y dirigida sesión a sesión, con verificación en vivo de cada funcionalidad antes de darla por cerrada (no solo tests automatizados) — incluyendo correr la app nativa Android en un emulador real, probar la integración de pagos contra el sandbox real de Transbank, y probar reconocimiento facial contra una webcam real.
+**Por qué Scrum, en 2023.** El documento original evaluó cuatro metodologías ágiles antes de elegir Scrum: Extreme Programming (XP) aportaba *pair programming* e integración continua, pero poco más para un equipo de tres personas con un plazo corto; Lean priorizaba entrega continua de valor pero sin la estructura de eventos/artefactos/roles que un equipo académico necesitaba para coordinarse; Kanban optimizaba el flujo de trabajo pero carecía de iteraciones fijas. Scrum ganó por dar el mejor equilibrio entre calidad de código, planificación de eventos y adaptabilidad a cambios — la justificación en sí sigue siendo razonable para un equipo de varias personas con un plazo fijo, que es exactamente el contexto que dejó de existir después de la entrega.
 
-Esto reemplaza directamente el plan de recursos, cronograma de equipo, matriz de responsabilidades y desglose de costos del documento de 2023 — no aplican a un proyecto en solitario con IA como herramienta de escritura de código. Lo que sí se mantuvo con disciplina real: control de versiones con Git (cada Fase es una serie de commits reales, revisables), y una bitácora de horas de trabajo (`docs/BITACORA_DESARROLLO.md`).
+**El cronograma original (14 meses, 7 fases):** planificación (definición de alcance, selección de tecnología biométrica, arquitectura) → desarrollo (frontend/backend) → integración y pruebas → preparación de lanzamiento (marketing, capacitación de soporte) → lanzamiento y promoción → monitoreo y optimización → expansión y crecimiento (alianzas, nuevas funcionalidades, crecimiento sostenido). Es un cronograma de **producto con go-to-market real** — supone equipo de marketing, soporte al cliente y alianzas estratégicas, ninguno de los cuales existió después de la entrega académica.
+
+**Lo que pasó realmente — metodología ágil de flujo continuo, no Scrum con sprints fijos.** Sin un segundo miembro de equipo con quien coordinar ceremonias (dailies, sprint planning, retros), Scrum tal como se planteó en 2023 dejó de encajar. Lo que se adoptó en su lugar es reconocible dentro del espectro ágil actual, más cercano a **Kanban / flujo continuo** que a Scrum:
+
+- **Backlog priorizado y vivo** (`docs/BACKLOG.md`), no un plan fijo de 14 meses — el trabajo pendiente se reordena sesión a sesión según lo que más valor aporta, y cada ítem cerrado se tacha con su evidencia, no se asume terminado.
+- **Entrega incremental por "Fases"** — cada Fase es un incremento funcional completo y verificado (no un sprint de duración fija), el equivalente de flujo continuo a los incrementos de un sprint de Scrum.
+- **Integración continua real** (`.github/workflows/tests.yml`): cada push corre automáticamente toda la suite de pruebas (backend, frontend, E2E) — el control de calidad que en Scrum tradicional dependería de un QA de equipo, acá lo ejerce CI en cada cambio, sin excepción.
+- **Definition of Done más estricta que "tests en verde"**: ninguna funcionalidad de riesgo (biometría, pagos, build nativo) se dio por cerrada sin verificación en vivo además de tests automatizados — probar contra una webcam real, un sandbox de pago real, un emulador Android real.
+- **Trabajo en rama de feature de larga vida** (`api-ionic-migration`) sincronizada hacia `master` — un patrón cercano a *trunk-based development* adaptado a un solo colaborador, en vez de una rama por historia de usuario.
+
+**Migración del frontend — patrón Strangler Fig, el estándar moderno para modernizar sin *big-bang*.** La migración de Django templates a Ionic/Angular (Capítulo II, sección 11) siguió explícitamente el patrón *Strangler Fig* (Martin Fowler) — el enfoque ágil/incremental reconocido para reemplazar un sistema legado sin un corte de una sola vez: el sistema nuevo (Ionic + API REST) creció alrededor del viejo (plantillas Django), pantalla por pantalla, con ambos sirviendo tráfico real en simultáneo durante toda la migración, y cada pantalla migrada se verificó de forma independiente antes de retirar su equivalente en plantillas. Es la misma lógica de entrega incremental que Kanban aplica a nivel de tarea, aplicada a nivel de arquitectura.
+
+**Uso de la IA en el flujo de trabajo:** Claude Code operó como par de desarrollo dentro de este flujo — cada decisión de arquitectura y producto fue del autor del proyecto, revisada y dirigida sesión a sesión; la IA aceleró la escritura de código y la exploración de opciones, no reemplazó ninguna decisión.
+
+Esto reemplaza directamente el plan de recursos, cronograma de equipo, matriz de responsabilidades y desglose de costos del documento de 2023 — no aplican a un proyecto en solitario con IA como herramienta de escritura de código, con Kanban/flujo continuo y Strangler Fig como los marcos metodológicos reales.
 
 ### 11. Migración del frontend a Ionic
 
@@ -232,6 +270,8 @@ El proyecto pasó de ser una entrega evaluada por su cumplimiento de requisitos 
 | DRF | Django REST Framework — la librería usada para construir la API REST sobre Django |
 | JWT | *JSON Web Token* — formato de token firmado usado para autenticación sin estado en la API |
 | Strangler fig | Patrón de migración donde un sistema nuevo reemplaza a uno viejo pieza por pieza, mientras ambos coexisten, en vez de un corte único |
+| Kanban / flujo continuo | Metodología ágil sin sprints de duración fija — el trabajo se prioriza en un backlog vivo y se entrega de forma incremental y continua, en vez de por lotes de tiempo fijo como en Scrum |
+| Trunk-based development | Práctica de integrar cambios frecuentemente hacia una rama principal en vez de mantener ramas de larga vida con historias divergentes |
 | Capacitor | Framework que empaqueta una app web (Ionic/Angular) como app nativa para Android/iOS, compartiendo una sola base de código |
 | Enclave seguro | Hardware dedicado del teléfono donde ocurre la verificación biométrica nativa (Face ID/huella) — el sistema operativo y las apps, incluida esta, nunca ven el dato biométrico crudo |
 | *Liveness detection* (detección de vida) | Mecanismo que confirma que una biometría proviene de una persona real presente, no de una foto o video — en este proyecto, la detección de parpadeo |
@@ -246,7 +286,16 @@ El proyecto pasó de ser una entrega evaluada por su cumplimiento de requisitos 
 - Khipu — [khipu.com/page/api](https://khipu.com/page/api)
 - `face_recognition` (reconocimiento facial, sobre `dlib`) — [github.com/ageitgey/face_recognition](https://github.com/ageitgey/face_recognition)
 
-Para el marco teórico académico completo y las referencias bibliográficas originales (metodologías ágiles, seguridad de la información, trabajo informal en Chile), ver el documento de 2023 en `docs/academico/`.
+### Fuentes citadas del marco teórico original (2023)
+
+- Centro de Estudios Públicos (CEP) Chile — índice de adquisición de servicios informales (27% del total de servicios prestados).
+- Policía de Investigaciones de Chile (PDI), Brigada Investigadora de Delitos Económicos — balance cuatrimestral 2022 sobre estafas y defraudaciones (7.256 denuncias, 4.207 por canales digitales).
+- Organización Internacional del Trabajo (OIT) — estadísticas de informalidad laboral global y regional.
+- Fernández, R. & Villar, L. (2016) — causas de la informalidad laboral en Chile (baja productividad como factor principal).
+- Encuesta Google Intelligence (abril 2021) — adopción empresarial de biometría para experiencia de cliente y autenticación de identidad.
+- ISO 27001, ISO/IEC 19794, ISO 22301, ISO 9001 — estándares de referencia considerados en el diseño original (sin certificación formal obtenida, ni en 2023 ni actualmente).
+
+Para el marco teórico académico completo, con las citas en formato APA y el resto de las referencias bibliográficas originales (metodologías ágiles con más detalle, seguridad de la información, y las fuentes no reproducidas aquí), ver el documento de 2023 en `docs/academico/`.
 
 ---
 

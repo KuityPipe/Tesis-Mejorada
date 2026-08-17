@@ -123,7 +123,7 @@ This project was built with Claude Code as a development pair. Every architectur
 
 The project keeps unusually detailed engineering docs, written as the work happened rather than after the fact:
 
-- [`docs/INFORME_PROYECTO_KEYSERV.md`](docs/INFORME_PROYECTO_KEYSERV.md) — the fuller project report (Spanish): problem statement, architecture, and results, structured as the continuation of the original 2023 thesis this project started from
+- [`docs/INFORME_PROYECTO_KEYSERV.md`](docs/INFORME_PROYECTO_KEYSERV.md) — the fuller project report (Spanish): problem statement, architecture, and results, structured as the continuation of the original 2023 thesis this project started from (also available as `docs/INFORME_PROYECTO_KEYSERV.docx`, ready to export to PDF)
 - [`docs/PLAN_MIGRACION_IONIC.md`](docs/PLAN_MIGRACION_IONIC.md) — the phased plan for the Django-to-Ionic migration
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — tracked gaps and decisions across the project
 - [`docs/DATABASE_DOCUMENTATION.md`](docs/DATABASE_DOCUMENTATION.md) — data model reference

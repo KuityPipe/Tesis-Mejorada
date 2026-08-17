@@ -123,7 +123,7 @@ Este proyecto se construyó con Claude Code como par de desarrollo. Cada decisi�
 
 El proyecto mantiene documentación de ingeniería inusualmente detallada, escrita a medida que pasaba el trabajo y no después:
 
-- [`docs/INFORME_PROYECTO_KEYSERV.md`](docs/INFORME_PROYECTO_KEYSERV.md) — el informe de proyecto completo: problema, arquitectura y resultados, escrito como continuación de la tesis de 2023 de la que nació este proyecto
+- [`docs/INFORME_PROYECTO_KEYSERV.md`](docs/INFORME_PROYECTO_KEYSERV.md) — el informe de proyecto completo: problema, arquitectura y resultados, escrito como continuación de la tesis de 2023 de la que nació este proyecto (también disponible como `docs/INFORME_PROYECTO_KEYSERV.docx`, listo para exportar a PDF)
 - [`docs/PLAN_MIGRACION_IONIC.md`](docs/PLAN_MIGRACION_IONIC.md) — el plan por fases de la migración de Django a Ionic
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — gaps y decisiones registradas a lo largo del proyecto
 - [`docs/DATABASE_DOCUMENTATION.md`](docs/DATABASE_DOCUMENTATION.md) — referencia del modelo de datos
