@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+// Carga android/keystore.properties (gitignored — nunca la llave de firma real ni sus
+// contraseñas en el repo, ver android/.gitignore). Si no existe (checkout nuevo, CI que no
+// necesita firmar release), el signingConfig de abajo simplemente no se define — assembleDebug
+// sigue funcionando igual, solo assembleRelease/bundleRelease lo necesitan de verdad.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+def tieneKeystore = keystorePropertiesFile.exists()
+if (tieneKeystore) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.keyserv.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,10 +27,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (tieneKeystore) {
+            release {
+                storeFile file("${rootProject.projectDir}/app/${keystoreProperties['storeFile']}")
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (tieneKeystore) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

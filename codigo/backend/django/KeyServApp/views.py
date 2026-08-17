@@ -186,6 +186,18 @@ def acerca_de_nosotros_view(request):
     return render(request, 'KeyServApp/Acercadeenosotros.html')
 
 
+def privacidad_view(request):
+    """
+    Política de privacidad — Fase 8, necesaria para publicar en Play Store
+    (exige un link público y real a una política de privacidad, no un stub).
+    Página institucional estática, sin lógica — describe qué datos junta la
+    plataforma de verdad (cuenta, biometría, documentos, pagos, mensajes,
+    ubicación) y con quién se comparten (Transbank/Khipu/Render/Netlify/
+    Google Maps), no un texto genérico de plantilla.
+    """
+    return render(request, 'KeyServApp/privacidad.html')
+
+
 def contacto_view(request):
     """
     Página de contacto — crea una Consulta real (incidencia/ticket de

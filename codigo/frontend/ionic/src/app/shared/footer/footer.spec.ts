@@ -25,4 +25,9 @@ describe('FooterComponent', () => {
   it('muestra el año actual en el copyright', () => {
     expect(component.anioActual).toBe(new Date().getFullYear());
   });
+
+  it('arma la URL de privacidad a partir de environment.apiUrl, sin el sufijo /api', () => {
+    expect(component.urlPrivacidad).toMatch(/\/privacidad\/$/);
+    expect(component.urlPrivacidad).not.toContain('/api/');
+  });
 });

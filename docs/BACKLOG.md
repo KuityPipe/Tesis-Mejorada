@@ -409,13 +409,56 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
       `manage.py test KeyServApp` (290 tests) en verde — algo que nunca se había probado desde que
       se armó `requirements-ci.txt`, y que el badge verde de "Tests" del README venía prometiendo
       sin que fuera cierto.
-- [ ] Pipeline de build para Android/iOS.
+- [x] **Pipeline de build para Android — firmado, funcional.** `android/keystore.properties`
+      (gitignored) + `android/app/build.gradle` con un `signingConfigs.release` condicional (si no
+      hay keystore, `assembleDebug` sigue funcionando igual — solo `bundleRelease`/`assembleRelease`
+      lo necesitan). Keystore real generado (`keyserv-release.keystore`, PKCS12, RSA 2048, ~27 años
+      de validez, contraseñas aleatorias de 24 caracteres) — **es un secreto de un solo uso, no
+      reproducible: si se pierde, no hay forma de volver a publicar una actualización de esta app
+      bajo `com.keyserv.app` en Play Store**, hay que respaldarlo fuera del repo. Bug real
+      encontrado antes de generar nada: `android/.gitignore` traía las líneas de exclusión de
+      `*.jks`/`*.keystore` **comentadas** (el placeholder de siempre de Android Studio) — si se
+      generaba el keystore sin arreglar eso primero, la llave de firma real habría quedado
+      commiteada al repo. Corregido antes de tocar nada más. iOS sigue bloqueado — no hay Mac
+      disponible en este entorno. — 2026-08-16, verificado en vivo: `bundleRelease` (el `.aab` que
+      pide Play Store) y `assembleRelease` corren limpio, el `.apk` firmado se verificó con
+      `apksigner` (certificado real, no autofirmado con la llave de debug) y se instaló y corrió de
+      verdad en el emulador `KeyServ_Test2` — catálogo real, backend real.
+- [x] **Íconos y splash screens reales** (antes el placeholder azul genérico de Capacitor, nunca
+      reemplazado desde `npx cap add android`). Fuente: el glifo huella+llave recortado en alta
+      resolución de `assets/imagenes/NuevoLogo.png` (sin el texto "KeyServ"), con el fondo blanco
+      removido de verdad (no solo un `.convert('RGBA')` — esa imagen tenía canal alfa pero el fondo
+      seguía opaco) y recompuesto sobre navy claro/oscuro de marca en `codigo/frontend/ionic/
+      resources/` (`icon.png`, `splash.png`, `splash-dark.png`), generado a todas las densidades con
+      `npx capacitor-assets generate --android`. **Bug real encontrado de paso, sin relación con los
+      íconos**: la app venía mostrándose como "ionic" en el launcher desde que se agregó la
+      plataforma Android — `capacitor.config.ts` nunca actualizó `appName` del scaffold por
+      defecto, y encima `cap sync` no regenera `strings.xml` una vez que existe, así que corregir
+      solo el config no alcanzaba. Nadie lo había notado porque nunca se había mirado el ícono del
+      launcher a propósito, solo la app abierta. — 2026-08-16, verificado en vivo con capturas
+      reales del emulador: ícono nuevo en el launcher, la app aparece como "KeyServ" (no "ionic") en
+      el cajón de apps, y la splash screen de Android 12+ muestra el glifo real.
+- [x] **Política de privacidad real** — `/privacidad/` (Django, `privacidad_view`), pedida por Play
+      Store (exige una URL real y accesible, no un stub). Contenido real, no genérico: qué se junta
+      (cuenta, el encoding facial — no fotos —, la aclaración explícita de que la biometría nativa
+      del teléfono nunca llega al servidor, documentos, chat, geolocalización de IP para seguridad),
+      con quién se comparte (Transbank/Khipu/Render/Netlify/Google Maps/DB-IP), cuánto se retiene, y
+      cómo ejercer tus derechos (Ley 19.628 y 21.719, Chile). Enlazada desde el footer y el checkbox
+      de registro de Django; el lado Ionic no duplica el contenido — `shared/footer/footer.ts`
+      arma un link externo a esta misma página a partir de `environment.apiUrl`, un solo documento
+      en vez de dos que puedan divergir. — 2026-08-16, verificado en vivo en `:8000/privacidad/` y
+      clickeado desde el footer real de `:8100`.
+- [ ] Documentación de arquitectura + capturas/video corto para portafolio (el video sigue siendo
+      el ítem más importante pendiente, ver el README "Roadmap").
 
-## Fase 8 — Publicación / portafolio
+## Fase 8 — Publicación real en las tiendas (pendiente, requiere cuentas del usuario)
 
-- [ ] Build firmado Android (Play Store) / iOS (App Store).
-- [ ] Íconos, splash screens, políticas de privacidad que piden las stores.
-- [ ] Documentación de arquitectura + capturas/video corto para portafolio.
+- [ ] Crear la cuenta de Google Play Console (USD 25, pago único) y subir el `.aab` firmado que ya
+      existe (`android/app/build/outputs/bundle/release/app-release.aab`) — listing, capturas de
+      pantalla, clasificación de contenido, formulario de seguridad de datos (usar
+      `docs/` o `/privacidad/` como base).
+- [ ] iOS — bloqueado sin Mac. Ver `docs/PLAN_MIGRACION_IONIC.md` para opciones de Mac en la nube si
+      se retoma más adelante.
 
 ## Ver también
 

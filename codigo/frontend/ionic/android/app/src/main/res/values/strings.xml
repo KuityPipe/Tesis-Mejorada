@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ionic</string>
-    <string name="title_activity_main">ionic</string>
+    <string name="app_name">KeyServ</string>
+    <string name="title_activity_main">KeyServ</string>
     <string name="package_name">com.keyserv.app</string>
     <string name="custom_url_scheme">com.keyserv.app</string>
 </resources>

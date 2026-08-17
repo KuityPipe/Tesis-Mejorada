@@ -18,6 +18,7 @@ urlpatterns = [
     # Páginas simples
     path('', views.paginicio_view, name='paginicio'),
     path('acerca-de-nosotros/', views.acerca_de_nosotros_view, name='acerca_de_nosotros'),
+    path('privacidad/', views.privacidad_view, name='privacidad'),
     path('contacto/', views.contacto_view, name='contacto'),
     path('inicio/', views.sesion_iniciada_view, name='sesion_iniciada'),
     path('preferencias-cuenta/', views.preferencias_cuenta_view, name='preferencias_cuenta'),

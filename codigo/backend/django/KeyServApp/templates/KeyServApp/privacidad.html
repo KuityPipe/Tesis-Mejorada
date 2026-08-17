@@ -1,0 +1,76 @@
+{% extends "KeyServApp/base.html" %}
+
+{% block titulo %}Política de privacidad — KeyServ{% endblock %}
+
+{% block content %}
+<section class="ks-page-header">
+  <div class="container">
+    <h1><i class="bi bi-shield-lock"></i> Política de privacidad</h1>
+    <p>Qué datos recolectamos, para qué, y qué podés hacer al respecto.</p>
+  </div>
+</section>
+
+<section class="ks-section container" style="max-width: 780px;">
+
+  <div class="ks-panel">
+    <p class="ks-help mb-0">Última actualización: agosto de 2026. Esta política aplica al sitio web de KeyServ y a la app KeyServ para Android — las dos hablan con el mismo backend y manejan los mismos datos. KeyServ es un proyecto en desarrollo activo (partió como tesis universitaria, hoy se sigue construyendo como producto); esta política describe lo que la plataforma realmente hace hoy, no una promesa genérica.</p>
+  </div>
+
+  <div class="ks-panel">
+    <h2><i class="bi bi-person-badge"></i> Qué datos recolectamos</h2>
+    <p class="ks-help mb-3">Solo pedimos lo que la plataforma necesita para funcionar — verificar tu identidad, conectarte con proveedores/clientes reales, y procesar pagos y contrataciones.</p>
+    <ul class="ks-help" style="line-height: 1.9;">
+      <li><strong>Datos de cuenta:</strong> nombre, apellido, email, edad, teléfono, dirección, comuna y región. La contraseña nunca se guarda en texto plano — se almacena con un hash PBKDF2 irreversible.</li>
+      <li><strong>Datos biométricos (identidad):</strong> si verificás tu identidad con reconocimiento facial, guardamos un vector numérico derivado de tu rostro (128 números, no una foto) — las imágenes de la captura se procesan y se descartan al momento, nunca se almacenan. Si usás la biometría nativa del teléfono (Face ID o huella dactilar en la app Android), esa verificación ocurre enteramente dentro del hardware seguro de tu dispositivo — nuestro servidor nunca ve ni puede ver ese dato, solo recibe la confirmación de que el teléfono la aprobó.</li>
+      <li><strong>Documentos e imágenes:</strong> foto de perfil, fotos de las publicaciones de servicios, certificados/documentos que un proveedor suba para respaldar su perfil, y fotos adjuntas a calificaciones o mensajes de chat. Los documentos de identidad se guardan en almacenamiento privado, nunca en una URL pública — solo vos y, si corresponde, un moderador autorizado pueden verlos.</li>
+      <li><strong>Ubicación:</strong> si activás la búsqueda por cercanía en el catálogo, tu posición se usa para calcular distancias en esa consulta puntual — no queda guardada asociada a tu cuenta.</li>
+      <li><strong>Pagos:</strong> KeyServ nunca ve ni almacena el número de tu tarjeta ni tus credenciales bancarias — eso lo procesan directamente Transbank (Webpay) o Khipu, fuera de nuestros servidores. Nosotros solo guardamos el resultado (monto, método, estado: pagado/rechazado/anulado) para tu historial de pagos.</li>
+      <li><strong>Mensajes:</strong> el chat de cada trabajo contratado se guarda mientras el trabajo esté activo. Para trabajos cerrados, el historial se elimina automáticamente a los 90 días — a menos que lo hayas exportado como respaldo, en cuyo caso queda excluido de ese borrado automático.</li>
+      <li><strong>Seguridad de la cuenta:</strong> registramos la dirección IP y una ubicación aproximada (a nivel de ciudad, vía una base de datos local, sin consultar servicios externos) cuando detectamos un intento de acceso sospechoso — por ejemplo, alguien tratando de ver una conversación o un documento que no le pertenece. Esto es exclusivamente para seguridad, no para perfilar tu ubicación habitual.</li>
+    </ul>
+  </div>
+
+  <div class="ks-panel">
+    <h2><i class="bi bi-diagram-3"></i> Con quién compartimos datos</h2>
+    <p class="ks-help mb-3">No vendemos datos a nadie. Los únicos terceros involucrados son los que hacen falta para que la plataforma funcione:</p>
+    <ul class="ks-help" style="line-height: 1.9;">
+      <li><strong>Transbank</strong> (Webpay Plus) y <strong>Khipu</strong> — procesan los pagos con tarjeta y transferencia bancaria respectivamente. Ninguno de los dos recibe más que el monto a cobrar.</li>
+      <li><strong>Render</strong> y <strong>Netlify</strong> — alojan el backend/base de datos y el frontend de la plataforma.</li>
+      <li><strong>DB-IP</strong> — la base de datos de geolocalización aproximada por IP que usamos para el registro de seguridad es local (se descarga una vez, no se consulta un servicio externo por cada acceso).</li>
+      <li><strong>Google Maps</strong> — el detalle de una publicación puede mostrar un mapa embebido con la ubicación aproximada del proveedor (a nivel de comuna, no la dirección exacta) — esto carga contenido de Google, sujeto a la política de privacidad de Google.</li>
+    </ul>
+  </div>
+
+  <div class="ks-panel">
+    <h2><i class="bi bi-clock-history" ></i> Cuánto tiempo guardamos tus datos</h2>
+    <p class="ks-help mb-0">Mientras tu cuenta esté activa, conservamos los datos necesarios para que la plataforma funcione (perfil, contrataciones, calificaciones, historial de pagos). Los mensajes de chat de trabajos cerrados se eliminan a los 90 días salvo que los hayas exportado. Si querés que eliminemos tu cuenta y los datos asociados, escribinos por <a href="{% url 'KeyServApp:contacto' %}">el formulario de contacto</a> — lo procesamos manualmente, todavía no hay un botón de autoservicio para esto.</p>
+  </div>
+
+  <div class="ks-panel">
+    <h2><i class="bi bi-shield-check"></i> Cómo protegemos tus datos</h2>
+    <ul class="ks-help" style="line-height: 1.9;">
+      <li>Contraseñas con hash PBKDF2, nunca en texto plano.</li>
+      <li>Documentos de identidad y certificados en almacenamiento privado, nunca en una URL pública adivinable.</li>
+      <li>Todo archivo subido (fotos, documentos) pasa por una validación real de contenido antes de guardarse, no solo de extensión.</li>
+      <li>Límite de intentos en login y en las acciones que piden confirmar tu contraseña de nuevo, para frenar ataques de fuerza bruta.</li>
+      <li>HTTPS obligatorio en producción.</li>
+    </ul>
+  </div>
+
+  <div class="ks-panel">
+    <h2><i class="bi bi-person-check"></i> Tus derechos</h2>
+    <p class="ks-help mb-0">Podés acceder, corregir o pedir la eliminación de tus datos personales en cualquier momento — editá tu perfil directamente desde la app, o escribinos por <a href="{% url 'KeyServApp:contacto' %}">contacto</a> para lo que no tenga una opción de autoservicio todavía. Como usuario en Chile, estos derechos están amparados por la Ley 19.628 sobre protección de la vida privada, y por la Ley 21.719 en las materias que ya haya puesto en vigencia.</p>
+  </div>
+
+  <div class="ks-panel">
+    <h2><i class="bi bi-person-exclamation"></i> Menores de edad</h2>
+    <p class="ks-help mb-0">KeyServ pide la edad al registrarse y no está pensado para menores de 18 años.</p>
+  </div>
+
+  <div class="ks-panel">
+    <h2><i class="bi bi-envelope"></i> Contacto</h2>
+    <p class="ks-help mb-0">Para cualquier consulta sobre esta política o tus datos, usá el <a href="{% url 'KeyServApp:contacto' %}">formulario de contacto</a> de la plataforma.</p>
+  </div>
+
+</section>
+{% endblock %}
