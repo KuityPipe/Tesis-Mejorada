@@ -9,7 +9,7 @@
             "type": "chrome",
             "request": "launch",
             "name": "Open paginicio.html",
-            "file": "/workspaces/ProyectoTesis/Pag/paginicio.html"
+            "file": "/workspaces/Tesis-Mejorada/assets/mockups/pag_html/paginicio.html"
         }
     ]
 }
