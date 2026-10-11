@@ -22,6 +22,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.conf import settings
+from io import StringIO
 from django.test import TestCase, Client, RequestFactory, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -619,6 +620,50 @@ class LoadComunasTests(TestCase):
 def _frames_prueba_de_vida(cantidad=8):
     """Ráfaga de `cantidad` archivos para postear a registro_rostro/verificacion_facial (campo `rostro_frames`) — instancias frescas cada vez, mismo motivo que `_imagen_de_prueba`."""
     return {'rostro_frames': [_imagen_de_prueba() for _ in range(cantidad)]}
+
+
+class RetencionDatosTests(TestCase):
+    """`purgar_datos_vencidos` borra solo lo vencido; `limpiar_mensajes_antiguos` ahora también saca las fotos del disco."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('ret@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+
+    def _intento(self, dias):
+        from django.utils import timezone
+        from datetime import timedelta
+        intento = IntentoAccesoSospechoso.objects.create(usuario=self.usuario, ip='1.2.3.4', ruta='/x', recurso='r', recurso_id='1')
+        IntentoAccesoSospechoso.objects.filter(pk=intento.pk).update(fecha=timezone.now() - timedelta(days=dias))
+        return intento.pk
+
+    def test_purga_solo_los_intentos_viejos(self):
+        from django.core.management import call_command
+        viejo, reciente = self._intento(400), self._intento(10)
+        call_command('purgar_datos_vencidos', stdout=StringIO())
+        self.assertFalse(IntentoAccesoSospechoso.objects.filter(pk=viejo).exists())
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(pk=reciente).exists())
+
+    def test_dry_run_no_borra(self):
+        from django.core.management import call_command
+        viejo = self._intento(400)
+        call_command('purgar_datos_vencidos', '--dry-run', stdout=StringIO())
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(pk=viejo).exists())
+
+    def test_purga_tokens_vencidos_y_conserva_los_vigentes(self):
+        from django.core.management import call_command
+        from django.utils import timezone
+        from datetime import timedelta
+        from .models import TokenSesion
+        TokenSesion.objects.create(usuario=self.usuario, refresh_token_hash='vencido', expira_en=timezone.now() - timedelta(days=60))
+        TokenSesion.objects.create(usuario=self.usuario, refresh_token_hash='vigente', expira_en=timezone.now() + timedelta(days=5))
+        call_command('purgar_datos_vencidos', stdout=StringIO())
+        self.assertEqual(list(TokenSesion.objects.values_list('refresh_token_hash', flat=True)), ['vigente'])
+
+    def test_mantenimiento_corre_ambas_tareas(self):
+        from django.core.management import call_command
+        salida = StringIO()
+        call_command('mantenimiento_retencion', stdout=salida)
+        self.assertIn('tokens de sesión', salida.getvalue())
 
 
 @override_settings(EXIGIR_IDENTIDAD_VERIFICADA=True)

@@ -21,7 +21,7 @@ from django.core.management.base import BaseCommand
 from django.db.models import Max
 from django.utils import timezone
 
-from KeyServApp.models import Conversacion
+from KeyServApp.models import Conversacion, Mensaje
 
 
 class Command(BaseCommand):
@@ -55,6 +55,11 @@ class Command(BaseCommand):
         if options['dry_run']:
             self.stdout.write(f'Se borrarían {len(ids)} conversaciones (dry-run, no se modificó nada).')
             return
+
+        # Borrar la fila no borra el archivo: sacar primero las fotos del disco.
+        for mensaje in Mensaje.objects.filter(conversacion_id__in=ids).exclude(imagen=''):
+            if mensaje.imagen:
+                mensaje.imagen.delete(save=False)
 
         total, _ = Conversacion.objects.filter(id_conversacion__in=ids).delete()
         self.stdout.write(self.style.SUCCESS(f'Borradas {len(ids)} conversaciones ({total} filas en total, incluye mensajes).'))
