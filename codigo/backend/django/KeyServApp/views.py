@@ -41,13 +41,13 @@ from .forms import (
     PreferenciasCuentaForm, CrearPerfilForm,
 )
 from .models import (
-    Comuna, Contratacion, Conversacion, Documento, EstadoConsulta,
+    Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta,
     EstadoDocumento, HistorialEstadoContratacion, Imagenes,
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
     Ranking, Region, Transaccion, Usuario, UsuarioConversacion,
     Valoracion, ValoracionImagen,
 )
-from . import biometria, geolocalizacion, pagos
+from . import biometria, consentimiento, geolocalizacion, pagos
 from . import validators
 
 logger = logging.getLogger(__name__)
@@ -1503,6 +1503,8 @@ def validar_captura_rostro_ajax(request):
     nada — el encoding que calcula acá se descarta; `registro_rostro_view`/
     `verificacion_facial_view` lo vuelven a calcular al enviar el formulario.
     """
+    if _falta_consentimiento_biometrico(obtener_usuario_actual(request)):
+        return JsonResponse({'ok': False, 'motivo': 'Necesitamos tu consentimiento para tratar tu rostro antes de capturarlo.'})
     try:
         rutas = _obtener_frames_captura(request)
     except ValidationError as error:
@@ -1529,7 +1531,32 @@ def rostro_view(request):
     verificar contra ella (`verificacion_facial_view`).
     """
     usuario = obtener_usuario_actual(request)
-    return render(request, 'KeyServApp/rostro.html', {'tiene_referencia': bool(usuario.encoding_facial)})
+    return render(request, 'KeyServApp/rostro.html', {
+        'tiene_referencia': bool(usuario.encoding_facial),
+        'consentimiento_vigente': ConsentimientoBiometrico.vigente(usuario),
+        'texto_consentimiento': consentimiento.TEXTO,
+    })
+
+
+@login_requerido
+@require_POST
+def rostro_consentimiento_view(request):
+    """Otorga (`acepto` marcado) o revoca (`accion=revocar`, borra el vector facial) el consentimiento biométrico."""
+    usuario = obtener_usuario_actual(request)
+    if request.POST.get('accion') == 'revocar':
+        ConsentimientoBiometrico.revocar(usuario)
+        messages.success(request, 'Revocaste tu consentimiento y eliminamos los datos de tu rostro.')
+    elif request.POST.get('acepto'):
+        ConsentimientoBiometrico.otorgar(usuario)
+        messages.success(request, 'Consentimiento registrado.')
+    else:
+        messages.error(request, 'Debes marcar la casilla para dar tu consentimiento.')
+    return redirect('KeyServApp:rostro')
+
+
+def _falta_consentimiento_biometrico(usuario):
+    """True si no hay consentimiento vigente (versión actual del texto) para tratar el rostro."""
+    return not ConsentimientoBiometrico.vigente(usuario)
 
 
 @login_requerido
@@ -1543,6 +1570,9 @@ def registro_rostro_view(request):
     cualquier encoding anterior si el usuario vuelve a registrar su rostro.
     """
     usuario = obtener_usuario_actual(request)
+    if _falta_consentimiento_biometrico(usuario):
+        messages.error(request, 'Necesitamos tu consentimiento para tratar tu rostro antes de capturarlo.')
+        return redirect('KeyServApp:rostro')
     try:
         rutas = _obtener_frames_captura(request)
     except ValidationError as error:
@@ -1572,6 +1602,9 @@ def verificacion_facial_view(request):
     haber registrado un rostro de referencia antes (`registro_rostro_view`).
     """
     usuario = obtener_usuario_actual(request)
+    if _falta_consentimiento_biometrico(usuario):
+        messages.error(request, 'Necesitamos tu consentimiento para tratar tu rostro antes de capturarlo.')
+        return redirect('KeyServApp:rostro')
     if not usuario.encoding_facial:
         messages.error(request, 'Todavía no registraste un rostro de referencia.')
         return redirect('KeyServApp:rostro')

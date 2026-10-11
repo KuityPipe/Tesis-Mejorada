@@ -40,6 +40,10 @@ export class RostroPage implements OnInit, OnDestroy {
 
   cargando = true;
   tieneReferencia = false;
+  consentimientoVigente = false;
+  textoConsentimiento = '';
+  acepto = false;
+  guardandoConsentimiento = false;
   // 'registrar' cuando todavía no hay rostro de referencia; 'verificar' es
   // el modo por defecto una vez que ya existe uno (mismo criterio que
   // rostro.html) — el usuario puede volver a 'registrar' si quiere
@@ -70,8 +74,21 @@ export class RostroPage implements OnInit, OnDestroy {
     this.rostroApi.estado().subscribe({
       next: (respuesta) => {
         this.tieneReferencia = respuesta.tiene_referencia;
+        this.consentimientoVigente = respuesta.consentimiento_vigente;
         this.modo = this.tieneReferencia ? 'verificar' : 'registrar';
-        this.cargando = false;
+        if (this.consentimientoVigente) {
+          this.cargando = false;
+          return;
+        }
+        this.rostroApi.consentimiento().subscribe({
+          next: (c) => {
+            this.textoConsentimiento = c.texto;
+            this.cargando = false;
+          },
+          error: () => {
+            this.cargando = false;
+          },
+        });
       },
       error: () => {
         this.cargando = false;
@@ -81,6 +98,42 @@ export class RostroPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.detenerCamara();
+  }
+
+  aceptarConsentimiento(): void {
+    if (!this.acepto || this.guardandoConsentimiento) {
+      return;
+    }
+    this.guardandoConsentimiento = true;
+    this.error = null;
+    this.rostroApi.otorgarConsentimiento().subscribe({
+      next: () => {
+        this.consentimientoVigente = true;
+        this.guardandoConsentimiento = false;
+      },
+      error: () => {
+        this.error = 'No pudimos registrar tu consentimiento. Intenta nuevamente.';
+        this.guardandoConsentimiento = false;
+      },
+    });
+  }
+
+  /** Revoca el consentimiento y elimina los datos faciales guardados. */
+  revocarConsentimiento(): void {
+    this.detenerCamara();
+    this.rostroApi.revocarConsentimiento().subscribe({
+      next: (c) => {
+        this.consentimientoVigente = false;
+        this.tieneReferencia = false;
+        this.modo = 'registrar';
+        this.acepto = false;
+        this.textoConsentimiento = c.texto;
+        this.exito = null;
+      },
+      error: () => {
+        this.error = 'No pudimos revocar el consentimiento. Intenta nuevamente.';
+      },
+    });
   }
 
   cambiarModo(modo: 'registrar' | 'verificar'): void {

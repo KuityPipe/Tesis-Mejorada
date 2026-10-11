@@ -12,7 +12,27 @@
     <ion-spinner></ion-spinner>
   </div>
 
-  <ng-container *ngIf="!cargando">
+  <ng-container *ngIf="!cargando && !consentimientoVigente">
+    <div class="ks-section" appReveal>
+      <h2 class="ks-section-title">Consentimiento para reconocimiento facial</h2>
+      <ion-card>
+        <ion-card-content>
+          <p>{{ textoConsentimiento }}</p>
+          <ion-item lines="none">
+            <ion-checkbox [(ngModel)]="acepto" labelPlacement="end" justify="start">
+              Acepto el tratamiento de mi rostro en los términos descritos.
+            </ion-checkbox>
+          </ion-item>
+          <ion-text color="danger" *ngIf="error"><p>{{ error }}</p></ion-text>
+          <ion-button expand="block" [disabled]="!acepto || guardandoConsentimiento" (click)="aceptarConsentimiento()">
+            Aceptar y continuar
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="!cargando && consentimientoVigente">
     <!-- Mismo avatar-ícono circular con gradiente que .ks-fingerprint-scanner en rostro.html del sitio Django — a esta pantalla le faltaba ese encabezado, quedaba directo al segment/card. -->
     <div class="ks-bio-header" appReveal>
       <div class="ks-fingerprint-scanner" [class.ks-scanning]="capturando || enviando"><ion-icon name="body-outline"></ion-icon></div>
@@ -48,5 +68,9 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <ion-button expand="block" fill="outline" color="medium" (click)="revocarConsentimiento()">
+      Revocar consentimiento y eliminar mis datos faciales
+    </ion-button>
   </ng-container>
 </ion-content>

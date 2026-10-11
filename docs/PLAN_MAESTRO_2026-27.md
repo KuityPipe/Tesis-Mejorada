@@ -57,4 +57,9 @@ sentido forzar captura de rostro sin consentimiento).
 | Registro de tratamiento y lista de encargados (borradores, `docs/cumplimiento/`) | Hecho, falta validación legal |
 | EIPD borrador (`docs/legal/eipd-reconocimiento-facial.md`) | Hecho; decisiones de producto tomadas, falta revisión legal y firma |
 | Rama `fase-0-reconocimiento` fusionada a `master` local (sin push) | Hecho; backend 290 OK, frontend 77 OK |
-| Fases 2–6 | Pendientes |
+| Fase 2/3 · consentimiento biométrico (modelo versionado, gating en rostro, revocar borra el vector; Django + API + Ionic) | Hecho, pendiente de revisión legal del texto |
+| Fase 2 · cifrado de `encoding_facial` | Pendiente |
+| Fase 2 · enforcement de identidad al contratar/publicar | Pendiente |
+| Fase 2 · vía alternativa sin biometría con MFA + advertencia | Pendiente |
+| Fase 3 · exportar/eliminar datos del titular, retención automatizada | Pendiente |
+| Fases 4–6 | Pendientes |

@@ -26,6 +26,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .models import (
+    ConsentimientoBiometrico,
     Comuna, Consulta, Contratacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, IntentoAccesoSospechoso, ItemPresupuesto,
     Pago, Publicaciones, Ranking, Region, TipoCuenta, Usuario, Valoracion,
@@ -619,6 +620,43 @@ def _frames_prueba_de_vida(cantidad=8):
     return {'rostro_frames': [_imagen_de_prueba() for _ in range(cantidad)]}
 
 
+class ConsentimientoBiometricoTemplateTests(TestCase):
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('consent_tpl@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.client = Client()
+        session = self.client.session
+        session['usuario_id'] = self.usuario.id_usuario
+        session.save()
+
+    def test_sin_consentimiento_la_pantalla_pide_consentir_en_vez_de_capturar(self):
+        resp = self.client.get(reverse('KeyServApp:rostro'))
+        self.assertContains(resp, 'name="acepto"')
+        self.assertNotContains(resp, 'ks-prueba-vida"')
+
+    def test_registrar_sin_consentimiento_no_procesa(self):
+        with mock.patch('KeyServApp.biometria.calcular_encoding_facial') as calcular:
+            self.client.post(reverse('KeyServApp:registro_rostro'), {})
+            calcular.assert_not_called()
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.encoding_facial)
+
+    def test_otorgar_exige_la_casilla(self):
+        self.client.post(reverse('KeyServApp:rostro_consentimiento'), {})
+        self.assertFalse(ConsentimientoBiometrico.vigente(self.usuario))
+        self.client.post(reverse('KeyServApp:rostro_consentimiento'), {'acepto': '1'})
+        self.assertTrue(ConsentimientoBiometrico.vigente(self.usuario))
+
+    def test_revocar_borra_el_vector(self):
+        ConsentimientoBiometrico.otorgar(self.usuario)
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.save()
+        self.client.post(reverse('KeyServApp:rostro_consentimiento'), {'accion': 'revocar'})
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.encoding_facial)
+        self.assertFalse(ConsentimientoBiometrico.vigente(self.usuario))
+
+
 class ReconocimientoFacialTests(TestCase):
     """
     `Usuario.encoding_facial` (migración 0024) es lo que le faltaba al
@@ -637,6 +675,7 @@ class ReconocimientoFacialTests(TestCase):
     def setUp(self):
         _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
         self.usuario = _crear_usuario('rostro@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        ConsentimientoBiometrico.otorgar(self.usuario)
 
     def _login(self, client):
         session = client.session

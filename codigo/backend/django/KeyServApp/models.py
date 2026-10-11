@@ -887,3 +887,45 @@ class TokenSesion(models.Model):
     def __str__(self):
         estado = 'revocado' if self.revocado_en else 'activo'
         return f'{self.usuario} — {self.dispositivo or "dispositivo desconocido"} ({estado})'
+
+
+class ConsentimientoBiometrico(models.Model):
+    """
+    Constancia de que una persona autorizó el tratamiento de su rostro (ver
+    `consentimiento.py`). Una fila por otorgamiento; revocar NO borra la fila (es la
+    prueba de que hubo consentimiento y cuándo terminó), solo fija `revocado_en`.
+    """
+    id_consentimiento = models.BigAutoField(primary_key=True, db_column='ID_CONSENTIMIENTO')
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='consentimientos_biometricos', db_column='FK_USUARIO')
+    version = models.CharField(max_length=30, db_column='VERSION')
+    otorgado_en = models.DateTimeField(auto_now_add=True, db_column='OTORGADO_EN')
+    revocado_en = models.DateTimeField(null=True, blank=True, db_column='REVOCADO_EN')
+
+    class Meta:
+        db_table = 'CONSENTIMIENTO_BIOMETRICO'
+
+    @classmethod
+    def vigente(cls, usuario):
+        """True si hay un consentimiento sin revocar de la versión actual del texto."""
+        from . import consentimiento
+        return cls.objects.filter(usuario=usuario, version=consentimiento.VERSION, revocado_en__isnull=True).exists()
+
+    @classmethod
+    def otorgar(cls, usuario):
+        from . import consentimiento
+        if cls.vigente(usuario):
+            return
+        cls.objects.create(usuario=usuario, version=consentimiento.VERSION)
+
+    @classmethod
+    def revocar(cls, usuario):
+        """
+        Cierra los consentimientos abiertos y borra el vector facial (sin consentimiento
+        no hay base para conservarlo). También baja `verificado_biometricamente`: puede
+        haberse obtenido por rostro, así que se vuelve a verificar por otra vía.
+        """
+        from django.utils import timezone
+        cls.objects.filter(usuario=usuario, revocado_en__isnull=True).update(revocado_en=timezone.now())
+        usuario.encoding_facial = None
+        usuario.verificado_biometricamente = False
+        usuario.save(update_fields=['encoding_facial', 'verificado_biometricamente'])

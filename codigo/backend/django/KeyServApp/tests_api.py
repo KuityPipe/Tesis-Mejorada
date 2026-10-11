@@ -14,6 +14,7 @@ from rest_framework.test import APITestCase
 
 from .api import jwt_utils
 from .models import (
+    ConsentimientoBiometrico,
     Comuna, Consulta, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion,
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region, TokenSesion,
     Usuario, Valoracion, ValoracionImagen,
@@ -1652,12 +1653,69 @@ class VerificarBiometriaNativaApiTests(APITestCase):
         self.assertTrue(self.usuario.verificado_biometricamente)
 
 
+class ConsentimientoBiometricoApiTests(APITestCase):
+    """Sin consentimiento vigente no se captura ni se compara el rostro; revocar borra el vector."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('consent_api@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+
+    def test_estado_inicial_sin_consentimiento_y_trae_texto_y_version(self):
+        resp = self.client.get('/api/auth/rostro/consentimiento/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['vigente'])
+        self.assertTrue(resp.data['texto'])
+        self.assertTrue(resp.data['version'])
+
+    def test_registrar_y_verificar_sin_consentimiento_devuelven_403_sin_procesar(self):
+        with mock.patch('KeyServApp.biometria.calcular_encoding_facial') as calcular, \
+                mock.patch('KeyServApp.biometria.verificar_rostro_usuario') as verificar:
+            r1 = self.client.post('/api/auth/rostro/registrar/', _frames_prueba_de_vida(), format='multipart')
+            r2 = self.client.post('/api/auth/rostro/verificar/', _frames_prueba_de_vida(), format='multipart')
+            calcular.assert_not_called()
+            verificar.assert_not_called()
+        self.assertEqual(r1.status_code, 403)
+        self.assertEqual(r2.status_code, 403)
+
+    def test_otorgar_habilita_y_deja_constancia(self):
+        resp = self.client.post('/api/auth/rostro/consentimiento/')
+        self.assertEqual(resp.status_code, 201)
+        self.assertTrue(resp.data['vigente'])
+        self.assertEqual(ConsentimientoBiometrico.objects.filter(usuario=self.usuario).count(), 1)
+        self.client.post('/api/auth/rostro/consentimiento/')  # idempotente: no duplica
+        self.assertEqual(ConsentimientoBiometrico.objects.filter(usuario=self.usuario).count(), 1)
+
+    def test_revocar_borra_el_vector_baja_verificacion_y_conserva_la_constancia(self):
+        ConsentimientoBiometrico.otorgar(self.usuario)
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.verificado_biometricamente = True
+        self.usuario.save()
+        resp = self.client.delete('/api/auth/rostro/consentimiento/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['vigente'])
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.encoding_facial)
+        self.assertFalse(self.usuario.verificado_biometricamente)
+        fila = ConsentimientoBiometrico.objects.get(usuario=self.usuario)
+        self.assertIsNotNone(fila.revocado_en)
+
+    def test_consentimiento_de_version_anterior_no_cuenta(self):
+        ConsentimientoBiometrico.objects.create(usuario=self.usuario, version='version-vieja')
+        self.assertFalse(ConsentimientoBiometrico.vigente(self.usuario))
+
+    def test_requiere_autenticacion(self):
+        self.client.credentials()
+        self.assertEqual(self.client.get('/api/auth/rostro/consentimiento/').status_code, 401)
+
+
 class RostroApiTests(APITestCase):
     """`/api/auth/rostro/*` — espeja `ReconocimientoFacialTests` (tests.py). `biometria.calcular_encoding_facial`/`verificar_rostro_usuario` mockeados, mismo criterio que el resto del proyecto (ver esa clase para el porqué)."""
 
     def setUp(self):
         _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
         self.usuario = _crear_usuario('rostro_api@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        ConsentimientoBiometrico.otorgar(self.usuario)
         self.access_token = jwt_utils.generar_access_token(self.usuario)
 
     def _autenticado(self):

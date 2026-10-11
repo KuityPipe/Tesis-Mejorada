@@ -7,6 +7,14 @@ import { Usuario } from '../core/auth';
 
 interface RespuestaEstadoRostro {
   tiene_referencia: boolean;
+  consentimiento_vigente: boolean;
+}
+
+/** Consentimiento biométrico (`/api/auth/rostro/consentimiento/`); el texto viene del servidor para no duplicarlo acá. */
+export interface Consentimiento {
+  vigente: boolean;
+  version: string;
+  texto: string;
 }
 
 /**
@@ -29,6 +37,19 @@ export class Rostro {
   /** Si el usuario ya tiene un rostro de referencia guardado — nunca expone el encoding en sí, ver `RostroEstadoView`. */
   estado(): Observable<RespuestaEstadoRostro> {
     return this.http.get<RespuestaEstadoRostro>(`${environment.apiUrl}/auth/rostro/estado/`);
+  }
+
+  consentimiento(): Observable<Consentimiento> {
+    return this.http.get<Consentimiento>(`${environment.apiUrl}/auth/rostro/consentimiento/`);
+  }
+
+  otorgarConsentimiento(): Observable<Consentimiento> {
+    return this.http.post<Consentimiento>(`${environment.apiUrl}/auth/rostro/consentimiento/`, {});
+  }
+
+  /** Revocar borra el vector facial guardado en el servidor. */
+  revocarConsentimiento(): Observable<Consentimiento> {
+    return this.http.delete<Consentimiento>(`${environment.apiUrl}/auth/rostro/consentimiento/`);
   }
 
   registrar(frames: File[]): Observable<{ detail: string }> {

@@ -7,6 +7,18 @@
   <div class="ks-panel">
     <div class="ks-fingerprint-scanner"><i class="bi bi-person-bounding-box"></i></div>
 
+    {% if not consentimiento_vigente %}
+      <h1>Consentimiento para reconocimiento facial</h1>
+      <p class="ks-help text-start">{{ texto_consentimiento }}</p>
+      <form method="post" action="{% url 'KeyServApp:rostro_consentimiento' %}" class="ks-form text-start">
+        {% csrf_token %}
+        <label class="d-flex gap-2 align-items-start mb-3">
+          <input type="checkbox" name="acepto" value="1" required>
+          <span>Acepto el tratamiento de mi rostro en los términos descritos. Revisa la <a href="{% url 'KeyServApp:privacidad' %}" target="_blank" rel="noopener">política de privacidad</a>.</span>
+        </label>
+        <button type="submit" class="ks-btn ks-btn-primary w-100 justify-content-center">Aceptar y continuar</button>
+      </form>
+    {% else %}
     {% if tiene_referencia %}
       <h1>Verificación facial</h1>
       <p class="ks-help">Ya registraste un rostro de referencia. Mira a la cámara, captura, y parpadea una vez durante la captura para verificar tu identidad.</p>
@@ -32,6 +44,13 @@
       {% include "KeyServApp/_captura_camara.html" with widget_id="cam-registrar" %}
       <button type="submit" class="ks-btn {% if tiene_referencia %}ks-btn-outline{% else %}ks-btn-primary{% endif %} w-100 justify-content-center" disabled><i class="bi bi-camera"></i> {% if tiene_referencia %}Reemplazar rostro de referencia{% else %}Registrar rostro{% endif %}</button>
     </form>
+
+    <form method="post" action="{% url 'KeyServApp:rostro_consentimiento' %}" class="mt-4">
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="revocar">
+      <button type="submit" class="ks-btn ks-btn-outline w-100 justify-content-center">Revocar consentimiento y eliminar mis datos faciales</button>
+    </form>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

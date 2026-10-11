@@ -26,7 +26,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import biometria
+from .. import biometria, consentimiento
 from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
@@ -35,7 +35,7 @@ from ..forms import (
     RecuperarForm, RegistroForm, ValoracionForm,
 )
 from ..models import (
-    Comuna, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
+    Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region,
     Transaccion, TipoCuenta, Usuario, UsuarioConversacion, Valoracion, ValoracionImagen,
 )
@@ -267,7 +267,41 @@ class RostroEstadoView(APIView):
     """
 
     def get(self, request):
-        return Response({'tiene_referencia': bool(request.user.encoding_facial)})
+        return Response({
+            'tiene_referencia': bool(request.user.encoding_facial),
+            'consentimiento_vigente': ConsentimientoBiometrico.vigente(request.user),
+        })
+
+
+_DETALLE_SIN_CONSENTIMIENTO = 'Necesitamos tu consentimiento para tratar tu rostro antes de capturarlo.'
+
+
+class RostroConsentimientoView(APIView):
+    """
+    `GET`/`POST`/`DELETE /api/auth/rostro/consentimiento/` — consulta, otorga y revoca el
+    consentimiento biométrico (ver `consentimiento.py`). El texto viaja desde acá para que
+    Ionic no lo duplique. Revocar borra el vector facial guardado.
+    """
+
+    def _estado(self, usuario):
+        return {
+            'vigente': ConsentimientoBiometrico.vigente(usuario),
+            'version': consentimiento.VERSION,
+            'texto': consentimiento.TEXTO,
+        }
+
+    def get(self, request):
+        return Response(self._estado(request.user))
+
+    def post(self, request):
+        ConsentimientoBiometrico.otorgar(request.user)
+        logger.info('Consentimiento biométrico otorgado (api): usuario_id=%s version=%s', request.user.id_usuario, consentimiento.VERSION)
+        return Response(self._estado(request.user), status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        ConsentimientoBiometrico.revocar(request.user)
+        logger.info('Consentimiento biométrico revocado (api): usuario_id=%s', request.user.id_usuario)
+        return Response(self._estado(request.user))
 
 
 class RostroRegistrarView(APIView):
@@ -284,6 +318,8 @@ class RostroRegistrarView(APIView):
     """
 
     def post(self, request):
+        if not ConsentimientoBiometrico.vigente(request.user):
+            return Response({'detail': _DETALLE_SIN_CONSENTIMIENTO}, status=status.HTTP_403_FORBIDDEN)
         try:
             rutas = vistas_legacy._obtener_frames_captura(request)
         except ValidationError as error:
@@ -312,6 +348,8 @@ class RostroVerificarView(APIView):
 
     def post(self, request):
         usuario = request.user
+        if not ConsentimientoBiometrico.vigente(usuario):
+            return Response({'detail': _DETALLE_SIN_CONSENTIMIENTO}, status=status.HTTP_403_FORBIDDEN)
         if not usuario.encoding_facial:
             return Response({'detail': 'Todavía no registraste un rostro de referencia.'}, status=status.HTTP_400_BAD_REQUEST)
 

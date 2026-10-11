@@ -16,6 +16,7 @@ urlpatterns = [
     path('perfil/resenas-recibidas/', views.ResenasRecibidasView.as_view(), name='resenas-recibidas'),
     path('auth/verificar-biometria-nativa/', views.VerificarBiometriaNativaView.as_view(), name='verificar-biometria-nativa'),
     path('auth/rostro/estado/', views.RostroEstadoView.as_view(), name='rostro-estado'),
+    path('auth/rostro/consentimiento/', views.RostroConsentimientoView.as_view(), name='rostro-consentimiento'),
     path('auth/rostro/registrar/', views.RostroRegistrarView.as_view(), name='rostro-registrar'),
     path('auth/rostro/verificar/', views.RostroVerificarView.as_view(), name='rostro-verificar'),
     path('auth/perfil-proveedor/', views.PerfilProveedorView.as_view(), name='perfil-proveedor'),

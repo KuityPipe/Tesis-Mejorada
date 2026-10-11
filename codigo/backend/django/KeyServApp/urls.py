@@ -57,6 +57,7 @@ urlpatterns = [
 
     # Biometría
     path('rostro/', views.rostro_view, name='rostro'),
+    path('rostro/consentimiento/', views.rostro_consentimiento_view, name='rostro_consentimiento'),
     path('rostro/registrar/', views.registro_rostro_view, name='registro_rostro'),
     path('rostro/verificar/', views.verificacion_facial_view, name='verificacion_facial'),
     path('ajax/validar-captura-rostro/', views.validar_captura_rostro_ajax, name='ajax_validar_captura_rostro'),
