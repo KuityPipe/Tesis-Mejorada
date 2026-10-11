@@ -78,8 +78,9 @@ fpdf2==2.7.9
 # Pagos (codigo/backend/django/KeyServApp/pagos.py) — Webpay Plus (tarjetas)
 # + Khipu (transferencia bancaria). Webpay se prueba de punta a punta con
 # las credenciales públicas de integración del propio SDK, sin cuenta real;
-# Khipu usa `requests` (ya declarado arriba, sin SDK de terceros — ver
+# Khipu usa `requests` (declarado justo arriba, sin SDK de terceros — ver
 # pagos.py sobre por qué) y sí necesita cuenta real para probarse.
+requests
 transbank-sdk>=6.1.0
 
 # Escaneo antivirus de archivos subidos (codigo/backend/django/KeyServApp/antivirus.py)

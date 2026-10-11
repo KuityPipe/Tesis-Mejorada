@@ -6,6 +6,7 @@ reimplementarla: importar los helpers "privados" de ese módulo es preferible
 a duplicar el mismo bloqueo por (IP, email) en dos lugares que puedan
 divergir con el tiempo.
 """
+import hashlib
 import logging
 import os
 
@@ -94,7 +95,7 @@ class LoginView(APIView):
             cache.incr(clave_intentos)
         except ValueError:
             cache.set(clave_intentos, 1, vistas_legacy.VENTANA_INTENTOS_LOGIN)
-        logger.warning('Login fallido (api): email=%s', email)
+        logger.warning('Login fallido (api): email_hash=%s', hashlib.sha256((email or '').lower().encode()).hexdigest()[:10])
         return Response({'detail': 'Correo o contraseña incorrectos.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -185,7 +186,7 @@ class RegistroView(APIView):
         # Sin tipo_cuenta: ver comentario en forms.py sobre por qué ya no se elige acá.
         transaccion = Transaccion.objects.create()
         usuario = form.crear_usuario(transaccion)
-        logger.info('Usuario registrado (api): id=%s email=%s', usuario.id_usuario, usuario.email)
+        logger.info('Usuario registrado (api): id=%s', usuario.id_usuario)
         # Sin tokens acá a propósito, mismo criterio que register_view:
         # "cuenta creada, ahora iniciá sesión" — no auto-login.
         return Response(UsuarioMeSerializer(usuario).data, status=status.HTTP_201_CREATED)

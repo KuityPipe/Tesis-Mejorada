@@ -35,3 +35,7 @@ codigo/backend/django/staticfiles/
 # se descarga con `manage.py descargar_geoip`, no es código fuente y se
 # actualiza mensualmente sola, no tiene sentido versionarla.
 codigo/backend/django/geoip/
+
+# Salidas generadas por IMAGEN_HUELLA.py (derivadas de biometria; no versionar)
+codigo/biometria/huella/Huella Imagen/imagenOutput/
+codigo/biometria/huella/Contraseña dactilar/

@@ -329,6 +329,8 @@ COMISION_PLATAFORMA_PORCENTAJE = env.float('COMISION_PLATAFORMA_PORCENTAJE', def
 # propio dominio del sitio Django: las vistas basadas en templates siguen
 # siendo same-origin y no necesitan CORS.
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:8100'])
+# Sin esto django-cors-headers aplica a TODO el sitio, no solo a la API.
+CORS_URLS_REGEX = r'^/api/.*$'
 
 # URL base del frontend Ionic — se usa para armar links que van por correo
 # desde endpoints de la API (ej. RecuperarView en api/views.py), a

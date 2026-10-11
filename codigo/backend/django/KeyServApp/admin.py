@@ -115,6 +115,9 @@ class UsuarioAdmin(admin.ModelAdmin):
     list_display = ('id_usuario', 'nombre_usuario', 'apellido_usuario', 'email', 'es_proveedor', 'verificado_biometricamente')
     search_fields = ('nombre_usuario', 'apellido_usuario', 'email', 'rut_usuario')
     list_filter = ('es_proveedor', 'verificado_biometricamente', 'tipo_cuenta')
+    # Dato biométrico y credencial: visibles solo como referencia, nunca editables a mano
+    # (un encoding o hash pegado a mano rompería la verificación o permitiría suplantar).
+    readonly_fields = ('password', 'encoding_facial')
 
 
 @admin.register(Publicaciones)

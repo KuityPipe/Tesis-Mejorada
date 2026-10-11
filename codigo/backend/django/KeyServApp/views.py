@@ -447,7 +447,7 @@ def register_view(request):
             # Sin tipo_cuenta: ver comentario en forms.py sobre por qué ya no se elige acá.
             transaccion = Transaccion.objects.create()
             usuario = form.crear_usuario(transaccion)
-            logger.info('Usuario registrado: id=%s email=%s', usuario.id_usuario, usuario.email)
+            logger.info('Usuario registrado: id=%s', usuario.id_usuario)
             messages.success(request, 'Usuario creado exitosamente. Ahora inicia sesión.')
             return redirect('KeyServApp:sesion')
         # Formulario inválido: se vuelve a mostrar con los errores (form.errors se ve en el template si se agregan {{ form.errors }}).
@@ -519,7 +519,7 @@ def sesion_view(request):
                 cache.incr(clave_intentos)
             except ValueError:
                 cache.set(clave_intentos, 1, VENTANA_INTENTOS_LOGIN)
-            logger.warning('Login fallido: email=%s ip=%s', email, request.META.get('REMOTE_ADDR', 'sin-ip'))
+            logger.warning('Login fallido: email_hash=%s ip=%s', hashlib.sha256((email or '').lower().encode()).hexdigest()[:10], request.META.get('REMOTE_ADDR', 'sin-ip'))
             messages.error(request, 'Correo o contraseña incorrectos.')
     return render(request, 'KeyServApp/sesion.html')
 
