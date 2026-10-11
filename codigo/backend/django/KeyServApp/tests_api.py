@@ -6,11 +6,13 @@ mundos en un solo archivo gigante habría sido más fricción de merge que
 seguridad extra. Cada escenario acá espeja uno ya cubierto en
 `LoginViewTests` (tests.py) para la ruta equivalente `/api/auth/`.
 """
+from datetime import timedelta
 from unittest import mock
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from .api import jwt_utils
@@ -1652,6 +1654,85 @@ class VerificarBiometriaNativaApiTests(APITestCase):
         self.assertTrue(resp.data['verificado_biometricamente'])
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.verificado_biometricamente)
+
+
+class DerechosTitularApiTests(APITestCase):
+    """Acceso/portabilidad (`mis-datos`) y supresión por anonimización (`eliminar-cuenta`)."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('titular@test.com', 'clave_tit', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.otro = _crear_usuario('otro_tit@test.com', 'clave_otro', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(
+            usuario_publicador=self.usuario, titulo='Carpintería', descripcion_publicacion='Muebles a medida',
+            estado_moderacion=Publicaciones.APROBADA,
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+
+    def test_mis_datos_incluye_lo_propio_y_nunca_credenciales_ni_el_vector(self):
+        self.usuario.encoding_facial = [0.5] * 128
+        self.usuario.save()
+        resp = self.client.get('/api/auth/mis-datos/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['perfil']['email'], 'titular@test.com')
+        self.assertTrue(resp.data['perfil']['tiene_rostro_registrado'])
+        self.assertEqual(resp.data['publicaciones'][0]['titulo'], 'Carpintería')
+        crudo = str(resp.data)
+        self.assertNotIn(self.usuario.password, crudo)
+        self.assertNotIn('0.5, 0.5', crudo)
+
+    def test_mis_datos_no_incluye_datos_de_otra_persona(self):
+        Publicaciones.objects.create(usuario_publicador=self.otro, titulo='Ajena', estado_moderacion=Publicaciones.APROBADA)
+        resp = self.client.get('/api/auth/mis-datos/')
+        self.assertNotIn('Ajena', str(resp.data))
+
+    def test_requieren_autenticacion(self):
+        self.client.credentials()
+        self.assertEqual(self.client.get('/api/auth/mis-datos/').status_code, 401)
+        self.assertEqual(self.client.post('/api/auth/eliminar-cuenta/', {'password': 'x'}).status_code, 401)
+
+    def test_eliminar_con_contrasena_incorrecta_no_toca_nada(self):
+        resp = self.client.post('/api/auth/eliminar-cuenta/', {'password': 'mala'}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.email, 'titular@test.com')
+
+    def test_eliminar_con_contratacion_activa_devuelve_409(self):
+        Contratacion.objects.create(publicacion=self.publicacion, cliente=self.otro, proveedor=self.usuario, estado=Contratacion.CONFIRMADA)
+        resp = self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.data['code'], 'contrataciones_activas')
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.email, 'titular@test.com')
+
+    def test_eliminar_anonimiza_y_deja_la_cuenta_inutilizable(self):
+        ConsentimientoBiometrico.otorgar(self.usuario)
+        self.usuario.encoding_facial = [0.5] * 128
+        self.usuario.verificado_biometricamente = True
+        self.usuario.save()
+        resp = self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.assertEqual(resp.status_code, 204)
+
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.email, f'eliminado-{self.usuario.pk}@eliminado.invalid')
+        self.assertEqual(self.usuario.rut_usuario, 'ELIMINADO')
+        self.assertIsNone(self.usuario.encoding_facial)
+        self.assertFalse(self.usuario.verificado_biometricamente)
+        self.assertFalse(self.usuario.check_password('clave_tit'))
+        self.assertFalse(ConsentimientoBiometrico.vigente(self.usuario))
+        self.publicacion.refresh_from_db()
+        self.assertEqual(self.publicacion.estado_moderacion, Publicaciones.RECHAZADA)
+        self.assertEqual(self.publicacion.descripcion_publicacion, '')
+
+    def test_eliminar_conserva_el_contrato_completado_de_la_otra_parte(self):
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.otro, proveedor=self.usuario, estado=Contratacion.COMPLETADA)
+        self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.assertTrue(Contratacion.objects.filter(pk=contratacion.pk).exists())
+
+    def test_eliminar_borra_sesiones_y_vacia_mensajes(self):
+        TokenSesion.objects.create(usuario=self.usuario, refresh_token_hash='h', expira_en=timezone.now() + timedelta(days=1))
+        self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.assertFalse(TokenSesion.objects.filter(usuario=self.usuario).exists())
 
 
 @override_settings(EXIGIR_IDENTIDAD_VERIFICADA=True)

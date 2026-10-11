@@ -96,13 +96,43 @@
       </ion-card>
     </div>
 
+    <div class="ks-section" appReveal [appRevealDelay]="150">
+      <p class="ks-section-title"><ion-icon name="shield-checkmark-outline"></ion-icon> Mis datos</p>
+      <ion-card>
+        <ion-card-content>
+          <p>Puedes descargar una copia de los datos que tenemos sobre ti, o eliminar tu cuenta. Al eliminarla borramos o anonimizamos tus datos personales; conservamos solo lo que la ley nos obliga a guardar de contratos y pagos.</p>
+          <ion-button expand="block" fill="outline" (click)="descargarMisDatos()" [disabled]="descargando">
+            {{ descargando ? 'Preparando…' : 'Descargar mis datos' }}
+          </ion-button>
+          <ion-text color="danger" *ngIf="errorDatos"><p>{{ errorDatos }}</p></ion-text>
+
+          <ion-button expand="block" fill="clear" color="danger" class="ion-margin-top" *ngIf="!confirmandoEliminar" (click)="confirmandoEliminar = true">
+            Eliminar mi cuenta
+          </ion-button>
+          <div *ngIf="confirmandoEliminar" class="ion-margin-top">
+            <p><strong>Esta acción no se puede deshacer.</strong> Escribe tu contraseña para confirmar.</p>
+            <ion-item>
+              <ion-input type="password" label="Contraseña" labelPlacement="floating" [(ngModel)]="passwordEliminar" autocomplete="current-password"></ion-input>
+            </ion-item>
+            <ion-text color="danger" *ngIf="errorEliminar"><p>{{ errorEliminar }}</p></ion-text>
+            <ion-button expand="block" color="danger" class="ion-margin-top" (click)="eliminarCuenta()" [disabled]="!passwordEliminar || eliminando">
+              {{ eliminando ? 'Eliminando…' : 'Eliminar definitivamente' }}
+            </ion-button>
+            <ion-button expand="block" fill="clear" color="medium" (click)="confirmandoEliminar = false; passwordEliminar = ''; errorEliminar = null">
+              Cancelar
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <!-- Mismo texto legal estático que preferencias_cuenta.html — se le había quedado afuera a este pantalla. -->
     <div class="ks-section" appReveal [appRevealDelay]="180">
       <p class="ks-section-title"><ion-icon name="document-text-outline"></ion-icon> Términos y condiciones</p>
       <ion-card>
         <ion-card-content>
           <p>Al usar KeyServ aceptas que la plataforma conecta a clientes con proveedores de servicios independientes — KeyServ no es parte del servicio contratado, no responde por su ejecución, y su rol es facilitar el contacto, la coordinación y el pago entre ambas partes.</p>
-          <p>La verificación biométrica (huella dactilar y/o reconocimiento facial) confirma la identidad de quien opera la cuenta, no la calidad del trabajo realizado. Las calificaciones y reseñas reflejan la experiencia de otros usuarios y pasan por un proceso de moderación antes de publicarse.</p>
+          <p>La verificación biométrica (la biometría de tu teléfono y/o el reconocimiento facial) confirma la identidad de quien opera la cuenta, no la calidad del trabajo realizado. Las calificaciones y reseñas reflejan la experiencia de otros usuarios y pasan por un proceso de moderación antes de publicarse.</p>
           <p>Los pagos se procesan a través de Webpay Plus o Khipu — KeyServ no almacena números de tarjeta ni claves bancarias en ningún momento. El monto acordado entre cliente y proveedor es el que se cobra al confirmar el trabajo.</p>
           <p style="margin-bottom:0;">Cualquier intento de fraude, suplantación de identidad o abuso hacia otro usuario puede resultar en la suspensión de la cuenta.</p>
         </ion-card-content>

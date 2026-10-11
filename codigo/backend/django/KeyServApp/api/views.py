@@ -26,7 +26,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import biometria, consentimiento, identidad
+from .. import biometria, consentimiento, derechos_titular, identidad
 from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
@@ -496,6 +496,48 @@ class PreferenciasView(APIView):
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
         form.save()
         return Response(UsuarioMeSerializer(request.user).data)
+
+
+class MisDatosView(APIView):
+    """
+    `GET /api/auth/mis-datos/` — derecho de acceso y portabilidad: copia de los datos
+    personales de quien consulta, en JSON (ver `derechos_titular.exportar_datos`).
+    """
+
+    def get(self, request):
+        logger.info('Exportación de datos personales (api): usuario_id=%s', request.user.id_usuario)
+        return Response(derechos_titular.exportar_datos(request.user))
+
+
+class EliminarCuentaView(APIView):
+    """
+    `POST /api/auth/eliminar-cuenta/` — derecho de supresión. Pide la contraseña (acción
+    irreversible), mismo rate-limit que las demás re-autenticaciones, y se rechaza mientras haya
+    contrataciones en curso. Anonimiza la cuenta, ver `derechos_titular.eliminar_cuenta`.
+    """
+    _CLAVE_REAUTH = 'eliminar_cuenta'
+
+    def post(self, request):
+        usuario = request.user
+        if vistas_legacy._reautenticacion_bloqueada(usuario, self._CLAVE_REAUTH):
+            return Response({'detail': 'Demasiados intentos fallidos. Prueba de nuevo en unos minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        form = ReautenticacionForm(request.data)
+        if not (form.is_valid() and usuario.check_password(form.cleaned_data['password'])):
+            vistas_legacy._registrar_intento_reautenticacion(usuario, self._CLAVE_REAUTH, exito=False)
+            return Response({'detail': 'Contraseña incorrecta — no se eliminó la cuenta.'}, status=status.HTTP_400_BAD_REQUEST)
+        vistas_legacy._registrar_intento_reautenticacion(usuario, self._CLAVE_REAUTH, exito=True)
+
+        if derechos_titular.contrataciones_activas(usuario).exists():
+            return Response(
+                {'detail': 'Tienes contrataciones en curso. Complétalas o cancélalas antes de eliminar tu cuenta.', 'code': 'contrataciones_activas'},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        usuario_id = usuario.id_usuario
+        derechos_titular.eliminar_cuenta(usuario)
+        logger.info('Cuenta eliminada (api): usuario_id=%s', usuario_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CambiarPasswordView(APIView):

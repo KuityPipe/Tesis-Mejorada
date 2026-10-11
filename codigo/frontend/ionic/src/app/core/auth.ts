@@ -292,6 +292,16 @@ export class Auth {
     return this.http.put<Usuario>(`${environment.apiUrl}/auth/preferencias/`, { notificaciones_sonido: notificacionesSonido });
   }
 
+  /** `GET /api/auth/mis-datos/` — derecho de acceso/portabilidad: copia de los datos personales. */
+  misDatos(): Observable<unknown> {
+    return this.http.get<unknown>(`${environment.apiUrl}/auth/mis-datos/`);
+  }
+
+  /** `POST /api/auth/eliminar-cuenta/` — supresión (anonimiza la cuenta); pide la contraseña. 409 si hay contrataciones en curso. */
+  eliminarCuenta(password: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/auth/eliminar-cuenta/`, { password });
+  }
+
   /** `POST /api/auth/cambiar-password/` — cambiar la contraseña estando logueado (a diferencia de `confirmarRecuperacion`, pide la contraseña actual). */
   cambiarPassword(passwordActual: string, password: string, passwordConfirm: string): Observable<{ detail: string }> {
     return this.http.post<{ detail: string }>(`${environment.apiUrl}/auth/cambiar-password/`, {

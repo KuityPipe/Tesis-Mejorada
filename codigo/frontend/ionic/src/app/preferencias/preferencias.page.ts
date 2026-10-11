@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
+import { Router } from '@angular/router';
+
 import { Auth } from '../core/auth';
 import { Tema, Tema3Estados } from '../core/tema';
 
@@ -41,10 +43,19 @@ export class PreferenciasPage implements OnInit {
 
   temaActual: Tema3Estados = 'light';
 
+  // Derechos sobre mis datos: descarga y eliminación de cuenta.
+  descargando = false;
+  errorDatos: string | null = null;
+  confirmandoEliminar = false;
+  passwordEliminar = '';
+  eliminando = false;
+  errorEliminar: string | null = null;
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly auth: Auth,
     private readonly tema: Tema,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -52,6 +63,49 @@ export class PreferenciasPage implements OnInit {
     this.auth.me().subscribe((usuario) => {
       this.formularioPreferencias.patchValue({ notificaciones_sonido: usuario.notificaciones_sonido });
       this.cargando = false;
+    });
+  }
+
+  /** Baja una copia de mis datos como archivo JSON. */
+  descargarMisDatos(): void {
+    if (this.descargando) {
+      return;
+    }
+    this.descargando = true;
+    this.errorDatos = null;
+    this.auth.misDatos().subscribe({
+      next: (datos) => {
+        const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = 'mis-datos-keyserv.json';
+        enlace.click();
+        URL.revokeObjectURL(url);
+        this.descargando = false;
+      },
+      error: () => {
+        this.errorDatos = 'No pudimos preparar tus datos. Intenta nuevamente.';
+        this.descargando = false;
+      },
+    });
+  }
+
+  eliminarCuenta(): void {
+    if (!this.passwordEliminar || this.eliminando) {
+      return;
+    }
+    this.eliminando = true;
+    this.errorEliminar = null;
+    this.auth.eliminarCuenta(this.passwordEliminar).subscribe({
+      next: () => {
+        this.auth.logout();
+        this.router.navigateByUrl('/login');
+      },
+      error: (error: HttpErrorResponse) => {
+        this.eliminando = false;
+        this.errorEliminar = error.error?.detail ?? 'No pudimos eliminar tu cuenta. Intenta nuevamente.';
+      },
     });
   }
 
