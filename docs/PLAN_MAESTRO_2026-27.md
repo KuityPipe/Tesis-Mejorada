@@ -54,5 +54,7 @@ sentido forzar captura de rostro sin consentimiento).
 | Logs sin email en claro (hash corto) | Hecho (Fase 1) |
 | Artefactos de huella fuera de git (`.gitignore`) | Hecho (Fase 1) |
 | Decisión sobre `media/` público | Pendiente |
-| Registro de tratamiento, encargados, EIPD | Pendiente |
+| Registro de tratamiento y lista de encargados (borradores, `docs/cumplimiento/`) | Hecho, falta validación legal |
+| EIPD (`docs/legal/`) | Pendiente |
+| Rama `fase-0-reconocimiento` fusionada a `master` local (sin push) | Hecho; backend 290 OK, frontend 77 OK |
 | Fases 2–6 | Pendientes |
