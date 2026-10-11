@@ -52,3 +52,15 @@ orden, derivados de `docs/fase-0-reconocimiento.md`:
   `bootstrapApplication`, y las 32 páginas son `standalone: false`. Se abordará ruta por
   ruta con el patrón strangler fig que ya usa el repo, no como una migración masiva
   previa a todo lo demás.
+
+## 2026-10-11 — Fase 1 → 2/3 (decisiones de producto sobre verificación)
+
+- **Biometría nativa = vía principal y pilar de seguridad.** El reconocimiento facial en
+  servidor pasa a ser secundario (para quien no pueda usar la nativa).
+- **Se agrega a la Fase 2 una vía de verificación sin biometría con multifactor** (hoy no
+  existe ningún segundo factor): contraseña + código por correo/app autenticadora +
+  revisión manual de documento. Más lenta a propósito. Con advertencia explícita aceptada
+  por el usuario. Impacto de alcance: agrega trabajo de MFA y de revisión de documentos
+  que el plan original no contemplaba.
+- La advertencia "bajo su propio riesgo" informa pero no traslada la responsabilidad
+  legal de KeyServ; documentado en `docs/legal/eipd-reconocimiento-facial.md` §5.

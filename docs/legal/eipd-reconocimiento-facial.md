@@ -2,8 +2,8 @@
 
 > **Estado: borrador técnico para la postulación Corfo. No es asesoría legal ni un
 > documento firmado.** Redactado por el equipo técnico a partir del código real
-> (`docs/fase-0-reconocimiento.md`). Las secciones marcadas **[DECISIÓN PENDIENTE]**
-> requieren resolución del responsable del producto y revisión de un abogado antes de
+> (`docs/fase-0-reconocimiento.md`). Las decisiones de producto de §2 ya están tomadas;
+> falta la revisión de un abogado antes de
 > presentarse como respaldo de cumplimiento de la Ley 21.719. El producto hoy es una demo.
 
 ## 1. Descripción del tratamiento
@@ -18,18 +18,25 @@ proveedores, se quiere verificar la identidad de quien contrata o publica. Hay d
 
 Es un dato personal **sensible** (biometría con fines de identificación).
 
-## 2. Necesidad y proporcionalidad **[DECISIÓN PENDIENTE]**
+## 2. Necesidad y proporcionalidad
+
+**Decisión del responsable del producto (2026-10-11):**
+
+1. **La biometría nativa del dispositivo es la vía principal y el pilar de seguridad de
+   KeyServ.** Es la más segura para la persona porque el dato biométrico nunca sale del
+   teléfono, y la que da confianza entre desconocidos que se contratan.
+2. **Se ofrece una vía alternativa sin biometría**, más lenta, que **exige verificación
+   multifactor** (ver §4). No es obligatorio dar datos biométricos para usar la
+   plataforma.
+3. El reconocimiento facial en servidor queda como opción para quien no puede usar la
+   biometría nativa (p. ej. en web); no es la vía por defecto.
 
 - **Finalidad:** reducir suplantación y fraude entre desconocidos que contratan servicios.
-- **Minimización — recomendación técnica:** la biometría nativa es la vía principal, porque
-  el dato nunca sale del dispositivo. El reconocimiento facial en servidor debería ser solo
-  alternativa para quien no pueda usar la nativa, y no obligatorio si existe otra forma de
-  verificación (p. ej. un documento de identidad).
-- **A decidir:** ¿es indispensable verificar a todos, o solo a quien publica o supera un
-  monto? ¿Se ofrece una vía sin biometría? Hoy **no hay enforcement**: nada bloquea
-  contratar o publicar sin verificarse, lo que también debe reflejarse en el texto público.
 - Se guarda un vector, no la foto. Un vector no es reversible a una imagen reconocible de
   forma sencilla, pero **sigue siendo dato biométrico** y se trata como tal.
+- **Pendiente de definir:** si la verificación se exige a todos o solo a quien publica o
+  supera cierto monto. Hoy **no hay enforcement**: nada bloquea contratar o publicar sin
+  verificarse, y el texto público no debe afirmar lo contrario.
 
 ## 3. Riesgos para las personas
 
@@ -59,15 +66,32 @@ reseñas/chat en almacenamiento privado con control de acceso; logs sin email en
 3. Endpoints de acceso, portabilidad y supresión; al revocar se borra el vector.
 4. Plazo de retención y purga automática (vector, intentos sospechosos, tokens vencidos).
 5. Pruebas de rechazo con rostros distintos y de iluminación, registradas.
-6. Vía alternativa sin biometría **[DECISIÓN PENDIENTE]**.
+6. **Vía alternativa sin biometría, con multifactor** (decidida; diseño por definir). Propuesta
+   técnica: contraseña + segundo factor (código por correo o app autenticadora) + revisión
+   manual de un documento de identidad. Es más lenta a propósito. El segundo factor y el
+   flujo de revisión no existen hoy y se construyen en la Fase 2.
+7. **Advertencia explícita** al elegir esa vía (ver §5).
 
-## 5. Riesgo residual y aprobación **[DECISIÓN PENDIENTE]**
+## 5. Riesgo residual y advertencia al usuario
 
 Mientras no existan consentimiento y cifrado, el riesgo residual de los puntos 1, 3 y 7 es
 **alto** y no debería activarse la verificación obligatoria con usuarios reales. Con las
-medidas previstas implementadas, el residual esperado pasa a medio-bajo. Esa valoración, y
-su aceptación, corresponde a la persona responsable del producto y debe validarla un
-abogado especialista.
+medidas previstas implementadas, el residual esperado pasa a medio-bajo.
+
+**Vía sin biometría:** la persona que la elige recibe una advertencia clara, que debe
+aceptar activamente, indicando que la verificación es menos robusta y que **asume el riesgo
+asociado** (p. ej. mayor exposición a suplantación de cuenta). Texto a redactar en la
+Fase 2 y a revisar por un abogado.
+
+> **Alcance de esa advertencia (revisar con abogado):** la aceptación del usuario sirve
+> para informar y dejar constancia, pero **no traslada la responsabilidad de KeyServ como
+> responsable del tratamiento**: seguridad, minimización y derechos del titular siguen
+> siendo obligaciones de la empresa, y una cláusula de "bajo su propio riesgo" no las
+> elimina. Por eso el multifactor de la vía alternativa es obligatorio y no solo
+> una advertencia.
+
+La aceptación del riesgo residual global y la firma corresponden a la persona responsable
+del producto, con revisión de un abogado especialista.
 
 | Rol | Nombre | Fecha | Firma |
 |---|---|---|---|
