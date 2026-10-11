@@ -58,8 +58,9 @@ sentido forzar captura de rostro sin consentimiento).
 | EIPD borrador (`docs/legal/eipd-reconocimiento-facial.md`) | Hecho; decisiones de producto tomadas, falta revisión legal y firma |
 | Rama `fase-0-reconocimiento` fusionada a `master` local (sin push) | Hecho; backend 290 OK, frontend 77 OK |
 | Fase 2/3 · consentimiento biométrico (modelo versionado, gating en rostro, revocar borra el vector; Django + API + Ionic) | Hecho, pendiente de revisión legal del texto |
-| Fase 2 · cifrado de `encoding_facial` | Pendiente |
-| Fase 2 · enforcement de identidad al contratar/publicar | Pendiente |
-| Fase 2 · vía alternativa sin biometría con MFA + advertencia | Pendiente |
-| Fase 3 · exportar/eliminar datos del titular, retención automatizada | Pendiente |
+| Fase 2 · cifrado de `encoding_facial` en reposo (Fernet, claves rotables; migración cifra filas existentes) | Hecho. **En producción real hay que configurar `BIOMETRIC_ENCRYPTION_KEYS` (distinta de `SECRET_KEY`) y respaldar la clave fuera de la BD** |
+| Fase 2 · enforcement de identidad al contratar/publicar (`EXIGIR_IDENTIDAD_VERIFICADA`) | Hecho, **apagado por defecto** (la demo no tiene biometría); encender en producción real |
+| Fase 2 · vía alternativa sin biometría (advertencia + código por correo + documento revisado por staff; API, admin e Ionic) | Hecho. Falta pantalla en las plantillas Django (en retiro) y que el staff revise en `/admin/` (solo superusuario, no Moderador) |
+| Fase 3 · exportar y eliminar datos del titular (`/api/auth/mis-datos/`, `/api/auth/eliminar-cuenta/`, UI en Ionic) | Hecho; el alcance de lo que se conserva (contratos/pagos) requiere validación legal |
+| Fase 3 · retención automatizable (`mantenimiento_retencion`) | Comandos hechos. **Nadie los programa todavía**: hay que agendarlos en el entorno real (cron de Render es de pago) |
 | Fases 4–6 | Pendientes |

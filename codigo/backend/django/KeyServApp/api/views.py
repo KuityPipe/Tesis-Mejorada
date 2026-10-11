@@ -26,7 +26,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import biometria, consentimiento, derechos_titular, identidad
+from .. import biometria, consentimiento, derechos_titular, identidad, verificacion_alternativa
 from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
@@ -37,7 +37,7 @@ from ..forms import (
 from ..models import (
     Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region,
-    Transaccion, TipoCuenta, Usuario, UsuarioConversacion, Valoracion, ValoracionImagen,
+    Transaccion, TipoCuenta, Usuario, UsuarioConversacion, Valoracion, ValoracionImagen, VerificacionAlternativa,
 )
 from ..views import Unaccent
 from . import jwt_utils
@@ -496,6 +496,70 @@ class PreferenciasView(APIView):
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
         form.save()
         return Response(UsuarioMeSerializer(request.user).data)
+
+
+def _estado_verificacion_alternativa(usuario):
+    v = VerificacionAlternativa.objects.filter(usuario=usuario).first()
+    return {
+        'identidad_verificada': identidad.identidad_verificada(usuario),
+        'estado': v.estado if v else None,
+        'advertencia': verificacion_alternativa.ADVERTENCIA,
+        'advertencia_aceptada': bool(v and v.advertencia_aceptada_en),
+        'correo_verificado': bool(v and v.correo_verificado_en),
+        'documento_enviado': bool(v and v.documento_id),
+        'motivo_rechazo': v.motivo_rechazo if v else '',
+    }
+
+
+def _responder_error_verificacion(error):
+    return Response({'detail': error.mensaje}, status=error.codigo)
+
+
+class VerificacionAlternativaEstadoView(APIView):
+    """`GET /api/auth/verificacion-alternativa/` — estado de la vía sin biometría y texto de la advertencia."""
+
+    def get(self, request):
+        return Response(_estado_verificacion_alternativa(request.user))
+
+
+class VerificacionAlternativaIniciarView(APIView):
+    """`POST /api/auth/verificacion-alternativa/iniciar/` `{acepto_advertencia: true}` — registra la advertencia y envía un código al correo."""
+
+    def post(self, request):
+        try:
+            verificacion_alternativa.iniciar(request.user, request.data.get('acepto_advertencia') is True)
+        except verificacion_alternativa.ErrorVerificacion as error:
+            return _responder_error_verificacion(error)
+        return Response(_estado_verificacion_alternativa(request.user), status=status.HTTP_201_CREATED)
+
+
+class VerificacionAlternativaCodigoView(APIView):
+    """`POST /api/auth/verificacion-alternativa/codigo/` `{codigo}` — confirma el código recibido por correo."""
+
+    def post(self, request):
+        try:
+            verificacion_alternativa.confirmar_codigo(request.user, str(request.data.get('codigo', '')))
+        except verificacion_alternativa.ErrorVerificacion as error:
+            return _responder_error_verificacion(error)
+        return Response(_estado_verificacion_alternativa(request.user))
+
+
+class VerificacionAlternativaDocumentoView(APIView):
+    """`POST /api/auth/verificacion-alternativa/documento/` (multipart, campo `documento`) — sube el documento de identidad; queda pendiente de revisión del staff."""
+
+    def post(self, request):
+        archivo = request.FILES.get('documento')
+        if not archivo:
+            return Response({'detail': 'Adjunta una foto o archivo de tu documento de identidad.'}, status=status.HTTP_400_BAD_REQUEST)
+        estado_no_firmado = EstadoDocumento.objects.filter(pk=2).first()  # 2 = No firmado (ver fixture catalogos_iniciales)
+        try:
+            verificacion_alternativa.adjuntar_documento(request.user, archivo, estado_no_firmado)
+        except verificacion_alternativa.ErrorVerificacion as error:
+            return _responder_error_verificacion(error)
+        except ValidationError as error:
+            detalle = ' '.join(error.messages) if hasattr(error, 'messages') else str(error)
+            return Response({'detail': detalle}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(_estado_verificacion_alternativa(request.user))
 
 
 class MisDatosView(APIView):

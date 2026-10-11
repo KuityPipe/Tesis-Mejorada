@@ -19,7 +19,7 @@
       <h1 *ngIf="yaVerificado">Ya estás verificado biométricamente</h1>
       <h1 *ngIf="!yaVerificado && !disponible">Biometría no disponible en este dispositivo</h1>
       <h1 *ngIf="!yaVerificado && disponible">Verifica tu identidad con {{ tipoBiometria }}</h1>
-      <p *ngIf="!yaVerificado && !disponible">No detectamos Face ID, huella u otro sensor biométrico configurado. Puedes verificarte por <a routerLink="/rostro">reconocimiento facial</a> mientras tanto.</p>
+      <p *ngIf="!yaVerificado && !disponible">No detectamos Face ID, huella u otro sensor biométrico configurado. Puedes verificarte por <a routerLink="/rostro">reconocimiento facial</a> o, si prefieres no usar biometría, por la <a routerLink="/verificacion-alternativa">vía alternativa</a> (más lenta, con código por correo y revisión de tu documento).</p>
       <p *ngIf="!yaVerificado && disponible">Usamos la biometría de tu propio teléfono — la huella o tu cara nunca se envían a nuestros servidores, solo confirmamos que tu dispositivo ya la validó.</p>
     </div>
 

@@ -3,9 +3,8 @@ Enforcement de verificación de identidad al contratar y publicar.
 
 Controlado por `settings.EXIGIR_IDENTIDAD_VERIFICADA` (env, apagado por defecto): la demo
 pública no tiene biometría disponible, así que ahí debe seguir apagado; en producción real
-se enciende. Hoy "verificada" = `verificado_biometricamente` (biometría nativa o rostro).
-La vía alternativa sin biometría (multifactor + revisión de documento) se suma acá cuando
-exista, sin tocar las vistas.
+se enciende. "Verificada" = biometría (nativa o rostro) o vía alternativa sin biometría aprobada
+(`verificacion_alternativa.py`).
 """
 from django.conf import settings
 
@@ -17,7 +16,13 @@ CODIGO = 'identidad_no_verificada'
 
 
 def identidad_verificada(usuario):
-    return bool(usuario.verificado_biometricamente)
+    """Biometría (nativa o rostro) o, alternativamente, verificación sin biometría aprobada por el staff."""
+    if usuario.verificado_biometricamente:
+        return True
+    from .models import VerificacionAlternativa
+    return VerificacionAlternativa.objects.filter(
+        usuario=usuario, estado=VerificacionAlternativa.APROBADA, correo_verificado_en__isnull=False,
+    ).exists()
 
 
 def falta_verificar(usuario):

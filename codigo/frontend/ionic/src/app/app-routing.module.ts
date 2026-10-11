@@ -103,6 +103,11 @@ const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'verificacion-alternativa',
+    loadChildren: () => import('./verificacion-alternativa/verificacion-alternativa.module').then( m => m.VerificacionAlternativaPageModule),
+    canActivate: [authGuard],
+  },
+  {
     path: 'rostro',
     loadChildren: () => import('./rostro/rostro.module').then( m => m.RostroPageModule),
     canActivate: [authGuard],

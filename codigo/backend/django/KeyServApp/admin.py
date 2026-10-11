@@ -5,7 +5,7 @@ Refactor Fase 3: antes este archivo estaba vacío — 0 de los ~25 modelos
 eran visibles/editables desde /admin/, sin forma de inspeccionar datos
 durante desarrollo/QA.
 """
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.models import LogEntry
 from django.urls import reverse
 from django.utils import timezone
@@ -18,7 +18,7 @@ from .models import (
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
     Ranking, Region, RolCuentaAdministrativa, TipoCuenta, TipoFirma,
     Transaccion, Usuario, UsuarioAdministrativo, UsuarioConversacion,
-    Valoracion, ValoracionImagen,
+    Valoracion, ValoracionImagen, VerificacionAlternativa,
 )
 from .views import _recalcular_ranking
 
@@ -119,6 +119,35 @@ class UsuarioAdmin(admin.ModelAdmin):
     # (un valor pegado a mano rompería la verificación o permitiría suplantar).
     readonly_fields = ('password',)
     exclude = ('encoding_facial',)  # ni siquiera de solo lectura: el vector no se muestra en el panel
+
+
+@admin.register(VerificacionAlternativa)
+class VerificacionAlternativaAdmin(admin.ModelAdmin):
+    """
+    Revisión manual de la vía de identidad sin biometría. Solo superusuarios/staff con permiso:
+    NO se agrega al grupo Moderador (el documento de identidad es sensible). Aprobar exige que el
+    correo esté verificado y haya un documento; el documento se abre con su enlace de descarga.
+    """
+    list_display = ('id_verificacion', 'usuario', 'estado', 'correo_verificado_en', 'revisado_por', 'creado_en')
+    list_filter = ('estado',)
+    fields = ('usuario', 'estado', 'motivo_rechazo', 'advertencia_aceptada_en', 'correo_verificado_en', 'enlace_documento', 'revisado_por', 'revisado_en')
+    readonly_fields = ('usuario', 'advertencia_aceptada_en', 'correo_verificado_en', 'enlace_documento', 'revisado_por', 'revisado_en')
+
+    @admin.display(description='Documento de identidad')
+    def enlace_documento(self, obj):
+        if not obj.documento_id:
+            return '—'
+        return format_html('<a href="{}" target="_blank" rel="noopener">Abrir documento</a>', reverse('KeyServApp:documento_descargar', args=[obj.documento_id]))
+
+    def save_model(self, request, obj, form, change):
+        if 'estado' in form.changed_data:
+            if obj.estado == VerificacionAlternativa.APROBADA and not (obj.correo_verificado_en and obj.documento_id):
+                obj.estado = VerificacionAlternativa.PENDIENTE_REVISION
+                messages.error(request, 'No se puede aprobar: falta verificar el correo o adjuntar el documento.')
+            elif obj.estado in (VerificacionAlternativa.APROBADA, VerificacionAlternativa.RECHAZADA):
+                obj.revisado_por = request.user
+                obj.revisado_en = timezone.now()
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Publicaciones)
@@ -392,7 +421,7 @@ _CATEGORIAS_ADMIN = [
         'valoracion', 'valoracionimagen', 'contratacion',
         'historialestadocontratacion', 'ranking',
     ]),
-    ('seguridad', 'Seguridad', ['intentoaccesosospechoso']),
+    ('seguridad', 'Seguridad', ['intentoaccesosospechoso', 'verificacionalternativa']),
     ('mensajeria', 'Mensajería', ['conversacion', 'mensaje', 'usuarioconversacion']),
     ('cuentas', 'Usuarios y cuentas', [
         'usuario', 'usuarioadministrativo', 'rolcuentaadministrativa',

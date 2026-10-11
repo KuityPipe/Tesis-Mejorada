@@ -17,6 +17,7 @@ from rest_framework.test import APITestCase
 
 from .api import jwt_utils
 from .models import (
+    VerificacionAlternativa,
     ConsentimientoBiometrico,
     Comuna, Consulta, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion,
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region, TokenSesion,
@@ -1654,6 +1655,112 @@ class VerificarBiometriaNativaApiTests(APITestCase):
         self.assertTrue(resp.data['verificado_biometricamente'])
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.verificado_biometricamente)
+
+
+def _documento_png_de_prueba():
+    """PNG real (los documentos aceptan PDF/JPG/PNG, no GIF)."""
+    import io
+    from PIL import Image
+    buffer = io.BytesIO()
+    Image.new('RGB', (8, 8), (200, 10, 10)).save(buffer, format='PNG')
+    return SimpleUploadedFile('cedula.png', buffer.getvalue(), content_type='image/png')
+
+
+class VerificacionAlternativaApiTests(APITestCase):
+    """Vía sin biometría: advertencia + código por correo + documento revisado por el staff."""
+
+    def setUp(self):
+        from django.core import mail
+        self.mail = mail
+        cache.clear()
+        EstadoDocumento.objects.get_or_create(id_estado_documento=2, defaults={'nombre_estado_documento': 'No firmado'})
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('alt@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+
+    def _codigo_enviado(self):
+        import re
+        return re.search(r'(\d{6})', self.mail.outbox[-1].body).group(1)
+
+    def _iniciar(self):
+        return self.client.post('/api/auth/verificacion-alternativa/iniciar/', {'acepto_advertencia': True}, format='json')
+
+    def test_estado_inicial_trae_la_advertencia_y_no_esta_verificada(self):
+        resp = self.client.get('/api/auth/verificacion-alternativa/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['identidad_verificada'])
+        self.assertIsNone(resp.data['estado'])
+        self.assertTrue(resp.data['advertencia'])
+
+    def test_sin_aceptar_la_advertencia_no_avanza(self):
+        resp = self.client.post('/api/auth/verificacion-alternativa/iniciar/', {}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(len(self.mail.outbox), 0)
+
+    def test_iniciar_envia_codigo_y_registra_la_aceptacion(self):
+        resp = self._iniciar()
+        self.assertEqual(resp.status_code, 201)
+        self.assertTrue(resp.data['advertencia_aceptada'])
+        self.assertEqual(len(self.mail.outbox), 1)
+        self.assertEqual(self.mail.outbox[0].to, ['alt@test.com'])
+
+    def test_reenvio_inmediato_se_limita(self):
+        self._iniciar()
+        self.assertEqual(self._iniciar().status_code, 429)
+
+    def test_codigo_incorrecto_y_correcto(self):
+        self._iniciar()
+        malo = self.client.post('/api/auth/verificacion-alternativa/codigo/', {'codigo': '000000'}, format='json')
+        self.assertEqual(malo.status_code, 400)
+        bueno = self.client.post('/api/auth/verificacion-alternativa/codigo/', {'codigo': self._codigo_enviado()}, format='json')
+        self.assertEqual(bueno.status_code, 200)
+        self.assertTrue(bueno.data['correo_verificado'])
+
+    def test_bloqueo_tras_demasiados_intentos(self):
+        self._iniciar()
+        for _ in range(5):
+            self.client.post('/api/auth/verificacion-alternativa/codigo/', {'codigo': '000000'}, format='json')
+        resp = self.client.post('/api/auth/verificacion-alternativa/codigo/', {'codigo': self._codigo_enviado()}, format='json')
+        self.assertEqual(resp.status_code, 429)
+
+    def test_documento_exige_correo_verificado(self):
+        self._iniciar()
+        resp = self.client.post('/api/auth/verificacion-alternativa/documento/', {'documento': _documento_png_de_prueba()}, format='multipart')
+        self.assertEqual(resp.status_code, 400)
+
+    def test_flujo_completo_hasta_aprobacion_del_staff(self):
+        self._iniciar()
+        self.client.post('/api/auth/verificacion-alternativa/codigo/', {'codigo': self._codigo_enviado()}, format='json')
+        resp = self.client.post('/api/auth/verificacion-alternativa/documento/', {'documento': _documento_png_de_prueba()}, format='multipart')
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(resp.data['estado'], 'PENDIENTE_REVISION')
+        self.assertFalse(resp.data['identidad_verificada'])  # sin aprobación del staff NO cuenta
+
+        v = VerificacionAlternativa.objects.get(usuario=self.usuario)
+        v.estado = VerificacionAlternativa.APROBADA
+        v.save()
+        self.assertTrue(self.client.get('/api/auth/verificacion-alternativa/').data['identidad_verificada'])
+        self.addCleanup(lambda: v.documento.archivo_subido.delete(save=False))
+
+    def test_aprobada_sin_correo_verificado_no_cuenta(self):
+        VerificacionAlternativa.objects.create(usuario=self.usuario, estado=VerificacionAlternativa.APROBADA)
+        self.assertFalse(self.client.get('/api/auth/verificacion-alternativa/').data['identidad_verificada'])
+
+    def test_requiere_autenticacion(self):
+        self.client.credentials()
+        self.assertEqual(self.client.get('/api/auth/verificacion-alternativa/').status_code, 401)
+
+    @override_settings(EXIGIR_IDENTIDAD_VERIFICADA=True)
+    def test_identidad_aprobada_por_via_alternativa_permite_contratar(self):
+        proveedor = _crear_usuario('prov_alt@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=proveedor, titulo='Jardinería', estado_moderacion=Publicaciones.APROBADA)
+        antes = self.client.post('/api/contrataciones/', {'publicacion': publicacion.pk}, format='json')
+        self.assertEqual(antes.status_code, 403)
+        VerificacionAlternativa.objects.create(
+            usuario=self.usuario, estado=VerificacionAlternativa.APROBADA, correo_verificado_en=timezone.now(),
+        )
+        despues = self.client.post('/api/contrataciones/', {'publicacion': publicacion.pk}, format='json')
+        self.assertEqual(despues.status_code, 201)
 
 
 class DerechosTitularApiTests(APITestCase):

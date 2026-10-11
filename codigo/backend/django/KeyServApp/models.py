@@ -931,3 +931,42 @@ class ConsentimientoBiometrico(models.Model):
         usuario.encoding_facial = None
         usuario.verificado_biometricamente = False
         usuario.save(update_fields=['encoding_facial', 'verificado_biometricamente'])
+
+
+class VerificacionAlternativa(models.Model):
+    """
+    Solicitud de verificación de identidad SIN biometría (ver `verificacion_alternativa.py`):
+    advertencia aceptada + código por correo + documento de identidad revisado por el staff.
+    Solo `APROBADA` cuenta como identidad verificada (ver `identidad.py`).
+    """
+    INICIADA, PENDIENTE_REVISION, APROBADA, RECHAZADA = 'INICIADA', 'PENDIENTE_REVISION', 'APROBADA', 'RECHAZADA'
+    ESTADOS = [
+        (INICIADA, 'Iniciada'),
+        (PENDIENTE_REVISION, 'Pendiente de revisión'),
+        (APROBADA, 'Aprobada'),
+        (RECHAZADA, 'Rechazada'),
+    ]
+    id_verificacion = models.BigAutoField(primary_key=True, db_column='ID_VERIFICACION')
+    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name='verificacion_alternativa', db_column='FK_USUARIO')
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=INICIADA, db_column='ESTADO')
+    advertencia_aceptada_en = models.DateTimeField(null=True, blank=True, db_column='ADVERTENCIA_ACEPTADA_EN')
+    codigo_hash = models.CharField(max_length=64, blank=True, db_column='CODIGO_HASH')
+    codigo_expira_en = models.DateTimeField(null=True, blank=True, db_column='CODIGO_EXPIRA_EN')
+    intentos_codigo = models.PositiveSmallIntegerField(default=0, db_column='INTENTOS_CODIGO')
+    correo_verificado_en = models.DateTimeField(null=True, blank=True, db_column='CORREO_VERIFICADO_EN')
+    documento = models.ForeignKey('Documento', on_delete=models.SET_NULL, null=True, blank=True, db_column='FK_DOCUMENTO')
+    revisado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='verificaciones_revisadas', db_column='FK_REVISADO_POR',
+    )
+    revisado_en = models.DateTimeField(null=True, blank=True, db_column='REVISADO_EN')
+    motivo_rechazo = models.CharField(max_length=200, blank=True, db_column='MOTIVO_RECHAZO')
+    creado_en = models.DateTimeField(auto_now_add=True, db_column='CREADO_EN')
+
+    class Meta:
+        db_table = 'VERIFICACION_ALTERNATIVA'
+        verbose_name = 'Verificación de identidad (sin biometría)'
+        verbose_name_plural = 'Verificaciones de identidad (sin biometría)'
+
+    def __str__(self):
+        return f'{self.usuario_id} — {self.estado}'
