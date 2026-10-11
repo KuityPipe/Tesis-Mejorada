@@ -362,6 +362,16 @@ SPECTACULAR_SETTINGS = {
 # el modelo OutstandingToken del blacklist app), así que no calza limpio acá.
 # Ver KeyServApp/api/authentication.py y KeyServApp/api/jwt_utils.py.
 JWT_SECRET = env('JWT_SECRET', default=SECRET_KEY)
+
+# Claves Fernet para cifrar datos biométricos en reposo (KeyServApp/campos.py). La primera
+# cifra, todas descifran (rotación). Generar con:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Vacío = se deriva de SECRET_KEY (solo aceptable en desarrollo/demo).
+BIOMETRIC_ENCRYPTION_KEYS = env.list('BIOMETRIC_ENCRYPTION_KEYS', default=[])
+
+# Exigir identidad verificada para contratar y publicar (KeyServApp/identidad.py). Apagado
+# por defecto: la demo pública no ofrece biometría. Encender en producción real.
+EXIGIR_IDENTIDAD_VERIFICADA = env.bool('EXIGIR_IDENTIDAD_VERIFICADA', default=False)
 JWT_ALGORITHM = 'HS256'
 JWT_ACCESS_TOKEN_MINUTOS = env.int('JWT_ACCESS_TOKEN_MINUTOS', default=20)
 JWT_REFRESH_TOKEN_DIAS = env.int('JWT_REFRESH_TOKEN_DIAS', default=30)

@@ -10,6 +10,7 @@ from unittest import mock
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from rest_framework.test import APITestCase
 
 from .api import jwt_utils
@@ -1651,6 +1652,46 @@ class VerificarBiometriaNativaApiTests(APITestCase):
         self.assertTrue(resp.data['verificado_biometricamente'])
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.verificado_biometricamente)
+
+
+@override_settings(EXIGIR_IDENTIDAD_VERIFICADA=True)
+class EnforcementIdentidadApiTests(APITestCase):
+    """Con el enforcement encendido, contratar y publicar exigen identidad verificada."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_id@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.cliente = _crear_usuario('cli_id@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA)
+
+    def _como(self, usuario):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(usuario)}')
+
+    def test_cliente_sin_verificar_no_puede_contratar(self):
+        self._como(self.cliente)
+        resp = self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.pk}, format='json')
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.data['code'], 'identidad_no_verificada')
+        self.assertFalse(Contratacion.objects.exists())
+
+    def test_cliente_verificado_si_puede_contratar(self):
+        self.cliente.verificado_biometricamente = True
+        self.cliente.save()
+        self._como(self.cliente)
+        resp = self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.pk}, format='json')
+        self.assertEqual(resp.status_code, 201)
+
+    def test_proveedor_sin_verificar_no_puede_publicar(self):
+        self._como(self.proveedor)
+        resp = self.client.post('/api/publicaciones/crear/', {'titulo': 'Nuevo', 'categoria': 'Gasfitería'})
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.data['code'], 'identidad_no_verificada')
+
+    @override_settings(EXIGIR_IDENTIDAD_VERIFICADA=False)
+    def test_apagado_no_exige_nada(self):
+        self._como(self.cliente)
+        resp = self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.pk}, format='json')
+        self.assertEqual(resp.status_code, 201)
 
 
 class ConsentimientoBiometricoApiTests(APITestCase):

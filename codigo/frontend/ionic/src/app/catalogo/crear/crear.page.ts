@@ -136,7 +136,7 @@ export class CrearPage implements OnInit {
       error: (error: HttpErrorResponse) => {
         this.enviando = false;
         this.errorGeneral = typeof error.error === 'object' && error.error !== null
-          ? Object.values(error.error).map((valor) => (Array.isArray(valor) ? valor.join(' ') : String(valor))).join(' ')
+          ? Object.entries(error.error).filter(([clave]) => clave !== 'code').map(([, valor]) => valor).map((valor) => (Array.isArray(valor) ? valor.join(' ') : String(valor))).join(' ')
           : 'No se pudo crear la publicación. Prueba de nuevo en unos minutos.';
       },
     });

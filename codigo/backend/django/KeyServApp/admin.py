@@ -115,9 +115,10 @@ class UsuarioAdmin(admin.ModelAdmin):
     list_display = ('id_usuario', 'nombre_usuario', 'apellido_usuario', 'email', 'es_proveedor', 'verificado_biometricamente')
     search_fields = ('nombre_usuario', 'apellido_usuario', 'email', 'rut_usuario')
     list_filter = ('es_proveedor', 'verificado_biometricamente', 'tipo_cuenta')
-    # Dato biométrico y credencial: visibles solo como referencia, nunca editables a mano
-    # (un encoding o hash pegado a mano rompería la verificación o permitiría suplantar).
-    readonly_fields = ('password', 'encoding_facial')
+    # Hash de contraseña solo de lectura; el vector facial se excluye por completo
+    # (un valor pegado a mano rompería la verificación o permitiría suplantar).
+    readonly_fields = ('password',)
+    exclude = ('encoding_facial',)  # ni siquiera de solo lectura: el vector no se muestra en el panel
 
 
 @admin.register(Publicaciones)

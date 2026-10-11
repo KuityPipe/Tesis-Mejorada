@@ -37,3 +37,6 @@ gunicorn>=23.0
 # despliegue chico de portafolio en un solo dyno/servicio. Ver
 # MIDDLEWARE/STORAGES en settings.py.
 whitenoise>=6.7
+
+# Cifrado en reposo de encoding_facial (KeyServApp/campos.py)
+cryptography>=43

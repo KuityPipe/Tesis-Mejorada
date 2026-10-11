@@ -17,6 +17,7 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 
+from .campos import CampoJSONCifrado
 from .storage import almacenamiento_documentos
 from .validators import validar_documento, validar_imagen
 
@@ -216,7 +217,8 @@ class Usuario(models.Model):
     # `pgvector` instalado en este entorno, y comparar 128 floats con
     # `face_recognition.compare_faces` no necesita búsqueda por similitud
     # indexada, solo cargar el vector completo de un usuario a la vez.
-    encoding_facial = models.JSONField(null=True, blank=True, db_column='ENCODING_FACIAL')
+    # Dato biométrico: cifrado en reposo (ver campos.py). Se usa como una lista normal en Python.
+    encoding_facial = CampoJSONCifrado(null=True, blank=True, db_column='ENCODING_FACIAL')
     # NUEVO: antes el perfil solo mostraba un avatar con la inicial del
     # nombre — foto real, opcional, subida desde /perfil/editar/.
     foto_perfil = models.ImageField(upload_to='perfiles/', null=True, blank=True, validators=[validar_imagen], db_column='FOTO_PERFIL')

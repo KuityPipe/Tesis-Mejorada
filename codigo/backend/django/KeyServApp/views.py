@@ -47,7 +47,7 @@ from .models import (
     Ranking, Region, Transaccion, Usuario, UsuarioConversacion,
     Valoracion, ValoracionImagen,
 )
-from . import biometria, consentimiento, geolocalizacion, pagos
+from . import biometria, consentimiento, geolocalizacion, identidad, pagos
 from . import validators
 
 logger = logging.getLogger(__name__)
@@ -719,6 +719,9 @@ def publicacion_crear_view(request):
     if not usuario.es_proveedor:
         messages.error(request, 'Solo los proveedores pueden publicar servicios.')
         return redirect('KeyServApp:perfil')
+    if identidad.falta_verificar(usuario):
+        messages.error(request, identidad.MENSAJE)
+        return redirect('KeyServApp:perfil')
 
     if request.method == 'POST':
         form = PublicacionForm(request.POST)
@@ -924,6 +927,10 @@ def contratacion_crear_view(request, publicacion_id):
 
     if cliente == proveedor:
         messages.error(request, 'No puedes contratar tu propia publicación.')
+        return redirect('KeyServApp:publicacion_detalle', pk=publicacion_id)
+
+    if identidad.falta_verificar(cliente):
+        messages.error(request, identidad.MENSAJE)
         return redirect('KeyServApp:publicacion_detalle', pk=publicacion_id)
 
     ya_activa = Contratacion.objects.filter(

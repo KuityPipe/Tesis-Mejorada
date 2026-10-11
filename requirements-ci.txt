@@ -48,3 +48,6 @@ drf-spectacular>=0.27
 PyJWT>=2.9
 requests
 transbank-sdk>=6.1.0
+
+# Cifrado en reposo de encoding_facial (KeyServApp/campos.py)
+cryptography>=43

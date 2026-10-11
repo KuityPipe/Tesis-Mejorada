@@ -21,6 +21,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
+from django.conf import settings
 from django.test import TestCase, Client, RequestFactory, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -618,6 +619,106 @@ class LoadComunasTests(TestCase):
 def _frames_prueba_de_vida(cantidad=8):
     """Ráfaga de `cantidad` archivos para postear a registro_rostro/verificacion_facial (campo `rostro_frames`) — instancias frescas cada vez, mismo motivo que `_imagen_de_prueba`."""
     return {'rostro_frames': [_imagen_de_prueba() for _ in range(cantidad)]}
+
+
+@override_settings(EXIGIR_IDENTIDAD_VERIFICADA=True)
+class EnforcementIdentidadTemplateTests(TestCase):
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_idt@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.cliente = _crear_usuario('cli_idt@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Electricidad', estado_moderacion=Publicaciones.APROBADA)
+
+    def _login(self, usuario):
+        session = self.client.session
+        session['usuario_id'] = usuario.id_usuario
+        session.save()
+
+    def test_contratar_sin_verificar_no_crea_la_contratacion(self):
+        self._login(self.cliente)
+        self.client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        self.assertFalse(Contratacion.objects.exists())
+
+    def test_contratar_verificado_si_crea_la_contratacion(self):
+        self.cliente.verificado_biometricamente = True
+        self.cliente.save()
+        self._login(self.cliente)
+        self.client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
+        self.assertTrue(Contratacion.objects.exists())
+
+    def test_publicar_sin_verificar_redirige_sin_mostrar_el_formulario(self):
+        self._login(self.proveedor)
+        resp = self.client.get(reverse('KeyServApp:publicacion_crear'))
+        self.assertEqual(resp.status_code, 302)
+
+
+class EncodingFacialCifradoTests(TestCase):
+    """`Usuario.encoding_facial` se guarda cifrado (campos.py) y se lee como una lista normal."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('cifrado@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+
+    def _crudo(self):
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT "ENCODING_FACIAL" FROM "USUARIO" WHERE "ID_USUARIO" = %s', [self.usuario.pk])
+            return cursor.fetchone()[0]
+
+    def test_ida_y_vuelta_devuelve_la_misma_lista(self):
+        self.usuario.encoding_facial = [0.25, -0.5, 0.125]
+        self.usuario.save()
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.encoding_facial, [0.25, -0.5, 0.125])
+
+    def test_en_la_bd_no_queda_en_claro(self):
+        self.usuario.encoding_facial = [0.123456, 0.654321]
+        self.usuario.save()
+        crudo = self._crudo()
+        self.assertTrue(crudo.startswith('gAAAA'))
+        self.assertNotIn('0.123456', crudo)
+
+    def test_none_se_guarda_como_null(self):
+        self.usuario.encoding_facial = None
+        self.usuario.save()
+        self.assertIsNone(self._crudo())
+
+    def test_fila_en_claro_anterior_al_cifrado_sigue_siendo_legible(self):
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute('UPDATE "USUARIO" SET "ENCODING_FACIAL" = %s WHERE "ID_USUARIO" = %s', ['[0.5, 0.25]', self.usuario.pk])
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.encoding_facial, [0.5, 0.25])
+
+    def test_clave_incorrecta_devuelve_none_sin_reventar(self):
+        from cryptography.fernet import Fernet
+        self.usuario.encoding_facial = [0.1, 0.2]
+        self.usuario.save()
+        with self.settings(BIOMETRIC_ENCRYPTION_KEYS=[Fernet.generate_key().decode()]):
+            with self.assertLogs('KeyServApp.campos', level='ERROR'):
+                self.usuario.refresh_from_db()
+            self.assertIsNone(self.usuario.encoding_facial)
+
+    def test_rotacion_de_claves_conserva_los_datos(self):
+        from cryptography.fernet import Fernet
+        vieja, nueva = Fernet.generate_key().decode(), Fernet.generate_key().decode()
+        with self.settings(BIOMETRIC_ENCRYPTION_KEYS=[vieja]):
+            self.usuario.encoding_facial = [0.7, 0.8]
+            self.usuario.save()
+        with self.settings(BIOMETRIC_ENCRYPTION_KEYS=[nueva, vieja]):
+            self.usuario.refresh_from_db()
+            self.assertEqual(self.usuario.encoding_facial, [0.7, 0.8])
+
+    def test_el_admin_no_muestra_el_vector(self):
+        from django.contrib.auth.models import User
+        User.objects.create_superuser('adm', 'a@a.cl', 'x')
+        self.client.login(username='adm', password='x')
+        self.usuario.encoding_facial = [0.987654]
+        self.usuario.save()
+        resp = self.client.get(f'/{settings.ADMIN_URL}KeyServApp/usuario/{self.usuario.pk}/change/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, '0.987654')
+        self.assertNotContains(resp, 'encoding_facial')
 
 
 class ConsentimientoBiometricoTemplateTests(TestCase):

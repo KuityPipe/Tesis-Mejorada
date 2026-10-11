@@ -26,7 +26,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import biometria, consentimiento
+from .. import biometria, consentimiento, identidad
 from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
@@ -797,6 +797,8 @@ class PublicacionCrearView(APIView):
     def post(self, request):
         if not request.user.es_proveedor:
             return Response({'detail': 'Solo los proveedores pueden publicar servicios.'}, status=status.HTTP_403_FORBIDDEN)
+        if identidad.falta_verificar(request.user):
+            return Response({'detail': identidad.MENSAJE, 'code': identidad.CODIGO}, status=status.HTTP_403_FORBIDDEN)
 
         form = PublicacionForm(request.data)
         if not form.is_valid():
@@ -889,6 +891,9 @@ class ContratacionListCreateView(APIView):
 
         if cliente == proveedor:
             return Response({'detail': 'No puedes contratar tu propia publicación.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if identidad.falta_verificar(cliente):
+            return Response({'detail': identidad.MENSAJE, 'code': identidad.CODIGO}, status=status.HTTP_403_FORBIDDEN)
 
         ya_activa = Contratacion.objects.filter(
             publicacion=publicacion, cliente=cliente,
