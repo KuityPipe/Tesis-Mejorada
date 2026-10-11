@@ -717,9 +717,19 @@ class ValoracionImagen(models.Model):
     ]
     id_valoracion_imagen = models.BigAutoField(primary_key=True, db_column='ID_VALORACION_IMAGEN')
     valoracion = models.ForeignKey(Valoracion, on_delete=models.CASCADE, related_name='imagenes', db_column='FK_VALORACION')
-    archivo = models.ImageField(upload_to='valoraciones/imagenes/', db_column='ARCHIVO', validators=[validar_imagen])
+    # Storage privada: una foto pendiente/rechazada no debe ser accesible por URL adivinable.
+    # Se sirve solo vía `valoracion_imagen_view` / `ValoracionImagenView` (públicas únicamente si APROBADA).
+    archivo = models.ImageField(upload_to='valoraciones/imagenes/', storage=almacenamiento_documentos, db_column='ARCHIVO', validators=[validar_imagen])
     fecha_subida = models.DateTimeField(auto_now_add=True, db_column='FECHA_SUBIDA')
     estado_moderacion = models.CharField(max_length=10, choices=ESTADOS_MODERACION, default=PENDIENTE, db_column='ESTADO_MODERACION')
+
+    def puede_ver(self, usuario, es_staff=False):
+        """Pública solo si la foto y su reseña están aprobadas; si no, emisor, receptor o staff."""
+        if self.estado_moderacion == self.APROBADA and self.valoracion.estado_moderacion == Valoracion.APROBADA:
+            return True
+        if es_staff:
+            return True
+        return bool(usuario) and usuario.pk in (self.valoracion.usuario_emisor_id, self.valoracion.usuario_receptor_id)
 
     class Meta:
         db_table = 'VALORACION_IMAGEN'

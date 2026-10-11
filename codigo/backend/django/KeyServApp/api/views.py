@@ -971,6 +971,22 @@ class ContratacionMensajeImagenView(APIView):
         return FileResponse(mensaje.imagen.open('rb'), filename=os.path.basename(mensaje.imagen.name))
 
 
+class ValoracionImagenView(APIView):
+    """
+    `GET /api/valoraciones/imagenes/<id>/` — acceso a la foto de una reseña (storage
+    privada). Pública si foto y reseña están aprobadas (`AllowAny`, para poder usarla en
+    un <img>); si no, solo emisor/receptor con JWT. 404 en los demás casos.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, imagen_id):
+        imagen = get_object_or_404(ValoracionImagen.objects.select_related('valoracion'), pk=imagen_id)
+        usuario = request.user if getattr(request.user, 'is_authenticated', False) else None
+        if not imagen.puede_ver(usuario):
+            raise Http404()
+        return FileResponse(imagen.archivo.open('rb'), filename=os.path.basename(imagen.archivo.name))
+
+
 class ContratacionMensajesExportarView(APIView):
     """
     `GET /api/contrataciones/<id>/mensajes/exportar/` — equivalente API de

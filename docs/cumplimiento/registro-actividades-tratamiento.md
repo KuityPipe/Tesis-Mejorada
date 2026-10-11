@@ -15,7 +15,7 @@
 | Mensajería por contratación | Texto e imágenes | `Mensaje` | Coordinar el servicio | Ejecución del contrato | Chats cerrados se borran a 90 días **solo si alguien corre el comando a mano**; no borra la imagen del disco | Programar el comando y borrar archivos |
 | Pagos | Monto, estado, respuesta cruda del medio de pago | `Pago` | Cobrar y conciliar | Ejecución del contrato; obligación tributaria | Indefinida | Plazo tributario (A definir) y filtrar `respuesta_bruta` |
 | Seguridad | IP, ciudad, país, user-agent de accesos sospechosos | `IntentoAccesoSospechoso` | Detectar abuso | Interés legítimo | Sin purga | Purga periódica (p. ej. 12 meses, A definir) |
-| Valoraciones | Texto, puntaje, fotos | `Valoracion`, `ValoracionImagen` | Reputación | Ejecución del contrato | Indefinida; fotos pendientes/rechazadas son públicas por URL | Mover a almacenamiento privado hasta moderar |
+| Valoraciones | Texto, puntaje, fotos | `Valoracion`, `ValoracionImagen` | Reputación | Ejecución del contrato | Indefinida; fotos en almacenamiento privado, públicas solo si aprobadas (Fase 1) | A definir |
 
 ## Brechas contra la Ley 21.719 detectadas
 

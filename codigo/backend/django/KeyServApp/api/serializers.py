@@ -89,7 +89,8 @@ class ValoracionImagenSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_url(self, imagen) -> str | None:
-        return imagen.archivo.url if imagen.archivo else None
+        # Nunca `archivo.url` (storage privada); endpoint protegido, ver ValoracionImagenView.
+        return reverse('KeyServApp_api:valoracion-imagen', kwargs={'imagen_id': imagen.pk}) if imagen.archivo else None
 
 
 class ValoracionSerializer(serializers.ModelSerializer):

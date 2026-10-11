@@ -198,7 +198,7 @@
         <div class="ks-gallery mb-0">
           {% for img in valoracion.imagenes.all %}
             {% if img.estado_moderacion == 'APROBADA' %}
-            <img src="{{ img.archivo.url }}" alt="Foto adjunta a la calificación">
+            <img src="{% url 'KeyServApp:valoracion_imagen' img.pk %}" alt="Foto adjunta a la calificación">
             {% elif usuario == contratacion.cliente %}
             <div class="ks-gallery-pending" title="Pendiente de revisión"><i class="bi bi-hourglass-split"></i></div>
             {% endif %}

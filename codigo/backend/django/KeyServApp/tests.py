@@ -1491,6 +1491,65 @@ class ValoracionConFotoMaliciosaTests(TestCase):
         self.assertTrue(any('script.jpg' in m for m in mensajes))
 
 
+class ValoracionImagenPrivadaTests(TestCase):
+    """La foto de una reseña vive en storage privada: pública solo si foto y reseña están aprobadas."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_img@test.com', 'clave_prov', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.cliente = _crear_usuario('cli_img@test.com', 'clave_cli', es_proveedor=False, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.ajeno = _crear_usuario('ajeno_img@test.com', 'clave_aj', es_proveedor=False, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA)
+        self.valoracion = Valoracion.objects.create(
+            puntuacion=5, usuario_emisor=self.cliente, usuario_receptor=self.proveedor, publicacion=publicacion,
+        )
+        self.imagen = ValoracionImagen.objects.create(valoracion=self.valoracion, archivo=_imagen_de_prueba())
+        self.addCleanup(self._borrar_archivo)
+
+    def _borrar_archivo(self):
+        try:
+            self.imagen.archivo.delete(save=False)
+        except PermissionError:
+            pass  # Windows: la respuesta de FileResponse aún tiene el archivo abierto
+
+    def _get(self, usuario=None):
+        client = Client()
+        if usuario:
+            session = client.session
+            session['usuario_id'] = usuario.id_usuario
+            session.save()
+        respuesta = client.get(reverse('KeyServApp:valoracion_imagen', args=[self.imagen.pk]))
+        if getattr(respuesta, 'file_to_stream', None):
+            respuesta.file_to_stream.close()  # FileResponse deja el archivo abierto; en Windows eso bloquea el cleanup
+        return respuesta
+
+    def _aprobar(self):
+        self.imagen.estado_moderacion = ValoracionImagen.APROBADA
+        self.imagen.save()
+        self.valoracion.estado_moderacion = Valoracion.APROBADA
+        self.valoracion.save()
+
+    def test_no_esta_bajo_media_url_publica(self):
+        from pathlib import Path
+        from django.conf import settings
+        self.assertFalse(Path(self.imagen.archivo.path).is_relative_to(settings.MEDIA_ROOT))
+
+    def test_pendiente_solo_emisor_y_receptor(self):
+        self.assertEqual(self._get().status_code, 404)
+        self.assertEqual(self._get(self.ajeno).status_code, 404)
+        self.assertEqual(self._get(self.cliente).status_code, 200)
+        self.assertEqual(self._get(self.proveedor).status_code, 200)
+
+    def test_aprobada_es_publica(self):
+        self._aprobar()
+        self.assertEqual(self._get().status_code, 200)
+
+    def test_foto_aprobada_de_resena_no_aprobada_sigue_privada(self):
+        self.imagen.estado_moderacion = ValoracionImagen.APROBADA
+        self.imagen.save()
+        self.assertEqual(self._get().status_code, 404)
+
+
 class GrupoModeradorCommandTests(TestCase):
     """
     `configurar_grupo_moderador` (management command, Fase 5/6) decide qué

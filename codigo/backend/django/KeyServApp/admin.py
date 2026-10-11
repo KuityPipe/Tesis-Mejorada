@@ -106,7 +106,7 @@ class ValoracionImagenInline(admin.TabularInline):
 
     @admin.display(description='Vista previa')
     def miniatura(self, obj):
-        return _miniatura(obj.archivo.url) if obj.pk and obj.archivo else '—'
+        return _miniatura(reverse('KeyServApp:valoracion_imagen', args=[obj.pk])) if obj.pk and obj.archivo else '—'
 
 
 @admin.register(Usuario)
@@ -257,7 +257,7 @@ class ValoracionImagenAdmin(admin.ModelAdmin):
 
     @admin.display(description='Vista previa')
     def miniatura(self, obj):
-        return _miniatura(obj.archivo.url) if obj.archivo else '—'
+        return _miniatura(reverse('KeyServApp:valoracion_imagen', args=[obj.pk])) if obj.archivo else '—'
 
 
 @admin.register(Ranking)

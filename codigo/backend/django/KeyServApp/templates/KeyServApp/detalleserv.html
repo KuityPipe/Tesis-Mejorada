@@ -70,7 +70,7 @@
             {% if resena.imagenes_aprobadas %}
             <div class="ks-gallery" style="margin-top:10px; margin-bottom:0;">
               {% for img in resena.imagenes_aprobadas %}
-              <img src="{{ img.archivo.url }}" alt="Foto adjunta por {{ resena.usuario_emisor }}">
+              <img src="{% url 'KeyServApp:valoracion_imagen' img.pk %}" alt="Foto adjunta por {{ resena.usuario_emisor }}">
               {% endfor %}
             </div>
             {% endif %}

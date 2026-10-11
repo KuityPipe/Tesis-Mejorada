@@ -1,12 +1,11 @@
 """
 Almacenamiento privado para Documento — ver settings.PRIVATE_MEDIA_ROOT.
 
-`base_url=None` es lo que importa acá: sin él, FileSystemStorage cae al
-MEDIA_URL público por defecto. Con `base_url=None`, cualquier intento de
-leer `documento.archivo_subido.url` levanta un error en vez de devolver
-silenciosamente una URL que nadie protege — fuerza a pasar siempre por
-`documento_descargar_view` (views.py), que es el único lugar que decide si
-mostrar el archivo según quién lo pide.
+El archivo vive en PRIVATE_MEDIA_ROOT, fuera de MEDIA_ROOT: nada lo sirve por URL.
+Ojo: `base_url=None` NO hace que `.url` falle (Django cae a MEDIA_URL y devuelve
+`/media/...`, una ruta que no existe en disco → 404). La protección real es la
+ubicación, más pasar siempre por una vista que decide según quién pide
+(`documento_descargar_view`, `valoracion_imagen_view`, `ContratacionMensajeImagenView`).
 """
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage

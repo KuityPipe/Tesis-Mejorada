@@ -793,6 +793,19 @@ def documento_descargar_view(request, documento_id):
     )
 
 
+def valoracion_imagen_view(request, imagen_id):
+    """
+    Único acceso a la foto de una reseña (storage privada, ver models.py). Pública solo
+    una vez aprobada la foto y la reseña; antes, solo emisor, receptor o staff. 404, no
+    403, para no confirmar que existe.
+    """
+    imagen = get_object_or_404(ValoracionImagen.objects.select_related('valoracion'), pk=imagen_id)
+    es_staff = request.user.is_authenticated and request.user.is_staff
+    if not imagen.puede_ver(obtener_usuario_actual(request), es_staff):
+        raise Http404()
+    return FileResponse(imagen.archivo.open('rb'), filename=os.path.basename(imagen.archivo.name))
+
+
 # ---------------------------------------------------------------------------
 # Contratación (BPMN "Proceso de contratación" del PDF, PAGE 136-137)
 # ---------------------------------------------------------------------------
