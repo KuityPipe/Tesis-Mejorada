@@ -1,8 +1,8 @@
 # Arquitectura Recomendada — KeyServ
 
-Basado en `docs/PDF_ANALYSIS_FINDINGS.md` (requisitos de la tesis) y `docs/CODE_ANALYSIS_FINDINGS.md` (estado real del código). Principio rector: **la tesis ya fijó el stack como restricción del proyecto** (Django, MySQL, AWS) y el modelo de datos del diccionario de datos coincide con lo ya implementado — no hay motivo técnico para reescribir desde cero. La recomendación es **consolidar sobre lo que existe**, no reemplazarlo.
+Basado en `docs/archivo/PDF_ANALYSIS_FINDINGS.md` (requisitos de la tesis) y `docs/archivo/CODE_ANALYSIS_FINDINGS.md` (estado real del código). Principio rector: **la tesis ya fijó el stack como restricción del proyecto** (Django, MySQL, AWS) y el modelo de datos del diccionario de datos coincide con lo ya implementado — no hay motivo técnico para reescribir desde cero. La recomendación es **consolidar sobre lo que existe**, no reemplazarlo.
 
-> **Actualización (Fase 3):** el usuario confirmó que la restricción de "MySQL + AWS" era específica al contexto académico de la tesis y ya no aplica para el producto comercial — se decidió migrar a **PostgreSQL** (gratis sin topes, backend de primera clase en Django, portable a cualquier nube). El resto de esta sección queda vigente tal cual salvo la fila de "Base de datos", actualizada abajo. Ver `docs/REFACTORING_LOG.md` para el detalle de la migración.
+> **Actualización (Fase 3):** el usuario confirmó que la restricción de "MySQL + AWS" era específica al contexto académico de la tesis y ya no aplica para el producto comercial — se decidió migrar a **PostgreSQL** (gratis sin topes, backend de primera clase en Django, portable a cualquier nube). El resto de esta sección queda vigente tal cual salvo la fila de "Base de datos", actualizada abajo. Ver `docs/archivo/REFACTORING_LOG.md` para el detalle de la migración.
 
 ## 1. Stack recomendado
 

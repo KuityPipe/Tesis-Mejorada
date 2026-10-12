@@ -6,7 +6,7 @@ compilación nativa).
 Apagado por defecto (`CLAMAV_HABILITADO=False` en .env): este entorno de
 desarrollo no tiene ClamAV corriendo — instalarlo como servicio de Windows
 de forma no interactiva es el mismo tipo de fricción que ya se documentó
-para Postgres en docs/FASE4_LOG.md, así que se deja como integración lista
+para Postgres en docs/archivo/FASE4_LOG.md, así que se deja como integración lista
 para prenderse en un servidor real (Linux, con `clamav-daemon` corriendo)
 en vez de intentar forzarlo acá. Con la bandera apagada, `escanear_archivo`
 no hace nada (deja pasar el archivo) — la defensa real hoy es

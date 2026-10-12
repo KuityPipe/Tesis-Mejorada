@@ -35,7 +35,7 @@ del diccionario de datos original de la tesis; los nombres de tabla
 | `CONVERSACION` | `ID_CONVERSACION` | — | `NOMBRE_CONVERSACION`, `FECHA_CREACION` | Hilo de mensajería |
 | `USUARIO_CONVERSACION` | `ID_USUARIO_CONVERSACION` | `FK_USUARIO_C` → `USUARIO`, `FK_CONVERSACION` → `CONVERSACION` | — | Tabla puente (participantes), `unique_together` |
 | `MENSAJE` | `ID_MENSAJE` | `FK_CONVERSACION`, `FK_USUARIO` → `USUARIO` | `CONTENIDO`, `FECHA_ENVIO` | |
-| `PUBLICACIONES` | `ID_PUBLICACION` | `FK_USUARIO_P` → `USUARIO` (proveedor) | `TITULO`, `SUB_TITULO`, `DESCRIPCION_PUBLICACION`, fechas, `ESTADO_MODERACION` (nuevo: `PENDIENTE`/`APROBADA`/`RECHAZADA`) | El campo de moderación es nuevo — ver `docs/NEW_CODE_CREATED.md` |
+| `PUBLICACIONES` | `ID_PUBLICACION` | `FK_USUARIO_P` → `USUARIO` (proveedor) | `TITULO`, `SUB_TITULO`, `DESCRIPCION_PUBLICACION`, fechas, `ESTADO_MODERACION` (nuevo: `PENDIENTE`/`APROBADA`/`RECHAZADA`) | El campo de moderación es nuevo — ver `docs/archivo/NEW_CODE_CREATED.md` |
 | `IMAGENES` | `ID_IMAGEN` | `FK_PUBLICACION` → `PUBLICACIONES` | `URL_IMAGEN`, fechas | |
 | `CONTRATACION` | `ID_CONTRATACION` | `FK_PUBLICACION`, `FK_CLIENTE` → `USUARIO`, `FK_PROVEEDOR` → `USUARIO` | `ESTADO`, fechas | **Tabla nueva** (no existía antes de Fase 3) |
 | `VALORACION` | `ID_VALORACION` | `FK_USUARIO_EMISOR` → `USUARIO`, `FK_USUARIO_RECEPTOR` → `USUARIO`, `FK_PUBLICACION` | `PUNTUACION` (1-5), `COMENTARIO`, `FECHA_VALORACION` | |
@@ -61,7 +61,7 @@ USUARIO ──< PUBLICACIONES ──< IMAGENES
 
 ## Qué cambió respecto al diccionario de datos original de la tesis
 
-Comparado con lo documentado en `docs/PDF_ANALYSIS_FINDINGS.md` §6 (que
+Comparado con lo documentado en `docs/archivo/PDF_ANALYSIS_FINDINGS.md` §6 (que
 confirmó que el diccionario de datos coincidía con el `models.py` de
 entonces):
 

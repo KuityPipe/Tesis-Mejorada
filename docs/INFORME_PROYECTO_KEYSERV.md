@@ -313,7 +313,7 @@ Para el marco teórico académico completo, con las citas en formato APA y el re
 | `docs/BACKLOG.md` | Trabajo pendiente y decisiones abiertas, con seguimiento vivo |
 | `docs/RECOMMENDED_ARCHITECTURE.md` | Justificación de cada decisión de stack, con las actualizaciones posteriores marcadas inline |
 | `docs/PLAN_PORTAFOLIO.md` | Cómo y por qué se preparó este proyecto como pieza de portafolio (README, CI, demo desplegado) |
-| `docs/BITACORA_DESARROLLO.md` | Registro de horas y checkpoints de trabajo, sesión por sesión |
+| `docs/archivo/BITACORA_DESARROLLO.md` | Registro de horas y checkpoints de trabajo, sesión por sesión |
 | `docs/academico/` | Texto completo y PDF del informe original de abril de 2023, sin modificar |
 
 ### Resumen de fases de desarrollo posteriores a la entrega académica
@@ -328,4 +328,4 @@ Para el marco teórico académico completo, con las citas en formato APA y el re
 | 7 | Hardening de producción (almacenamiento seguro de sesión), retiro de la huella dactilar del sitio web |
 | 8 | Publicación como pieza de portafolio: CI, demo desplegado, build Android firmada |
 
-Detalle línea por línea de cada fase: `docs/PLAN_MIGRACION_IONIC.md` y `docs/BITACORA_DESARROLLO.md`.
+Detalle línea por línea de cada fase: `docs/PLAN_MIGRACION_IONIC.md` y `docs/archivo/BITACORA_DESARROLLO.md`.

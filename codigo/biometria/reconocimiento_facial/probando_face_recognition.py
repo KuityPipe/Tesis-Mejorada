@@ -3,7 +3,7 @@ Reconocimiento facial vía webcam — segundo método de verificación biométri
 exigido por RF001 del PDF de la tesis (junto a la huella dactilar).
 
 Refactor Fase 3: el archivo original NO era Python válido — era un volcado
-de bytes en decimal (issue ya documentado en CODE_ANALYSIS_FINDINGS.md).
+de bytes en decimal (issue ya documentado en docs/archivo/CODE_ANALYSIS_FINDINGS.md).
 Se reconstruyó a partir de ese volcado decodificado (comparaba una foto fija
 "Images/foto1.jpg" contra el feed de la webcam, dibujando un rectángulo con
 la etiqueta "Gaby"/"Desconocido"). Acá queda reescrito como funciones

@@ -1,9 +1,9 @@
 """
 LEGACY / DEPRECADO (Fase 3): este script sigue dependiendo de `CONEXION_BD.cur`
-(que no existe realmente, ver CODE_ANALYSIS_FINDINGS.md) y es un flujo CLI
+(que no existe realmente, ver docs/archivo/CODE_ANALYSIS_FINDINGS.md) y es un flujo CLI
 con `input()`, no un endpoint real. La decisión de arquitectura (Fase 2) es
 consolidar el envío del código de verificación como una vista Django, no
-seguir manteniendo este script aparte — ver docs/NEW_CODE_CREATED.md.
+seguir manteniendo este script aparte — ver docs/archivo/NEW_CODE_CREATED.md.
 
 Lo único que se corrigió acá, porque no podía esperar a esa migración: tenía
 una contraseña de correo real en texto plano hardcodeada en el código fuente

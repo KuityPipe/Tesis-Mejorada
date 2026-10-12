@@ -10,7 +10,7 @@ requiere una conexión viva a Postgres (`manage.py sqlmigrate` la necesita
 para leer la tabla de historial de migraciones), y no hay ningún servidor
 Postgres corriendo en el entorno donde se hizo este refactor. Para generarlo
 una vez que tengas Postgres disponible (local o en la nube — ver
-`docs/SETUP_INSTRUCTIONS.md`):
+`docs/archivo/SETUP_INSTRUCTIONS.md`):
 
 ```powershell
 cd codigo/backend/django

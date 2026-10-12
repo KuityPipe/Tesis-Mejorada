@@ -18,13 +18,13 @@ fuera de alcance de esa sesión:
 
 ## Otros ítems pendientes
 
-Documento vivo (se actualiza cada sesión, a diferencia de `docs/AUDITORIA_8000_vs_8100.md`, que es
+Documento vivo (se actualiza cada sesión, a diferencia de `docs/archivo/AUDITORIA_8000_vs_8100.md`, que es
 una foto fija del 2026-08-14). Acá se anota qué falta, en qué orden, y por qué — para no perder el
 hilo entre sesiones y para tener un registro real del trabajo (útil también para portafolio: es la
 prueba de que esto se llevó con metodología, no a los saltos).
 
 Ver también: `docs/PLAN_MIGRACION_IONIC.md` (fases 1-8 de la migración, más técnico),
-`docs/AUDITORIA_8000_vs_8100.md` (comparación sección por sección Django vs Ionic) y
+`docs/archivo/AUDITORIA_8000_vs_8100.md` (comparación sección por sección Django vs Ionic) y
 `docs/PLAN_PORTAFOLIO.md` (plan en 3 niveles para presentar este proyecto como portafolio —
 decidido 2026-08-15, arranca en la próxima sesión).
 
@@ -320,7 +320,7 @@ resta es prioridad baja/decisión de negocio y las Fases 7-8 (hardening y public
 ## Pendiente — prioridad baja / decisión de negocio
 
 - [ ] **Espacios reservados para publicidad** (`.ks-ad-slot`) en landing/catálogo/detalle — ver
-      recomendación en `docs/AUDITORIA_8000_vs_8100.md` sección 5. Bloqueado en: qué red de ads,
+      recomendación en `docs/archivo/AUDITORIA_8000_vs_8100.md` sección 5. Bloqueado en: qué red de ads,
       políticas de consentimiento — decisión del usuario, no técnica.
 - [x] **Retirar `huella.html`** (demo legacy) del propio sitio Django — pedido explícito del usuario
       ("ya tenemos las funcionales mejoradas", biometría nativa + reconocimiento facial). Sacados:

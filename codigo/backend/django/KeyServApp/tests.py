@@ -2,8 +2,8 @@
 Tests automatizados de KeyServ.
 
 NUEVO en Fase 4 — antes este archivo era el stub vacío que deja `startapp`
-por defecto (0% de cobertura, ver docs/CODE_ANALYSIS_FINDINGS.md). Cubre,
-en orden de lo que `docs/CODE_ANALYSIS_FINDINGS.md` §10 identificó como
+por defecto (0% de cobertura, ver docs/archivo/CODE_ANALYSIS_FINDINGS.md). Cubre,
+en orden de lo que `docs/archivo/CODE_ANALYSIS_FINDINGS.md` §10 identificó como
 mayor retorno: hashing de password, `register_view`, `load_comunas`, import
 de los módulos de biometría — y de paso todo lo agregado en Fase 4
 (publicaciones, contratación con re-autenticación, valoraciones, mensajería).

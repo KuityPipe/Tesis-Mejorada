@@ -5,6 +5,8 @@
 
 ## Dónde quedamos
 
+- **2026-10-12:** reordenamiento de documentación (sin commitear): índice `docs/README.md`, docs superados movidos a `docs/archivo/`, `docs/academico/` fuera de git (queda en local), `CLAUDE.md` condensado. Falta decidir con el usuario si se commitea.
+
 - `master` (local y GitHub) está en `a0f2526` + este documento. Fases 0, 1, 2 y 3 hechas y mergeadas.
 - Tests al cierre: backend 341 OK (1 omitido), frontend 82 OK, CI de GitHub en verde (backend, frontend, e2e).
 - Las ramas `fase-0-reconocimiento`, `fase-1-auditoria`, `fase-2-identidad` solo existen en la máquina local; todo su contenido ya está en `master`.
@@ -57,4 +59,3 @@ Nota: la extensión `unaccent` que usa el buscador del catálogo la crea la migr
 - Suite del backend lenta (~8 min): probar `MD5PasswordHasher` solo en la configuración de tests, `--parallel` y `--keepdb`.
   Medir antes con `--timing`.
 - Respaldar fuera del repo el keystore de Android (`android/app/keyserv-release.keystore` y `keystore.properties`).
-- `CLAUDE.md` quedó desactualizado en varios puntos (ver propuesta de reducirlo y moverlo a `docs/`).

@@ -39,3 +39,7 @@ codigo/backend/django/geoip/
 # Salidas generadas por IMAGEN_HUELLA.py (derivadas de biometria; no versionar)
 codigo/biometria/huella/Huella Imagen/imagenOutput/
 codigo/biometria/huella/Contraseña dactilar/
+
+# Material académico y archivos personales: se conservan en local, no se publican
+docs/academico/
+codigo/biometria/huella/Imprimir para motivacion y traducir.pdf
