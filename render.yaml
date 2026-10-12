@@ -1,6 +1,6 @@
 # Blueprint de Render para el demo desplegado de KeyServ (docs/PLAN_PORTAFOLIO.md,
-# Nivel 2.2). Levanta el backend Django + una base Postgres administrada —
-# el frontend Ionic va aparte, en Netlify (build estático, ver
+# Nivel 2.2). Levanta el backend Django (la base Postgres es externa, en
+# Neon, ver DATABASE_URL) — el frontend Ionic va aparte, en Netlify (build estático, ver
 # codigo/frontend/ionic/netlify.toml).
 #
 # Cómo usarlo: en el dashboard de Render, "New" → "Blueprint" → conectar
@@ -11,12 +11,6 @@
 # login + contrataciones + pagos Webpay (sandbox de integración, sin cuenta
 # real). Sin biometría nativa ni reconocimiento facial — ver
 # requirements-render.txt para por qué esas dependencias ni se instalan acá.
-databases:
-  - name: keyserv-db
-    plan: free
-    databaseName: keyserv
-    user: keyserv
-
 services:
   - type: web
     name: keyserv-api
@@ -44,10 +38,11 @@ services:
         value: "False"
       - key: DJANGO_ALLOWED_HOSTS
         value: ""
+      # Base externa (Neon, Postgres gratuito sin vencimiento): la gratuita de
+      # Render expira a los ~30 días. Pegar a mano la cadena de conexión de
+      # Neon (postgresql://...?sslmode=require). Ver docs/ESTADO_Y_PROXIMOS_PASOS.md.
       - key: DATABASE_URL
-        fromDatabase:
-          name: keyserv-db
-          property: connectionString
+        sync: false
       # Completar a mano una vez que exista la URL real del sitio en
       # Netlify (ej. https://keyserv-demo.netlify.app) — ver el paso a paso
       # del despliegue. Sin esto, el login/registro/recuperación de
