@@ -6,7 +6,7 @@
 <section class="ks-page-header">
   <div class="container">
     <h1><i class="bi bi-shield-lock"></i> Política de privacidad</h1>
-    <p>Qué datos recolectamos, para qué, y qué podés hacer al respecto.</p>
+    <p>Qué datos recolectamos, para qué, y qué puedes hacer al respecto.</p>
   </div>
 </section>
 
@@ -20,10 +20,10 @@
     <h2><i class="bi bi-person-badge"></i> Qué datos recolectamos</h2>
     <p class="ks-help mb-3">Solo pedimos lo que la plataforma necesita para funcionar — verificar tu identidad, conectarte con proveedores/clientes reales, y procesar pagos y contrataciones.</p>
     <ul class="ks-help" style="line-height: 1.9;">
-      <li><strong>Datos de cuenta:</strong> nombre, apellido, email, edad, teléfono, dirección, comuna y región. La contraseña nunca se guarda en texto plano — se almacena con un hash PBKDF2 irreversible.</li>
-      <li><strong>Datos biométricos (identidad):</strong> si verificás tu identidad con reconocimiento facial, guardamos un vector numérico derivado de tu rostro (128 números, no una foto) — las imágenes de la captura se procesan y se descartan al momento, nunca se almacenan. Si usás la biometría nativa del teléfono (Face ID o huella dactilar en la app Android), esa verificación ocurre enteramente dentro del hardware seguro de tu dispositivo — nuestro servidor nunca ve ni puede ver ese dato, solo recibe la confirmación de que el teléfono la aprobó.</li>
-      <li><strong>Documentos e imágenes:</strong> foto de perfil, fotos de las publicaciones de servicios, certificados/documentos que un proveedor suba para respaldar su perfil, y fotos adjuntas a calificaciones o mensajes de chat. Los documentos de identidad se guardan en almacenamiento privado, nunca en una URL pública — solo vos y, si corresponde, un moderador autorizado pueden verlos.</li>
-      <li><strong>Ubicación:</strong> si activás la búsqueda por cercanía en el catálogo, tu posición se usa para calcular distancias en esa consulta puntual — no queda guardada asociada a tu cuenta.</li>
+      <li><strong>Datos de cuenta:</strong> nombre, apellido, RUT, email, edad, teléfono, dirección, comuna y región. La contraseña nunca se guarda en texto plano — se almacena con un hash PBKDF2 irreversible.</li>
+      <li><strong>Datos biométricos (identidad):</strong> si verificas tu identidad con reconocimiento facial, guardamos un vector numérico derivado de tu rostro (128 números, no una foto) — las imágenes de la captura se procesan y se descartan al momento, nunca se almacenan. Si usas la biometría nativa del teléfono (Face ID o huella dactilar en la app Android), esa verificación ocurre enteramente dentro del hardware seguro de tu dispositivo — nuestro servidor nunca ve ni puede ver ese dato, solo recibe la confirmación de que el teléfono la aprobó.</li>
+      <li><strong>Documentos e imágenes:</strong> foto de perfil, fotos de las publicaciones de servicios, certificados/documentos que un proveedor suba para respaldar su perfil, y fotos adjuntas a calificaciones o mensajes de chat. Los documentos de identidad se guardan en almacenamiento privado, nunca en una URL pública — solo tú y, si corresponde, un moderador autorizado pueden verlos.</li>
+      <li><strong>Ubicación:</strong> si activas la búsqueda por cercanía en el catálogo, tu posición se usa para calcular distancias en esa consulta puntual — no queda guardada asociada a tu cuenta.</li>
       <li><strong>Pagos:</strong> KeyServ nunca ve ni almacena el número de tu tarjeta ni tus credenciales bancarias — eso lo procesan directamente Transbank (Webpay) o Khipu, fuera de nuestros servidores. Nosotros solo guardamos el resultado (monto, método, estado: pagado/rechazado/anulado) para tu historial de pagos.</li>
       <li><strong>Mensajes:</strong> el chat de cada trabajo contratado se guarda mientras el trabajo esté activo. Para trabajos cerrados, el historial se elimina automáticamente a los 90 días — a menos que lo hayas exportado como respaldo, en cuyo caso queda excluido de ese borrado automático.</li>
       <li><strong>Seguridad de la cuenta:</strong> registramos la dirección IP y una ubicación aproximada (a nivel de ciudad, vía una base de datos local, sin consultar servicios externos) cuando detectamos un intento de acceso sospechoso — por ejemplo, alguien tratando de ver una conversación o un documento que no le pertenece. Esto es exclusivamente para seguridad, no para perfilar tu ubicación habitual.</li>
@@ -43,7 +43,7 @@
 
   <div class="ks-panel">
     <h2><i class="bi bi-clock-history" ></i> Cuánto tiempo guardamos tus datos</h2>
-    <p class="ks-help mb-0">Mientras tu cuenta esté activa, conservamos los datos necesarios para que la plataforma funcione (perfil, contrataciones, calificaciones, historial de pagos). Los mensajes de chat de trabajos cerrados se eliminan a los 90 días salvo que los hayas exportado. Si querés que eliminemos tu cuenta y los datos asociados, escribinos por <a href="{% url 'KeyServApp:contacto' %}">el formulario de contacto</a> — lo procesamos manualmente, todavía no hay un botón de autoservicio para esto.</p>
+    <p class="ks-help mb-0">Mientras tu cuenta esté activa, conservamos los datos necesarios para que la plataforma funcione (perfil, contrataciones, calificaciones, historial de pagos). Los mensajes de chat de trabajos cerrados se eliminan a los 90 días salvo que los hayas exportado. Si quieres que eliminemos tu cuenta y los datos asociados, escríbenos por <a href="{% url 'KeyServApp:contacto' %}">el formulario de contacto</a> — lo procesamos manualmente, todavía no hay un botón de autoservicio para esto.</p>
   </div>
 
   <div class="ks-panel">
@@ -59,7 +59,7 @@
 
   <div class="ks-panel">
     <h2><i class="bi bi-person-check"></i> Tus derechos</h2>
-    <p class="ks-help mb-0">Podés acceder, corregir o pedir la eliminación de tus datos personales en cualquier momento — editá tu perfil directamente desde la app, o escribinos por <a href="{% url 'KeyServApp:contacto' %}">contacto</a> para lo que no tenga una opción de autoservicio todavía. Como usuario en Chile, estos derechos están amparados por la Ley 19.628 sobre protección de la vida privada, y por la Ley 21.719 en las materias que ya haya puesto en vigencia.</p>
+    <p class="ks-help mb-0">Puedes acceder, corregir o pedir la eliminación de tus datos personales en cualquier momento — edita tu perfil directamente desde la app, o escríbenos por <a href="{% url 'KeyServApp:contacto' %}">contacto</a> para lo que no tenga una opción de autoservicio todavía. Como usuario en Chile, estos derechos están amparados por la Ley 19.628 sobre protección de la vida privada, y por la Ley 21.719 en las materias que ya haya puesto en vigencia.</p>
   </div>
 
   <div class="ks-panel">

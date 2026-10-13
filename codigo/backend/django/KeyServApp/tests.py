@@ -1964,3 +1964,58 @@ class SembrarDatosDemoCommandTests(TestCase):
 
         for proveedor in Usuario.objects.filter(es_proveedor=True):
             self.assertIsNotNone(proveedor.comuna.latitud, f'{proveedor.email} sin comuna geocodificada')
+
+
+class RechazoDeRostroDistintoTests(TestCase):
+    """
+    Cierra el hueco de la Fase 0: ningún test comprobaba que un rostro distinto fuera
+    RECHAZADO (solo que el flujo corriera o que el mismo rostro coincidiera). No hay fotos
+    reales en el repo, pero la comparación opera sobre el vector de 128 números (distancia
+    euclidiana contra `TOLERANCIA_COMPARACION`), no sobre imágenes — así que se prueba con
+    `face_recognition.compare_faces` real y vectores sintéticos a distancia conocida.
+    La detección/prueba de vida sobre imágenes sigue cubierta solo por pruebas manuales.
+    """
+
+    @staticmethod
+    def _vector_a_distancia(base, distancia):
+        import numpy as np
+        direccion = np.zeros(128)
+        direccion[0] = 1.0
+        return np.asarray(base) + direccion * distancia
+
+    # Igual que en el flujo real: el encoding guardado viene del JSONField (lista) y el nuevo
+    # sale de face_recognition (ndarray).
+    def setUp(self):
+        import numpy as np
+        self.base = np.random.RandomState(7).uniform(-0.2, 0.2, 128).tolist()
+
+    def test_el_mismo_vector_coincide(self):
+        import numpy as np
+        self.assertTrue(probando_face_recognition.comparar_encodings(self.base, np.asarray(self.base)))
+
+    def test_vector_muy_cercano_coincide(self):
+        cercano = self._vector_a_distancia(self.base, 0.40)
+        self.assertTrue(probando_face_recognition.comparar_encodings(self.base, cercano))
+
+    def test_vector_a_distancia_media_se_rechaza_por_tolerancia_estricta(self):
+        # 0.55 pasaría con la tolerancia por defecto de face_recognition (0.6) pero no con
+        # la nuestra (0.5): protege contra los falsos positivos vistos con poca luz.
+        medio = self._vector_a_distancia(self.base, 0.55)
+        self.assertLess(probando_face_recognition.TOLERANCIA_COMPARACION, 0.6)
+        self.assertFalse(probando_face_recognition.comparar_encodings(self.base, medio))
+
+    def test_vector_de_otra_persona_se_rechaza(self):
+        import numpy as np
+        otra_persona = np.random.RandomState(99).uniform(-0.2, 0.2, 128)
+        self.assertFalse(probando_face_recognition.comparar_encodings(self.base, otra_persona))
+
+    def test_verificar_rostro_usuario_rechaza_otra_persona(self):
+        import numpy as np
+        otra = np.random.RandomState(99).uniform(-0.2, 0.2, 128)
+        with mock.patch('probando_face_recognition.verificar_prueba_de_vida_parpadeo', return_value=otra):
+            self.assertIs(biometria.verificar_rostro_usuario(self.base, ['f1.png']), False)
+
+    def test_verificar_rostro_usuario_acepta_a_la_misma_persona(self):
+        import numpy as np
+        with mock.patch('probando_face_recognition.verificar_prueba_de_vida_parpadeo', return_value=np.asarray(self.base)):
+            self.assertIs(biometria.verificar_rostro_usuario(self.base, ['f1.png']), True)
