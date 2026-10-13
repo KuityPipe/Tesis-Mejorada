@@ -25,6 +25,8 @@
 - **Revisión legal por un abogado** (consentimiento, EIPD, registro de tratamiento, qué se conserva al eliminar una cuenta): sin presupuesto por ahora.
 - **Entorno de producción real**: no existe, solo el demo/prototipo. Hasta entonces `BIOMETRIC_ENCRYPTION_KEYS` y `EXIGIR_IDENTIDAD_VERIFICADA` quedan sin tocar.
 
+- **2026-10-13:** el frontend de Netlify llevaba congelado desde antes de la Fase 2: el comando `ignore` de `netlify.toml` cancelaba cada build ("Canceled build due to no content change"). Se quitó; Netlify construye en cada push. Verificar que el bundle publicado incluya `app-asistente`.
+
 ## Pendientes por fase
 
 **Fase 2/3 — cierre**
