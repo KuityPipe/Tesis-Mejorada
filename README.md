@@ -12,7 +12,7 @@ A Chilean home-services marketplace with biometric identity verification (native
 
 ![KeyServ home page](assets/imagenes/inicio-keyserv.png)
 
-<img src="assets/imagenes/asistente-keyserv.png" alt="KeyServ AI assistant" width="300">  <img src="assets/imagenes/catalogo-keyserv.jpg" alt="Catálogo" width="520">
+<img src="assets/imagenes/asistente-keyserv.png" alt="KeyServ AI assistant" width="300">  <img src="assets/imagenes/catalogo-keyserv.png" alt="Catálogo" width="520">
 
 ## Live demo
 
