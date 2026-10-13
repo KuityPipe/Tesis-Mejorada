@@ -63,11 +63,12 @@
         <ion-card-content>
           <ion-list lines="full">
             <ion-item *ngFor="let c of trabajosActuales" [routerLink]="['/contratacion', c.id_contratacion]" button detail>
-              <ion-label>
+              <ion-label class="ion-text-wrap">
                 <h2>{{ c.publicacion_titulo }}</h2>
                 <p>Proveedor: {{ c.proveedor_nombre }}</p>
+                <!-- El estado va debajo del texto: a la derecha, en móvil, dejaba al título una columna de pocos píxeles. -->
+                <ion-badge [color]="colorEstado(c.estado)" class="ks-trabajo-estado">{{ etiquetaEstado(c.estado) }}</ion-badge>
               </ion-label>
-              <ion-badge slot="end" [color]="colorEstado(c.estado)">{{ etiquetaEstado(c.estado) }}</ion-badge>
             </ion-item>
           </ion-list>
           <ion-button expand="block" fill="outline" class="ion-margin-top" routerLink="/reservas">

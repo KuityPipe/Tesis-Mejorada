@@ -10,7 +10,9 @@
 
 A Chilean home-services marketplace with biometric identity verification (native Face ID/fingerprint, webcam facial recognition, or a no-biometrics fallback), built to comply with Chile's new personal-data law (Ley 21.719). Started as a university thesis project, now being developed as a real product.
 
-![KeyServ service catalog](assets/imagenes/catalogo-keyserv.jpg)
+![KeyServ home page](assets/imagenes/inicio-keyserv.png)
+
+<img src="assets/imagenes/asistente-keyserv.png" alt="KeyServ AI assistant" width="300">  <img src="assets/imagenes/catalogo-keyserv.jpg" alt="Catálogo" width="520">
 
 ## Live demo
 

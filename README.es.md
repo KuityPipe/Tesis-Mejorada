@@ -10,7 +10,9 @@
 
 Un marketplace chileno de servicios del hogar con verificación de identidad (Face ID/huella nativos del teléfono, reconocimiento facial por cámara, o una vía sin biometría), construido para cumplir la nueva ley chilena de datos personales (Ley 21.719). Empezó como proyecto de tesis universitaria; hoy se sigue desarrollando como producto real.
 
-![Catálogo de servicios de KeyServ](assets/imagenes/catalogo-keyserv.jpg)
+![Inicio de KeyServ](assets/imagenes/inicio-keyserv.png)
+
+<img src="assets/imagenes/asistente-keyserv.png" alt="Asistente con IA de KeyServ" width="300">  <img src="assets/imagenes/catalogo-keyserv.jpg" alt="Catálogo" width="520">
 
 ## Demo en vivo
 

@@ -23,7 +23,7 @@
 | 3 | Refuerzo (cifrado, bloqueo, auditoría, rotación, tests) | **Hecha**: cifrado Fernet, enforcement con vigencia de 180 días, `EventoVerificacion`, `rotar_llaves_biometricas` + guía, tests de fallos (E2E de navegador no: el demo tiene el enforcement apagado) |
 | 4 | Cumplimiento visible | **Hecha**: consentimiento, "Mis datos" completo (descargar, corregir, oponerse, bloquear, eliminar), retención visible en la política, protocolo de brechas, EIPD/registro/encargados en borrador (falta revisión legal) |
 | 5 | Bot asistente con IA (NVIDIA NIM) | **Implementado** (ADR 0005): preguntas frecuentes + búsqueda en el catálogo, enmascarado de datos personales, flujo guiado sin IA, botón flotante en todas las pantallas. Falta probarlo con una clave real y cargarla en Render |
-| 6 | Rediseño visual 2026/27 | Pendiente; **requiere propuesta visual aprobada antes de implementar** |
+| 6 | Rediseño visual 2026/27 | **Hecha en lo visual** (2026-10-13, `fase-6/README.md`): dirección "Confianza cálida", todas las pantallas, accesibilidad y contraste AA, uso del ancho. **Pendiente por decisión:** inglés (i18n), migración a standalone/signals y `@defer` |
 | 7 | Calidad y cierre (README, `resumen-mejoras.md`, índice y matriz en `docs/cumplimiento/`) | **Hecha** (2026-10-12): `cumplimiento/README.md` con matriz, `resumen-mejoras.md`, READMEs renovados, E2E del asistente y de "Mis datos" |
 
 Pospuesto por presupuesto/entorno: revisión legal por abogado, entorno de producción real

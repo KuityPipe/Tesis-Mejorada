@@ -1491,7 +1491,9 @@ input[type='file'] {
 
 // Imagen que no cargó (ver shared/img-fallback.directive.ts): se oculta y queda el fondo del contenedor.
 img.ks-img-rota {
-  visibility: hidden;
+  // display:none (no visibility): en galerías la imagen es lo que da el alto, y no debe dejar un hueco vacío; en las
+  // tarjetas el contenedor ya tiene alto fijo y conserva su fondo de marca.
+  display: none;
 }
 
 // Pantallas de acceso (login/registro/recuperar): panel de marca + formulario en 2 columnas desde 900px.
@@ -1607,4 +1609,9 @@ img.ks-img-rota {
     border-radius: 12px;
     padding: 4px 8px;
   }
+}
+
+.ks-trabajo-estado {
+  margin-top: 6px;
+  white-space: normal;
 }
