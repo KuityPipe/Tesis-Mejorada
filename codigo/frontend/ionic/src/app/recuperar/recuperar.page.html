@@ -7,34 +7,39 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-narrow">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
   <!-- Sin *ngIf que oculte el form tras enviar: el usuario puede querer reintentar con otro correo/teléfono si se equivocó, así que el mensaje se muestra arriba y el formulario se queda. -->
   <ion-text *ngIf="mensaje">
     <p class="ion-padding-start">{{ mensaje }}</p>
   </ion-text>
 
-  <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
-    <ion-card appReveal>
-      <ion-card-content>
-        <!-- Mismo h1+subtítulo centrado que .ks-panel en recuperar.html del sitio Django. -->
-        <div class="ion-text-center ion-margin-bottom">
-          <h1>Recuperar contraseña</h1>
-          <p>Te enviamos un enlace para elegir una nueva contraseña.</p>
-        </div>
+  <div class="ks-auth">
+    <app-auth-aside></app-auth-aside>
+    <div class="ks-auth-form">
+      <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
+        <ion-card appReveal>
+          <ion-card-content>
+            <!-- Mismo h1+subtítulo centrado que .ks-panel en recuperar.html del sitio Django. -->
+            <div class="ion-text-center ion-margin-bottom">
+              <h1>Recuperar contraseña</h1>
+              <p>Te enviamos un enlace para elegir una nueva contraseña.</p>
+            </div>
 
-        <ion-list lines="none">
-          <ion-item>
-            <ion-input label="Correo electrónico" labelPlacement="floating" type="email" formControlName="email" autocomplete="email"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-input label="Número de teléfono" labelPlacement="floating" type="tel" formControlName="telefono"></ion-input>
-          </ion-item>
-        </ion-list>
+            <ion-list lines="none">
+              <ion-item>
+                <ion-input label="Correo electrónico" labelPlacement="floating" type="email" formControlName="email" autocomplete="email"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-input label="Número de teléfono" labelPlacement="floating" type="tel" formControlName="telefono"></ion-input>
+              </ion-item>
+            </ion-list>
 
-        <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="formulario.invalid || enviando">
-          {{ enviando ? 'Enviando…' : 'Enviar enlace de recuperación' }}
-        </ion-button>
-      </ion-card-content>
-    </ion-card>
-  </form>
+            <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="formulario.invalid || enviando">
+              {{ enviando ? 'Enviando…' : 'Enviar enlace de recuperación' }}
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </form>
+    </div>
+  </div>
 </ion-content>

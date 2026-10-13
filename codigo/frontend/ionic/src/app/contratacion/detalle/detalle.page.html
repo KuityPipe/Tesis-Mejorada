@@ -247,7 +247,7 @@
               <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" (change)="alElegirImagenMensaje($event)" />
             </label>
             <ion-input
-              class="ks-chat-input"
+              class="ks-chat-input" aria-label="Escribe un mensaje"
               placeholder="Escribe un mensaje…"
               formControlName="contenido"
               (keyup.enter)="enviarMensaje()"

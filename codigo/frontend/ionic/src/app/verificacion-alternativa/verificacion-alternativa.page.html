@@ -19,8 +19,8 @@
       </p>
 
       <ion-card *ngIf="paso === 'verificada'">
-        <ion-card-content>Tu identidad está verificada.</ion-card-content>
-      </ion-card>
+          <ion-card-content><app-verif-exito mensaje="Tu identidad está verificada"></app-verif-exito></ion-card-content>
+        </ion-card>
 
       <ion-card *ngIf="paso === 'revision'">
         <ion-card-content>

@@ -7,7 +7,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
@@ -35,6 +35,7 @@
         </div>
       </ion-text>
 
+      <div class="ks-layout-main-side ks-crear-grid">
       <form [formGroup]="formulario" (ngSubmit)="enviar()" *ngIf="!enviadoOk">
         <div class="ks-section" appReveal>
           <ion-card>
@@ -105,7 +106,7 @@
       </form>
 
       <!-- Previsualización en vivo — misma idea que el panel de la derecha en crear_publicacion.html, portada 1:1 pero apilada abajo (mobile-first) en vez de al costado. -->
-      <div class="ks-section">
+      <div class="ks-section ks-sticky-lg">
         <p class="ks-section-title"><ion-icon name="eye-outline"></ion-icon> Así se ve tu publicación</p>
         <div class="ks-page-header">
           <h1>{{ preview.titulo || 'Título de tu servicio' }} <ion-badge *ngIf="categoriaPreview" color="tertiary">{{ categoriaPreview }}</ion-badge></h1>
@@ -121,6 +122,7 @@
             <p style="color: var(--ks-ink-soft);">{{ preview.descripcion_publicacion || 'Todavía no escribiste una descripción.' }}</p>
           </ion-card-content>
         </ion-card>
+      </div>
       </div>
     </ng-container>
   </ng-container>

@@ -8,7 +8,8 @@
   position: relative;
   overflow: hidden;
   color: #fff;
-  background: linear-gradient(135deg, var(--ks-navy) 0%, #0a2f5e 100%);
+  // Colores fijos (no --ks-navy): en modo noche --ks-navy es un azul claro y el texto blanco perdería contraste.
+  background: linear-gradient(135deg, #0b3d78 0%, #0a2f5e 100%);
   border: 0;
 
   // Resplandor decorativo con el verde vivo (solo decoración, nunca lleva texto encima)

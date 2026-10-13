@@ -7,15 +7,21 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
-  <form *ngIf="!cargando" [formGroup]="formulario" (ngSubmit)="enviar()" class="ion-margin-top">
+  <div class="ks-page-header" *ngIf="!cargando">
+    <h1><ion-icon name="person-outline" aria-hidden="true"></ion-icon> Editar perfil</h1>
+    <p>Mantén tus datos al día: así los proveedores y clientes saben con quién tratan.</p>
+  </div>
+
+  <div class="ks-layout-main-side" *ngIf="!cargando">
+  <form [formGroup]="formulario" (ngSubmit)="enviar()">
    <ion-card appReveal>
     <ion-card-content>
-    <ion-list lines="none">
+    <ion-list lines="none" class="ks-form-grid">
       <ion-item>
         <ion-input label="Nombre" labelPlacement="floating" formControlName="nombre_usuario"></ion-input>
       </ion-item>
@@ -63,7 +69,7 @@
       <ion-text color="danger" *ngIf="mensajeError('comuna')"><p class="ion-padding-start">{{ mensajeError('comuna') }}</p></ion-text>
 
       <!-- Sin componente propio de Ionic para elegir archivos — un <input type="file"> nativo alcanza (Capacitor Camera es para la app nativa, fase aparte del plan). (change) en vez de formControlName porque un <input type="file"> no es algo que Reactive Forms pueda controlar directamente (el navegador no deja setear su value por seguridad). -->
-      <ion-item lines="none">
+      <ion-item lines="none" class="ks-span-all">
         <div class="ks-file-field">
           <ion-label>Foto de perfil (opcional)</ion-label>
           <input type="file" accept="image/*" (change)="alElegirFoto($event)" />
@@ -81,4 +87,13 @@
     </ion-card-content>
    </ion-card>
   </form>
+
+  <aside class="ks-tile ks-perfil-atajos" aria-label="Más opciones de tu cuenta">
+    <h2>Tu cuenta</h2>
+    <a routerLink="/perfil/proveedor"><ion-icon name="briefcase-outline" aria-hidden="true"></ion-icon> Perfil de proveedor</a>
+    <a routerLink="/biometria"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon> Verificar mi identidad</a>
+    <a routerLink="/perfil/pagos"><ion-icon name="card-outline" aria-hidden="true"></ion-icon> Historial de pagos</a>
+    <a routerLink="/preferencias"><ion-icon name="settings-outline" aria-hidden="true"></ion-icon> Preferencias y mis datos</a>
+  </aside>
+  </div>
 </ion-content>

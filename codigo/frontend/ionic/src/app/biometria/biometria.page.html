@@ -34,9 +34,7 @@
           <ion-text color="danger" *ngIf="error">
             <p class="ion-padding-start">{{ error }}</p>
           </ion-text>
-          <ion-text color="success" *ngIf="exito">
-            <p class="ion-padding-start">¡Listo! Quedaste verificado biométricamente.</p>
-          </ion-text>
+          <app-verif-exito *ngIf="exito" mensaje="¡Listo! Quedaste verificado."></app-verif-exito>
         </ion-card-content>
       </ion-card>
     </ng-container>

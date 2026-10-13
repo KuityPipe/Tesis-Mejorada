@@ -13,6 +13,8 @@ import { AccountMenuComponent } from './account-menu/account-menu';
 import { AsistenteComponent } from './asistente/asistente';
 import { ImgFallbackDirective } from './img-fallback.directive';
 import { VerificacionLateralComponent } from './verificacion-lateral/verificacion-lateral';
+import { AuthAsideComponent } from './auth-aside/auth-aside';
+import { VerifExitoComponent } from './verif-exito/verif-exito';
 
 /**
  * Módulo de componentes/directivas reutilizables entre páginas —
@@ -29,7 +31,7 @@ import { VerificacionLateralComponent } from './verificacion-lateral/verificacio
  */
 @NgModule({
   imports: [CommonModule, FormsModule, RouterModule, IonicModule],
-  declarations: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent],
-  exports: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent],
+  declarations: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent, AuthAsideComponent, VerifExitoComponent],
+  exports: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent, AuthAsideComponent, VerifExitoComponent],
 })
 export class SharedModule {}

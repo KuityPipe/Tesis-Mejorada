@@ -1,0 +1,63 @@
+.ks-auth-aside {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(150deg, #0b3d78 0%, #0a2f5e 100%); // fijo: ver nota en inicio.page.scss
+  border-radius: var(--ks-radius-lg);
+  padding: clamp(24px, 3vw, 40px);
+
+  @media (min-width: 900px) {
+    display: block;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -80px;
+    bottom: -80px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--ks-teal) 0%, transparent 65%);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  h2 {
+    color: #fff;
+    margin: 8px 0 18px;
+    font-size: clamp(1.4rem, 2vw, 1.9rem);
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 10px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  li ion-icon {
+    font-size: 1.3rem;
+    color: #8ff0dc;
+  }
+}
+
+.ks-auth-aside-etiqueta {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8ff0dc;
+}

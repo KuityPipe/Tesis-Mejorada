@@ -1493,3 +1493,118 @@ input[type='file'] {
 img.ks-img-rota {
   visibility: hidden;
 }
+
+// Pantallas de acceso (login/registro/recuperar): panel de marca + formulario en 2 columnas desde 900px.
+.ks-auth {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  margin-top: 8px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: minmax(300px, 5fr) minmax(0, 7fr);
+    gap: 40px;
+  }
+
+  > app-auth-aside {
+    @media (min-width: 900px) {
+      position: sticky;
+      top: 16px;
+    }
+  }
+}
+
+.ks-auth-form {
+  width: 100%;
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+// Campos de un formulario largo repartidos en 2 columnas cuando hay ancho (RUT/nombre/apellido/teléfono...).
+.ks-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 14px;
+
+  @media (min-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  > ion-text,
+  > .ks-span-all {
+    grid-column: 1 / -1;
+  }
+}
+
+.ks-sticky-lg {
+  @media (min-width: 1000px) {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+.ks-mensajes-tips {
+  h2 {
+    font-size: 1.1rem;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 8px;
+    color: var(--ks-ink-soft);
+    font-size: 0.92rem;
+  }
+}
+
+.ks-perfil-atajos {
+  display: grid;
+  gap: 4px;
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 0 0 6px;
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--ks-radius-sm);
+    color: var(--ks-ink);
+    text-decoration: none;
+    font-weight: 600;
+
+    ion-icon {
+      font-size: 1.25rem;
+      color: var(--ks-navy);
+    }
+
+    &:hover {
+      background: var(--ks-navy-light);
+    }
+  }
+}
+
+// El logo tiene letras azul marino: sobre el fondo oscuro casi no se ve, así que en modo noche va sobre una
+// pastilla clara (mismo criterio con tema forzado a mano o heredado del sistema).
+:root[data-theme='dark'] .ks-toolbar-logo {
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .ks-toolbar-logo {
+    background: #fff;
+    border-radius: 12px;
+    padding: 4px 8px;
+  }
+}
