@@ -25,6 +25,12 @@ Un moderador puede:
     valoraciones que sí modera, no un dato operativo aparte.
   - Ver los intentos de acceso sospechoso registrados automáticamente
     (IntentoAccesoSospechoso: view) — "solo ve las alertas".
+  - Aprobar/rechazar la verificación de identidad sin biometría
+    (VerificacionAlternativa: view, change) — agregado 2026-10-12 por decisión
+    del usuario: para quien no puede o no quiere usar biometría. Es el único
+    acceso del moderador a documentos de identidad, por eso queda con rastro:
+    `revisado_por`/`revisado_en` (admin.py) y un aviso en el dashboard cuando hay
+    solicitudes pendientes (admin_extras.panel_aprobaciones).
 
 Un moderador NO puede (a propósito, alcance acotado):
   - Ver conversaciones ni mensajes entre cliente y proveedor (Conversacion,
@@ -50,7 +56,7 @@ from django.core.management.base import BaseCommand
 
 from KeyServApp.models import (
     Consulta, Documento, Imagenes, IntentoAccesoSospechoso, Publicaciones,
-    Ranking, Valoracion, ValoracionImagen,
+    Ranking, Valoracion, ValoracionImagen, VerificacionAlternativa,
 )
 
 PERMISOS_MODERADOR = {
@@ -62,6 +68,7 @@ PERMISOS_MODERADOR = {
     ValoracionImagen: ['view', 'change'],
     Ranking: ['view'],
     IntentoAccesoSospechoso: ['view'],
+    VerificacionAlternativa: ['view', 'change'],
 }
 
 

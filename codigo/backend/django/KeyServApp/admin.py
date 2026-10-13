@@ -124,11 +124,13 @@ class UsuarioAdmin(admin.ModelAdmin):
 @admin.register(VerificacionAlternativa)
 class VerificacionAlternativaAdmin(admin.ModelAdmin):
     """
-    Revisión manual de la vía de identidad sin biometría. Solo superusuarios/staff con permiso:
-    NO se agrega al grupo Moderador (el documento de identidad es sensible). Aprobar exige que el
-    correo esté verificado y haya un documento; el documento se abre con su enlace de descarga.
+    Revisión manual de la vía de identidad sin biometría. Superusuarios y el grupo Moderador (decisión
+    2026-10-12: sirve de respaldo y para quien no quiere dejar datos biométricos). Como el documento
+    de identidad es sensible, cada aprobación/rechazo deja `revisado_por` + `revisado_en` (solo lectura)
+    y el historial nativo del admin; el dashboard avisa cuando hay solicitudes por revisar. Aprobar
+    exige correo verificado y documento; el documento se abre con su enlace de descarga.
     """
-    list_display = ('id_verificacion', 'usuario', 'estado', 'correo_verificado_en', 'revisado_por', 'creado_en')
+    list_display = ('id_verificacion', 'usuario', 'estado', 'correo_verificado_en', 'revisado_por', 'revisado_en', 'creado_en')
     list_filter = ('estado',)
     fields = ('usuario', 'estado', 'motivo_rechazo', 'advertencia_aceptada_en', 'correo_verificado_en', 'enlace_documento', 'revisado_por', 'revisado_en')
     readonly_fields = ('usuario', 'advertencia_aceptada_en', 'correo_verificado_en', 'enlace_documento', 'revisado_por', 'revisado_en')

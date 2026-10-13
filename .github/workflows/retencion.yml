@@ -1,0 +1,54 @@
+name: Retención de datos
+
+# Corre `manage.py mantenimiento_retencion` (limpiar_mensajes_antiguos + purgar_datos_vencidos)
+# contra la base real (Neon). Alternativa gratuita al cron de Render, que es de pago.
+# Requiere el secreto de repositorio DATABASE_URL (Settings → Secrets and variables → Actions).
+# Los plazos de retención son propuestas técnicas pendientes de validación legal
+# (ver docs/cumplimiento/).
+#
+# Limitación conocida: las fotos de chat viven en el disco del servidor de Render, que este runner
+# no ve. Borrar la fila no falla si el archivo no está, pero el archivo no se toca desde acá
+# (el disco gratuito de Render es efímero y se limpia en cada deploy).
+
+on:
+  schedule:
+    - cron: "0 5 * * 0"   # domingos 05:00 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Solo contar lo que se borraría, sin borrar nada"
+        type: boolean
+        default: true
+
+jobs:
+  retencion:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SECRET_KEY: retencion-no-firma-nada
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: localhost
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pip install -r requirements-ci.txt
+
+      - name: Verificar que el secreto DATABASE_URL existe
+        run: test -n "$DATABASE_URL" || (echo "Falta el secreto DATABASE_URL" && exit 1)
+
+      - name: Retención (simulación)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        working-directory: codigo/backend/django
+        run: |
+          python manage.py limpiar_mensajes_antiguos --dry-run
+          python manage.py purgar_datos_vencidos --dry-run
+
+      - name: Retención (borrado real)
+        if: ${{ github.event_name == 'schedule' || !inputs.dry_run }}
+        working-directory: codigo/backend/django
+        run: python manage.py mantenimiento_retencion

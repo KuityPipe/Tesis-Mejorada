@@ -13,6 +13,7 @@ sola en Postgres) — no son mocks, así que si algo similar al bug de
 Fase 3 (nombres de campo desalineados) vuelve a aparecer, estos tests lo
 detectan igual que detectaron los bugs originales cuando se armó Fase 3.
 """
+import unittest
 from unittest import mock
 
 from django.contrib import admin
@@ -32,7 +33,7 @@ from .models import (
     Comuna, Consulta, Contratacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, IntentoAccesoSospechoso, ItemPresupuesto,
     Pago, Publicaciones, Ranking, Region, TipoCuenta, Usuario, Valoracion,
-    ValoracionImagen,
+    ValoracionImagen, VerificacionAlternativa,
 )
 from . import biometria, geolocalizacion, validators
 from .templatetags.admin_extras import panel_aprobaciones
@@ -1760,6 +1761,7 @@ class GrupoModeradorCommandTests(TestCase):
             'view_valoracionimagen', 'change_valoracionimagen',
             'view_ranking',
             'view_intentoaccesosospechoso',
+            'view_verificacionalternativa', 'change_verificacionalternativa',
         })
 
     def test_grupo_no_tiene_permisos_sobre_modelos_sensibles(self):
@@ -1917,6 +1919,70 @@ class PanelAprobacionesTests(TestCase):
         self.assertContains(response, 'solo admin')
 
 
+class VerificacionAlternativaModeradorTests(TestCase):
+    """
+    Decisión 2026-10-12: el Moderador también puede aprobar la verificación de identidad sin
+    biometría (respaldo, o quien no quiere dejar datos biométricos). Como maneja documentos de
+    identidad, todo queda registrado (quién/cuándo) y el dashboard avisa de las pendientes.
+    """
+
+    def setUp(self):
+        call_command('configurar_grupo_moderador', verbosity=0)
+        _, comuna, tipo = _crear_region_comuna_tipo()
+        self.solicitante = _crear_usuario('solicita@test.com', comuna=comuna, tipo_cuenta=tipo)
+        pdf = SimpleUploadedFile('cedula.pdf', b'%PDF-1.4 test', content_type='application/pdf')
+        self.documento = Documento.objects.create(usuario=self.solicitante, nombre_documento='cedula.pdf', archivo_subido=pdf)
+        self.verificacion = VerificacionAlternativa.objects.create(
+            usuario=self.solicitante, estado=VerificacionAlternativa.PENDIENTE_REVISION,
+            correo_verificado_en=timezone.now(), documento=self.documento,
+        )
+        self.moderador = User.objects.create_user('mod_identidad', password='ModTest1234', is_staff=True)
+        self.moderador.groups.add(Group.objects.get(name='Moderador'))
+        self.client = Client()
+        self.client.force_login(self.moderador)
+
+    def _contexto_panel(self, usuario):
+        request = RequestFactory().get('/admin/')
+        request.user = usuario
+        return panel_aprobaciones({'request': request})
+
+    def test_moderador_aprueba_y_queda_registrado_quien_y_cuando(self):
+        url = reverse('admin:KeyServApp_verificacionalternativa_change', args=[self.verificacion.pk])
+        response = self.client.post(url, {'estado': VerificacionAlternativa.APROBADA, 'motivo_rechazo': ''})
+        self.assertEqual(response.status_code, 302)
+        self.verificacion.refresh_from_db()
+        self.assertEqual(self.verificacion.estado, VerificacionAlternativa.APROBADA)
+        self.assertEqual(self.verificacion.revisado_por, self.moderador)
+        self.assertIsNotNone(self.verificacion.revisado_en)
+
+    def test_aprobar_sin_documento_o_correo_sigue_bloqueado_para_el_moderador(self):
+        VerificacionAlternativa.objects.filter(pk=self.verificacion.pk).update(correo_verificado_en=None)
+        url = reverse('admin:KeyServApp_verificacionalternativa_change', args=[self.verificacion.pk])
+        self.client.post(url, {'estado': VerificacionAlternativa.APROBADA, 'motivo_rechazo': ''})
+        self.verificacion.refresh_from_db()
+        self.assertEqual(self.verificacion.estado, VerificacionAlternativa.PENDIENTE_REVISION)
+        self.assertIsNone(self.verificacion.revisado_por)
+
+    def test_moderador_no_puede_borrar_la_verificacion(self):
+        url = reverse('admin:KeyServApp_verificacionalternativa_delete', args=[self.verificacion.pk])
+        self.assertEqual(self.client.post(url, {'post': 'yes'}).status_code, 403)
+        self.assertTrue(VerificacionAlternativa.objects.filter(pk=self.verificacion.pk).exists())
+
+    def test_dashboard_avisa_de_verificaciones_pendientes(self):
+        contexto = self._contexto_panel(self.moderador)
+        self.assertEqual(contexto['total_verificaciones'], 1)
+        self.assertEqual(list(contexto['verificaciones_pendientes'])[0].pk, self.verificacion.pk)
+        self.assertContains(self.client.get(reverse('admin:index')), 'Verificaciones de identidad por revisar')
+
+    def test_ya_revisadas_no_cuentan_como_pendientes(self):
+        VerificacionAlternativa.objects.filter(pk=self.verificacion.pk).update(estado=VerificacionAlternativa.APROBADA)
+        self.assertEqual(self._contexto_panel(self.moderador)['total_verificaciones'], 0)
+
+    def test_staff_sin_permiso_no_ve_el_aviso(self):
+        sin_permisos = User.objects.create_user('sin_perm_ident', password='clave12345', is_staff=True)
+        self.assertNotIn('total_verificaciones', self._contexto_panel(sin_permisos))
+
+
 class SembrarDatosDemoCommandTests(TestCase):
     """
     `sembrar_datos_demo` (management command, demo desplegado — ver
@@ -1966,6 +2032,20 @@ class SembrarDatosDemoCommandTests(TestCase):
             self.assertIsNotNone(proveedor.comuna.latitud, f'{proveedor.email} sin comuna geocodificada')
 
 
+def _face_recognition_disponible():
+    """El CI instala requirements-ci.txt, sin numpy/opencv/dlib/face_recognition (ver ese archivo)."""
+    try:
+        import face_recognition  # noqa: F401
+        import numpy  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+@unittest.skipUnless(
+    _face_recognition_disponible(),
+    'face_recognition/numpy no instalados (el CI usa requirements-ci.txt) — correr en local con requirements.txt.',
+)
 class RechazoDeRostroDistintoTests(TestCase):
     """
     Cierra el hueco de la Fase 0: ningún test comprobaba que un rostro distinto fuera

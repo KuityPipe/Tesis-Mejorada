@@ -64,3 +64,13 @@ orden, derivados de `docs/fase-0-reconocimiento.md`:
   que el plan original no contemplaba.
 - La advertencia "bajo su propio riesgo" informa pero no traslada la responsabilidad
   legal de KeyServ; documentado en `docs/legal/eipd-reconocimiento-facial.md` §5.
+
+## 2026-10-12 — Fase 2/3 (cierre)
+
+- **Moderador aprueba la verificación sin biometría.** Revierte la decisión previa de dejarlo solo a superusuario:
+  sirve de respaldo y para quien no quiere dejar datos biométricos. Contrapartida (pedida por el usuario): cada
+  revisión deja `revisado_por`/`revisado_en` e historial del admin, y el dashboard muestra un aviso con las
+  solicitudes pendientes de revisión. El moderador sigue sin poder borrar ni ver a los usuarios.
+- **Retención agendada con GitHub Actions** (`.github/workflows/retencion.yml`, semanal, contra Neon) en vez del
+  cron de pago de Render. Limitación: no alcanza las fotos de chat del disco de Render (efímero).
+- **Tests rápidos:** `settings_test.py` (MD5, solo con `manage.py test`) baja la suite de ~13 min a ~25 s.

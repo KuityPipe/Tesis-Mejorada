@@ -25,12 +25,11 @@
 - Definir `BIOMETRIC_ENCRYPTION_KEYS` (clave Fernet, distinta de `SECRET_KEY`) en producción real y respaldarla fuera de la BD.
   Generar con `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
 - Encender `EXIGIR_IDENTIDAD_VERIFICADA=True` solo en producción real (la demo no tiene biometría).
-- Programar `manage.py mantenimiento_retencion` (el cron de Render es de pago; alternativa: GitHub Actions con la BD externa, o un cron externo).
-- La vía alternativa sin biometría existe en API, admin e Ionic; falta la pantalla en las plantillas Django (en retiro).
+- Retención: workflow semanal listo (`.github/workflows/retencion.yml`). **Falta cargar el secreto `DATABASE_URL` (cadena de Neon) en GitHub → Settings → Secrets and variables → Actions** y probarlo una vez a mano (Actions → Retención de datos → Run workflow, dry-run).
+- La vía alternativa sin biometría existe en API, admin (superusuario y Moderador, con registro y aviso en el dashboard) e Ionic; la pantalla en las plantillas Django se omite (en retiro).
 - Revisión de un abogado: texto del consentimiento (`KeyServApp/consentimiento.py`), advertencia (`verificacion_alternativa.py`),
   EIPD (`docs/legal/`), registro de tratamiento y encargados (`docs/cumplimiento/`), y qué se conserva al eliminar una cuenta.
-- `privacidad.html` no menciona que se recolecta el RUT.
-- Tests de rechazo facial con rostros distintos (hueco heredado de la Fase 0).
+- (Hecho 2026-10-12) `privacidad.html` menciona el RUT y los tests de rechazo facial (vectores sintéticos; la detección sobre imágenes reales sigue siendo prueba manual).
 
 **Fases 4, 5 y 6**
 - Fase 4 y el bot (Fase 5): el plan maestro original no está en el repo; `PLAN_MAESTRO_2026-27.md` es una reconstrucción y

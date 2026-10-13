@@ -24,6 +24,12 @@ es 0" (debe seguir mostrando la tarjeta, en verde).
     <span class="ks-kpi-l">Incidencias abiertas</span>
   </a>
   {% endif %}
+  {% if total_verificaciones is not None %}
+  <a class="ks-kpi-card {% if total_verificaciones %}ks-kpi-urgent{% else %}ks-kpi-ok{% endif %}" href="{% url 'admin:KeyServApp_verificacionalternativa_changelist' %}?estado__exact=PENDIENTE_REVISION">
+    <span class="ks-kpi-n">{{ total_verificaciones }}</span>
+    <span class="ks-kpi-l">Verificaciones de identidad por revisar</span>
+  </a>
+  {% endif %}
   {% if total_sospechosos is not None %}
   <a class="ks-kpi-card {% if total_sospechosos %}ks-kpi-urgent{% else %}ks-kpi-ok{% endif %}" href="{% url 'admin:KeyServApp_intentoaccesosospechoso_changelist' %}">
     <span class="ks-kpi-n">{{ total_sospechosos }}</span>
@@ -72,6 +78,26 @@ es 0" (debe seguir mostrando la tarjeta, en verde).
     </tr>
     {% empty %}
     <tr><td class="ks-panel-empty">No hay incidencias abiertas 🎉</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if total_verificaciones is not None %}
+<div class="app-ks_panel module" id="ks-panel-verificaciones">
+  <table>
+    <caption>
+      <a href="{% url 'admin:KeyServApp_verificacionalternativa_changelist' %}?estado__exact=PENDIENTE_REVISION" class="section" title="{% translate 'Ver todas' %}">
+        🪪 Verificaciones de identidad por revisar (sin biometría){% if total_verificaciones %} ({{ total_verificaciones }}){% endif %}
+      </a>
+    </caption>
+    {% for ver in verificaciones_pendientes %}
+    <tr>
+      <th scope="row"><a href="{% url 'admin:KeyServApp_verificacionalternativa_change' ver.pk %}">{{ ver.usuario }}</a></th>
+      <td>Solicitada el {{ ver.creado_en|date:"d/m/Y H:i" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td class="ks-panel-empty">No hay verificaciones pendientes 🎉</td></tr>
     {% endfor %}
   </table>
 </div>

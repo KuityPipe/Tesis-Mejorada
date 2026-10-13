@@ -60,7 +60,7 @@ sentido forzar captura de rostro sin consentimiento).
 | Fase 2/3 · consentimiento biométrico (modelo versionado, gating en rostro, revocar borra el vector; Django + API + Ionic) | Hecho, pendiente de revisión legal del texto |
 | Fase 2 · cifrado de `encoding_facial` en reposo (Fernet, claves rotables; migración cifra filas existentes) | Hecho. **En producción real hay que configurar `BIOMETRIC_ENCRYPTION_KEYS` (distinta de `SECRET_KEY`) y respaldar la clave fuera de la BD** |
 | Fase 2 · enforcement de identidad al contratar/publicar (`EXIGIR_IDENTIDAD_VERIFICADA`) | Hecho, **apagado por defecto** (la demo no tiene biometría); encender en producción real |
-| Fase 2 · vía alternativa sin biometría (advertencia + código por correo + documento revisado por staff; API, admin e Ionic) | Hecho. Falta pantalla en las plantillas Django (en retiro) y que el staff revise en `/admin/` (solo superusuario, no Moderador) |
+| Fase 2 · vía alternativa sin biometría (advertencia + código por correo + documento revisado por staff; API, admin e Ionic) | Hecho. Falta pantalla en las plantillas Django (en retiro, se omite). Desde 2026-10-12 también la revisa el grupo Moderador, con registro de quién/cuándo y aviso en el dashboard |
 | Fase 3 · exportar y eliminar datos del titular (`/api/auth/mis-datos/`, `/api/auth/eliminar-cuenta/`, UI en Ionic) | Hecho; el alcance de lo que se conserva (contratos/pagos) requiere validación legal |
-| Fase 3 · retención automatizable (`mantenimiento_retencion`) | Comandos hechos. **Nadie los programa todavía**: hay que agendarlos en el entorno real (cron de Render es de pago) |
+| Fase 3 · retención automatizable (`mantenimiento_retencion`) | Comandos hechos y agendados semanalmente con GitHub Actions (`retencion.yml`); falta cargar el secreto `DATABASE_URL` en el repo |
 | Fases 4–6 | Pendientes |

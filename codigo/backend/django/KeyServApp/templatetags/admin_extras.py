@@ -2,7 +2,7 @@
 from django import template
 from django.utils import timezone
 
-from KeyServApp.models import Consulta, IntentoAccesoSospechoso, Publicaciones
+from KeyServApp.models import Consulta, IntentoAccesoSospechoso, Publicaciones, VerificacionAlternativa
 
 register = template.Library()
 
@@ -33,5 +33,10 @@ def panel_aprobaciones(context):
         recientes = IntentoAccesoSospechoso.objects.filter(fecha__gte=desde).select_related('usuario')
         contexto['total_sospechosos'] = recientes.count()
         contexto['intentos_sospechosos'] = recientes[:8]
+
+    if usuario.has_perm('KeyServApp.view_verificacionalternativa'):
+        por_revisar = VerificacionAlternativa.objects.filter(estado=VerificacionAlternativa.PENDIENTE_REVISION).select_related('usuario').order_by('creado_en')
+        contexto['total_verificaciones'] = por_revisar.count()
+        contexto['verificaciones_pendientes'] = por_revisar[:8]
 
     return contexto
