@@ -5,6 +5,10 @@
 
 ## Sesión 2026-10-13 (tarde: despliegues y CI)
 
+- Seguridad: las claves de `admin`/`moderador` salieron del repo (README y `sembrar_datos_demo.py`). Ahora vienen de la variable `DEMO_STAFF_PASSWORD` (puesta en Render, se reaplica en cada deploy; sin ella, clave aleatoria). La clave vieja `KeyServ2026!` ya no sirve en el demo. En local, define la variable antes de sembrar para entrar a `/admin/`.
+- Hero de la portada con foto de herramientas (`hero-oficios.jpg`, CC0) y fotos propias para Fotografía, Mecánica y Contabilidad. Capturas del README tomadas del demo en vivo. `NVIDIA_API_KEY` verificada (`origen=ia`).
+- Decisiones para Corfo (dueño): postula como persona natural (Corfo ayuda con el papeleo si gana); ingresos por comisión de 3–5 % del pago, con publicidad o publicaciones destacadas por categoría/zona como idea futura; ventaja: pago rápido y seguro con identidad verificada y, si es viable, boleta/IVA al SII. Pendiente suyo: formulario de Google Forms a personas reales (trabajo/desempleo, informalidad), presupuesto con supuestos, equipo/asesores, abogado. Pendiente por revisar a fondo: el texto "0 fotos de tu rostro guardadas" frente a la vía del documento de identidad. Neon se queda en São Paulo (decisión del dueño).
+
 - Render `keyserv-api` despliega `master` (comprobado: `/api/auth/mis-datos/` → 401). Netlify: producción = `master`, publicación automática; no construye si el commit no toca `codigo/frontend/ionic` (cancela con "no content change", es normal). Se quitó `api-ionic-migration` del disparador de `tests.yml` y se borraron los environments viejos de GitHub (`api-ionic-migration - keyserv-api/keyserv-db`, creados por Render).
 
 ## Sesión 2026-10-13 (rediseño pulido, todo commiteado)

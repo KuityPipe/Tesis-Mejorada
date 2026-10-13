@@ -25,6 +25,9 @@ Los fondos vectoriales de `assets/fondos/` (malla y casa/llave/huella) son dibuj
 | `pintura.jpg` | Pintor frente a una pared | Q67DPDQSC1 |
 | `programacion.jpg` | Código en un notebook | MJZPCHLERD |
 | `soporte-tecnico.jpg` | Desarrolladora con notebook | BRHQBEKMEW |
+| `fotografia.jpg` | Fotógrafo con cámara reflejado en un espejo | Z72ILM2PWE |
+| `mecanica.jpg` | Cables de arranque en el motor de un auto | T7T37KWY8G |
+| `contabilidad.jpg` | Manos con lápiz sobre papeles en un escritorio | 3YJOHX53SQ |
 
 Búsqueda y verificación de licencia: API de Openverse (filtro `cc0, pdm`, fuente StockSnap). Las personas que aparecen no tienen
 relación con los proveedores ficticios del demo.

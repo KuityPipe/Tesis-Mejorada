@@ -69,8 +69,8 @@ FOTO_POR_CATEGORIA = {
     'Mudanzas': 'mudanzas', 'Cerrajería': 'cerrajeria', 'Cuidado de mascotas': 'mascotas',
     'Clases particulares': 'clases', 'Belleza y bienestar': 'bienestar', 'Tecnología y soporte': 'soporte-tecnico',
     'Programación y diseño web': 'programacion', 'Cuidado de niños y adultos mayores': 'cuidado',
-    'Cocina y catering': 'cocina', 'Reparación de artefactos': 'reparaciones', 'Fotografía y video': 'paisaje-montana',
-    'Contabilidad y trámites': 'soporte-tecnico', 'Mecánica y automotriz': 'reparaciones',
+    'Cocina y catering': 'cocina', 'Reparación de artefactos': 'reparaciones', 'Fotografía y video': 'fotografia',
+    'Contabilidad y trámites': 'contabilidad', 'Mecánica y automotriz': 'mecanica',
 }
 
 # (nombre, apellido, email, categoría, título, subtítulo, precio, id_comuna)
