@@ -21,6 +21,9 @@ reparten entre los proveedores para que el filtro de radio muestre distancias re
 
 Correr con: python manage.py sembrar_datos_demo
 """
+import os
+import secrets
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import call_command
@@ -139,18 +142,22 @@ class Command(BaseCommand):
     def _sembrar_cuentas_staff(self):
         """Cuentas de /admin/ — auth.User nativo de Django, distinto de Usuario (clientes/proveedores)."""
         User = get_user_model()
+        # La clave sale de DEMO_STAFF_PASSWORD (variable de entorno, nunca en el repo). Si está definida se
+        # reaplica en cada ejecución (así se puede rotar desde Render); si no, solo las cuentas nuevas reciben
+        # una clave aleatoria que nadie conoce (se entra con `changepassword` o definiendo la variable).
+        clave = os.environ.get('DEMO_STAFF_PASSWORD', '')
         admin, creado = User.objects.get_or_create(
             username='admin', defaults={'email': 'admin@demo.keyserv', 'is_staff': True, 'is_superuser': True},
         )
-        if creado:
-            admin.set_password('KeyServ2026!')
+        if creado or clave:
+            admin.set_password(clave or secrets.token_urlsafe(24))
             admin.save()
 
         moderador, creado = User.objects.get_or_create(
             username='moderador', defaults={'email': 'moderador@demo.keyserv', 'is_staff': True},
         )
-        if creado:
-            moderador.set_password('Moderador2026!')
+        if creado or clave:
+            moderador.set_password(clave or secrets.token_urlsafe(24))
             moderador.save()
         grupo_moderador = Group.objects.get(name='Moderador')
         moderador.groups.add(grupo_moderador)

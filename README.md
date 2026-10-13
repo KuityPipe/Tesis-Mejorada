@@ -20,7 +20,7 @@ A Chilean home-services marketplace with biometric identity verification (native
 
 - `cliente.demo@demo.keyserv` / `Demo1234` (client)
 - `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (provider)
-- `admin` / `KeyServ2026!` (superuser, `/admin/` on the API host)
+- The `/admin/` panel on the API host is not public; locally, set `DEMO_STAFF_PASSWORD` before seeding to get the `admin` and `moderador` accounts
 
 It also runs locally in a few minutes — see [Running locally](#running-locally) below.
 
@@ -125,7 +125,7 @@ npm install
 npm start                  # serves on :8100
 ```
 
-Needs a local PostgreSQL instance (connection details via `.env`). Demo accounts, once seeded: `admin` / `KeyServ2026!` (superuser), `cliente.demo@demo.keyserv` / `Demo1234` (client), `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (provider).
+Needs a local PostgreSQL instance (connection details via `.env`). Demo accounts, once seeded: `admin` / `moderador` (staff, password from `DEMO_STAFF_PASSWORD`), `cliente.demo@demo.keyserv` / `Demo1234` (client), `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (provider).
 
 ## About AI usage
 

@@ -20,7 +20,7 @@ Un marketplace chileno de servicios del hogar con verificación de identidad (Fa
 
 - `cliente.demo@demo.keyserv` / `Demo1234` (cliente)
 - `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (proveedor)
-- `admin` / `KeyServ2026!` (superuser, `/admin/` en el host de la API)
+- El panel `/admin/` del host de la API no es público; en local, define `DEMO_STAFF_PASSWORD` antes de sembrar para obtener las cuentas `admin` y `moderador`
 
 También corre local en pocos minutos — ver [Cómo correrlo local](#cómo-correrlo-local) abajo.
 
@@ -125,7 +125,7 @@ npm install
 npm start                  # sirve en :8100
 ```
 
-Necesita una instancia local de PostgreSQL (credenciales vía `.env`). Cuentas demo, una vez sembrados los datos: `admin` / `KeyServ2026!` (superusuario), `cliente.demo@demo.keyserv` / `Demo1234` (cliente), `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (proveedor).
+Necesita una instancia local de PostgreSQL (credenciales vía `.env`). Cuentas demo, una vez sembrados los datos: `admin` / `moderador` (staff, clave desde `DEMO_STAFF_PASSWORD`), `cliente.demo@demo.keyserv` / `Demo1234` (cliente), `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (proveedor).
 
 ## Sobre el uso de IA
 

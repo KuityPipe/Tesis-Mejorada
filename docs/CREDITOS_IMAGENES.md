@@ -8,7 +8,7 @@ Los fondos vectoriales de `assets/fondos/` (malla y casa/llave/huella) son dibuj
 
 | Archivo | Tema | ID en StockSnap |
 |---|---|---|
-| `paisaje-montana.jpg` | Paisaje de montaña (hero) | CWJYRTQKZC |
+| `hero-oficios.jpg` | Herramientas de taller colgadas en la pared (hero) | KD30XPQR0A |
 | `paisaje-lago.jpg` | Lago al amanecer (banda) | CBH3T3LNP0 |
 | `carpinteria.jpg` | Taller de carpintería | YPM6VH3FCW |
 | `cerrajeria.jpg` | Llaves en una puerta | Z1TKDI29FZ |
