@@ -81,7 +81,7 @@ Android build, signed release build, and the Windows/OneDrive/JDK gotchas: see `
 ## Deployment & CI
 
 - `.github/workflows/tests.yml`: backend (Postgres service), frontend, and e2e (seeds demo data, runs Playwright) jobs on push to `master`/`api-ionic-migration` and PRs to `master`.
-- Live demo: Render (`keyserv-api` + `keyserv-db`) and Netlify (`keyserv.netlify.app`). **Currently broken/stale:** the API returns 500 on DB endpoints (the free Render Postgres likely expired), and Render builds the `api-ionic-migration` branch, not `master`, so Fase 2/3 code isn't deployed. The agreed fix (external Neon Postgres, `DATABASE_URL` set by hand, switch branch to `master`) is in `docs/ESTADO_Y_PROXIMOS_PASOS.md`.
+- Live demo: Render `keyserv-api` (branch `master`, Oregon) + Neon Postgres (São Paulo; `DATABASE_URL` is set by hand in Render, `render.yaml` declares no database — Render's free Postgres expires) and Netlify `keyserv.netlify.app`. Status and history of this: `docs/ESTADO_Y_PROXIMOS_PASOS.md`.
 - `manage.py migrate` on Render always warns about "changes not reflected in a migration": migrations `0023`/`0025`/`0028` bake the dev machine's absolute path into the private `FileSystemStorage(location=...)`. Harmless; don't re-run `makemigrations` to "fix" it (it would just re-bake the local path).
 
 ## Gotchas
