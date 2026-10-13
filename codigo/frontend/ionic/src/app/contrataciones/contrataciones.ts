@@ -45,10 +45,15 @@ export interface ContratacionResumen {
   publicacion: number;
   publicacion_titulo: string;
   publicacion_imagen: string | null;
+  publicacion_categoria?: string | null;
   cliente: number;
   cliente_nombre: string;
   proveedor: number;
   proveedor_nombre: string;
+  /** Comuna del proveedor y su coordenada aproximada (para calcular la distancia si la persona comparte su posición). */
+  proveedor_comuna?: string | null;
+  proveedor_latitud?: number | null;
+  proveedor_longitud?: number | null;
   tiene_valoracion: boolean;
 }
 

@@ -1,5 +1,5 @@
-import { NgModule } from '@angular/core';
-import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
+import { NgModule, inject } from '@angular/core';
+import { PreloadAllModules, Router, RouterModule, Routes } from '@angular/router';
 
 import { authGuard } from './core/auth-guard';
 
@@ -31,12 +31,14 @@ const routes: Routes = [
     loadChildren: () => import('./catalogo/catalogo.module').then( m => m.CatalogoPageModule)
   },
   {
+    // "Acerca de nosotros" vive ahora dentro de la página principal (sección #acerca); la ruta vieja redirige ahí.
     path: 'acerca-de-nosotros',
-    loadChildren: () => import('./acerca/acerca.module').then( m => m.AcercaPageModule)
+    redirectTo: () => inject(Router).parseUrl('/#acerca')
   },
   {
     path: 'contacto',
-    loadChildren: () => import('./contacto/contacto.module').then((m) => m.ContactoPageModule)
+    // Contacto vive al final de la portada (sección #contacto); la ruta vieja redirige ahí.
+    redirectTo: () => inject(Router).parseUrl('/#contacto')
   },
   {
     path: 'registro',

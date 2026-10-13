@@ -1,0 +1,71 @@
+:host {
+  display: block;
+}
+
+.ks-contacto-grid {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+
+  @media (min-width: 900px) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.ks-contacto-col {
+  display: grid;
+  gap: 16px;
+}
+
+.ks-contacto-datos {
+  margin: 0;
+}
+
+ion-card {
+  margin: 0;
+}
+
+.ks-contacto-mapa {
+  overflow: hidden;
+  border-radius: var(--ks-radius-lg);
+  border: 1px solid var(--ks-border);
+  background: var(--ks-surface);
+  box-shadow: var(--ks-shadow);
+
+  iframe {
+    display: block;
+    width: 100%;
+    height: clamp(300px, 46vh, 460px);
+    border: 0;
+  }
+}
+
+.ks-contacto-direccion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 18px;
+
+  > ion-icon {
+    font-size: 1.6rem;
+    color: var(--ks-coral-dark);
+  }
+
+  div {
+    display: grid;
+    flex: 1;
+    min-width: 180px;
+
+    span {
+      color: var(--ks-ink-soft);
+      font-size: 0.9rem;
+    }
+  }
+
+  a {
+    font-weight: 800;
+    color: var(--ks-teal-strong);
+    text-decoration: none;
+  }
+}

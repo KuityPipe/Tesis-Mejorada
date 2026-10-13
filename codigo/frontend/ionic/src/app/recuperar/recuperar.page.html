@@ -4,10 +4,11 @@
       <ion-back-button defaultHref="/login"></ion-back-button>
     </ion-buttons>
     <ion-title>Recuperar contraseña</ion-title>
+    <app-tema-toggle slot="end"></app-tema-toggle>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
+<ion-content [fullscreen]="true" class="ks-pie-abajo ion-padding ks-content-wide ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/cerrajeria.jpg)">
   <!-- Sin *ngIf que oculte el form tras enviar: el usuario puede querer reintentar con otro correo/teléfono si se equivocó, así que el mensaje se muestra arriba y el formulario se queda. -->
   <ion-text *ngIf="mensaje">
     <p class="ion-padding-start">{{ mensaje }}</p>

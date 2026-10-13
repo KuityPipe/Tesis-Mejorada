@@ -1,0 +1,15 @@
+<nav class="ks-pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
+  <button type="button" class="ks-pager-flecha" (click)="ir(pagina - 1)" [disabled]="pagina === 1" aria-label="Página anterior">
+    <ion-icon name="chevron-back" aria-hidden="true"></ion-icon> <span>Anterior</span>
+  </button>
+
+  <ng-container *ngFor="let p of paginas">
+    <span class="ks-pager-gap" *ngIf="p === '…'" aria-hidden="true">…</span>
+    <button type="button" *ngIf="p !== '…'" class="ks-pager-num" [class.is-activo]="p === pagina" [attr.aria-current]="p === pagina ? 'page' : null" [attr.aria-label]="'Página ' + p" (click)="ir(p)">{{ p }}</button>
+  </ng-container>
+
+  <button type="button" class="ks-pager-flecha" (click)="ir(pagina + 1)" [disabled]="pagina === totalPaginas" aria-label="Página siguiente">
+    <span>Siguiente</span> <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+  </button>
+</nav>
+<p class="ks-pager-rango" *ngIf="total">Mostrando {{ rango }}</p>

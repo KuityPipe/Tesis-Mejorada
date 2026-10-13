@@ -5,15 +5,15 @@ test.describe('Catálogo público', () => {
     await page.goto('/catalogo');
 
     // Al menos una card real de la data demo sembrada (sembrar_datos_demo) — no un mock.
-    await expect(page.locator('.ks-card-tile').first()).toBeVisible();
-    const cantidadCards = await page.locator('.ks-card-tile').count();
+    await expect(page.locator('.ks-pub').first()).toBeVisible();
+    const cantidadCards = await page.locator('.ks-pub').count();
     expect(cantidadCards).toBeGreaterThan(0);
   });
 
   test('buscar filtra los resultados', async ({ page }) => {
     await page.goto('/catalogo');
-    await expect(page.locator('.ks-card-tile').first()).toBeVisible();
-    const totalSinFiltrar = await page.locator('.ks-card-tile').count();
+    await expect(page.locator('.ks-pub').first()).toBeVisible();
+    const totalSinFiltrar = await page.locator('.ks-pub').count();
 
     // ion-searchbar expone el placeholder tanto en el custom element como en su <input> interno
     // (shadow DOM) — hay que apuntar al <input> real, si no Playwright ve dos matches. El filtro
@@ -23,15 +23,15 @@ test.describe('Catálogo público', () => {
     await page.locator('ion-searchbar input').press('Tab');
     await page.waitForTimeout(500);
 
-    const totalFiltrado = await page.locator('.ks-card-tile').count();
+    const totalFiltrado = await page.locator('.ks-pub').count();
     expect(totalFiltrado).toBeLessThan(totalSinFiltrar);
   });
 
   test('abrir una publicación muestra su detalle', async ({ page }) => {
     await page.goto('/catalogo');
-    await expect(page.locator('.ks-card-tile').first()).toBeVisible();
+    await expect(page.locator('.ks-pub').first()).toBeVisible();
 
-    await page.locator('.ks-card-tile').first().click();
+    await page.locator('.ks-pub').first().click();
 
     await expect(page).toHaveURL(/\/catalogo\/\d+/);
     await expect(page.getByRole('button', { name: /contrat/i })).toBeVisible();

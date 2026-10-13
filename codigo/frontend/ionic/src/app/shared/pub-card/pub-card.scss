@@ -1,0 +1,453 @@
+// Tarjeta de publicación con vista previa animada. Los colores del texto sobre la foto son fijos (claros) porque van
+// sobre un degradado oscuro, igual en modo claro y noche.
+
+:host {
+  display: block;
+  // El modo lista se adapta al ancho de su contenedor (no de la pantalla): así también se ve bien en la vista previa angosta.
+  container-type: inline-size;
+}
+
+.ks-pub {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  isolation: isolate;
+  aspect-ratio: 4 / 5;
+  min-height: 340px;
+  border-radius: var(--ks-radius-lg);
+  color: #fff;
+  text-decoration: none;
+  background: #082c57;
+  box-shadow: var(--ks-shadow);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease;
+
+  // Degradado inferior para que el texto se lea sobre cualquier foto
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(180deg, rgba(8, 44, 87, 0) 30%, rgba(8, 44, 87, 0.9) 100%);
+    transition: background 0.35s ease;
+  }
+}
+
+.ks-pub-foto {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.4s ease;
+  }
+}
+
+.ks-pub-sinfoto {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 4rem;
+  color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(145deg, #0b3d78, #0c7f6d);
+}
+
+.ks-demo-tag {
+  z-index: 3;
+}
+
+.ks-pub-cat {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  max-width: calc(100% - 92px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font: 700 0.72rem 'Nunito', sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ks-pub-info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 20px;
+  display: grid;
+  gap: 6px;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+
+  h3 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.1rem, 1rem + 0.5vw, 1.4rem);
+    line-height: 1.2;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  }
+
+  .ks-trust-badge {
+    background: rgba(143, 240, 220, 0.2);
+    color: #b9f6ea;
+    border: 1px solid rgba(143, 240, 220, 0.4);
+    backdrop-filter: blur(6px);
+  }
+}
+
+.ks-pub-resumen {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.88);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ks-pub-linea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.ks-pub-precio {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1.05rem;
+}
+
+.ks-pub-valor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #ffd9c7;
+
+  ion-icon {
+    color: #ffb59a;
+  }
+}
+
+// ---- Vista previa animada ----
+.ks-pub-peek {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  color: #fff;
+  background: rgba(8, 28, 60, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  opacity: 0;
+  transform: translateY(24px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.92);
+  }
+}
+
+.ks-pub-peek-proveedor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  strong {
+    display: block;
+    font-family: 'Quicksand', sans-serif;
+  }
+
+  span:not(.ks-avatar-brand) {
+    display: block;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
+}
+
+.ks-pub-peek-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ks-pub-cta {
+  white-space: nowrap;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #0b3d78;
+  background: #fff;
+}
+
+// Con mouse: al pasar/enfocar, la foto se acerca y sube la vista previa
+@media (hover: hover) {
+  .ks-pub:hover,
+  .ks-pub:focus-visible {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 60px -24px rgba(8, 44, 87, 0.55);
+  }
+
+  .ks-pub:hover .ks-pub-foto img,
+  .ks-pub:focus-visible .ks-pub-foto img {
+    transform: scale(1.1);
+    filter: saturate(1.1) brightness(0.8);
+  }
+
+  .ks-pub:hover::after,
+  .ks-pub:focus-visible::after {
+    background: linear-gradient(180deg, rgba(8, 44, 87, 0.1) 0%, rgba(8, 44, 87, 0.92) 100%);
+  }
+
+  .ks-pub:hover .ks-pub-peek,
+  .ks-pub:focus-visible .ks-pub-peek {
+    opacity: 1;
+    transform: none;
+  }
+
+  .ks-pub:hover .ks-pub-info,
+  .ks-pub:focus-visible .ks-pub-info {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+// Sin mouse (celular/tablet): no hay hover, así que la vista previa se resume dentro de la tarjeta
+@media (hover: none) {
+  .ks-pub-peek {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-pub,
+  .ks-pub-foto img,
+  .ks-pub-info,
+  .ks-pub-peek {
+    transition: none;
+  }
+}
+
+// ---------- Modo lista ----------
+.ks-pubfila {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-surface);
+  border: 1.5px solid var(--ks-border);
+  color: var(--ks-ink);
+  text-decoration: none;
+  box-shadow: var(--ks-shadow);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.25s ease, box-shadow 0.3s ease;
+
+  @container (min-width: 700px) {
+    grid-template-columns: 260px minmax(0, 1fr) auto;
+  }
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-4px) scale(1.005);
+    border-color: var(--ks-teal);
+    box-shadow: 0 26px 50px -26px rgba(8, 44, 87, 0.5);
+  }
+}
+
+.ks-pubfila-foto {
+  position: relative;
+  min-height: 170px;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .ks-pub-sinfoto {
+    min-height: 170px;
+  }
+}
+
+.ks-pubfila:hover .ks-pubfila-foto img {
+  transform: scale(1.08);
+}
+
+.ks-pubfila-cuerpo {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  padding: 18px clamp(16px, 2vw, 28px);
+
+  min-width: 0;
+
+  h3 {
+    margin: 0;
+    font-family: var(--ks-display, 'Quicksand', sans-serif);
+    font-size: clamp(1.15rem, 1rem + 0.7vw, 1.6rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--ks-navy-dark);
+    // Una sola línea: si no cabe, termina en "…"
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.ks-pubfila-proveedor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--ks-ink);
+}
+
+.ks-pubfila-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ks-pubfila-cat {
+  font: 800 0.68rem 'Nunito', sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ks-coral-dark);
+}
+
+.ks-pubfila-resumen {
+  margin: 0;
+  color: var(--ks-ink-soft);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ks-pubfila-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 0.88rem;
+  color: var(--ks-ink-soft);
+
+  > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.ks-avatar-mini {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.ks-pubfila-valor {
+  color: var(--ks-coral-dark);
+  font-weight: 800;
+}
+
+.ks-pubfila-lado {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px clamp(16px, 2vw, 28px) 16px;
+
+  @container (min-width: 700px) {
+    grid-column: auto;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 18px 28px 18px 0;
+    gap: 14px;
+  }
+}
+
+.ks-pubfila-precio {
+  font: 800 1.5rem var(--ks-display, 'Quicksand', sans-serif);
+  color: var(--ks-navy-dark);
+  text-align: right;
+
+  small {
+    display: block;
+    font: 700 0.7rem 'Nunito', sans-serif;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ks-ink-soft);
+  }
+}
+
+.ks-pubfila-cta {
+  padding: 10px 18px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #fff;
+  background: var(--ks-teal-strong);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.ks-pubfila:hover .ks-pubfila-cta {
+  background: var(--ks-navy);
+  transform: translateX(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-pubfila,
+  .ks-pubfila-foto img,
+  .ks-pubfila-cta {
+    transition: none;
+  }
+}
+
+// En celular la fila se apila: foto arriba, datos y botón abajo
+@container (max-width: 540px) {
+  .ks-pubfila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ks-pubfila-foto,
+  .ks-pubfila-foto .ks-pub-sinfoto {
+    min-height: 160px;
+    max-height: 190px;
+  }
+}

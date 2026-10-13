@@ -4,19 +4,19 @@
       <ion-back-button defaultHref="/catalogo"></ion-back-button>
     </ion-buttons>
     <ion-title>Publicar un servicio</ion-title>
+    <app-tema-toggle slot="end"></app-tema-toggle>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/pintura.jpg)">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
   <ng-container *ngIf="!cargando">
-    <!-- Mismo encabezado que .ks-page-header en crear_publicacion.html del sitio Django. -->
     <div class="ks-page-header">
       <h1><ion-icon name="megaphone-outline"></ion-icon> Publicar un servicio</h1>
-      <p>Completa los datos — abajo ves en vivo cómo va a quedar tu publicación.</p>
+      <p>Completa los datos y mira a la derecha cómo se va a ver tu publicación, en vivo.</p>
     </div>
 
     <ion-text color="warning" *ngIf="!puedePublicar">
@@ -35,94 +35,208 @@
         </div>
       </ion-text>
 
-      <div class="ks-layout-main-side ks-crear-grid">
-      <form [formGroup]="formulario" (ngSubmit)="enviar()" *ngIf="!enviadoOk">
-        <div class="ks-section" appReveal>
-          <ion-card>
-            <ion-card-content>
-              <ion-list lines="none">
-                <ion-item>
-                  <ion-input label="Título" labelPlacement="floating" formControlName="titulo"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('titulo')"><p class="ion-padding-start">{{ mensajeError('titulo') }}</p></ion-text>
+      <div class="ks-crear-layout">
+        <!-- ============ FORMULARIO ============ -->
+        <form [formGroup]="formulario" (ngSubmit)="enviar()" *ngIf="!enviadoOk" class="ks-crear-form">
+          <!-- Barra de calidad: qué le falta a la publicación -->
+          <section class="ks-calidad" aria-label="Calidad de la publicación">
+            <div class="ks-calidad-cab">
+              <strong>Calidad de tu publicación</strong>
+              <span>{{ calidad.porcentaje }}%</span>
+            </div>
+            <div class="ks-calidad-barra" role="progressbar" [attr.aria-valuenow]="calidad.porcentaje" aria-valuemin="0" aria-valuemax="100">
+              <i [style.width.%]="calidad.porcentaje"></i>
+            </div>
+            <ul>
+              <li *ngFor="let punto of calidad.puntos" [class.ok]="punto.cumplido">
+                <ion-icon [name]="punto.cumplido ? 'checkmark-circle' : 'ellipse-outline'" aria-hidden="true"></ion-icon> {{ punto.texto }}
+              </li>
+            </ul>
+          </section>
 
-                <ion-item>
-                  <ion-input label="Subtítulo" labelPlacement="floating" formControlName="sub_titulo"></ion-input>
-                </ion-item>
+          <section class="ks-campo-grupo" appReveal>
+            <h2 class="ks-campo-titulo"><span>1</span> Lo básico</h2>
 
-                <ion-item>
-                  <ion-input label="Precio (CLP)" labelPlacement="floating" type="number" formControlName="precio"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('precio')"><p class="ion-padding-start">{{ mensajeError('precio') }}</p></ion-text>
+            <div class="ks-campo">
+              <label for="c-titulo">Título <em>*</em></label>
+              <div class="ks-input-caja" [class.is-error]="mensajeError('titulo')">
+                <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                <input id="c-titulo" type="text" formControlName="titulo" placeholder="Ej: Gasfitería a domicilio 24/7" autocomplete="off" [maxlength]="limites.titulo" />
+                <small [class.cerca]="longitud('titulo') > limites.titulo - 10">{{ longitud('titulo') }}/{{ limites.titulo }}</small>
+              </div>
+              <p class="ks-campo-ayuda" *ngIf="!mensajeError('titulo')">Di qué haces y, si puedes, dónde. Los títulos específicos reciben más contactos.</p>
+              <p class="ks-campo-error" *ngIf="mensajeError('titulo')">{{ mensajeError('titulo') }}</p>
+            </div>
 
-                <ion-item>
-                  <ion-select label="Categoría" labelPlacement="floating" formControlName="categoria">
+            <div class="ks-campo">
+              <label for="c-sub">Subtítulo</label>
+              <div class="ks-input-caja">
+                <ion-icon name="text-outline" aria-hidden="true"></ion-icon>
+                <input id="c-sub" type="text" formControlName="sub_titulo" placeholder="Ej: Fugas, cañerías e instalación de artefactos" autocomplete="off" [maxlength]="limites.subtitulo" />
+                <small>{{ longitud('sub_titulo') }}/{{ limites.subtitulo }}</small>
+              </div>
+            </div>
+
+            <div class="ks-campo-fila">
+              <div class="ks-campo">
+                <label for="c-cat">Categoría <em>*</em></label>
+                <div class="ks-input-caja ks-input-select" [class.is-error]="mensajeError('categoria')">
+                  <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
+                  <ion-select id="c-cat" aria-label="Categoría" interface="popover" placeholder="Elige una categoría" formControlName="categoria">
                     <ion-select-option *ngFor="let c of categorias" [value]="c">{{ c }}</ion-select-option>
-                    <ion-select-option [value]="otraCategoria">Otra (especificar abajo)</ion-select-option>
+                    <ion-select-option [value]="otraCategoria">Otra (especificar)</ion-select-option>
                   </ion-select>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('categoria')"><p class="ion-padding-start">{{ mensajeError('categoria') }}</p></ion-text>
+                </div>
+                <p class="ks-campo-error" *ngIf="mensajeError('categoria')">{{ mensajeError('categoria') }}</p>
+              </div>
 
-                <ion-item *ngIf="formulario.controls.categoria.value === otraCategoria">
-                  <ion-input label="Especificá la categoría" labelPlacement="floating" formControlName="categoria_otra"></ion-input>
-                </ion-item>
+              <div class="ks-campo">
+                <label for="c-precio">Precio de referencia <em>*</em></label>
+                <div class="ks-input-caja" [class.is-error]="mensajeError('precio')">
+                  <span class="ks-prefijo">$</span>
+                  <input id="c-precio" type="number" inputmode="numeric" min="1" formControlName="precio" placeholder="25000" />
+                  <small>CLP</small>
+                </div>
+                <p class="ks-campo-ayuda" *ngIf="precioFormateado && !mensajeError('precio')">Se verá como «Desde {{ precioFormateado }}». Puedes acordar otro monto por el chat.</p>
+                <p class="ks-campo-error" *ngIf="mensajeError('precio')">{{ mensajeError('precio') }}</p>
+              </div>
+            </div>
 
-                <ion-item>
-                  <ion-textarea label="Descripción" labelPlacement="floating" formControlName="descripcion_publicacion" [autoGrow]="true" rows="4"></ion-textarea>
-                </ion-item>
+            <div class="ks-campo" *ngIf="formulario.controls.categoria.value === otraCategoria">
+              <label for="c-otra">¿Cuál es la categoría?</label>
+              <div class="ks-input-caja">
+                <ion-icon name="pricetags-outline" aria-hidden="true"></ion-icon>
+                <input id="c-otra" type="text" formControlName="categoria_otra" placeholder="Ej: Soldadura" autocomplete="off" />
+              </div>
+            </div>
+          </section>
 
-                <ion-item lines="none">
-                  <div class="ks-file-field">
-                    <ion-label>Fotos del servicio (hasta 8, la primera es la portada)</ion-label>
-                    <input type="file" accept="image/*" multiple (change)="alElegirImagenes($event)" />
+          <section class="ks-campo-grupo" appReveal [appRevealDelay]="60">
+            <h2 class="ks-campo-titulo"><span>2</span> Cuéntalo con detalle</h2>
+            <div class="ks-campo">
+              <label for="c-desc">Descripción</label>
+              <div class="ks-input-caja ks-input-area">
+                <textarea id="c-desc" formControlName="descripcion_publicacion" rows="5" [maxlength]="limites.descripcion" placeholder="Qué incluye tu servicio, cómo trabajas, zonas que cubres, horarios, materiales…"></textarea>
+                <small [class.cerca]="longitud('descripcion_publicacion') > limites.descripcion - 80">{{ longitud('descripcion_publicacion') }}/{{ limites.descripcion }}</small>
+              </div>
+              <p class="ks-campo-ayuda">Mientras más claro seas, menos preguntas tendrás que responder por el chat.</p>
+            </div>
+          </section>
+
+          <section class="ks-campo-grupo" appReveal [appRevealDelay]="120">
+            <h2 class="ks-campo-titulo"><span>3</span> Fotos y respaldos</h2>
+
+            <div class="ks-campo">
+              <label>Fotos del servicio <small class="ks-contador">{{ imagenesSeleccionadas.length }}/{{ maxFotos }}</small></label>
+              <label class="ks-dropzone" [class.is-activa]="arrastrando" (dragover)="$event.preventDefault(); arrastrando = true" (dragleave)="arrastrando = false" (drop)="alSoltarImagenes($event)">
+                <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
+                <strong>Arrastra tus fotos aquí o toca para elegirlas</strong>
+                <span>JPG, PNG o WebP. La primera es la portada.</span>
+                <input type="file" accept="image/*" multiple (change)="alElegirImagenes($event)" [disabled]="imagenesSeleccionadas.length >= maxFotos" />
+              </label>
+
+              <ul class="ks-fotos" *ngIf="previewsImagenes.length">
+                <li *ngFor="let url of previewsImagenes; let i = index" [class.es-portada]="i === 0">
+                  <img [src]="url" alt="" />
+                  <span class="ks-foto-portada" *ngIf="i === 0">Portada</span>
+                  <div class="ks-foto-acciones">
+                    <button type="button" *ngIf="i > 0" (click)="hacerPortada(i)" aria-label="Usar como portada"><ion-icon name="star-outline" aria-hidden="true"></ion-icon></button>
+                    <button type="button" (click)="quitarImagen(i)" aria-label="Quitar foto"><ion-icon name="trash-outline" aria-hidden="true"></ion-icon></button>
                   </div>
-                </ion-item>
+                </li>
+              </ul>
+            </div>
 
-                <ion-item lines="none">
-                  <div class="ks-file-field">
-                    <ion-label>Documentos de respaldo (opcional, hasta 5)</ion-label>
-                    <input type="file" multiple (change)="alElegirDocumentos($event)" />
+            <div class="ks-campo">
+              <label>Documentos de respaldo <small class="ks-contador">opcional · {{ documentosSeleccionados.length }}/{{ maxDocumentos }}</small></label>
+              <label class="ks-dropzone ks-dropzone-chica">
+                <ion-icon name="document-attach-outline" aria-hidden="true"></ion-icon>
+                <span>Certificados, licencias o títulos</span>
+                <input type="file" multiple (change)="alElegirDocumentos($event)" [disabled]="documentosSeleccionados.length >= maxDocumentos" />
+              </label>
+              <ul class="ks-docs" *ngIf="documentosSeleccionados.length">
+                <li *ngFor="let doc of documentosSeleccionados; let i = index">
+                  <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon> <span>{{ doc.name }}</span>
+                  <button type="button" (click)="quitarDocumento(i)" aria-label="Quitar documento"><ion-icon name="close" aria-hidden="true"></ion-icon></button>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <p class="ks-campo-ayuda">Tu publicación (con fotos, documentos y categoría) queda pendiente de aprobación por un moderador antes de aparecer en el catálogo.</p>
+
+          <ion-text color="danger" *ngIf="imagenesRechazadas.length || documentosRechazados.length">
+            <p class="ion-padding-start">No se pudieron subir: {{ imagenesRechazadas.concat(documentosRechazados).join(', ') }}.</p>
+          </ion-text>
+          <ion-text color="danger" *ngIf="errorGeneral">
+            <p class="ion-padding-start">{{ errorGeneral }}</p>
+          </ion-text>
+
+          <section class="ks-section ks-registro-enviar">
+            <ion-card>
+              <ion-card-content>
+                <ion-button expand="block" type="submit" [disabled]="enviando">
+                  {{ enviando ? 'Publicando…' : 'Publicar servicio' }}
+                </ion-button>
+              </ion-card-content>
+            </ion-card>
+          </section>
+        </form>
+
+        <!-- ============ VISTA PREVIA EN VIVO ============ -->
+        <aside class="ks-preview" [attr.data-modo]="modoPreview" aria-label="Vista previa de tu publicación">
+          <div class="ks-preview-cab">
+            <p class="ks-section-title"><ion-icon name="eye-outline"></ion-icon> Así se ve tu publicación</p>
+            <div class="ks-reservas-vista" role="tablist" aria-label="Modo de la vista previa">
+              <button type="button" role="tab" [class.is-activo]="modoPreview === 'tarjeta'" (click)="modoPreview = 'tarjeta'">Tarjeta</button>
+              <button type="button" role="tab" [class.is-activo]="modoPreview === 'fila'" (click)="modoPreview = 'fila'">Lista</button>
+              <button type="button" role="tab" [class.is-activo]="modoPreview === 'pagina'" (click)="modoPreview = 'pagina'">Página</button>
+            </div>
+          </div>
+
+          <div class="ks-preview-marco" [attr.data-modo]="modoPreview">
+            <!-- Tarjeta y lista: los mismos componentes del catálogo (el enlace queda inactivo) -->
+            <div class="ks-preview-inerte" *ngIf="modoPreview !== 'pagina'">
+              <app-pub-card [publicacion]="previewPub" [modo]="modoPreview === 'fila' ? 'fila' : 'tarjeta'"></app-pub-card>
+            </div>
+
+            <!-- Página completa: misma estructura que el detalle de una publicación -->
+            <article class="ks-preview-pagina" *ngIf="modoPreview === 'pagina'">
+              <header class="ks-page-header">
+                <h1><ion-icon name="storefront-outline"></ion-icon> {{ previewPub.titulo }} <ion-badge *ngIf="previewPub.categoria" color="tertiary">{{ previewPub.categoria }}</ion-badge></h1>
+                <p>{{ previewPub.sub_titulo }}</p>
+              </header>
+
+              <div class="ks-preview-pagina-cuerpo">
+                <section>
+                  <div class="ks-preview-galeria" *ngIf="previewsImagenes.length; else sinFotos">
+                    <img class="ks-preview-principal" [src]="previewsImagenes[0]" alt="" />
+                    <div class="ks-preview-mini" *ngIf="previewsImagenes.length > 1">
+                      <img *ngFor="let url of previewsImagenes.slice(1)" [src]="url" alt="" />
+                    </div>
                   </div>
-                </ion-item>
-              </ion-list>
+                  <ng-template #sinFotos><div class="ks-preview-sinfoto"><ion-icon name="image-outline"></ion-icon> Aún no agregas fotos</div></ng-template>
 
-              <p class="ks-help" style="color: var(--ks-ink-soft); font-size: .88rem;">
-                Tu publicación (con fotos, documentos y categoría) queda pendiente de aprobación por un moderador antes de aparecer en el catálogo.
-              </p>
+                  <div class="ks-preview-texto">
+                    <h3>Sobre este servicio</h3>
+                    <p class="ks-preview-desc">{{ formulario.controls.descripcion_publicacion.value || 'Todavía no escribes una descripción.' }}</p>
+                  </div>
+                </section>
 
-              <ion-text color="danger" *ngIf="imagenesRechazadas.length || documentosRechazados.length">
-                <p class="ion-padding-start">No se pudieron subir: {{ imagenesRechazadas.concat(documentosRechazados).join(', ') }}.</p>
-              </ion-text>
-              <ion-text color="danger" *ngIf="errorGeneral">
-                <p class="ion-padding-start">{{ errorGeneral }}</p>
-              </ion-text>
-
-              <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
-                {{ enviando ? 'Publicando…' : 'Publicar' }}
-              </ion-button>
-            </ion-card-content>
-          </ion-card>
-        </div>
-      </form>
-
-      <!-- Previsualización en vivo — misma idea que el panel de la derecha en crear_publicacion.html, portada 1:1 pero apilada abajo (mobile-first) en vez de al costado. -->
-      <div class="ks-section ks-sticky-lg">
-        <p class="ks-section-title"><ion-icon name="eye-outline"></ion-icon> Así se ve tu publicación</p>
-        <div class="ks-page-header">
-          <h1>{{ preview.titulo || 'Título de tu servicio' }} <ion-badge *ngIf="categoriaPreview" color="tertiary">{{ categoriaPreview }}</ion-badge></h1>
-          <p>{{ preview.sub_titulo || 'Subtítulo breve del servicio' }}</p>
-          <p *ngIf="preview.precio" style="font-weight:800; font-size:1.2rem; margin:6px 0 0;">${{ preview.precio | number }} CLP</p>
-        </div>
-        <div class="imagenes" *ngIf="previewsImagenes.length">
-          <img *ngFor="let url of previewsImagenes" [src]="url" alt="" />
-        </div>
-        <ion-card>
-          <ion-card-content>
-            <h3>Descripción</h3>
-            <p style="color: var(--ks-ink-soft);">{{ preview.descripcion_publicacion || 'Todavía no escribiste una descripción.' }}</p>
-          </ion-card-content>
-        </ion-card>
-      </div>
+                <aside class="ks-tile ks-preview-ficha">
+                  <p class="ks-detalle-precio" *ngIf="previewPub.precio">${{ previewPub.precio | number }} <small>CLP · precio de referencia</small></p>
+                  <span class="ks-trust-badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Identidad verificada</span>
+                  <div class="ks-preview-prov">
+                    <span class="ks-avatar-brand" aria-hidden="true">{{ previewPub.proveedor.nombre_usuario.charAt(0) }}</span>
+                    <div><strong>{{ previewPub.proveedor.nombre_usuario }} {{ previewPub.proveedor.apellido_usuario }}</strong><span>Aún sin reseñas</span></div>
+                  </div>
+                  <ion-button expand="block" disabled>Contratar</ion-button>
+                </aside>
+              </div>
+            </article>
+          </div>
+          <p class="ks-campo-ayuda ks-preview-nota">Es una simulación: así la verán las personas cuando un moderador la apruebe.</p>
+        </aside>
       </div>
     </ng-container>
   </ng-container>

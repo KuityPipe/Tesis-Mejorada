@@ -1,0 +1,63 @@
+<a class="ks-pub" *ngIf="modo !== 'fila'" [routerLink]="['/catalogo', publicacion.id_publicacion]" [attr.aria-label]="'Ver la publicación ' + publicacion.titulo">
+  <div class="ks-pub-foto">
+    <img *ngIf="publicacion.imagen_portada; else sinFoto" [src]="publicacion.imagen_portada" alt="" loading="lazy" (error)="alFallarFoto()" />
+    <ng-template #sinFoto>
+      <div class="ks-pub-sinfoto" aria-hidden="true"><ion-icon name="construct-outline"></ion-icon></div>
+    </ng-template>
+  </div>
+
+  <span class="ks-demo-tag" *ngIf="publicacion.proveedor.es_demo" title="Publicación de prueba">DEMO</span>
+  <span class="ks-pub-cat" *ngIf="publicacion.categoria">{{ publicacion.categoria }}</span>
+
+  <div class="ks-pub-info">
+    <span class="ks-trust-badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Identidad verificada</span>
+    <h3>{{ publicacion.titulo }}</h3>
+    <p class="ks-pub-resumen">{{ publicacion.resumen || publicacion.sub_titulo }}</p>
+    <div class="ks-pub-linea">
+      <span class="ks-pub-precio" *ngIf="publicacion.precio">Desde ${{ publicacion.precio | number }}</span>
+      <span class="ks-pub-valor" *ngIf="publicacion.proveedor.total_valoraciones"><ion-icon name="star" aria-hidden="true"></ion-icon> {{ publicacion.proveedor.puntuacion_promedio }}</span>
+    </div>
+  </div>
+
+  <!-- Vista previa: aparece sobre la foto al pasar el mouse (mini detalle de la publicación) -->
+  <div class="ks-pub-peek" aria-hidden="true">
+    <div class="ks-pub-peek-proveedor">
+      <span class="ks-avatar-brand">{{ publicacion.proveedor.nombre_usuario.charAt(0) }}</span>
+      <div>
+        <strong>{{ publicacion.proveedor.nombre_usuario }} {{ publicacion.proveedor.apellido_usuario }}</strong>
+        <span><ng-container *ngIf="publicacion.proveedor.comuna">{{ publicacion.proveedor.comuna }}</ng-container><ng-container *ngIf="publicacion.distancia_km !== null && publicacion.distancia_km !== undefined"> · a {{ publicacion.distancia_km }} km</ng-container></span>
+      </div>
+    </div>
+    <p>{{ publicacion.resumen || publicacion.sub_titulo }}</p>
+    <div class="ks-pub-peek-pie">
+      <span class="ks-pub-precio" *ngIf="publicacion.precio">${{ publicacion.precio | number }}</span>
+      <span class="ks-pub-cta">Ver publicación <span class="ks-flecha">→</span></span>
+    </div>
+  </div>
+</a>
+
+<!-- Modo lista: foto a la izquierda y todo el detalle a la vista; toda la fila es clicable y se levanta al pasar el mouse. -->
+<a class="ks-pubfila" *ngIf="modo === 'fila'" [routerLink]="['/catalogo', publicacion.id_publicacion]" [attr.aria-label]="'Ver la publicación ' + publicacion.titulo">
+  <div class="ks-pubfila-foto">
+    <img *ngIf="publicacion.imagen_portada; else sinFotoFila" [src]="publicacion.imagen_portada" alt="" loading="lazy" (error)="alFallarFoto()" />
+    <ng-template #sinFotoFila><div class="ks-pub-sinfoto" aria-hidden="true"><ion-icon name="construct-outline"></ion-icon></div></ng-template>
+    <span class="ks-demo-tag" *ngIf="publicacion.proveedor.es_demo" title="Publicación de prueba">DEMO</span>
+  </div>
+  <div class="ks-pubfila-cuerpo">
+    <div class="ks-pubfila-etiquetas">
+      <span class="ks-pubfila-cat" *ngIf="publicacion.categoria">{{ publicacion.categoria }}</span>
+      <span class="ks-trust-badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Identidad verificada</span>
+    </div>
+    <h3 [title]="publicacion.titulo">{{ publicacion.titulo }}</h3>
+    <p class="ks-pubfila-proveedor"><span class="ks-avatar-brand ks-avatar-mini" aria-hidden="true">{{ publicacion.proveedor.nombre_usuario.charAt(0) }}</span> {{ publicacion.proveedor.nombre_usuario }} {{ publicacion.proveedor.apellido_usuario }}</p>
+    <p class="ks-pubfila-resumen">{{ publicacion.resumen || publicacion.sub_titulo }}</p>
+    <div class="ks-pubfila-meta">
+      <span *ngIf="publicacion.proveedor.comuna"><ion-icon name="location-outline" aria-hidden="true"></ion-icon> {{ publicacion.proveedor.comuna }}<ng-container *ngIf="publicacion.distancia_km !== null && publicacion.distancia_km !== undefined"> · a {{ publicacion.distancia_km }} km</ng-container></span>
+      <span *ngIf="publicacion.proveedor.total_valoraciones" class="ks-pubfila-valor"><ion-icon name="star" aria-hidden="true"></ion-icon> {{ publicacion.proveedor.puntuacion_promedio }} ({{ publicacion.proveedor.total_valoraciones }})</span>
+    </div>
+  </div>
+  <div class="ks-pubfila-lado">
+    <span class="ks-pubfila-precio" *ngIf="publicacion.precio"><small>Desde</small>${{ publicacion.precio | number }}</span>
+    <span class="ks-btn-detalles">Detalles de la publicación <span class="ks-btn-detalles-flecha" aria-hidden="true">→</span></span>
+  </div>
+</a>

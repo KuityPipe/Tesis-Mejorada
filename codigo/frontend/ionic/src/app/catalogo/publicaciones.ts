@@ -34,6 +34,8 @@ export interface PublicacionResumen {
   precio: number | null;
   fecha_publicacion: string;
   imagen_portada: string | null;
+  /** Extracto corto de la descripción (sin el aviso de demo), para la vista previa de la tarjeta. */
+  resumen?: string;
   proveedor: Proveedor;
   /** Solo viene si la request llevó `lat`/`lng` (ver FiltrosCatalogo) — `null` si no se pidió, o si la comuna del proveedor todavía no está geocodificada (ver `_anotar_distancia_km`, api/views.py). */
   distancia_km: number | null;

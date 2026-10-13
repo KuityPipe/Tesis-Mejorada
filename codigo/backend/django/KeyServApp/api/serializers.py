@@ -169,16 +169,35 @@ class ContratacionListSerializer(serializers.ModelSerializer):
     # en reservas.html, para distinguir "Calificar" de "Ya calificaste este trabajo"
     # sin pedir el detalle completo de cada tarjeta.
     tiene_valoracion = serializers.SerializerMethodField()
+    # Para las filas de la lista (categoría y dónde está el servicio): la coordenada es la de la comuna del proveedor
+    # (aproximada, no su dirección) y alcanza para calcular una distancia en el cliente si la persona comparte su posición.
+    publicacion_categoria = serializers.CharField(source='publicacion.categoria', read_only=True)
+    proveedor_comuna = serializers.SerializerMethodField()
+    proveedor_latitud = serializers.SerializerMethodField()
+    proveedor_longitud = serializers.SerializerMethodField()
 
     class Meta:
         model = Contratacion
         fields = [
             'id_contratacion', 'estado', 'monto_acordado', 'fecha_creacion',
-            'publicacion', 'publicacion_titulo', 'publicacion_imagen',
+            'publicacion', 'publicacion_titulo', 'publicacion_imagen', 'publicacion_categoria',
             'cliente', 'cliente_nombre', 'proveedor', 'proveedor_nombre',
+            'proveedor_comuna', 'proveedor_latitud', 'proveedor_longitud',
             'tiene_valoracion',
         ]
         read_only_fields = fields
+
+    def get_proveedor_comuna(self, contratacion) -> str | None:
+        comuna = contratacion.proveedor.comuna
+        return comuna.nombre_comuna if comuna else None
+
+    def get_proveedor_latitud(self, contratacion) -> float | None:
+        comuna = contratacion.proveedor.comuna
+        return float(comuna.latitud) if comuna and comuna.latitud is not None else None
+
+    def get_proveedor_longitud(self, contratacion) -> float | None:
+        comuna = contratacion.proveedor.comuna
+        return float(comuna.longitud) if comuna and comuna.longitud is not None else None
 
     def get_publicacion_imagen(self, contratacion) -> str | None:
         primera = contratacion.publicacion.imagenes.first()
@@ -378,14 +397,22 @@ class PublicacionListSerializer(serializers.ModelSerializer):
     proveedor = ProveedorSerializer(source='usuario_publicador', read_only=True)
     imagen_portada = serializers.SerializerMethodField()
     distancia_km = serializers.SerializerMethodField()
+    # Primeras líneas de la descripción (sin el aviso de demo): la tarjeta las muestra como vista previa al pasar el mouse.
+    resumen = serializers.SerializerMethodField()
 
     class Meta:
         model = Publicaciones
         fields = [
             'id_publicacion', 'titulo', 'sub_titulo', 'categoria', 'precio',
-            'fecha_publicacion', 'imagen_portada', 'proveedor', 'distancia_km',
+            'fecha_publicacion', 'imagen_portada', 'proveedor', 'distancia_km', 'resumen',
         ]
         read_only_fields = fields
+
+    def get_resumen(self, publicacion) -> str:
+        texto = (publicacion.descripcion_publicacion or '').split('\n\n⚠️')[0].strip()
+        if len(texto) <= 150:
+            return texto
+        return texto[:150].rsplit(' ', 1)[0].rstrip(',.;:') + '…'
 
     def get_imagen_portada(self, publicacion) -> str | None:
         # `.imagenes` viene con `prefetch_related` desde la vista — `.first()`

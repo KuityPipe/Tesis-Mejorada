@@ -1079,7 +1079,7 @@ class ContratacionListCreateView(APIView):
     def get(self, request):
         contrataciones = Contratacion.objects.filter(
             Q(cliente=request.user) | Q(proveedor=request.user),
-        ).distinct().select_related('publicacion', 'cliente', 'proveedor').prefetch_related('publicacion__imagenes').order_by('-fecha_creacion')
+        ).distinct().select_related('publicacion', 'cliente', 'proveedor__comuna').prefetch_related('publicacion__imagenes').order_by('-fecha_creacion')
         return Response(ContratacionListSerializer(contrataciones, many=True).data)
 
     def post(self, request):

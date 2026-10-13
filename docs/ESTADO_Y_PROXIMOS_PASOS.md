@@ -1,7 +1,19 @@
 # Estado del proyecto y próximos pasos
 
-> Punto de retoma. Última actualización: 2026-10-11, al cierre de la sesión. Complementa
+> Punto de retoma. Última actualización: 2026-10-13, al cierre de la sesión. Complementa
 > `docs/PLAN_MAESTRO_2026-27.md` (plan y estado por fase) y `docs/plan-ajustes.md` (cambios de alcance).
+
+## Sesión 2026-10-13 (rediseño pulido, todo commiteado)
+
+- Tarjetas de servicios con vista previa animada (`app-pub-card`), lista alternativa y paginador numerado de 20 en Servicios y Mis contrataciones (selector Cuadros/Lista, se recuerda).
+- Portada: "Acerca de nosotros" (carrusel de 4 diapositivas) y "Contacto" (formulario + mapa OpenStreetMap de la oficina ficticia en Plaza de Armas, km 0) son secciones; `/acerca-de-nosotros` y `/contacto` redirigen. Estilo "editorial" inspirado en ideve.cl.
+- Header: menú en línea en pantallas anchas, botón de modo claro/oscuro en todas las pantallas, barra de color ligada al scroll, logo claro en modo oscuro (`logo-oscuro.png`).
+- Modo claro cálido, fondos con foto en las pantallas de cuenta, registro sin panel lateral (campos en rejilla), chat del detalle de contratación en columna lateral fija.
+- Publicar un servicio: barra de calidad, campos con contadores, fotos con arrastrar/soltar y portada, y vista previa en vivo (tarjeta, lista y página completa).
+- Backend: `ContratacionListSerializer` entrega categoría y comuna/coordenadas del proveedor; `PublicacionListSerializer` entrega `resumen`.
+- Privacidad: se agregó OpenStreetMap a los terceros (mapa de contacto).
+- Pruebas: backend 412, frontend 98, e2e 10. Las e2e locales de login pueden fallar por el bloqueo por intentos fallidos si se repiten muchas veces (reiniciar el backend lo limpia); en CI parte limpio.
+- Ideas que quedaron: ilustraciones propias por sección (como ideve), foto real de perfil en las listas (la API no la entrega en estos listados), sección de contacto/footer en registro y recuperar.
 
 ## Dónde quedamos
 

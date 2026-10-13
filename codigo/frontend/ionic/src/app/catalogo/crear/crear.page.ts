@@ -1,31 +1,35 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
-import { Auth } from '../../core/auth';
+import { Auth, Usuario } from '../../core/auth';
 import { Catalogos } from '../../registro/catalogos';
-import { Publicaciones } from '../publicaciones';
+import { Publicaciones, PublicacionResumen } from '../publicaciones';
 
 const OTRA_CATEGORIA = 'Otra';
+const MAX_FOTOS = 8;
+const MAX_DOCUMENTOS = 5;
+
+export const LIMITES = { titulo: 80, subtitulo: 120, descripcion: 800 };
+
+interface PuntoCalidad {
+  texto: string;
+  cumplido: boolean;
+}
 
 /**
  * Publicar un servicio — equivalente Ionic de `/servicios/crear/`
- * (`publicacion_crear_view`, `crear_publicacion.html`). Solo proveedores:
- * a diferencia de otras pantallas protegidas solo por `authGuard` (JWT
- * presente), acá además hay que confirmar `es_proveedor` con un
- * `auth.me()` — mismo chequeo que hace la vista Django, del lado
- * servidor (`PublicacionCrearView` también lo valida, esto es solo para
- * no dejar completar un formulario que el backend va a rechazar igual).
+ * (`publicacion_crear_view`, `crear_publicacion.html`). Solo proveedores
+ * (`auth.me()` + el mismo chequeo del lado servidor en `PublicacionCrearView`).
  *
- * Sin el carrusel/selector-acumulativo de archivos que tiene
- * `crear_publicacion.html` (JS a medida solo para esa pantalla) — se
- * sigue el mismo patrón simple que ya usan `perfil/proveedor` y
- * `contratacion/detalle` para archivos múltiples (un `<input multiple>`
- * nativo, se reemplaza si se vuelve a abrir el picker). La previsualización
- * en vivo de texto sí se mantiene (más barata acá: `valueChanges` de un
- * Reactive Form) y las fotos elegidas se muestran en una grilla simple de
- * miniaturas, sin carrusel.
+ * Campos "inteligentes": contadores de caracteres, precio con prefijo `$`,
+ * una barra de calidad que dice qué le falta a la publicación, y fotos con
+ * zona de arrastre (se pueden sumar de a varias, quitar y elegir la portada).
+ * A la derecha, una vista previa en vivo con tres modos que usan los mismos
+ * componentes que el sitio real: la tarjeta del catálogo, la fila de la lista
+ * y la página de detalle completa.
  */
 @Component({
   selector: 'app-crear',
@@ -33,11 +37,15 @@ const OTRA_CATEGORIA = 'Otra';
   styleUrls: ['./crear.page.scss'],
   standalone: false,
 })
-export class CrearPage implements OnInit {
+export class CrearPage implements OnInit, OnDestroy {
+  readonly limites = LIMITES;
+  readonly maxFotos = MAX_FOTOS;
+  readonly maxDocumentos = MAX_DOCUMENTOS;
+
   formulario = this.fb.nonNullable.group({
-    titulo: ['', Validators.required],
-    sub_titulo: [''],
-    descripcion_publicacion: [''],
+    titulo: ['', [Validators.required, Validators.maxLength(LIMITES.titulo)]],
+    sub_titulo: ['', Validators.maxLength(LIMITES.subtitulo)],
+    descripcion_publicacion: ['', Validators.maxLength(LIMITES.descripcion)],
     categoria: ['', Validators.required],
     categoria_otra: [''],
     precio: [null as number | null, [Validators.required, Validators.min(1)]],
@@ -48,10 +56,16 @@ export class CrearPage implements OnInit {
 
   cargando = true;
   puedePublicar = false;
+  usuario: Usuario | null = null;
 
   imagenesSeleccionadas: File[] = [];
   documentosSeleccionados: File[] = [];
   previewsImagenes: string[] = [];
+  arrastrando = false;
+
+  /** Cómo se ve la vista previa: tarjeta del catálogo, fila de la lista o página completa. */
+  modoPreview: 'tarjeta' | 'fila' | 'pagina' = 'tarjeta';
+  previewPub!: PublicacionResumen;
 
   enviando = false;
   enviadoOk = false;
@@ -59,20 +73,27 @@ export class CrearPage implements OnInit {
   imagenesRechazadas: string[] = [];
   documentosRechazados: string[] = [];
 
+  private readonly suscripcion = new Subscription();
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly auth: Auth,
     private readonly catalogos: Catalogos,
     private readonly api: Publicaciones,
     private readonly router: Router,
-  ) {}
+  ) {
+    this.actualizarPreview();
+  }
 
   ngOnInit(): void {
     this.catalogos.categorias().subscribe((categorias) => (this.categorias = categorias));
+    this.suscripcion.add(this.formulario.valueChanges.subscribe(() => this.actualizarPreview()));
     this.auth.me().subscribe({
       next: (usuario) => {
+        this.usuario = usuario;
         this.puedePublicar = usuario.es_proveedor;
         this.cargando = false;
+        this.actualizarPreview();
       },
       error: () => {
         this.cargando = false;
@@ -80,9 +101,9 @@ export class CrearPage implements OnInit {
     });
   }
 
-  // "Así se ve tu publicación" — la parte de texto de la previsualización de crear_publicacion.html, portada 1:1 con valueChanges en vez de listeners de input a mano.
-  get preview() {
-    return this.formulario.getRawValue();
+  ngOnDestroy(): void {
+    this.suscripcion.unsubscribe();
+    this.previewsImagenes.forEach((url) => URL.revokeObjectURL(url));
   }
 
   get categoriaPreview(): string {
@@ -90,16 +111,104 @@ export class CrearPage implements OnInit {
     return categoria === OTRA_CATEGORIA ? (categoria_otra || '').trim() : categoria;
   }
 
+  /** Reconstruye la publicación de ejemplo a partir de lo que la persona va escribiendo. */
+  private actualizarPreview(): void {
+    const valores = this.formulario.getRawValue();
+    const resumen = (valores.descripcion_publicacion || '').trim();
+    this.previewPub = {
+      id_publicacion: 0,
+      titulo: valores.titulo.trim() || 'Título de tu servicio',
+      sub_titulo: valores.sub_titulo.trim() || 'Subtítulo breve del servicio',
+      categoria: this.categoriaPreview || null,
+      precio: valores.precio ? Number(valores.precio) : null,
+      fecha_publicacion: new Date().toISOString(),
+      imagen_portada: this.previewsImagenes[0] ?? null,
+      resumen: resumen.length > 150 ? resumen.slice(0, 150).replace(/\s+\S*$/, '') + '…' : resumen || 'Aquí aparecerá un resumen de tu descripción.',
+      distancia_km: null,
+      proveedor: {
+        id_usuario: this.usuario?.id_usuario ?? 0,
+        nombre_usuario: this.usuario?.nombre_usuario ?? 'Tu nombre',
+        apellido_usuario: this.usuario?.apellido_usuario ?? '',
+        foto_perfil: this.usuario?.foto_perfil ?? null,
+        comuna: null,
+        region: null,
+        puntuacion_promedio: null,
+        total_valoraciones: 0,
+        latitud: null,
+        longitud: null,
+      },
+    };
+  }
+
+  /** Qué le falta a la publicación para quedar completa (alimenta la barra de calidad). */
+  get calidad(): { porcentaje: number; puntos: PuntoCalidad[] } {
+    const v = this.formulario.getRawValue();
+    const puntos: PuntoCalidad[] = [
+      { texto: 'Un título claro (15 letras o más)', cumplido: v.titulo.trim().length >= 15 },
+      { texto: 'Una categoría', cumplido: !!this.categoriaPreview },
+      { texto: 'Un precio de referencia', cumplido: !!v.precio && Number(v.precio) > 0 },
+      { texto: 'Una descripción detallada (80 letras o más)', cumplido: (v.descripcion_publicacion || '').trim().length >= 80 },
+      { texto: 'Al menos una foto de portada', cumplido: this.imagenesSeleccionadas.length > 0 },
+    ];
+    return { porcentaje: Math.round((puntos.filter((p) => p.cumplido).length / puntos.length) * 100), puntos };
+  }
+
+  get precioFormateado(): string {
+    const precio = this.formulario.controls.precio.value;
+    return precio ? `$${Number(precio).toLocaleString('es-CL')}` : '';
+  }
+
+  longitud(campo: 'titulo' | 'sub_titulo' | 'descripcion_publicacion'): number {
+    return (this.formulario.controls[campo].value || '').length;
+  }
+
+  // ---- Fotos: se suman de a varias (también arrastrando), se quitan y se elige la portada ----
   alElegirImagenes(evento: Event): void {
     const input = evento.target as HTMLInputElement;
-    this.imagenesSeleccionadas = input.files ? Array.from(input.files) : [];
-    this.previewsImagenes.forEach((url) => URL.revokeObjectURL(url));
-    this.previewsImagenes = this.imagenesSeleccionadas.map((archivo) => URL.createObjectURL(archivo));
+    this.agregarImagenes(input.files ? Array.from(input.files) : []);
+    input.value = '';
+  }
+
+  alSoltarImagenes(evento: DragEvent): void {
+    evento.preventDefault();
+    this.arrastrando = false;
+    this.agregarImagenes(Array.from(evento.dataTransfer?.files ?? []).filter((f) => f.type.startsWith('image/')));
+  }
+
+  private agregarImagenes(archivos: File[]): void {
+    const libres = MAX_FOTOS - this.imagenesSeleccionadas.length;
+    archivos.slice(0, Math.max(libres, 0)).forEach((archivo) => {
+      this.imagenesSeleccionadas.push(archivo);
+      this.previewsImagenes.push(URL.createObjectURL(archivo));
+    });
+    this.actualizarPreview();
+  }
+
+  quitarImagen(indice: number): void {
+    URL.revokeObjectURL(this.previewsImagenes[indice]);
+    this.imagenesSeleccionadas.splice(indice, 1);
+    this.previewsImagenes.splice(indice, 1);
+    this.actualizarPreview();
+  }
+
+  hacerPortada(indice: number): void {
+    if (indice === 0) return;
+    const [archivo] = this.imagenesSeleccionadas.splice(indice, 1);
+    const [url] = this.previewsImagenes.splice(indice, 1);
+    this.imagenesSeleccionadas.unshift(archivo);
+    this.previewsImagenes.unshift(url);
+    this.actualizarPreview();
   }
 
   alElegirDocumentos(evento: Event): void {
     const input = evento.target as HTMLInputElement;
-    this.documentosSeleccionados = input.files ? Array.from(input.files) : [];
+    const nuevos = input.files ? Array.from(input.files) : [];
+    this.documentosSeleccionados = [...this.documentosSeleccionados, ...nuevos].slice(0, MAX_DOCUMENTOS);
+    input.value = '';
+  }
+
+  quitarDocumento(indice: number): void {
+    this.documentosSeleccionados.splice(indice, 1);
   }
 
   enviar(): void {
@@ -149,6 +258,7 @@ export class CrearPage implements OnInit {
     }
     if (control.errors['required']) return 'Campo requerido.';
     if (control.errors['min']) return `Mínimo ${control.errors['min'].min}.`;
+    if (control.errors['maxlength']) return `Máximo ${control.errors['maxlength'].requiredLength} caracteres.`;
     return 'Dato inválido.';
   }
 }

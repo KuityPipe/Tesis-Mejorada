@@ -21,7 +21,10 @@ describe('InicioPage', () => {
     fixture = TestBed.createComponent(InicioPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    await fixture.whenStable();
   });
+
+  afterEach(() => fixture.destroy());
 
   it('should create', () => {
     expect(component).toBeTruthy();

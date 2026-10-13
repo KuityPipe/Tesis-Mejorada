@@ -4,10 +4,11 @@
       <ion-back-button defaultHref="/home"></ion-back-button>
     </ion-buttons>
     <ion-title>Mis contrataciones</ion-title>
+    <app-tema-toggle slot="end"></app-tema-toggle>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/mudanzas.jpg)">
   <!-- Mismo encabezado que .ks-page-header en reservas.html del sitio Django. -->
   <div class="ks-page-header">
     <h1><ion-icon name="calendar-outline"></ion-icon> Mis contrataciones</h1>
@@ -34,6 +35,23 @@
       <ion-button fill="outline" size="small" (click)="limpiarFiltros()">Limpiar filtros</ion-button>
     </div>
 
+    <div class="ks-reservas-herramientas">
+    <div class="ks-reservas-vista" role="group" aria-label="Forma de mostrar las contrataciones">
+      <button type="button" [class.is-activo]="vista === 'cuadros'" (click)="cambiarVista('cuadros')" aria-label="Ver en cuadros">
+        <ion-icon name="grid-outline" aria-hidden="true"></ion-icon> Cuadros
+      </button>
+      <button type="button" [class.is-activo]="vista === 'lista'" (click)="cambiarVista('lista')" aria-label="Ver en lista">
+        <ion-icon name="list-outline" aria-hidden="true"></ion-icon> Lista
+      </button>
+    </div>
+      <ion-button *ngIf="!miPosicion" fill="outline" size="small" [disabled]="buscandoUbicacion" (click)="mostrarDistancias()">
+        <ion-icon name="locate-outline" slot="start"></ion-icon> {{ buscandoUbicacion ? 'Buscando…' : 'Mostrar distancias' }}
+      </ion-button>
+      <ion-button *ngIf="miPosicion" fill="clear" size="small" (click)="quitarDistancias()">
+        <ion-icon name="close-circle-outline" slot="start"></ion-icon> Ocultar distancias
+      </ion-button>
+    </div>
+
     <div class="ks-filtros-chips">
       <button
         type="button"
@@ -54,8 +72,8 @@
     ></app-empty-state>
 
     <!-- Mismo .ks-reservas-grid que reservas.html: foto de portada, badge de estado superpuesto, etiqueta de rol (Contraté / Me contrataron), y la acción según estado+rol. -->
-    <div class="ks-reservas-grid" *ngIf="filtradas.length">
-      <div class="ks-reserva-card" *ngFor="let c of filtradas; let i = index" appReveal [appRevealDelay]="(i % 12) * 50">
+    <div class="ks-reservas-grid" id="listado-reservas" [class.ks-reservas-lista]="vista === 'lista'" *ngIf="filtradas.length">
+      <div class="ks-reserva-card" *ngFor="let c of visibles; let i = index" appReveal [appRevealDelay]="(i % 12) * 50">
         <a class="ks-reserva-card-img" [routerLink]="['/contratacion', c.id_contratacion]">
           <img *ngIf="c.publicacion_imagen; else sinImagen" [src]="c.publicacion_imagen" [alt]="c.publicacion_titulo" />
           <ng-template #sinImagen>
@@ -64,32 +82,29 @@
           <ion-badge class="ks-reserva-badge" [color]="colorEstado(c.estado)">{{ etiquetaEstado(c.estado) }}</ion-badge>
         </a>
         <div class="ks-reserva-card-body">
-          <span class="ks-reserva-role-tag">
-            <ion-icon [name]="esCliente(c) ? 'bag-check-outline' : 'briefcase-outline'"></ion-icon>
-            {{ esCliente(c) ? 'Contraté' : 'Me contrataron' }}
-          </span>
-          <h4><a [routerLink]="['/contratacion', c.id_contratacion]">{{ c.publicacion_titulo }}</a></h4>
+          <h4><a [routerLink]="['/contratacion', c.id_contratacion]" [title]="c.publicacion_titulo">{{ c.publicacion_titulo }}</a></h4>
           <p class="ks-reserva-counterpart">
-            <ion-icon name="person-circle-outline"></ion-icon>
-            {{ contraparteNombre(c) }}
+            <span class="ks-avatar-brand ks-avatar-mini" aria-hidden="true">{{ contraparteNombre(c).charAt(0) }}</span>
+            <span class="ks-reserva-nombre">{{ contraparteNombre(c) }}</span>
           </p>
 
+          <div class="ks-reserva-meta">
+            <span class="ks-reserva-cat" *ngIf="c.publicacion_categoria">{{ c.publicacion_categoria }}</span>
+            <span *ngIf="c.proveedor_comuna"><ion-icon name="location-outline" aria-hidden="true"></ion-icon> {{ c.proveedor_comuna }}<ng-container *ngIf="distanciaKm(c) !== null"> · a {{ distanciaKm(c) }} km</ng-container></span>
+            <span><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon> {{ c.fecha_creacion | date:'dd/MM/yyyy' }}</span>
+            <span class="ks-reserva-monto"><ion-icon name="cash-outline" aria-hidden="true"></ion-icon> {{ c.monto_acordado ? '$' + (c.monto_acordado | number) : 'Monto por acordar' }}</span>
+          </div>
+
           <div class="ks-reserva-actions">
-            <ng-container *ngIf="c.estado === 'COMPLETADA' && esCliente(c); else verDetalle">
-              <ion-button *ngIf="!c.tiene_valoracion" [routerLink]="['/contratacion', c.id_contratacion]" fill="outline" size="small">
-                <ion-icon name="star-outline" slot="start"></ion-icon> Calificar
-              </ion-button>
-              <a *ngIf="c.tiene_valoracion" [routerLink]="['/contratacion', c.id_contratacion]" class="ks-help">
-                <ion-icon name="checkmark-circle-outline"></ion-icon> Ya calificaste este trabajo
-              </a>
-            </ng-container>
-            <ng-template #verDetalle>
-              <ion-button [routerLink]="['/contratacion', c.id_contratacion]" fill="outline" size="small">Ver detalle</ion-button>
-            </ng-template>
+            <ion-button *ngIf="c.estado === 'COMPLETADA' && esCliente(c) && !c.tiene_valoracion" [routerLink]="['/contratacion', c.id_contratacion]" fill="outline" size="small">
+              <ion-icon name="star-outline" slot="start"></ion-icon> Calificar
+            </ion-button>
+            <a class="ks-btn-detalles" [routerLink]="['/contratacion', c.id_contratacion]">Detalles de la publicación <span class="ks-btn-detalles-flecha" aria-hidden="true">→</span></a>
           </div>
         </div>
       </div>
     </div>
+    <app-paginador [total]="filtradas.length" [pagina]="pagina" [porPagina]="porPagina" (cambioPagina)="irAPagina($event)"></app-paginador>
   </ng-container>
 
   <app-empty-state

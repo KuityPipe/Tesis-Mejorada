@@ -3,6 +3,7 @@
     <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Servicios</ion-title>
     <app-top-nav slot="end"></app-top-nav>
+    <app-tema-toggle slot="end"></app-tema-toggle>
     <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
@@ -61,36 +62,27 @@
 
   <app-skeleton *ngIf="cargandoInicial" variante="card" [cantidad]="6"></app-skeleton>
 
-  <!-- Mismo .ks-section-header que catalogo.html: título dinámico (resultados de búsqueda vs. listado completo) + contador. -->
-  <div class="ks-section-header" *ngIf="!cargandoInicial">
+  <!-- Título dinámico + contador, y selector de vista (cuadros / lista). -->
+  <div class="ks-section-header" id="listado-servicios" *ngIf="!cargandoInicial">
     <h2>{{ filtros.q ? 'Resultados para "' + filtros.q + '"' : 'Todos los servicios' }}</h2>
     <span>{{ total }} {{ total === 1 ? 'publicación' : 'publicaciones' }}</span>
   </div>
 
-  <!-- Grid de cards con imagen — mismo .ks-card-grid/.ks-card que catalogo.html del sitio Django, en vez de una lista ion-item plana. [routerLink] arma la navegación a /catalogo/:id sin recargar la página (SPA). -->
-  <div class="ks-card-grid" *ngIf="!cargandoInicial && publicaciones.length">
-    <a class="ks-card-tile" *ngFor="let publicacion of publicaciones; let i = index" [routerLink]="['/catalogo', publicacion.id_publicacion]" appReveal [appRevealDelay]="(i % 12) * 50">
-      <div class="ks-card-tile-img">
-        <span class="ks-demo-tag" *ngIf="publicacion.proveedor.es_demo" title="Publicación de prueba">DEMO</span>
-        <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" loading="lazy" (error)="publicacion.imagen_portada = null" />
-        <ng-template #sinImagen>
-          <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline"></ion-icon></div>
-        </ng-template>
-      </div>
-      <div class="ks-card-tile-body">
-        <span class="ks-trust-badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Identidad verificada</span>
-        <h3>{{ publicacion.titulo }}</h3>
-        <p>{{ publicacion.sub_titulo || publicacion.categoria }}</p>
-        <p *ngIf="publicacion.precio" style="font-weight:800; color: var(--ks-navy-dark); margin:0 0 10px;">${{ publicacion.precio | number }}</p>
-        <div class="ks-card-tile-footer">
-          <span><ion-icon name="person-circle-outline"></ion-icon> {{ publicacion.proveedor.nombre_usuario }}</span>
-          <span *ngIf="publicacion.distancia_km !== null"><ion-icon name="navigate-outline"></ion-icon> {{ publicacion.distancia_km }} km</span>
-          <span class="ks-card-tile-rating" *ngIf="publicacion.proveedor.total_valoraciones">
-            <ion-icon name="star"></ion-icon> {{ publicacion.proveedor.puntuacion_promedio }}
-          </span>
-        </div>
-      </div>
-    </a>
+  <div class="ks-reservas-vista" role="group" aria-label="Forma de mostrar los servicios" *ngIf="!cargandoInicial && publicaciones.length">
+    <button type="button" [class.is-activo]="vista === 'cuadros'" (click)="cambiarVista('cuadros')" aria-label="Ver en cuadros">
+      <ion-icon name="grid-outline" aria-hidden="true"></ion-icon> Cuadros
+    </button>
+    <button type="button" [class.is-activo]="vista === 'lista'" (click)="cambiarVista('lista')" aria-label="Ver en lista">
+      <ion-icon name="list-outline" aria-hidden="true"></ion-icon> Lista
+    </button>
+  </div>
+
+  <div class="ks-card-grid" *ngIf="!cargandoInicial && publicaciones.length && vista === 'cuadros'">
+    <app-pub-card *ngFor="let publicacion of publicaciones; let i = index" [publicacion]="publicacion" appReveal [appRevealDelay]="(i % 12) * 50"></app-pub-card>
+  </div>
+
+  <div class="ks-pubfila-lista" *ngIf="!cargandoInicial && publicaciones.length && vista === 'lista'">
+    <app-pub-card *ngFor="let publicacion of publicaciones; let i = index" modo="fila" [publicacion]="publicacion" appReveal [appRevealDelay]="(i % 12) * 40"></app-pub-card>
   </div>
 
   <app-empty-state
@@ -100,10 +92,7 @@
     [mensaje]="filtros.q ? 'No encontramos servicios para &quot;' + filtros.q + '&quot;. Prueba con otra búsqueda o quita algún filtro.' : 'Todavía no hay servicios publicados con estos filtros.'"
   ></app-empty-state>
 
-  <!-- ionInfinite se dispara cuando el usuario se acerca al final del scroll — .complete() (llamado en catalogo.page.ts) le avisa al componente que ya terminó de cargar y puede volver a armarse para la próxima vez. -->
-  <ion-infinite-scroll (ionInfinite)="cargarMas($event)" [disabled]="!hayMas">
-    <ion-infinite-scroll-content loadingText="Cargando más…"></ion-infinite-scroll-content>
-  </ion-infinite-scroll>
+  <app-paginador *ngIf="!cargandoInicial" [total]="total" [pagina]="pagina" [porPagina]="porPagina" (cambioPagina)="irAPagina($event)"></app-paginador>
 
   <app-footer *ngIf="!cargandoInicial"></app-footer>
 </ion-content>

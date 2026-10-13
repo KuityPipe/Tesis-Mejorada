@@ -1,3 +1,4 @@
+import { desplazarTrasNavegar } from '../desplazamiento';
 import { Component } from '@angular/core';
 
 import { environment } from '../../../environments/environment';
@@ -22,6 +23,11 @@ import { environment } from '../../../environments/environment';
 })
 export class FooterComponent {
   readonly anioActual = new Date().getFullYear();
+
+  /** Tras navegar por un link del footer, lleva la página a la sección (o arriba de todo). */
+  ir(fragmento?: string): void {
+    desplazarTrasNavegar(fragmento);
+  }
 
   /**
    * La política de privacidad vive en el sitio Django (`/privacidad/`, ver

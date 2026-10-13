@@ -3,11 +3,12 @@
     <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Mi cuenta</ion-title>
     <app-top-nav slot="end"></app-top-nav>
+    <app-tema-toggle slot="end"></app-tema-toggle>
     <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/paisaje-montana.jpg)">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
@@ -57,7 +58,7 @@
       </div>
     </div>
 
-    <div class="ks-section" *ngIf="trabajosActuales.length">
+    <div class="ks-section ks-fila-doble" *ngIf="trabajosActuales.length">
       <p class="ks-section-title"><ion-icon name="time-outline"></ion-icon> Trabajos actuales</p>
       <ion-card>
         <ion-card-content>
@@ -155,10 +156,10 @@
                 <ion-label>Reconocimiento facial</ion-label>
               </ion-item>
             </ng-container>
-            <ion-item routerLink="/acerca-de-nosotros" button detail>
+            <ion-item routerLink="/" fragment="acerca" button detail>
               <ion-label>Acerca de nosotros</ion-label>
             </ion-item>
-            <ion-item routerLink="/contacto" button detail lines="none">
+            <ion-item routerLink="/" fragment="contacto" button detail lines="none">
               <ion-label>Contacto</ion-label>
             </ion-item>
           </ion-list>

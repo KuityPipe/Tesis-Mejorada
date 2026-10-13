@@ -4,10 +4,11 @@
       <ion-back-button defaultHref="/home"></ion-back-button>
     </ion-buttons>
     <ion-title>Perfil de proveedor</ion-title>
+    <app-tema-toggle slot="end"></app-tema-toggle>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/reparaciones.jpg)">
   <!-- Mismo encabezado que .ks-page-header en crearperfil.html del sitio Django. -->
   <div class="ks-page-header">
     <h1><ion-icon name="briefcase-outline"></ion-icon> Perfil de proveedor</h1>

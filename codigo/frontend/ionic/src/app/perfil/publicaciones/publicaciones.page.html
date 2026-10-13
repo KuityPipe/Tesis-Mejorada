@@ -4,10 +4,11 @@
       <ion-back-button defaultHref="/home"></ion-back-button>
     </ion-buttons>
     <ion-title>Mis publicaciones</ion-title>
+    <app-tema-toggle slot="end"></app-tema-toggle>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/carpinteria.jpg)">
   <app-skeleton *ngIf="cargando" variante="card" [cantidad]="4"></app-skeleton>
 
   <ng-container *ngIf="!cargando">

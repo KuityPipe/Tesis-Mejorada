@@ -14,8 +14,9 @@ test.describe('Chat de una contratación', () => {
     await login(page, CLIENTE_DEMO);
 
     await page.goto('/reservas');
-    await expect(page.locator('a[href*="/contratacion/"]').first()).toBeVisible();
-    await page.locator('a[href*="/contratacion/"]').first().click();
+    const enlaceTitulo = page.locator('.ks-reserva-card-body h4 a').first();
+    await expect(enlaceTitulo).toBeVisible();
+    await enlaceTitulo.click();
     await expect(page).toHaveURL(/\/contratacion\/\d+/);
 
     const mensaje = `Mensaje de prueba E2E — ${Date.now()}`;

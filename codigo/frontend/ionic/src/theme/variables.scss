@@ -19,8 +19,8 @@
 // pese a la elección explícita del usuario.
 @mixin ks-light-palette {
   /* ---------- Paleta de marca (claro) ---------- */
-  --ks-cream: #FFF8F1;
-  --ks-cream-soft: #FFFFFF;
+  --ks-cream: #F6EBDC;
+  --ks-cream-soft: #FBF3E6;
   --ks-navy: #0B3D78;
   --ks-navy-dark: #082C57;
   --ks-navy-light: #E9F0FA;
@@ -33,8 +33,8 @@
   --ks-coral-light: #FFE4D6;
   --ks-ink: #16233A;
   --ks-ink-soft: #5B6B82;
-  --ks-border: #E7ECF3;
-  --ks-surface: #FFFFFF;
+  --ks-border: #E6D9C6;
+  --ks-surface: #FFFBF4;
   --ks-neutral-bg: #F1F1F1;
   --ks-neutral-text: #6B6B6B;
   --ks-gradient-brand: linear-gradient(135deg, var(--ks-navy) 0%, var(--ks-teal) 55%, var(--ks-coral) 100%);
@@ -113,7 +113,7 @@
 
   /* ---------- Fondo/texto/tipografía base ---------- */
   --ion-background-color: var(--ks-cream);
-  --ion-background-color-rgb: 255, 248, 241;
+  --ion-background-color-rgb: 246, 235, 220;
   --ion-text-color: var(--ks-ink);
   --ion-text-color-rgb: 22, 35, 58;
   --ion-font-family: 'Nunito', sans-serif;

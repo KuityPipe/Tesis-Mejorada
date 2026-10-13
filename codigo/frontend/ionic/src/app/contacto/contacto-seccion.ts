@@ -16,12 +16,12 @@ import { Contacto } from './contacto';
  * del lado del backend — acá se decide con `auth.estaAutenticado()`.
  */
 @Component({
-  selector: 'app-contacto',
-  templateUrl: './contacto.page.html',
-  styleUrls: ['./contacto.page.scss'],
+  selector: 'app-contacto-seccion',
+  templateUrl: './contacto-seccion.html',
+  styleUrls: ['./contacto-seccion.scss'],
   standalone: false,
 })
-export class ContactoPage {
+export class ContactoSeccionComponent {
   requiereDatosContacto = !this.auth.estaAutenticado();
 
   formulario = this.fb.nonNullable.group({

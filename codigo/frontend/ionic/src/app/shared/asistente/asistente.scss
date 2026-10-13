@@ -39,10 +39,10 @@
   max-height: min(560px, calc(100vh - 110px));
   display: flex;
   flex-direction: column;
-  background: var(--ion-background-color, #fff);
-  color: var(--ion-text-color, #1b2a41);
-  border: 1px solid var(--ion-border-color, rgba(11, 61, 120, 0.15));
-  border-radius: 18px;
+  background: var(--ks-surface, #fff);
+  color: var(--ks-ink, #16233a);
+  border: 1px solid var(--ks-border, rgba(11, 61, 120, 0.15));
+  border-radius: 24px;
   box-shadow: 0 14px 40px rgba(8, 44, 87, 0.28);
   overflow: hidden;
   animation: ks-asistente-entrada 0.18s ease-out;
@@ -62,9 +62,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
-  background: var(--ion-color-primary, #0b3d78);
+  padding: 16px 16px;
+  background:
+    radial-gradient(70% 160% at 100% 0%, rgba(18, 163, 140, 0.6) 0%, transparent 65%),
+    linear-gradient(135deg, #0b3d78 0%, #082c57 100%);
   color: #fff;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1.05rem;
 }
 
 .ks-asistente-cerrar {
@@ -83,7 +87,7 @@
   font-size: 12px;
   line-height: 1.35;
   background: var(--ks-coral-light, #ffe4d6);
-  color: #6b2a10;
+  color: var(--ks-ink, #6b2a10);
 }
 
 .ks-asistente-registro {
@@ -105,7 +109,7 @@
     align-items: flex-end;
 
     .ks-asistente-burbuja {
-      background: var(--ion-color-primary, #0b3d78);
+      background: linear-gradient(135deg, #0b3d78, #0c7f6d);
       color: #fff;
     }
   }
@@ -115,9 +119,10 @@
   max-width: 88%;
   padding: 8px 12px;
   border-radius: 14px;
-  background: var(--ks-navy-light, #e9f0fa);
-  color: var(--ion-text-color, #1b2a41);
-  font-size: 14px;
+  background: var(--ks-teal-light, #e1f7f2);
+  color: var(--ks-ink, #16233a);
+  border: 1px solid var(--ks-border, transparent);
+  font-size: 14.5px;
   line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-word;
@@ -158,12 +163,13 @@
   padding: 4px 12px 8px;
 
   button {
-    border: 1px solid var(--ion-color-secondary, #12a38c);
-    background: transparent;
-    color: var(--ion-color-secondary-shade, #0c8272);
+    border: 1px solid #0c7f6d;
+    background: var(--ks-teal-light, #e1f7f2);
+    color: var(--ks-ink, #16233a);
+    font-weight: 700;
     border-radius: 999px;
-    padding: 5px 10px;
-    font-size: 12px;
+    padding: 7px 12px;
+    font-size: 12.5px;
     cursor: pointer;
   }
 }
@@ -184,12 +190,12 @@
   input {
     flex: 1;
     min-width: 0;
-    border: 1px solid var(--ion-border-color, rgba(11, 61, 120, 0.25));
+    border: 1.5px solid color-mix(in srgb, var(--ks-navy, #0b3d78) 30%, transparent);
     border-radius: 999px;
-    padding: 9px 14px;
+    padding: 10px 16px;
     font-size: 16px; // 16px evita el zoom automático en iOS
-    background: transparent;
-    color: inherit;
+    background: color-mix(in srgb, var(--ks-teal, #12a38c) 6%, var(--ks-surface, #fff));
+    color: var(--ks-ink, #16233a);
   }
 
   button {
@@ -197,7 +203,7 @@
     height: 40px;
     border: 0;
     border-radius: 50%;
-    background: var(--ion-color-secondary, #12a38c);
+    background: #0c7f6d;
     color: #fff;
     font-size: 18px;
     display: grid;

@@ -3,6 +3,7 @@
     <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Inicio</ion-title>
     <app-top-nav slot="end"></app-top-nav>
+    <app-tema-toggle slot="end"></app-tema-toggle>
     <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
@@ -14,7 +15,7 @@
     <div class="ks-contenedor ks-hero26-grid">
       <div class="ks-hero26-texto" appReveal>
         <span class="ks-hero26-etiqueta"><i class="ks-hero26-punto"></i> Servicios del hogar en Chile · 2026</span>
-        <h1 id="titulo-inicio">Contrata con <em>identidad verificada</em>, sin sorpresas.</h1>
+        <h1 id="titulo-inicio">Contrata con <em>identidad verificada</em>, <span class="ks-contorno">sin sorpresas.</span></h1>
         <p>Cada proveedor verifica quién es con la biometría de su teléfono o por una vía sin biometría, y tus datos siempre quedan bajo tu control.</p>
 
         <form (ngSubmit)="buscar()" role="search" class="ks-hero26-busqueda">
@@ -31,9 +32,9 @@
       </div>
 
       <div class="ks-hero26-hud" aria-hidden="true">
-        <div class="ks-vidrio ks-hud-1"><ion-icon name="checkmark-circle"></ion-icon><div><strong>Identidad verificada</strong><span>Biometría, rostro o documento</span></div></div>
-        <div class="ks-vidrio ks-hud-2"><strong>180 días</strong><span>vigencia de cada verificación</span></div>
-        <div class="ks-vidrio ks-hud-3"><strong>0 fotos</strong><span>de tu rostro guardadas</span></div>
+        <div class="ks-vidrio ks-hud-1"><small class="ks-micro-hud">Estado · en línea</small><ion-icon name="checkmark-circle"></ion-icon><div><strong>Identidad verificada</strong><span>Biometría, rostro o documento</span></div></div>
+        <div class="ks-vidrio ks-hud-2"><small class="ks-micro-hud">Vigencia</small><strong>180 días</strong><span>vigencia de cada verificación</span></div>
+        <div class="ks-vidrio ks-hud-3"><small class="ks-micro-hud">Privacidad</small><strong>0 fotos</strong><span>de tu rostro guardadas</span></div>
       </div>
 
       <a class="ks-hero26-scroll" href="javascript:void(0)" (click)="irAServicios()" aria-label="Ir a los servicios">Desliza <span class="ks-flecha">↓</span></a>
@@ -56,7 +57,8 @@
     <div class="ks-seccion-titulo" appReveal>
       <span class="ks-num">01 /</span>
       <h2>¿Qué necesitas hoy?</h2>
-      <a class="ks-seccion-link" routerLink="/catalogo">Ver todo <span class="ks-flecha">→</span></a>
+      <p class="ks-seccion-intro">Doce oficios para el hogar y la vida diaria. Elige uno y mira quiénes lo ofrecen cerca de ti.</p>
+      <a class="ks-seccion-link" routerLink="/catalogo">Ver todo <span class="ks-flecha">↗</span></a>
     </div>
 
     <div class="ks-cat-grid">
@@ -73,33 +75,15 @@
   <section class="ks-contenedor ks-seccion">
     <div class="ks-seccion-titulo" appReveal>
       <span class="ks-num">02 /</span>
-      <h2>Servicios destacados</h2>
-      <a class="ks-seccion-link" routerLink="/catalogo">Catálogo completo <span class="ks-flecha">→</span></a>
+      <h2>Servicios <em>destacados</em></h2>
+      <p class="ks-seccion-intro">Publicaciones recientes de proveedores con la identidad verificada. Pasa el mouse sobre una para ver el detalle.</p>
+      <a class="ks-seccion-link" routerLink="/catalogo">Catálogo completo <span class="ks-flecha">↗</span></a>
     </div>
 
     <app-skeleton *ngIf="cargandoDestacadas" variante="card" [cantidad]="3"></app-skeleton>
 
-    <div class="ks-card-grid" *ngIf="!cargandoDestacadas && destacadas.length">
-      <a class="ks-card-tile" *ngFor="let publicacion of destacadas; let i = index" [routerLink]="['/catalogo', publicacion.id_publicacion]" appReveal [appRevealDelay]="i * 60">
-        <div class="ks-card-tile-img">
-          <span class="ks-demo-tag" *ngIf="publicacion.proveedor.es_demo" title="Publicación de prueba">DEMO</span>
-          <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" (error)="publicacion.imagen_portada = null" />
-          <ng-template #sinImagen>
-            <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline" aria-hidden="true"></ion-icon></div>
-          </ng-template>
-        </div>
-        <div class="ks-card-tile-body">
-          <span class="ks-trust-badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Identidad verificada</span>
-          <h3>{{ publicacion.titulo }}</h3>
-          <p>{{ publicacion.sub_titulo || publicacion.categoria }}</p>
-          <div class="ks-card-tile-footer">
-            <span><ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon> {{ publicacion.proveedor.nombre_usuario }}</span>
-            <span class="ks-card-tile-rating" *ngIf="publicacion.proveedor.total_valoraciones">
-              <ion-icon name="star" aria-hidden="true"></ion-icon> {{ publicacion.proveedor.puntuacion_promedio }}
-            </span>
-          </div>
-        </div>
-      </a>
+    <div class="ks-card-grid ks-grid-escalonado" *ngIf="!cargandoDestacadas && destacadas.length">
+      <app-pub-card *ngFor="let publicacion of destacadas; let i = index" [publicacion]="publicacion" appReveal [appRevealDelay]="i * 60"></app-pub-card>
     </div>
   </section>
 
@@ -113,16 +97,18 @@
       <div class="ks-banda26-acciones">
         <ion-button *ngIf="!conSesion" routerLink="/registro" color="light">Crear mi cuenta</ion-button>
         <ion-button *ngIf="conSesion" routerLink="/preferencias" color="light">Ir a Mis datos</ion-button>
-        <ion-button routerLink="/acerca-de-nosotros" fill="outline" color="light">Conocer KeyServ</ion-button>
+        <ion-button routerLink="/" fragment="acerca" fill="outline" color="light">Conocer KeyServ</ion-button>
       </div>
     </div>
   </section>
 
   <!-- 03 · Cómo funciona -->
-  <section class="ks-contenedor ks-seccion">
+  <section class="ks-contenedor ks-seccion ks-con-fantasma">
+    <span class="ks-fantasma" aria-hidden="true">KEYSERV</span>
     <div class="ks-seccion-titulo" appReveal>
       <span class="ks-num">03 /</span>
-      <h2>Cómo funciona</h2>
+      <h2>Cómo <em>funciona</em></h2>
+      <p class="ks-seccion-intro">Cuatro pasos, sin letra chica: del primer vistazo a la calificación final.</p>
     </div>
     <ol class="ks-pasos26">
       <li appReveal><span class="ks-paso-n">01</span><strong>Busca</strong><p>Filtra por servicio, comuna, cercanía o calificación.</p></li>
@@ -132,16 +118,66 @@
     </ol>
   </section>
 
-  <!-- 04 · Para proveedores -->
+  <!-- 04 · Acerca de nosotros: un carrusel con una diapositiva por tema, sobre un fondo con foto. -->
+  <section class="ks-acerca26" id="acerca" aria-labelledby="titulo-acerca">
+    <div class="ks-acerca26-fondo" aria-hidden="true"></div>
+    <div class="ks-contenedor ks-acerca26-contenido">
+      <div class="ks-seccion-titulo" appReveal>
+        <span class="ks-num">04 /</span>
+        <h2 id="titulo-acerca">Conoce <em>KeyServ</em></h2>
+        <p class="ks-seccion-intro">Quiénes somos, en qué creemos y qué no vamos a tolerar. Cambia de tema con las pestañas.</p>
+      </div>
+
+      <div class="ks-acerca26-barra" appReveal>
+        <div class="ks-acerca26-tabs" role="tablist">
+          <button type="button" role="tab" *ngFor="let slide of acercaSlides; let i = index" [class.is-activo]="slideActivo === i" [attr.aria-selected]="slideActivo === i" (click)="irASlide(pista, i)">{{ slide.etiqueta }}</button>
+        </div>
+        <div class="ks-carrusel-flechas">
+          <button type="button" (click)="moverSlide(pista, -1)" aria-label="Anterior"><ion-icon name="chevron-back" aria-hidden="true"></ion-icon></button>
+          <button type="button" (click)="moverSlide(pista, 1)" aria-label="Siguiente"><ion-icon name="chevron-forward" aria-hidden="true"></ion-icon></button>
+        </div>
+      </div>
+
+      <div class="ks-acerca26-pista" #pista tabindex="0" aria-label="Acerca de nosotros" (scroll)="alScrollearCarrusel(pista)">
+        <article class="ks-acerca26-slide" *ngFor="let slide of acercaSlides" [id]="slide.id === 'acerca' ? null : 'acerca-' + slide.id">
+          <h3>{{ slide.titulo }}</h3>
+          <p class="ks-acerca26-sub">{{ slide.subtitulo }}</p>
+          <div class="ks-acerca26-tarjetas">
+            <div class="ks-carrusel-tarjeta" *ngFor="let item of slide.tarjetas">
+              <ion-icon [name]="item.icono" aria-hidden="true"></ion-icon>
+              <h4>{{ item.titulo }}</h4>
+              <p>{{ item.texto }}</p>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="ks-acerca26-puntos" aria-hidden="true">
+        <i *ngFor="let slide of acercaSlides; let i = index" [class.is-activo]="slideActivo === i"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 · Para proveedores -->
   <section class="ks-contenedor ks-seccion">
     <div class="ks-proveedor26" appReveal>
       <div>
-        <span class="ks-micro">04 / Para proveedores</span>
+        <span class="ks-micro">05 / Para proveedores</span>
         <h2>¿Ofreces servicios? Llega a más clientes con tu identidad respaldada.</h2>
       </div>
       <ion-button *ngIf="!conSesion" routerLink="/registro" color="secondary" size="large">Crear mi cuenta <span class="ks-flecha">→</span></ion-button>
       <ion-button *ngIf="conSesion" routerLink="/catalogo/crear" color="secondary" size="large">Publicar un servicio <span class="ks-flecha">→</span></ion-button>
     </div>
+  </section>
+
+  <!-- 06 · Contacto: antes era una página aparte; ahora cierra la portada, con el mapa de la oficina. -->
+  <section class="ks-contenedor ks-seccion" id="contacto">
+    <div class="ks-seccion-titulo" appReveal>
+      <span class="ks-num">06 /</span>
+      <h2>Hablemos<em>.</em></h2>
+      <p class="ks-seccion-intro">Escríbenos, llámanos o pasa por la oficina. Una persona de verdad responde cada consulta.</p>
+    </div>
+    <app-contacto-seccion></app-contacto-seccion>
   </section>
 
   <div class="ks-contenedor"><app-footer></app-footer></div>

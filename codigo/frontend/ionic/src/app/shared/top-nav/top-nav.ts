@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 
+import { desplazarTrasNavegar } from '../desplazamiento';
+
 // Contador a nivel de módulo (no de instancia) — cada vez que Angular crea
 // un TopNavComponent nuevo (una por cada navegación entre las 4 pantallas
 // raíz, ver comentario de la clase) se lleva un id de trigger distinto.
@@ -47,4 +49,9 @@ let contadorInstancias = 0;
 })
 export class TopNavComponent {
   readonly idTrigger = `ks-nav-trigger-${contadorInstancias++}`;
+
+  /** Tras navegar, lleva la página a la sección (o a lo más alto si no hay fragmento). */
+  ir(fragmento?: string): void {
+    desplazarTrasNavegar(fragmento);
+  }
 }

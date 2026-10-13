@@ -9,11 +9,12 @@
     <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Iniciar sesión</ion-title>
     <app-top-nav slot="end"></app-top-nav>
+    <app-tema-toggle slot="end"></app-tema-toggle>
     <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
+<ion-content [fullscreen]="true" class="ks-pie-abajo ion-padding ks-content-wide ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/cerrajeria.jpg)">
   <!--
     [formGroup] conecta este <form> con el `formulario` armado en
     login.page.ts (Reactive Forms) — a diferencia de Django, donde el
@@ -37,6 +38,7 @@
             <ion-list lines="none">
               <ion-item>
                 <!-- formControlName ata este <ion-input> al control "email" del formulario — value y validación quedan sincronizados solos, sin (input)/[value] manuales. -->
+                <ion-icon name="mail-outline" slot="start" aria-hidden="true"></ion-icon>
                 <ion-input
                   label="Correo electrónico"
                   labelPlacement="floating"
@@ -46,6 +48,7 @@
                 ></ion-input>
               </ion-item>
               <ion-item>
+                <ion-icon name="lock-closed-outline" slot="start" aria-hidden="true"></ion-icon>
                 <ion-input
                   label="Contraseña"
                   labelPlacement="floating"

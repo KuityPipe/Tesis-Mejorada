@@ -1035,6 +1035,22 @@ class ContratacionApiTests(APITestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(Contratacion.objects.filter(publicacion=self.publicacion, cliente=self.cliente).count(), 1)
 
+    def test_listado_incluye_categoria_y_comuna_del_proveedor_para_la_lista(self):
+        self.publicacion.categoria = 'Electricidad'
+        self.publicacion.save()
+        self.comuna.latitud = -33.4378
+        self.comuna.longitud = -70.6504
+        self.comuna.save()
+        Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+
+        self._autenticado_como(self.cliente)
+        fila = self.client.get('/api/contrataciones/').data[0]
+
+        self.assertEqual(fila['publicacion_categoria'], 'Electricidad')
+        self.assertEqual(fila['proveedor_comuna'], self.comuna.nombre_comuna)
+        self.assertAlmostEqual(fila['proveedor_latitud'], -33.4378, places=4)
+        self.assertAlmostEqual(fila['proveedor_longitud'], -70.6504, places=4)
+
     def test_listado_incluye_las_del_cliente_y_las_del_proveedor(self):
         Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
 
@@ -2480,3 +2496,17 @@ class EsDemoApiTests(APITestCase):
         resp = self.client.get('/api/publicaciones/')
         por_titulo = {p['titulo']: p['proveedor']['es_demo'] for p in resp.data['results']}
         self.assertEqual(por_titulo, {'De prueba': True, 'Real': False})
+
+    def test_listado_incluye_resumen_corto_sin_el_aviso_de_demo(self):
+        _, comuna, tipo = _crear_region_comuna_tipo()
+        demo = _crear_usuario('resumen@demo.keyserv', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo)
+        largo = 'Reparo lavadoras, refrigeradores y hornos en toda la región con repuestos originales y garantía. ' * 3
+        Publicaciones.objects.create(
+            usuario_publicador=demo, titulo='Con resumen', estado_moderacion=Publicaciones.APROBADA,
+            descripcion_publicacion=largo + '\n\n⚠️ PUBLICACIÓN DE PRUEBA (DEMO): ficticia.',
+        )
+        resumen = self.client.get('/api/publicaciones/').data['results'][0]['resumen']
+        self.assertLessEqual(len(resumen), 151)
+        self.assertTrue(resumen.endswith('…'))
+        self.assertNotIn('DEMO', resumen)
+

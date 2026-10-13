@@ -6,3 +6,39 @@
 :host {
   display: contents;
 }
+
+// Links en línea: solo en pantallas anchas
+.ks-nav-inline {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 8px;
+
+  a {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font: 700 0.95rem 'Quicksand', sans-serif;
+    color: var(--ion-text-color);
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+
+    &:hover {
+      background: rgba(12, 127, 109, 0.12);
+    }
+
+    &.ks-nav-active {
+      background: var(--ion-color-primary);
+      color: var(--ion-color-primary-contrast);
+    }
+  }
+}
+
+@media (min-width: 992px) {
+  .ks-nav-inline {
+    display: flex;
+  }
+
+  .ks-nav-burger {
+    display: none;
+  }
+}

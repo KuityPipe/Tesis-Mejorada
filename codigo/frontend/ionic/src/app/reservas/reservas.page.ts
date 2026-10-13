@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 
 import { Auth, Usuario } from '../core/auth';
+import { Coordenada, Ubicacion } from '../core/ubicacion';
 import { Contrataciones, ContratacionResumen } from '../contrataciones/contrataciones';
 
 interface FiltroEstado {
@@ -48,6 +49,12 @@ export class ReservasPage implements OnInit {
   contrataciones: ContratacionResumen[] = [];
   filtradas: ContratacionResumen[] = [];
   cargando = true;
+  /** Cómo se muestran las contrataciones: tarjetas con foto o lista compacta (se recuerda la elección). */
+  vista: 'cuadros' | 'lista' = ReservasPage.vistaGuardada();
+
+  /** Contrataciones por página; con más, se navega entre páginas (1, 2, 3…). */
+  readonly porPagina = 20;
+  pagina = 1;
 
   busqueda = '';
   desde = '';
@@ -57,7 +64,49 @@ export class ReservasPage implements OnInit {
   constructor(
     private readonly auth: Auth,
     private readonly contratacionesApi: Contrataciones,
+    private readonly ubicacion: Ubicacion,
   ) {}
+
+  /** Posición de la persona, solo si la compartió con "Mostrar distancias". */
+  miPosicion: Coordenada | null = null;
+  buscandoUbicacion = false;
+
+  async mostrarDistancias(): Promise<void> {
+    this.buscandoUbicacion = true;
+    this.miPosicion = await this.ubicacion.posicionActual();
+    this.buscandoUbicacion = false;
+  }
+
+  quitarDistancias(): void {
+    this.miPosicion = null;
+  }
+
+  /** Kilómetros en línea recta (Haversine) hasta la comuna del proveedor; null si no hay posición o la comuna no tiene coordenada. */
+  distanciaKm(c: ContratacionResumen): number | null {
+    if (!this.miPosicion || c.proveedor_latitud == null || c.proveedor_longitud == null) return null;
+    const rad = (grados: number) => (grados * Math.PI) / 180;
+    const dLat = rad(c.proveedor_latitud - this.miPosicion.lat);
+    const dLng = rad(c.proveedor_longitud - this.miPosicion.lng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(this.miPosicion.lat)) * Math.cos(rad(c.proveedor_latitud)) * Math.sin(dLng / 2) ** 2;
+    return Math.round(6371 * 2 * Math.asin(Math.sqrt(a)) * 10) / 10;
+  }
+
+  private static vistaGuardada(): 'cuadros' | 'lista' {
+    try {
+      return localStorage.getItem('ks-vista-reservas') === 'lista' ? 'lista' : 'cuadros';
+    } catch {
+      return 'cuadros';
+    }
+  }
+
+  cambiarVista(vista: 'cuadros' | 'lista'): void {
+    this.vista = vista;
+    try {
+      localStorage.setItem('ks-vista-reservas', vista);
+    } catch {
+      /* sin localStorage: el cambio se aplica igual, solo no se recuerda */
+    }
+  }
 
   ngOnInit(): void {
     this.auth.me().subscribe({
@@ -118,6 +167,7 @@ export class ReservasPage implements OnInit {
   aplicarFiltros(): void {
     const texto = this.busqueda.trim().toLowerCase();
 
+    this.pagina = 1;
     this.filtradas = this.contrataciones.filter((c) => {
       const pasaEstado = this.filtroEstado === 'TODAS' || c.estado === this.filtroEstado;
       const pasaTexto = !texto
@@ -128,5 +178,16 @@ export class ReservasPage implements OnInit {
       const pasaHasta = !this.hasta || fecha <= this.hasta;
       return pasaEstado && pasaTexto && pasaDesde && pasaHasta;
     });
+  }
+
+  /** Las contrataciones de la página actual. */
+  get visibles(): ContratacionResumen[] {
+    const inicio = (this.pagina - 1) * this.porPagina;
+    return this.filtradas.slice(inicio, inicio + this.porPagina);
+  }
+
+  irAPagina(pagina: number): void {
+    this.pagina = pagina;
+    document.getElementById('listado-reservas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }

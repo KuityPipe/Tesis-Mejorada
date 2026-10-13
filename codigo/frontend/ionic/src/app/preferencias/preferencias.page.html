@@ -4,10 +4,11 @@
       <ion-back-button defaultHref="/home"></ion-back-button>
     </ion-buttons>
     <ion-title>Preferencias de la cuenta</ion-title>
+    <app-tema-toggle slot="end"></app-tema-toggle>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/soporte-tecnico.jpg)">
   <!-- Mismo encabezado que .ks-page-header en preferencias_cuenta.html del sitio Django. -->
   <div class="ks-page-header">
     <h1><ion-icon name="settings-outline"></ion-icon> Preferencias de la cuenta</h1>

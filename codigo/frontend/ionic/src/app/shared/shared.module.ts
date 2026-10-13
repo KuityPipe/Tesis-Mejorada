@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 
@@ -15,6 +15,10 @@ import { ImgFallbackDirective } from './img-fallback.directive';
 import { VerificacionLateralComponent } from './verificacion-lateral/verificacion-lateral';
 import { AuthAsideComponent } from './auth-aside/auth-aside';
 import { VerifExitoComponent } from './verif-exito/verif-exito';
+import { PubCardComponent } from './pub-card/pub-card';
+import { PaginadorComponent } from './paginador/paginador';
+import { TemaToggleComponent } from './tema-toggle/tema-toggle';
+import { ContactoSeccionComponent } from '../contacto/contacto-seccion';
 
 /**
  * Módulo de componentes/directivas reutilizables entre páginas —
@@ -30,8 +34,8 @@ import { VerifExitoComponent } from './verif-exito/verif-exito';
  * propias.
  */
 @NgModule({
-  imports: [CommonModule, FormsModule, RouterModule, IonicModule],
-  declarations: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent, AuthAsideComponent, VerifExitoComponent],
-  exports: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent, AuthAsideComponent, VerifExitoComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, IonicModule],
+  declarations: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent, AuthAsideComponent, VerifExitoComponent, PubCardComponent, TemaToggleComponent, ContactoSeccionComponent, PaginadorComponent],
+  exports: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent, AuthAsideComponent, VerifExitoComponent, PubCardComponent, TemaToggleComponent, ContactoSeccionComponent, PaginadorComponent],
 })
 export class SharedModule {}

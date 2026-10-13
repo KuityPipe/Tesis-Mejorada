@@ -4,23 +4,98 @@
       <ion-back-button defaultHref="/reservas"></ion-back-button>
     </ion-buttons>
     <ion-title>{{ contratacion?.publicacion_titulo || 'Contratación' }}</ion-title>
+    <app-tema-toggle slot="end"></app-tema-toggle>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/limpieza.jpg)">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
   <ng-container *ngIf="contratacion as c">
     <!-- Mismo encabezado que .ks-page-header en contratacion_detalle.html del sitio Django (título + badge de estado + quién es la contraparte). -->
-    <div class="ks-page-header">
+    <div class="ks-page-header ks-header-medio">
       <h1><ion-icon name="document-text-outline"></ion-icon> {{ c.publicacion_titulo }} <ion-badge [color]="colorEstado(c.estado)">{{ etiquetaEstado(c.estado) }}</ion-badge></h1>
       <p>{{ c.cliente_nombre }} · {{ c.proveedor_nombre }} · Trabajo #{{ c.id_contratacion }}</p>
       <p *ngIf="c.monto_acordado" style="font-weight:800; margin:4px 0 0;">Monto acordado: ${{ c.monto_acordado | number }}</p>
     </div>
 
     <!-- Mismo .ks-progress-steps que contratacion_detalle.html: resumen visual rápido de 4 pasos, aparte del historial detallado de más abajo. -->
+    <div class="ks-section ks-chat-lateral" appReveal>
+      <div class="ks-chat-titulo-row">
+        <p class="ks-section-title">Mensajes</p>
+        <ion-button fill="clear" size="small" type="button" (click)="exportarChat()" [disabled]="exportandoChat">
+          <ion-icon slot="start" name="download-outline"></ion-icon>
+          {{ exportandoChat ? 'Exportando…' : 'Exportar chat' }}
+        </ion-button>
+      </div>
+      <ion-text color="danger" *ngIf="errorExportarChat"><p class="ion-padding-start">{{ errorExportarChat }}</p></ion-text>
+      <ion-card class="ks-chat-card">
+        <ion-card-content class="ks-chat-content">
+          <!-- Scroll propio, acotado a esta sección — no el de toda la página (pedido explícito del usuario). -->
+          <div class="ks-chat-scroll" #listaMensajes>
+            <div
+              class="ks-chat-fila"
+              *ngFor="let m of mensajes; let i = index"
+              [class.ks-chat-fila-propio]="esPropio(m)"
+              appReveal
+              [appRevealDelay]="(i % 12) * 25"
+            >
+              <div class="ks-chat-burbuja">
+                <span class="ks-chat-autor" *ngIf="!esPropio(m)">{{ m.usuario_nombre }}</span>
+                <a *ngIf="m.imagen_url && urlSeguraImagen(m) as urlImagen" [href]="urlImagen" target="_blank" rel="noopener" class="ks-chat-imagen-link">
+                  <img [src]="urlImagen" class="ks-chat-imagen" [alt]="'Foto de ' + m.usuario_nombre" />
+                </a>
+                <ion-spinner *ngIf="m.imagen_url && !urlSeguraImagen(m)" name="dots"></ion-spinner>
+                <p class="ks-chat-texto" *ngIf="m.contenido">{{ m.contenido }}</p>
+                <span class="ks-chat-hora">{{ m.fecha_envio | date:'HH:mm' }}</span>
+              </div>
+            </div>
+
+            <app-empty-state
+              *ngIf="!mensajes.length"
+              icono="chatbubbles-outline"
+              titulo="Todavía no hay mensajes"
+              mensaje="Escribe el primero para coordinar los detalles del trabajo."
+            ></app-empty-state>
+          </div>
+
+          <!-- Previsualización de la foto elegida, antes de mandarla. -->
+          <div class="ks-chat-preview" *ngIf="previsualizacionImagenMensaje">
+            <img [src]="previsualizacionImagenMensaje" alt="Foto a enviar" />
+            <ion-button fill="clear" size="small" type="button" (click)="quitarImagenMensaje()" aria-label="Quitar foto">
+              <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+
+          <!-- Picker de emojis frecuentes — un set chico y curado, no una librería externa. -->
+          <div class="ks-chat-emojis" *ngIf="mostrarEmojis">
+            <button type="button" *ngFor="let emoji of emojisFrecuentes" (click)="insertarEmoji(emoji)">{{ emoji }}</button>
+          </div>
+
+          <form [formGroup]="formularioMensaje" (ngSubmit)="enviarMensaje()" class="ks-chat-input-row">
+            <ion-button fill="clear" type="button" class="ks-chat-icon-btn" (click)="mostrarEmojis = !mostrarEmojis" aria-label="Emojis">
+              <ion-icon name="happy-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <label class="ks-chat-icon-btn ks-chat-adjuntar" aria-label="Adjuntar foto">
+              <ion-icon name="camera-outline"></ion-icon>
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" (change)="alElegirImagenMensaje($event)" />
+            </label>
+            <ion-input
+              class="ks-chat-input" aria-label="Escribe un mensaje"
+              placeholder="Escribe un mensaje…"
+              formControlName="contenido"
+              (keyup.enter)="enviarMensaje()"
+            ></ion-input>
+            <ion-button type="submit" class="ks-chat-icon-btn" [disabled]="!puedeEnviarMensaje" aria-label="Enviar">
+              <ion-icon [name]="enviandoMensaje ? 'hourglass-outline' : 'send'" slot="icon-only"></ion-icon>
+            </ion-button>
+          </form>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <div class="ks-section" appReveal>
       <p class="ks-section-title">Avance del trabajo</p>
       <ion-card>
@@ -186,78 +261,5 @@
     </div>
 
     <!-- Chat -->
-    <div class="ks-section ks-span-all" appReveal>
-      <div class="ks-chat-titulo-row">
-        <p class="ks-section-title">Mensajes</p>
-        <ion-button fill="clear" size="small" type="button" (click)="exportarChat()" [disabled]="exportandoChat">
-          <ion-icon slot="start" name="download-outline"></ion-icon>
-          {{ exportandoChat ? 'Exportando…' : 'Exportar chat' }}
-        </ion-button>
-      </div>
-      <ion-text color="danger" *ngIf="errorExportarChat"><p class="ion-padding-start">{{ errorExportarChat }}</p></ion-text>
-      <ion-card class="ks-chat-card">
-        <ion-card-content class="ks-chat-content">
-          <!-- Scroll propio, acotado a esta sección — no el de toda la página (pedido explícito del usuario). -->
-          <div class="ks-chat-scroll" #listaMensajes>
-            <div
-              class="ks-chat-fila"
-              *ngFor="let m of mensajes; let i = index"
-              [class.ks-chat-fila-propio]="esPropio(m)"
-              appReveal
-              [appRevealDelay]="(i % 12) * 25"
-            >
-              <div class="ks-chat-burbuja">
-                <span class="ks-chat-autor" *ngIf="!esPropio(m)">{{ m.usuario_nombre }}</span>
-                <a *ngIf="m.imagen_url && urlSeguraImagen(m) as urlImagen" [href]="urlImagen" target="_blank" rel="noopener" class="ks-chat-imagen-link">
-                  <img [src]="urlImagen" class="ks-chat-imagen" [alt]="'Foto de ' + m.usuario_nombre" />
-                </a>
-                <ion-spinner *ngIf="m.imagen_url && !urlSeguraImagen(m)" name="dots"></ion-spinner>
-                <p class="ks-chat-texto" *ngIf="m.contenido">{{ m.contenido }}</p>
-                <span class="ks-chat-hora">{{ m.fecha_envio | date:'HH:mm' }}</span>
-              </div>
-            </div>
-
-            <app-empty-state
-              *ngIf="!mensajes.length"
-              icono="chatbubbles-outline"
-              titulo="Todavía no hay mensajes"
-              mensaje="Escribe el primero para coordinar los detalles del trabajo."
-            ></app-empty-state>
-          </div>
-
-          <!-- Previsualización de la foto elegida, antes de mandarla. -->
-          <div class="ks-chat-preview" *ngIf="previsualizacionImagenMensaje">
-            <img [src]="previsualizacionImagenMensaje" alt="Foto a enviar" />
-            <ion-button fill="clear" size="small" type="button" (click)="quitarImagenMensaje()" aria-label="Quitar foto">
-              <ion-icon name="close-circle" slot="icon-only"></ion-icon>
-            </ion-button>
-          </div>
-
-          <!-- Picker de emojis frecuentes — un set chico y curado, no una librería externa. -->
-          <div class="ks-chat-emojis" *ngIf="mostrarEmojis">
-            <button type="button" *ngFor="let emoji of emojisFrecuentes" (click)="insertarEmoji(emoji)">{{ emoji }}</button>
-          </div>
-
-          <form [formGroup]="formularioMensaje" (ngSubmit)="enviarMensaje()" class="ks-chat-input-row">
-            <ion-button fill="clear" type="button" class="ks-chat-icon-btn" (click)="mostrarEmojis = !mostrarEmojis" aria-label="Emojis">
-              <ion-icon name="happy-outline" slot="icon-only"></ion-icon>
-            </ion-button>
-            <label class="ks-chat-icon-btn ks-chat-adjuntar" aria-label="Adjuntar foto">
-              <ion-icon name="camera-outline"></ion-icon>
-              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" (change)="alElegirImagenMensaje($event)" />
-            </label>
-            <ion-input
-              class="ks-chat-input" aria-label="Escribe un mensaje"
-              placeholder="Escribe un mensaje…"
-              formControlName="contenido"
-              (keyup.enter)="enviarMensaje()"
-            ></ion-input>
-            <ion-button type="submit" class="ks-chat-icon-btn" [disabled]="!puedeEnviarMensaje" aria-label="Enviar">
-              <ion-icon [name]="enviandoMensaje ? 'hourglass-outline' : 'send'" slot="icon-only"></ion-icon>
-            </ion-button>
-          </form>
-        </ion-card-content>
-      </ion-card>
-    </div>
   </ng-container>
 </ion-content>

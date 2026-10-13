@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { InfiniteScrollCustomEvent } from '@ionic/angular';
 
 import { Ubicacion } from '../core/ubicacion';
 import { Catalogos, RegionCatalogo } from '../registro/catalogos';
@@ -14,12 +13,9 @@ export const RADIOS_KM = [3, 6, 9, 12, 15, 18];
  * docs/PLAN_MIGRACION_IONIC.md) — equivalente Ionic de `/servicios/`
  * (catalogo_view en views.py). Sin guard: es pública a propósito.
  *
- * Pagina con scroll infinito en vez de botones "anterior/siguiente" como
- * el template Django — más natural en mobile. `ion-infinite-scroll`
- * dispara `(ionInfinite)` cuando el usuario llega cerca del final de la
- * lista; `[disabled]="!hayMas"` lo apaga solo cuando el backend ya no
- * tiene más páginas (`respuesta.next === null`, el mismo campo que arma
- * `PageNumberPagination` de DRF).
+ * Pagina de a 20 con un paginador numerado (1, 2, 3…): cada página reemplaza
+ * a la anterior (`PageNumberPagination` de DRF, `page_size=20`) y el total
+ * sale de `respuesta.count`. Se puede ver en cuadros o en lista.
  *
  * Filtros (búsqueda/región/calificación/orden) — mismo `.ks-filter-bar`
  * que `catalogo.html` del sitio Django, mismos query params que ya acepta
@@ -38,10 +34,12 @@ export class CatalogoPage implements OnInit {
   publicaciones: PublicacionResumen[] = [];
   regiones: RegionCatalogo[] = [];
   cargandoInicial = true;
-  hayMas = true;
+  readonly porPagina = 20;
+  /** Cómo se muestran los servicios: tarjetas con vista previa o lista con más detalle (se recuerda la elección). */
+  vista: 'cuadros' | 'lista' = CatalogoPage.vistaGuardada();
   /** Total de resultados del filtro actual (respuesta.count de DRF) — mismo dato que {{ total_publicaciones }} en catalogo.html. */
   total = 0;
-  private pagina = 1;
+  pagina = 1;
 
   filtros: FiltrosCatalogo = { orden: 'recientes' };
 
@@ -72,9 +70,29 @@ export class CatalogoPage implements OnInit {
     this.cargarPagina();
   }
 
-  cargarMas(evento: InfiniteScrollCustomEvent): void {
-    this.pagina++;
-    this.cargarPagina(evento);
+  private static vistaGuardada(): 'cuadros' | 'lista' {
+    try {
+      return localStorage.getItem('ks-vista-catalogo') === 'lista' ? 'lista' : 'cuadros';
+    } catch {
+      return 'cuadros';
+    }
+  }
+
+  cambiarVista(vista: 'cuadros' | 'lista'): void {
+    this.vista = vista;
+    try {
+      localStorage.setItem('ks-vista-catalogo', vista);
+    } catch {
+      /* sin localStorage: el cambio se aplica igual, solo no se recuerda */
+    }
+  }
+
+  /** Cambia de página y vuelve al inicio del listado. */
+  irAPagina(pagina: number): void {
+    this.pagina = pagina;
+    this.cargandoInicial = true;
+    this.cargarPagina();
+    document.getElementById('listado-servicios')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   /**
@@ -116,27 +134,19 @@ export class CatalogoPage implements OnInit {
   aplicarFiltros(): void {
     this.pagina = 1;
     this.publicaciones = [];
-    this.hayMas = true;
     this.cargandoInicial = true;
     this.cargarPagina();
   }
 
-  private cargarPagina(eventoScroll?: InfiniteScrollCustomEvent): void {
+  private cargarPagina(): void {
     this.api.listar(this.pagina, this.filtros).subscribe({
       next: (respuesta) => {
-        // Se concatena, no se reemplaza — cada página nueva se agrega al
-        // final de lo que ya había, que es justo lo que necesita el
-        // scroll infinito (a diferencia de la paginación por botones del
-        // template, donde cada página reemplaza a la anterior).
-        this.publicaciones = [...this.publicaciones, ...respuesta.results];
+        this.publicaciones = respuesta.results;
         this.total = respuesta.count;
-        this.hayMas = respuesta.next !== null;
         this.cargandoInicial = false;
-        eventoScroll?.target.complete();
       },
       error: () => {
         this.cargandoInicial = false;
-        eventoScroll?.target.complete();
       },
     });
   }
