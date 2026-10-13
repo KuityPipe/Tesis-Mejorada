@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
@@ -24,5 +24,34 @@ describe('PreferenciasPage', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('pide el estado de derechos al iniciar', () => {
+    const http = TestBed.inject(HttpTestingController);
+    const reqs = http.match((r) => r.url.endsWith('/auth/derechos/'));
+    expect(reqs.length).toBeGreaterThan(0);
+  });
+
+  it('no envía una rectificación vacía', () => {
+    const http = TestBed.inject(HttpTestingController);
+    component.detalleRectificacion = '   ';
+    component.enviarRectificacion();
+    http.expectNone((r) => r.method === 'POST' && r.url.endsWith('/auth/derechos/'));
+  });
+
+  it('la oposición a la biometría manda finalidad "biometria"', () => {
+    const http = TestBed.inject(HttpTestingController);
+    component.oponerseABiometria();
+    const req = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/auth/derechos/'));
+    expect(req.request.body.tipo).toBe('OPOSICION');
+    expect(req.request.body.finalidad).toBe('biometria');
+  });
+
+  it('alterna el bloqueo contra el valor actual', () => {
+    const http = TestBed.inject(HttpTestingController);
+    component.derechos = { tratamiento_bloqueado: false, solicitudes: [] };
+    component.alternarBloqueo();
+    const req = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/auth/bloqueo-tratamiento/'));
+    expect(req.request.body).toEqual({ bloquear: true });
   });
 });

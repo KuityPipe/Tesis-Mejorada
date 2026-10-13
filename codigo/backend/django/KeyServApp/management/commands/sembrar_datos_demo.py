@@ -116,6 +116,7 @@ class Command(BaseCommand):
                 'comuna_id': comuna_id,
                 'es_proveedor': es_proveedor,
                 'verificado_biometricamente': True,
+                'verificado_en': timezone.now(),
             },
         )
         if creado:

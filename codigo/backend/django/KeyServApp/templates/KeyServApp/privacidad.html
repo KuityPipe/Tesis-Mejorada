@@ -35,7 +35,7 @@
     <p class="ks-help mb-3">No vendemos datos a nadie. Los únicos terceros involucrados son los que hacen falta para que la plataforma funcione:</p>
     <ul class="ks-help" style="line-height: 1.9;">
       <li><strong>Transbank</strong> (Webpay Plus) y <strong>Khipu</strong> — procesan los pagos con tarjeta y transferencia bancaria respectivamente. Ninguno de los dos recibe más que el monto a cobrar.</li>
-      <li><strong>Render</strong> y <strong>Netlify</strong> — alojan el backend/base de datos y el frontend de la plataforma.</li>
+      <li><strong>Render</strong>, <strong>Neon</strong> y <strong>Netlify</strong> — alojan el backend, la base de datos y el frontend de la plataforma (fuera de Chile: Estados Unidos y Brasil). <strong>GitHub</strong> aloja el código y ejecuta tareas automáticas de mantenimiento.</li>
       <li><strong>DB-IP</strong> — la base de datos de geolocalización aproximada por IP que usamos para el registro de seguridad es local (se descarga una vez, no se consulta un servicio externo por cada acceso).</li>
       <li><strong>Google Maps</strong> — el detalle de una publicación puede mostrar un mapa embebido con la ubicación aproximada del proveedor (a nivel de comuna, no la dirección exacta) — esto carga contenido de Google, sujeto a la política de privacidad de Google.</li>
     </ul>
@@ -43,13 +43,21 @@
 
   <div class="ks-panel">
     <h2><i class="bi bi-clock-history" ></i> Cuánto tiempo guardamos tus datos</h2>
-    <p class="ks-help mb-0">Mientras tu cuenta esté activa, conservamos los datos necesarios para que la plataforma funcione (perfil, contrataciones, calificaciones, historial de pagos). Los mensajes de chat de trabajos cerrados se eliminan a los 90 días salvo que los hayas exportado. Si quieres que eliminemos tu cuenta y los datos asociados, escríbenos por <a href="{% url 'KeyServApp:contacto' %}">el formulario de contacto</a> — lo procesamos manualmente, todavía no hay un botón de autoservicio para esto.</p>
+    <p class="ks-help mb-0">Mientras tu cuenta esté activa, conservamos los datos necesarios para que la plataforma funcione (perfil, contrataciones, calificaciones, historial de pagos). Plazos concretos:</p>
+    <ul class="ks-help" style="line-height: 1.9;">
+      <li><strong>Vector de tu rostro:</strong> hasta que retires tu consentimiento o elimines tu cuenta; si te opones o lo revocas, se borra al instante.</li>
+      <li><strong>Registro de verificaciones de identidad</strong> (qué método, cuándo y con qué resultado; nunca datos biométricos): 365 días.</li>
+      <li><strong>Verificación de identidad:</strong> vale 180 días; pasado ese plazo hay que repetirla.</li>
+      <li><strong>Mensajes de chat de trabajos cerrados:</strong> 90 días, salvo que los hayas exportado.</li>
+      <li><strong>Accesos sospechosos</strong> (IP y ubicación aproximada): 365 días. <strong>Sesiones vencidas:</strong> 30 días.</li>
+      <li><strong>Contratos y pagos:</strong> los conservamos aunque elimines tu cuenta, porque hay obligaciones tributarias y contables; se desvinculan de tus datos personales.</li>
+    </ul>
   </div>
 
   <div class="ks-panel">
     <h2><i class="bi bi-shield-check"></i> Cómo protegemos tus datos</h2>
     <ul class="ks-help" style="line-height: 1.9;">
-      <li>Contraseñas con hash PBKDF2, nunca en texto plano.</li>
+      <li>Contraseñas con hash PBKDF2, nunca en texto plano. El vector de tu rostro se guarda cifrado.</li>
       <li>Documentos de identidad y certificados en almacenamiento privado, nunca en una URL pública adivinable.</li>
       <li>Todo archivo subido (fotos, documentos) pasa por una validación real de contenido antes de guardarse, no solo de extensión.</li>
       <li>Límite de intentos en login y en las acciones que piden confirmar tu contraseña de nuevo, para frenar ataques de fuerza bruta.</li>
@@ -59,7 +67,7 @@
 
   <div class="ks-panel">
     <h2><i class="bi bi-person-check"></i> Tus derechos</h2>
-    <p class="ks-help mb-0">Puedes acceder, corregir o pedir la eliminación de tus datos personales en cualquier momento — edita tu perfil directamente desde la app, o escríbenos por <a href="{% url 'KeyServApp:contacto' %}">contacto</a> para lo que no tenga una opción de autoservicio todavía. Como usuario en Chile, estos derechos están amparados por la Ley 19.628 sobre protección de la vida privada, y por la Ley 21.719 en las materias que ya haya puesto en vigencia.</p>
+    <p class="ks-help mb-0">Desde la sección <strong>Preferencias → Mis datos</strong> de la app puedes <strong>descargar</strong> una copia de tus datos, <strong>corregirlos</strong> (o pedirnos que lo hagamos, con respuesta en un máximo de 30 días), <strong>oponerte</strong> al tratamiento biométrico, <strong>bloquear</strong> el tratamiento de tu cuenta (reversible) y <strong>eliminarla</strong>. Para cualquier otra cosa escríbenos por <a href="{% url 'KeyServApp:contacto' %}">contacto</a>. Como usuario en Chile, estos derechos están amparados por la Ley 19.628 sobre protección de la vida privada, y por la Ley 21.719 en las materias que ya haya puesto en vigencia.</p>
   </div>
 
   <div class="ks-panel">

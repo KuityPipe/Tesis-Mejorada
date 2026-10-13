@@ -35,6 +35,26 @@ export interface Usuario {
   // `comuna.region_id` (ver UsuarioMeSerializer.get_region).
   comuna: number | null;
   region: number | null;
+  // Derecho de bloqueo (Ley 21.719): con el tratamiento bloqueado no se puede publicar ni contratar.
+  tratamiento_bloqueado?: boolean;
+}
+
+export type TipoSolicitud = 'RECTIFICACION' | 'OPOSICION' | 'BLOQUEO';
+
+export interface SolicitudDerecho {
+  id: number;
+  tipo: TipoSolicitud;
+  estado: 'RECIBIDA' | 'RESUELTA' | 'RECHAZADA';
+  detalle: string;
+  respuesta: string;
+  creado_en: string;
+  vence_en: string;
+  vencida: boolean;
+}
+
+export interface EstadoDerechos {
+  tratamiento_bloqueado: boolean;
+  solicitudes: SolicitudDerecho[];
 }
 
 // Igual que `DocumentoPerfilSerializer` (api/serializers.py) — solo lo
@@ -295,6 +315,21 @@ export class Auth {
   /** `GET /api/auth/mis-datos/` — derecho de acceso/portabilidad: copia de los datos personales. */
   misDatos(): Observable<unknown> {
     return this.http.get<unknown>(`${environment.apiUrl}/auth/mis-datos/`);
+  }
+
+  /** `GET /api/auth/derechos/` — solicitudes de rectificación/oposición/bloqueo y su plazo de respuesta (30 días). */
+  derechos(): Observable<EstadoDerechos> {
+    return this.http.get<EstadoDerechos>(`${environment.apiUrl}/auth/derechos/`);
+  }
+
+  /** `POST /api/auth/derechos/` — rectificación u oposición. Con `finalidad: 'biometria'` la oposición se aplica al instante. */
+  crearSolicitudDerecho(tipo: 'RECTIFICACION' | 'OPOSICION', detalle: string, finalidad?: 'biometria'): Observable<EstadoDerechos> {
+    return this.http.post<EstadoDerechos>(`${environment.apiUrl}/auth/derechos/`, { tipo, detalle, finalidad });
+  }
+
+  /** `POST /api/auth/bloqueo-tratamiento/` — derecho de bloqueo; reversible. */
+  bloquearTratamiento(bloquear: boolean): Observable<Usuario> {
+    return this.http.post<Usuario>(`${environment.apiUrl}/auth/bloqueo-tratamiento/`, { bloquear });
   }
 
   /** `POST /api/auth/eliminar-cuenta/` — supresión (anonimiza la cuenta); pide la contraseña. 409 si hay contrataciones en curso. */

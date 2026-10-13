@@ -126,6 +126,51 @@
       </ion-card>
     </div>
 
+    <div class="ks-section" appReveal [appRevealDelay]="165" *ngIf="derechos">
+      <p class="ks-section-title"><ion-icon name="hand-left-outline"></ion-icon> Tus derechos sobre tus datos</p>
+      <ion-card>
+        <ion-card-content>
+          <p><strong>Corregir:</strong> edita tu perfil directamente. Si hay un dato que no puedes cambiar tú (por ejemplo el RUT), cuéntanoslo y lo corregimos; respondemos en un máximo de 30 días.</p>
+          <ion-item>
+            <ion-textarea label="Qué debemos corregir" labelPlacement="floating" rows="3" maxlength="1000" [(ngModel)]="detalleRectificacion"></ion-textarea>
+          </ion-item>
+          <ion-button expand="block" fill="outline" class="ion-margin-top" (click)="enviarRectificacion()" [disabled]="!detalleRectificacion.trim() || enviandoSolicitud">
+            Pedir rectificación
+          </ion-button>
+
+          <p class="ion-margin-top"><strong>Oponerme a la biometría:</strong> retira tu consentimiento y borra al instante el vector de tu rostro. Podrás verificar tu identidad por otra vía.</p>
+          <ion-button *ngIf="!confirmandoOposicion" expand="block" fill="outline" color="warning" (click)="confirmandoOposicion = true">
+            Oponerme al tratamiento biométrico
+          </ion-button>
+          <div *ngIf="confirmandoOposicion">
+            <ion-button expand="block" color="warning" (click)="oponerseABiometria()" [disabled]="enviandoSolicitud">Confirmar oposición</ion-button>
+            <ion-button expand="block" fill="clear" color="medium" (click)="confirmandoOposicion = false">Cancelar</ion-button>
+          </div>
+
+          <p class="ion-margin-top"><strong>Bloquear el tratamiento:</strong> conservamos tu cuenta pero la dejamos en pausa: tus servicios dejan de aparecer y no puedes publicar ni contratar. Puedes desbloquearla cuando quieras.</p>
+          <ion-button expand="block" fill="outline" [color]="derechos.tratamiento_bloqueado ? 'success' : 'medium'" (click)="alternarBloqueo()" [disabled]="cambiandoBloqueo">
+            {{ derechos.tratamiento_bloqueado ? 'Desbloquear mi cuenta' : 'Bloquear el tratamiento de mis datos' }}
+          </ion-button>
+
+          <ion-text color="danger" *ngIf="errorDerechos"><p>{{ errorDerechos }}</p></ion-text>
+
+          <ng-container *ngIf="derechos.solicitudes.length">
+            <p class="ion-margin-top"><strong>Tus solicitudes</strong></p>
+            <ion-list lines="full">
+              <ion-item *ngFor="let s of derechos.solicitudes">
+                <ion-label class="ion-text-wrap">
+                  <h3>{{ s.tipo === 'RECTIFICACION' ? 'Rectificación' : s.tipo === 'OPOSICION' ? 'Oposición' : 'Bloqueo' }} — {{ s.estado === 'RECIBIDA' ? 'en revisión' : s.estado === 'RESUELTA' ? 'resuelta' : 'rechazada' }}</h3>
+                  <p *ngIf="s.detalle">{{ s.detalle }}</p>
+                  <p *ngIf="s.respuesta">Respuesta: {{ s.respuesta }}</p>
+                  <p *ngIf="s.estado === 'RECIBIDA'">Respondemos antes del {{ s.vence_en | date: 'dd/MM/yyyy' }}.</p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
+          </ng-container>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <!-- Mismo texto legal estático que preferencias_cuenta.html — se le había quedado afuera a este pantalla. -->
     <div class="ks-section" appReveal [appRevealDelay]="180">
       <p class="ks-section-title"><ion-icon name="document-text-outline"></ion-icon> Términos y condiciones</p>

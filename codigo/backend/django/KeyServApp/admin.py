@@ -18,8 +18,9 @@ from .models import (
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
     Ranking, Region, RolCuentaAdministrativa, TipoCuenta, TipoFirma,
     Transaccion, Usuario, UsuarioAdministrativo, UsuarioConversacion,
-    Valoracion, ValoracionImagen, VerificacionAlternativa,
+    Valoracion, ValoracionImagen, VerificacionAlternativa, EventoVerificacion, SolicitudTitular,
 )
+from . import verificaciones
 from .views import _recalcular_ranking
 
 
@@ -149,6 +150,61 @@ class VerificacionAlternativaAdmin(admin.ModelAdmin):
             elif obj.estado in (VerificacionAlternativa.APROBADA, VerificacionAlternativa.RECHAZADA):
                 obj.revisado_por = request.user
                 obj.revisado_en = timezone.now()
+                verificaciones.registrar_evento(
+                    obj.usuario, EventoVerificacion.ALTERNATIVA,
+                    'aprobacion' if obj.estado == VerificacionAlternativa.APROBADA else 'rechazo',
+                    EventoVerificacion.EXITOSO if obj.estado == VerificacionAlternativa.APROBADA else EventoVerificacion.FALLIDO,
+                    f'revisado por {request.user.get_username()}',
+                )
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(EventoVerificacion)
+class EventoVerificacionAdmin(admin.ModelAdmin):
+    """
+    Auditoría de verificaciones de identidad (quién, cuándo, método, resultado). Solo lectura y solo
+    para superusuarios (el Moderador no tiene permiso): es evidencia. Nunca contiene datos biométricos.
+    """
+    list_display = ('fecha', 'usuario', 'metodo', 'accion', 'resultado', 'detalle')
+    list_filter = ('metodo', 'resultado', 'accion')
+    search_fields = ('usuario__email', 'usuario__nombre_usuario', 'usuario__apellido_usuario')
+    date_hierarchy = 'fecha'
+    readonly_fields = ('usuario', 'metodo', 'accion', 'resultado', 'detalle', 'fecha')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SolicitudTitular)
+class SolicitudTitularAdmin(admin.ModelAdmin):
+    """
+    Solicitudes de rectificación/oposición/bloqueo de datos personales (Ley 21.719): plazo de 30 días
+    corridos para responder. El dashboard del superusuario avisa de las pendientes. Al marcar una como
+    resuelta/rechazada queda quién y cuándo (`resuelto_por`/`resuelto_en`).
+    """
+    list_display = ('id_solicitud', 'usuario', 'tipo', 'estado', 'creado_en', 'vence_en', 'vencida', 'resuelto_por')
+    list_filter = ('estado', 'tipo')
+    search_fields = ('usuario__email', 'usuario__nombre_usuario', 'usuario__apellido_usuario', 'detalle')
+    fields = ('usuario', 'tipo', 'detalle', 'creado_en', 'vence_en', 'estado', 'respuesta', 'resuelto_por', 'resuelto_en')
+    readonly_fields = ('usuario', 'tipo', 'detalle', 'creado_en', 'vence_en', 'resuelto_por', 'resuelto_en')
+
+    @admin.display(boolean=True, description='Vencida')
+    def vencida(self, obj):
+        return obj.vencida
+
+    def has_add_permission(self, request):
+        return False
+
+    def save_model(self, request, obj, form, change):
+        if 'estado' in form.changed_data and obj.estado in (SolicitudTitular.RESUELTA, SolicitudTitular.RECHAZADA):
+            obj.resuelto_por = request.user
+            obj.resuelto_en = timezone.now()
         super().save_model(request, obj, form, change)
 
 
@@ -423,11 +479,11 @@ _CATEGORIAS_ADMIN = [
         'valoracion', 'valoracionimagen', 'contratacion',
         'historialestadocontratacion', 'ranking',
     ]),
-    ('seguridad', 'Seguridad', ['intentoaccesosospechoso', 'verificacionalternativa']),
+    ('seguridad', 'Seguridad', ['intentoaccesosospechoso', 'verificacionalternativa', 'eventoverificacion']),
     ('mensajeria', 'Mensajería', ['conversacion', 'mensaje', 'usuarioconversacion']),
     ('cuentas', 'Usuarios y cuentas', [
         'usuario', 'usuarioadministrativo', 'rolcuentaadministrativa',
-        'areaadministrativa', 'group', 'user',
+        'areaadministrativa', 'group', 'user', 'solicitudtitular',
     ]),
     ('catalogos', 'Catálogos de referencia', [
         'region', 'comuna', 'tipocuenta', 'estadoautentificacion',

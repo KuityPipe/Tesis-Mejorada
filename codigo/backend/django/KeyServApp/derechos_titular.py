@@ -15,11 +15,48 @@ import secrets
 
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from .models import (
-    ConsentimientoBiometrico, Consulta, Contratacion, Documento, IntentoAccesoSospechoso,
-    Mensaje, Pago, Publicaciones, TokenSesion, Valoracion, ValoracionImagen,
+    ConsentimientoBiometrico, Consulta, Contratacion, Documento, EventoVerificacion,
+    IntentoAccesoSospechoso, Mensaje, Pago, Publicaciones, SolicitudTitular, TokenSesion,
+    Valoracion, ValoracionImagen,
 )
+
+MENSAJE_BLOQUEADO = (
+    'Bloqueaste el tratamiento de tus datos: tu cuenta se conserva pero no puedes publicar ni contratar. '
+    'Puedes desbloquearla cuando quieras desde "Mis datos".'
+)
+CODIGO_BLOQUEADO = 'tratamiento_bloqueado'
+
+
+def tratamiento_bloqueado(usuario):
+    return bool(usuario.tratamiento_bloqueado_en)
+
+
+@transaction.atomic
+def fijar_bloqueo(usuario, bloquear):
+    """Derecho de bloqueo: reversible; deja constancia como solicitud resuelta al instante."""
+    if bloquear == tratamiento_bloqueado(usuario):
+        return
+    usuario.tratamiento_bloqueado_en = timezone.now() if bloquear else None
+    usuario.save(update_fields=['tratamiento_bloqueado_en'])
+    SolicitudTitular.objects.create(
+        usuario=usuario, tipo=SolicitudTitular.BLOQUEO, estado=SolicitudTitular.RESUELTA,
+        detalle='Bloqueo del tratamiento' if bloquear else 'Desbloqueo del tratamiento',
+        respuesta='Aplicado automáticamente.', resuelto_en=timezone.now(),
+    )
+
+
+@transaction.atomic
+def solicitar_oposicion_biometria(usuario):
+    """Oposición al tratamiento biométrico: se revoca el consentimiento y se borra el vector, al instante."""
+    ConsentimientoBiometrico.revocar(usuario)
+    return SolicitudTitular.objects.create(
+        usuario=usuario, tipo=SolicitudTitular.OPOSICION, estado=SolicitudTitular.RESUELTA,
+        detalle='Oposición al tratamiento biométrico',
+        respuesta='Consentimiento revocado y vector facial eliminado.', resuelto_en=timezone.now(),
+    )
 
 ESTADOS_ACTIVOS = [Contratacion.SOLICITADA, Contratacion.CONFIRMADA, Contratacion.EN_CURSO]
 
@@ -46,6 +83,8 @@ def exportar_datos(usuario):
         'experiencia': usuario.experiencia,
         'tiene_foto_perfil': bool(usuario.foto_perfil),
         'verificado_biometricamente': usuario.verificado_biometricamente,
+        'verificado_en': usuario.verificado_en,
+        'tratamiento_bloqueado': bool(usuario.tratamiento_bloqueado_en),
         'tiene_rostro_registrado': bool(usuario.encoding_facial),
     }
     return {
@@ -92,6 +131,15 @@ def exportar_datos(usuario):
             {'asunto': c.asunto_consulta, 'descripcion': c.descripcion, 'fecha': c.fecha_consulta}
             for c in Consulta.objects.filter(usuario_consulta=usuario)
         ],
+        'eventos_de_verificacion': [
+            {'fecha': e.fecha, 'metodo': e.metodo, 'accion': e.accion, 'resultado': e.resultado}
+            for e in EventoVerificacion.objects.filter(usuario=usuario)
+        ],
+        'solicitudes_de_derechos': [
+            {'tipo': s.tipo, 'estado': s.estado, 'detalle': s.detalle, 'respuesta': s.respuesta,
+             'fecha': s.creado_en, 'resuelta_en': s.resuelto_en}
+            for s in SolicitudTitular.objects.filter(usuario=usuario)
+        ],
         'accesos_sospechosos_asociados': [
             {'fecha': i.fecha, 'ruta': i.ruta, 'detalle': i.detalle}
             for i in IntentoAccesoSospechoso.objects.filter(usuario=usuario)
@@ -109,6 +157,8 @@ def eliminar_cuenta(usuario):
     """Anonimiza la cuenta (ver docstring del módulo). Llamar solo sin contrataciones activas."""
     ConsentimientoBiometrico.revocar(usuario)  # borra el vector facial y baja la verificación
     TokenSesion.objects.filter(usuario=usuario).delete()
+    EventoVerificacion.objects.filter(usuario=usuario).delete()
+    SolicitudTitular.objects.filter(usuario=usuario).delete()
 
     for documento in Documento.objects.filter(usuario=usuario):
         _borrar_archivo(documento.archivo_subido)
@@ -146,5 +196,7 @@ def eliminar_cuenta(usuario):
     usuario.experiencia = ''
     usuario.es_proveedor = False
     usuario.verificado_biometricamente = False
+    usuario.verificado_en = None
+    usuario.tratamiento_bloqueado_en = None
     usuario.set_password(secrets.token_urlsafe(32))
     usuario.save()

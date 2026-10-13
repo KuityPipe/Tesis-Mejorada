@@ -74,3 +74,24 @@ orden, derivados de `docs/fase-0-reconocimiento.md`:
 - **Retención agendada con GitHub Actions** (`.github/workflows/retencion.yml`, semanal, contra Neon) en vez del
   cron de pago de Render. Limitación: no alcanza las fotos de chat del disco de Render (efímero).
 - **Tests rápidos:** `settings_test.py` (MD5, solo con `manage.py test`) baja la suite de ~13 min a ~25 s.
+
+## 2026-10-12 — Corrección: el plan original tiene 7 fases, no las que había reconstruido
+
+El usuario pegó el plan maestro original. Mi reconstrucción anterior (`PLAN_MAESTRO_2026-27.md`) estaba mal: había
+fundido las fases 2 y 3 en "Identidad"/"Biometría y datos" y no conocía la Fase 4 ni la 7. Fases reales: 0 Reconocimiento,
+1 Auditoría, 2 Reforzar verificación, 3 Refuerzo, **4 Cumplimiento visible**, 5 Bot (NVIDIA NIM), 6 Rediseño, 7 Cierre.
+Lo ya hecho calza casi todo en las Fases 2–4. Quedan brechas explícitas (tabla de estado en el plan maestro): documento
+de auditoría (Fase 1), ADR y diagrama (Fase 2), verificación reciente / registro de eventos / rotación documentada (Fase 3),
+panel "Mis datos" completo y protocolo de brechas (Fase 4) y todo lo de las Fases 5–7.
+**Convención de trabajo (decisión del dueño, 2026-10-12):** el plan pide commits en inglés y una rama por fase; se
+decidió **mantener commits en español y trabajar en `master`** para no acumular ramas sueltas. En lugar de una rama de
+respaldos se usan **tags** en los hitos (p. ej. `pre-cierre-fases-1-4`): son baratos, no ensucian la lista de ramas y
+GitHub ya respalda el historial completo.
+
+## 2026-10-12 — Cierre de las Fases 1–4 (brechas del plan original)
+
+Se cerraron las brechas detectadas contra el plan original: documento de auditoría (Fase 1); ADRs y diagrama (Fase 2);
+verificación **reciente** (180 días), registro de eventos de verificación sin datos biométricos, guía y comando de
+rotación de llaves, y tests de fallos (Fase 3); "Mis datos" con rectificación, oposición y bloqueo, política de retención
+visible y protocolo de brechas (Fase 4). Decisiones: ver `docs/adr/0003` y `0004`. Quedan fuera por decisión del dueño:
+revisión legal, entorno de producción real y respaldo del keystore de Android.

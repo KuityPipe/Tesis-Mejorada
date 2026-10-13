@@ -207,6 +207,12 @@ class Usuario(models.Model):
     # Un mismo Usuario puede ser ambos (no es excluyente).
     es_proveedor = models.BooleanField(default=False, db_column='ES_PROVEEDOR')
     verificado_biometricamente = models.BooleanField(default=False, db_column='VERIFICADO_BIOMETRICAMENTE')
+    # Cuándo se obtuvo la verificación biométrica vigente (nativa o rostro). La identidad solo cuenta
+    # como verificada si es reciente (`settings.IDENTIDAD_VIGENCIA_DIAS`, ver identidad.py).
+    verificado_en = models.DateTimeField(null=True, blank=True, db_column='VERIFICADO_EN')
+    # Derecho de bloqueo (Ley 21.719): mientras esté fijado, la cuenta se conserva pero no se trata
+    # activamente — sus publicaciones salen del catálogo y no puede contratar ni publicar. Reversible.
+    tratamiento_bloqueado_en = models.DateTimeField(null=True, blank=True, db_column='TRATAMIENTO_BLOQUEADO_EN')
     # NUEVO: encoding de referencia (vector de 128 dimensiones que devuelve
     # face_recognition) para el segundo método de verificación de RF001
     # ("huella, Face ID o clave única" — son alternativas, no las tres a la
@@ -930,7 +936,12 @@ class ConsentimientoBiometrico(models.Model):
         cls.objects.filter(usuario=usuario, revocado_en__isnull=True).update(revocado_en=timezone.now())
         usuario.encoding_facial = None
         usuario.verificado_biometricamente = False
-        usuario.save(update_fields=['encoding_facial', 'verificado_biometricamente'])
+        usuario.verificado_en = None
+        usuario.save(update_fields=['encoding_facial', 'verificado_biometricamente', 'verificado_en'])
+        EventoVerificacion.objects.create(
+            usuario=usuario, metodo=EventoVerificacion.ROSTRO, accion='revocacion_consentimiento',
+            resultado=EventoVerificacion.EXITOSO,
+        )
 
 
 class VerificacionAlternativa(models.Model):
@@ -970,3 +981,78 @@ class VerificacionAlternativa(models.Model):
 
     def __str__(self):
         return f'{self.usuario_id} — {self.estado}'
+
+
+class EventoVerificacion(models.Model):
+    """
+    Registro de auditoría de los intentos y cambios de verificación de identidad: quién, cuándo,
+    por qué vía y con qué resultado. **Nunca guarda datos biométricos** (ni imágenes, ni vectores,
+    ni distancias): solo el hecho. Se purga a los 365 días (`purgar_datos_vencidos`) y se borra al
+    eliminar la cuenta.
+    """
+    NATIVA, ROSTRO, ALTERNATIVA = 'NATIVA', 'ROSTRO', 'ALTERNATIVA'
+    METODOS = [(NATIVA, 'Biometría del teléfono'), (ROSTRO, 'Reconocimiento facial'), (ALTERNATIVA, 'Vía sin biometría')]
+    EXITOSO, FALLIDO = 'EXITOSO', 'FALLIDO'
+    RESULTADOS = [(EXITOSO, 'Exitoso'), (FALLIDO, 'Fallido')]
+    id_evento = models.BigAutoField(primary_key=True, db_column='ID_EVENTO')
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='eventos_verificacion', db_column='FK_USUARIO')
+    metodo = models.CharField(max_length=15, choices=METODOS, db_column='METODO')
+    accion = models.CharField(max_length=30, db_column='ACCION')  # verificacion, registro_rostro, aprobacion, rechazo, revocacion...
+    resultado = models.CharField(max_length=10, choices=RESULTADOS, db_column='RESULTADO')
+    detalle = models.CharField(max_length=120, blank=True, db_column='DETALLE')
+    fecha = models.DateTimeField(auto_now_add=True, db_column='FECHA')
+
+    class Meta:
+        db_table = 'EVENTO_VERIFICACION'
+        ordering = ['-fecha']
+        verbose_name = 'Evento de verificación'
+        verbose_name_plural = 'Eventos de verificación'
+
+    def __str__(self):
+        return f'{self.usuario_id} {self.metodo}/{self.accion} {self.resultado}'
+
+
+class SolicitudTitular(models.Model):
+    """
+    Solicitud de una persona sobre sus datos (Ley 21.719): rectificación, oposición o bloqueo. Hay un
+    plazo general de respuesta de 30 días corridos desde `creado_en` (`vence_en`). Las que se pueden
+    resolver solas (oposición a la biometría, bloqueo) quedan resueltas al instante; el resto las
+    atiende el superusuario desde /admin/. Acceso/portabilidad y supresión son autoservicio
+    (`mis-datos`, `eliminar-cuenta`) y no pasan por acá.
+    """
+    RECTIFICACION, OPOSICION, BLOQUEO = 'RECTIFICACION', 'OPOSICION', 'BLOQUEO'
+    TIPOS = [(RECTIFICACION, 'Rectificación'), (OPOSICION, 'Oposición'), (BLOQUEO, 'Bloqueo')]
+    RECIBIDA, RESUELTA, RECHAZADA = 'RECIBIDA', 'RESUELTA', 'RECHAZADA'
+    ESTADOS = [(RECIBIDA, 'Recibida'), (RESUELTA, 'Resuelta'), (RECHAZADA, 'Rechazada')]
+    PLAZO_DIAS = 30
+    id_solicitud = models.BigAutoField(primary_key=True, db_column='ID_SOLICITUD')
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='solicitudes_titular', db_column='FK_USUARIO')
+    tipo = models.CharField(max_length=15, choices=TIPOS, db_column='TIPO')
+    detalle = models.TextField(blank=True, max_length=1000, db_column='DETALLE')
+    estado = models.CharField(max_length=10, choices=ESTADOS, default=RECIBIDA, db_column='ESTADO')
+    respuesta = models.TextField(blank=True, max_length=1000, db_column='RESPUESTA')
+    creado_en = models.DateTimeField(auto_now_add=True, db_column='CREADO_EN')
+    resuelto_en = models.DateTimeField(null=True, blank=True, db_column='RESUELTO_EN')
+    resuelto_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitudes_titular_resueltas', db_column='FK_RESUELTO_POR',
+    )
+
+    class Meta:
+        db_table = 'SOLICITUD_TITULAR'
+        ordering = ['-creado_en']
+        verbose_name = 'Solicitud de titular de datos'
+        verbose_name_plural = 'Solicitudes de titulares de datos'
+
+    @property
+    def vence_en(self):
+        from datetime import timedelta
+        return self.creado_en + timedelta(days=self.PLAZO_DIAS)
+
+    @property
+    def vencida(self):
+        from django.utils import timezone
+        return self.estado == self.RECIBIDA and timezone.now() > self.vence_en
+
+    def __str__(self):
+        return f'{self.usuario_id} {self.tipo} {self.estado}'

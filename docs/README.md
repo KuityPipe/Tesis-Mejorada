@@ -8,9 +8,13 @@ El repo es público (portafolio). Esta tabla dice qué hay, para qué sirve y si
 | Documento | Para qué | Mostrable |
 |---|---|---|
 | `ESTADO_Y_PROXIMOS_PASOS.md` | Dónde quedamos y qué sigue | Sí (interno por naturaleza, pero sin secretos) |
-| `PLAN_MAESTRO_2026-27.md` | Fases 0–6 y tabla de estado | Sí; reconstruido, Fases 4–5 sin detalle |
+| `PLAN_MAESTRO_2026-27.md` | Las 7 fases del plan y su estado (resumen del original) | Sí |
 | `plan-ajustes.md` | Registro fechado de cambios de alcance | Sí |
 | `fase-0-reconocimiento.md` | Auditoría inicial y riesgos | Con reserva: lista riesgos de seguridad (ya mitigados la mayoría) |
+| `fase-1-auditoria-datos.md` | Inventario de datos, hallazgos y brechas frente a la ley | Sí |
+| `adr/` | Decisiones de arquitectura (verificación, cifrado, vigencia/auditoría, derechos del titular) | Sí |
+| `legal/protocolo-de-brechas.md` | Protocolo ante brechas de seguridad, **borrador** | Con reserva: marcar como borrador |
+| `cumplimiento/rotacion-de-llaves.md` | Cómo rotar la clave de cifrado biométrico | Sí |
 | `legal/eipd-reconocimiento-facial.md` | EIPD, **borrador sin revisión legal** | Con reserva: marcar como borrador |
 | `cumplimiento/*.md` | Registro de tratamiento y encargados, **borradores** | Con reserva: ídem |
 | `BACKLOG.md` | Pendientes funcionales de producto | Sí |

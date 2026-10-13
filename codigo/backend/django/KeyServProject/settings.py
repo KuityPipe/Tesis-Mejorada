@@ -372,6 +372,9 @@ BIOMETRIC_ENCRYPTION_KEYS = env.list('BIOMETRIC_ENCRYPTION_KEYS', default=[])
 # Exigir identidad verificada para contratar y publicar (KeyServApp/identidad.py). Apagado
 # por defecto: la demo pública no ofrece biometría. Encender en producción real.
 EXIGIR_IDENTIDAD_VERIFICADA = env.bool('EXIGIR_IDENTIDAD_VERIFICADA', default=False)
+# Días que vale una verificación de identidad (identidad.py); pasado ese plazo hay que repetirla.
+# Propuesta técnica (180 días), a validar con asesoría legal junto con el resto de la política de retención.
+IDENTIDAD_VIGENCIA_DIAS = env.int('IDENTIDAD_VIGENCIA_DIAS', default=180)
 JWT_ALGORITHM = 'HS256'
 JWT_ACCESS_TOKEN_MINUTOS = env.int('JWT_ACCESS_TOKEN_MINUTOS', default=20)
 JWT_REFRESH_TOKEN_DIAS = env.int('JWT_REFRESH_TOKEN_DIAS', default=30)

@@ -41,13 +41,14 @@ from .forms import (
     PreferenciasCuentaForm, CrearPerfilForm,
 )
 from .models import (
+    EventoVerificacion,
     Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta,
     EstadoDocumento, HistorialEstadoContratacion, Imagenes,
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
     Ranking, Region, Transaccion, Usuario, UsuarioConversacion,
     Valoracion, ValoracionImagen,
 )
-from . import biometria, consentimiento, geolocalizacion, identidad, pagos
+from . import biometria, consentimiento, geolocalizacion, identidad, pagos, verificaciones
 from . import validators
 
 logger = logging.getLogger(__name__)
@@ -1595,8 +1596,10 @@ def registro_rostro_view(request):
     if encoding is not None:
         usuario.encoding_facial = encoding
         usuario.save()
+        verificaciones.registrar_evento(usuario, EventoVerificacion.ROSTRO, 'registro_rostro', EventoVerificacion.EXITOSO)
         messages.success(request, 'Rostro registrado. Ahora puedes verificarlo.')
     else:
+        verificaciones.registrar_fallo(usuario, EventoVerificacion.ROSTRO, 'registro_rostro', 'prueba de vida no superada')
         messages.error(request, 'No se pudo validar la prueba de vida — mira a la cámara, parpadea una vez durante la captura, y asegúrate de tener buena luz.')
     return redirect('KeyServApp:rostro')
 
@@ -1629,12 +1632,13 @@ def verificacion_facial_view(request):
             os.remove(ruta)
 
     if resultado:
-        usuario.verificado_biometricamente = True
-        usuario.save()
+        verificaciones.marcar_verificado(usuario, EventoVerificacion.ROSTRO)
         messages.success(request, 'Rostro verificado correctamente.')
     elif resultado is False:
+        verificaciones.registrar_fallo(usuario, EventoVerificacion.ROSTRO, 'verificacion', 'no coincide')
         messages.error(request, 'El rostro no coincide con el registrado. Intenta nuevamente.')
     else:
+        verificaciones.registrar_fallo(usuario, EventoVerificacion.ROSTRO, 'verificacion', 'no procesable')
         messages.error(request, 'No se pudo procesar la foto. Intenta nuevamente.')
     return redirect('KeyServApp:perfil')
 

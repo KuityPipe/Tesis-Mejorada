@@ -33,7 +33,7 @@ from .models import (
     Comuna, Consulta, Contratacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, IntentoAccesoSospechoso, ItemPresupuesto,
     Pago, Publicaciones, Ranking, Region, TipoCuenta, Usuario, Valoracion,
-    ValoracionImagen, VerificacionAlternativa,
+    ValoracionImagen, VerificacionAlternativa, EventoVerificacion, SolicitudTitular,
 )
 from . import biometria, geolocalizacion, validators
 from .templatetags.admin_extras import panel_aprobaciones
@@ -687,6 +687,7 @@ class EnforcementIdentidadTemplateTests(TestCase):
 
     def test_contratar_verificado_si_crea_la_contratacion(self):
         self.cliente.verificado_biometricamente = True
+        self.cliente.verificado_en = timezone.now()
         self.cliente.save()
         self._login(self.cliente)
         self.client.post(reverse('KeyServApp:contratacion_crear', args=[self.publicacion.id_publicacion]))
@@ -2099,3 +2100,66 @@ class RechazoDeRostroDistintoTests(TestCase):
         import numpy as np
         with mock.patch('probando_face_recognition.verificar_prueba_de_vida_parpadeo', return_value=np.asarray(self.base)):
             self.assertIs(biometria.verificar_rostro_usuario(self.base, ['f1.png']), True)
+
+
+class AdminDerechosTitularTests(TestCase):
+    """Solicitudes de titulares y auditoría de verificaciones en /admin/ (solo superusuario)."""
+
+    def setUp(self):
+        _, comuna, tipo = _crear_region_comuna_tipo()
+        self.titular = _crear_usuario('titular_admin@test.com', comuna=comuna, tipo_cuenta=tipo)
+        self.superuser = User.objects.create_superuser('super_der', 'super_der@test.com', 'clave12345')
+        call_command('configurar_grupo_moderador', verbosity=0)
+        self.moderador = User.objects.create_user('mod_der', password='ModTest1234', is_staff=True)
+        self.moderador.groups.add(Group.objects.get(name='Moderador'))
+        self.solicitud = SolicitudTitular.objects.create(usuario=self.titular, tipo=SolicitudTitular.RECTIFICACION, detalle='Corregir mi RUT')
+
+    def _contexto(self, user):
+        request = RequestFactory().get('/admin/')
+        request.user = user
+        return panel_aprobaciones({'request': request})
+
+    def test_superuser_ve_las_solicitudes_pendientes_y_las_vencidas(self):
+        vieja = SolicitudTitular.objects.create(usuario=self.titular, tipo=SolicitudTitular.OPOSICION, detalle='x')
+        SolicitudTitular.objects.filter(pk=vieja.pk).update(creado_en=timezone.now() - timezone.timedelta(days=31))
+        contexto = self._contexto(self.superuser)
+        self.assertEqual(contexto['total_solicitudes_titular'], 2)
+        self.assertEqual(contexto['total_solicitudes_vencidas'], 1)
+
+    def test_moderador_no_ve_solicitudes_ni_eventos(self):
+        self.assertNotIn('total_solicitudes_titular', self._contexto(self.moderador))
+        client = Client()
+        client.force_login(self.moderador)
+        self.assertEqual(client.get(reverse('admin:KeyServApp_solicitudtitular_changelist')).status_code, 403)
+        self.assertEqual(client.get(reverse('admin:KeyServApp_eventoverificacion_changelist')).status_code, 403)
+
+    def test_resolver_una_solicitud_registra_quien_y_cuando(self):
+        client = Client()
+        client.force_login(self.superuser)
+        url = reverse('admin:KeyServApp_solicitudtitular_change', args=[self.solicitud.pk])
+        client.post(url, {'estado': SolicitudTitular.RESUELTA, 'respuesta': 'Corregido'})
+        self.solicitud.refresh_from_db()
+        self.assertEqual(self.solicitud.estado, SolicitudTitular.RESUELTA)
+        self.assertEqual(self.solicitud.resuelto_por, self.superuser)
+        self.assertIsNotNone(self.solicitud.resuelto_en)
+
+    def test_eventos_de_verificacion_son_de_solo_lectura(self):
+        evento = EventoVerificacion.objects.create(usuario=self.titular, metodo='NATIVA', accion='verificacion', resultado='EXITOSO')
+        client = Client()
+        client.force_login(self.superuser)
+        self.assertEqual(client.get(reverse('admin:KeyServApp_eventoverificacion_changelist')).status_code, 200)
+        self.assertEqual(client.post(reverse('admin:KeyServApp_eventoverificacion_delete', args=[evento.pk]), {'post': 'yes'}).status_code, 403)
+        self.assertTrue(EventoVerificacion.objects.filter(pk=evento.pk).exists())
+
+    def test_aprobacion_de_via_alternativa_deja_evento_de_auditoria(self):
+        pdf = SimpleUploadedFile('c.pdf', b'%PDF-1.4 t', content_type='application/pdf')
+        doc = Documento.objects.create(usuario=self.titular, nombre_documento='c.pdf', archivo_subido=pdf)
+        v = VerificacionAlternativa.objects.create(
+            usuario=self.titular, estado=VerificacionAlternativa.PENDIENTE_REVISION, correo_verificado_en=timezone.now(), documento=doc,
+        )
+        client = Client()
+        client.force_login(self.superuser)
+        client.post(reverse('admin:KeyServApp_verificacionalternativa_change', args=[v.pk]), {'estado': VerificacionAlternativa.APROBADA, 'motivo_rechazo': ''})
+        evento = EventoVerificacion.objects.get(usuario=self.titular, accion='aprobacion')
+        self.assertEqual((evento.metodo, evento.resultado), ('ALTERNATIVA', 'EXITOSO'))
+

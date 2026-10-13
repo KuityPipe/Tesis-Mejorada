@@ -22,7 +22,8 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.utils import timezone
 
-from .models import VerificacionAlternativa
+from . import verificaciones
+from .models import EventoVerificacion, VerificacionAlternativa
 
 logger = logging.getLogger(__name__)
 
@@ -101,11 +102,13 @@ def confirmar_codigo(usuario, codigo):
     verificacion.intentos_codigo += 1
     if not hmac.compare_digest(verificacion.codigo_hash, _hash_codigo((codigo or '').strip())):
         verificacion.save(update_fields=['intentos_codigo'])
+        verificaciones.registrar_fallo(usuario, EventoVerificacion.ALTERNATIVA, 'codigo_correo', 'código incorrecto')
         raise ErrorVerificacion('Código incorrecto.')
 
     verificacion.correo_verificado_en = timezone.now()
     verificacion.codigo_hash = ''
     verificacion.save()
+    verificaciones.registrar_evento(usuario, EventoVerificacion.ALTERNATIVA, 'codigo_correo', EventoVerificacion.EXITOSO)
     return verificacion
 
 
@@ -127,5 +130,6 @@ def adjuntar_documento(usuario, archivo, estado_documento):
     verificacion.estado = VerificacionAlternativa.PENDIENTE_REVISION
     verificacion.motivo_rechazo = ''
     verificacion.save()
+    verificaciones.registrar_evento(usuario, EventoVerificacion.ALTERNATIVA, 'documento_enviado', EventoVerificacion.EXITOSO)
     logger.info('Documento de identidad recibido para revisión: usuario_id=%s', usuario.pk)
     return verificacion

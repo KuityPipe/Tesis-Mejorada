@@ -30,6 +30,12 @@ es 0" (debe seguir mostrando la tarjeta, en verde).
     <span class="ks-kpi-l">Verificaciones de identidad por revisar</span>
   </a>
   {% endif %}
+  {% if total_solicitudes_titular is not None %}
+  <a class="ks-kpi-card {% if total_solicitudes_vencidas %}ks-kpi-urgent{% elif total_solicitudes_titular %}ks-kpi-urgent{% else %}ks-kpi-ok{% endif %}" href="{% url 'admin:KeyServApp_solicitudtitular_changelist' %}?estado__exact=RECIBIDA">
+    <span class="ks-kpi-n">{{ total_solicitudes_titular }}</span>
+    <span class="ks-kpi-l">Solicitudes de titulares por responder{% if total_solicitudes_vencidas %} ({{ total_solicitudes_vencidas }} vencidas){% endif %}</span>
+  </a>
+  {% endif %}
   {% if total_sospechosos is not None %}
   <a class="ks-kpi-card {% if total_sospechosos %}ks-kpi-urgent{% else %}ks-kpi-ok{% endif %}" href="{% url 'admin:KeyServApp_intentoaccesosospechoso_changelist' %}">
     <span class="ks-kpi-n">{{ total_sospechosos }}</span>
@@ -98,6 +104,26 @@ es 0" (debe seguir mostrando la tarjeta, en verde).
     </tr>
     {% empty %}
     <tr><td class="ks-panel-empty">No hay verificaciones pendientes 🎉</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if total_solicitudes_titular is not None %}
+<div class="app-ks_panel module" id="ks-panel-solicitudes-titular">
+  <table>
+    <caption>
+      <a href="{% url 'admin:KeyServApp_solicitudtitular_changelist' %}?estado__exact=RECIBIDA" class="section" title="{% translate 'Ver todas' %}">
+        📨 Solicitudes de datos por responder (plazo 30 días){% if total_solicitudes_titular %} ({{ total_solicitudes_titular }}){% endif %}
+      </a>
+    </caption>
+    {% for sol in solicitudes_titular %}
+    <tr>
+      <th scope="row"><a href="{% url 'admin:KeyServApp_solicitudtitular_change' sol.pk %}">{{ sol.get_tipo_display }} — {{ sol.usuario }}</a></th>
+      <td>Vence el {{ sol.vence_en|date:"d/m/Y" }}{% if sol.vencida %} ⚠️ vencida{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td class="ks-panel-empty">No hay solicitudes pendientes 🎉</td></tr>
     {% endfor %}
   </table>
 </div>

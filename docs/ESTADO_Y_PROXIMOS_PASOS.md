@@ -19,6 +19,12 @@
 - Latencia: API en Oregon + base en São Paulo → `/api/publicaciones/` tarda ~3,5 s. Decisión del usuario: se deja así, es solo un demo (si molesta: crear la base de Neon en `aws-us-west-2`).
 - Si vuelve a fallar: revisar `DATABASE_URL` y los logs de Render. Opcional: ping cada 10 min (UptimeRobot) contra `/api/catalogos/categorias/` evita el arranque en frío, pero consume horas de cómputo de Neon.
 
+## Pospuesto a propósito (decisión del usuario, 2026-10-12)
+
+- **Respaldo del keystore de Android** (`android/app/keyserv-release.keystore` + `keystore.properties`): se hace desde el PC de torre, donde está Android Studio.
+- **Revisión legal por un abogado** (consentimiento, EIPD, registro de tratamiento, qué se conserva al eliminar una cuenta): sin presupuesto por ahora.
+- **Entorno de producción real**: no existe, solo el demo/prototipo. Hasta entonces `BIOMETRIC_ENCRYPTION_KEYS` y `EXIGIR_IDENTIDAD_VERIFICADA` quedan sin tocar.
+
 ## Pendientes por fase
 
 **Fase 2/3 — cierre**
@@ -30,12 +36,15 @@
 - Revisión de un abogado: texto del consentimiento (`KeyServApp/consentimiento.py`), advertencia (`verificacion_alternativa.py`),
   EIPD (`docs/legal/`), registro de tratamiento y encargados (`docs/cumplimiento/`), y qué se conserva al eliminar una cuenta.
 - (Hecho 2026-10-12) `privacidad.html` menciona el RUT y los tests de rechazo facial (vectores sintéticos; la detección sobre imágenes reales sigue siendo prueba manual).
+- Tras el próximo deploy en Render: `migrate` aplica `0033`; si la base de Neon ya tenía usuarios verificados, la migración les fija `verificado_en`.
 
-**Fases 4, 5 y 6**
-- Fase 4 y el bot (Fase 5): el plan maestro original no está en el repo; `PLAN_MAESTRO_2026-27.md` es una reconstrucción y
-  las marca como pendientes de reconstruir. **Pegar el texto original del plan para completarlas.**
-- Fase 6 (rediseño): migrar a standalone components/signals y control flow nuevo, accesibilidad (zoom bloqueado en
-  `index.html`, pocos `aria-label`), i18n ES/EN, bento grid, View Transitions. Ahora Node está disponible para probar Ionic.
+**Plan maestro original (7 fases, ver `PLAN_MAESTRO_2026-27.md`; texto completo local en `docs/privado/`)**
+- Fases 0–4: **hechas** (2026-10-12). Cerradas ese día: documento de auditoría (`fase-1-auditoria-datos.md`), ADRs 0001–0004 con diagrama, vigencia de 180 días y `EventoVerificacion`, `rotar_llaves_biometricas` + guía, "Mis datos" completo (rectificación, oposición, bloqueo), retención visible en `privacidad.html`, protocolo de brechas.
+- **Fase 5 (bot NVIDIA NIM):** necesita que el dueño cree una API key gratuita en build.nvidia.com (`nvapi-...`). Proxy en Django, filtro de datos personales, widget en Ionic, aviso de IA externa, respaldo sin IA.
+- **Fase 6 (rediseño):** propuesta visual para aprobación antes de implementar.
+- **Fase 7:** README, `resumen-mejoras.md`, índice y matriz de cumplimiento en `docs/cumplimiento/`.
+- Convención decidida por el dueño: commits en español, directo a `master`, tags para hitos (`pre-cierre-fases-1-4`).
+- Límites conocidos de lo cerrado: el bloqueo del tratamiento solo aplica a la API/Ionic (las plantillas Django están en retiro); la vía alternativa no tiene pantalla en las plantillas; la verificación vencida solo bloquea si `EXIGIR_IDENTIDAD_VERIFICADA=True` (apagado en el demo); los tests E2E de navegador de fallos de verificación no se hicieron porque el demo tiene el enforcement apagado (hay tests de backend).
 
 ## Ideas rápidas de mejora
 

@@ -15,8 +15,12 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
+from django.core.management import call_command
+
+from . import derechos_titular, identidad
 from .api import jwt_utils
 from .models import (
+    EventoVerificacion, SolicitudTitular,
     VerificacionAlternativa,
     ConsentimientoBiometrico,
     Comuna, Consulta, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion,
@@ -1738,6 +1742,7 @@ class VerificacionAlternativaApiTests(APITestCase):
 
         v = VerificacionAlternativa.objects.get(usuario=self.usuario)
         v.estado = VerificacionAlternativa.APROBADA
+        v.revisado_en = timezone.now()
         v.save()
         self.assertTrue(self.client.get('/api/auth/verificacion-alternativa/').data['identidad_verificada'])
         self.addCleanup(lambda: v.documento.archivo_subido.delete(save=False))
@@ -1758,6 +1763,7 @@ class VerificacionAlternativaApiTests(APITestCase):
         self.assertEqual(antes.status_code, 403)
         VerificacionAlternativa.objects.create(
             usuario=self.usuario, estado=VerificacionAlternativa.APROBADA, correo_verificado_en=timezone.now(),
+            revisado_en=timezone.now(),
         )
         despues = self.client.post('/api/contrataciones/', {'publicacion': publicacion.pk}, format='json')
         self.assertEqual(despues.status_code, 201)
@@ -1864,6 +1870,7 @@ class EnforcementIdentidadApiTests(APITestCase):
 
     def test_cliente_verificado_si_puede_contratar(self):
         self.cliente.verificado_biometricamente = True
+        self.cliente.verificado_en = timezone.now()
         self.cliente.save()
         self._como(self.cliente)
         resp = self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.pk}, format='json')
@@ -2023,3 +2030,247 @@ class RostroApiTests(APITestCase):
         self.assertEqual(resp.status_code, 400)
         self.usuario.refresh_from_db()
         self.assertFalse(self.usuario.verificado_biometricamente)
+
+
+class VigenciaYEventosVerificacionTests(APITestCase):
+    """Fase 3: la verificación debe ser VÁLIDA Y RECIENTE, y cada intento deja un evento sin datos biométricos."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('vig@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.client.force_authenticate(self.usuario)
+
+    def test_verificacion_reciente_cuenta(self):
+        self.usuario.verificado_biometricamente = True
+        self.usuario.verificado_en = timezone.now() - timezone.timedelta(days=10)
+        self.assertTrue(identidad.identidad_verificada(self.usuario))
+
+    def test_verificacion_vencida_ya_no_cuenta(self):
+        self.usuario.verificado_biometricamente = True
+        self.usuario.verificado_en = timezone.now() - timezone.timedelta(days=181)
+        self.assertFalse(identidad.identidad_verificada(self.usuario))
+
+    @override_settings(IDENTIDAD_VIGENCIA_DIAS=30)
+    def test_la_vigencia_es_configurable(self):
+        self.usuario.verificado_biometricamente = True
+        self.usuario.verificado_en = timezone.now() - timezone.timedelta(days=31)
+        self.assertFalse(identidad.identidad_verificada(self.usuario))
+
+    def test_verificado_sin_fecha_no_cuenta(self):
+        self.usuario.verificado_biometricamente = True
+        self.usuario.verificado_en = None
+        self.assertFalse(identidad.identidad_verificada(self.usuario))
+
+    def test_via_alternativa_aprobada_hace_mucho_ya_no_cuenta(self):
+        VerificacionAlternativa.objects.create(
+            usuario=self.usuario, estado=VerificacionAlternativa.APROBADA,
+            correo_verificado_en=timezone.now(), revisado_en=timezone.now() - timezone.timedelta(days=400),
+        )
+        self.assertFalse(identidad.identidad_verificada(self.usuario))
+
+    @override_settings(EXIGIR_IDENTIDAD_VERIFICADA=True)
+    def test_contratar_con_verificacion_vencida_se_bloquea(self):
+        proveedor = _crear_usuario('prov_vig@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=proveedor, titulo='X', estado_moderacion=Publicaciones.APROBADA)
+        self.usuario.verificado_biometricamente = True
+        self.usuario.verificado_en = timezone.now() - timezone.timedelta(days=400)
+        self.usuario.save()
+        resp = self.client.post('/api/contrataciones/', {'publicacion': publicacion.pk}, format='json')
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.data['code'], 'identidad_no_verificada')
+
+    def test_biometria_nativa_fija_fecha_y_registra_evento(self):
+        resp = self.client.post('/api/auth/verificar-biometria-nativa/')
+        self.assertEqual(resp.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertIsNotNone(self.usuario.verificado_en)
+        evento = EventoVerificacion.objects.get(usuario=self.usuario)
+        self.assertEqual((evento.metodo, evento.accion, evento.resultado), ('NATIVA', 'verificacion', 'EXITOSO'))
+
+    def test_rostro_que_no_coincide_registra_fallo_sin_marcar_verificado(self):
+        ConsentimientoBiometrico.otorgar(self.usuario)
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.save()
+        frames = [SimpleUploadedFile(f'{i}.jpg', b'x', content_type='image/jpeg') for i in range(3)]
+        with mock.patch('KeyServApp.views._obtener_frames_captura', return_value=[]), \
+                mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=False):
+            resp = self.client.post('/api/auth/rostro/verificar/', {'rostro_frames': frames}, format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.verificado_biometricamente)
+        evento = EventoVerificacion.objects.get(usuario=self.usuario)
+        self.assertEqual((evento.metodo, evento.resultado, evento.detalle), ('ROSTRO', 'FALLIDO', 'no coincide'))
+
+    def test_rostro_no_procesable_registra_fallo(self):
+        ConsentimientoBiometrico.otorgar(self.usuario)
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.save()
+        with mock.patch('KeyServApp.views._obtener_frames_captura', return_value=[]), \
+                mock.patch('KeyServApp.biometria.verificar_rostro_usuario', return_value=None):
+            resp = self.client.post('/api/auth/rostro/verificar/', {}, format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(EventoVerificacion.objects.get(usuario=self.usuario).detalle, 'no procesable')
+
+    def test_los_eventos_no_guardan_datos_biometricos(self):
+        self.client.post('/api/auth/verificar-biometria-nativa/')
+        campos = {f.name for f in EventoVerificacion._meta.get_fields()}
+        self.assertEqual(campos, {'id_evento', 'usuario', 'metodo', 'accion', 'resultado', 'detalle', 'fecha'})
+
+    def test_revocar_consentimiento_deja_evento_y_borra_fecha(self):
+        ConsentimientoBiometrico.otorgar(self.usuario)
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.verificado_biometricamente = True
+        self.usuario.verificado_en = timezone.now()
+        self.usuario.save()
+        self.client.delete('/api/auth/rostro/consentimiento/')
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.verificado_en)
+        self.assertTrue(EventoVerificacion.objects.filter(usuario=self.usuario, accion='revocacion_consentimiento').exists())
+
+    def test_eventos_se_exportan_y_se_borran_con_la_cuenta(self):
+        self.client.post('/api/auth/verificar-biometria-nativa/')
+        export = self.client.get('/api/auth/mis-datos/').data
+        self.assertEqual(len(export['eventos_de_verificacion']), 1)
+        derechos_titular.eliminar_cuenta(self.usuario)
+        self.assertFalse(EventoVerificacion.objects.filter(usuario=self.usuario).exists())
+
+    def test_purga_borra_eventos_de_mas_de_un_anio(self):
+        viejo = EventoVerificacion.objects.create(usuario=self.usuario, metodo='NATIVA', accion='verificacion', resultado='EXITOSO')
+        nuevo = EventoVerificacion.objects.create(usuario=self.usuario, metodo='NATIVA', accion='verificacion', resultado='EXITOSO')
+        EventoVerificacion.objects.filter(pk=viejo.pk).update(fecha=timezone.now() - timezone.timedelta(days=366))
+        call_command('purgar_datos_vencidos', verbosity=0)
+        self.assertEqual(list(EventoVerificacion.objects.values_list('pk', flat=True)), [nuevo.pk])
+
+
+class DerechosDelTitularTests(APITestCase):
+    """Fase 4: oposición, bloqueo y rectificación — el panel "Mis datos" completo."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('der@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.client.force_authenticate(self.usuario)
+
+    def test_requiere_autenticacion(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get('/api/auth/derechos/').status_code, 401)
+
+    def test_oposicion_biometrica_se_aplica_al_instante(self):
+        ConsentimientoBiometrico.otorgar(self.usuario)
+        self.usuario.encoding_facial = [0.1] * 128
+        self.usuario.verificado_biometricamente = True
+        self.usuario.save()
+        resp = self.client.post('/api/auth/derechos/', {'tipo': 'OPOSICION', 'finalidad': 'biometria'}, format='json')
+        self.assertEqual(resp.status_code, 201)
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.encoding_facial)
+        self.assertFalse(ConsentimientoBiometrico.vigente(self.usuario))
+        solicitud = SolicitudTitular.objects.get(usuario=self.usuario)
+        self.assertEqual((solicitud.tipo, solicitud.estado), ('OPOSICION', 'RESUELTA'))
+        self.assertIsNotNone(solicitud.resuelto_en)
+
+    def test_rectificacion_queda_recibida_con_plazo_de_30_dias(self):
+        resp = self.client.post('/api/auth/derechos/', {'tipo': 'RECTIFICACION', 'detalle': 'Mi RUT está mal escrito'}, format='json')
+        self.assertEqual(resp.status_code, 201)
+        solicitud = SolicitudTitular.objects.get(usuario=self.usuario)
+        self.assertEqual(solicitud.estado, 'RECIBIDA')
+        self.assertEqual((solicitud.vence_en - solicitud.creado_en).days, 30)
+        self.assertEqual(resp.data['solicitudes'][0]['tipo'], 'RECTIFICACION')
+
+    def test_solicitud_sin_detalle_o_tipo_invalido_se_rechaza(self):
+        self.assertEqual(self.client.post('/api/auth/derechos/', {'tipo': 'RECTIFICACION'}, format='json').status_code, 400)
+        self.assertEqual(self.client.post('/api/auth/derechos/', {'tipo': 'LO_QUE_SEA', 'detalle': 'x'}, format='json').status_code, 400)
+
+    def test_solicitud_pasados_30_dias_figura_vencida(self):
+        s = SolicitudTitular.objects.create(usuario=self.usuario, tipo='RECTIFICACION', detalle='x')
+        SolicitudTitular.objects.filter(pk=s.pk).update(creado_en=timezone.now() - timezone.timedelta(days=31))
+        s.refresh_from_db()
+        self.assertTrue(s.vencida)
+
+    def test_tope_de_solicitudes_pendientes(self):
+        for _ in range(5):
+            SolicitudTitular.objects.create(usuario=self.usuario, tipo='RECTIFICACION', detalle='x')
+        resp = self.client.post('/api/auth/derechos/', {'tipo': 'RECTIFICACION', 'detalle': 'otra'}, format='json')
+        self.assertEqual(resp.status_code, 429)
+
+    def test_bloqueo_oculta_publicaciones_y_impide_publicar_y_contratar(self):
+        Publicaciones.objects.create(usuario_publicador=self.usuario, titulo='Visible', estado_moderacion=Publicaciones.APROBADA)
+        self.assertEqual(self.client.get('/api/publicaciones/').data['count'], 1)
+        resp = self.client.post('/api/auth/bloqueo-tratamiento/', {'bloquear': True}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['tratamiento_bloqueado'])
+        self.assertEqual(self.client.get('/api/publicaciones/').data['count'], 0)
+        publicar = self.client.post('/api/publicaciones/crear/', {'titulo': 'Nueva'}, format='json')
+        self.assertEqual((publicar.status_code, publicar.data['code']), (403, 'tratamiento_bloqueado'))
+        otro = _crear_usuario('cli_der@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        pub = Publicaciones.objects.first()
+        self.client.force_authenticate(otro)
+        self.assertEqual(self.client.post('/api/contrataciones/', {'publicacion': pub.pk}, format='json').status_code, 400)
+        # y un cliente con el tratamiento bloqueado tampoco puede contratar
+        derechos_titular.fijar_bloqueo(otro, True)
+        otra_pub = Publicaciones.objects.create(
+            usuario_publicador=_crear_usuario('prov2_der@test.com', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta),
+            titulo='Otra', estado_moderacion=Publicaciones.APROBADA,
+        )
+        contratar = self.client.post('/api/contrataciones/', {'publicacion': otra_pub.pk}, format='json')
+        self.assertEqual(contratar.data['code'], 'tratamiento_bloqueado')
+
+    def test_el_bloqueo_es_reversible_y_deja_constancia(self):
+        self.client.post('/api/auth/bloqueo-tratamiento/', {'bloquear': True}, format='json')
+        self.client.post('/api/auth/bloqueo-tratamiento/', {'bloquear': False}, format='json')
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.tratamiento_bloqueado_en)
+        self.assertEqual(SolicitudTitular.objects.filter(usuario=self.usuario, tipo='BLOQUEO').count(), 2)
+
+    def test_bloquear_dos_veces_no_duplica_constancias(self):
+        self.client.post('/api/auth/bloqueo-tratamiento/', {'bloquear': True}, format='json')
+        self.client.post('/api/auth/bloqueo-tratamiento/', {'bloquear': True}, format='json')
+        self.assertEqual(SolicitudTitular.objects.filter(usuario=self.usuario).count(), 1)
+
+    def test_bloqueo_exige_booleano(self):
+        self.assertEqual(self.client.post('/api/auth/bloqueo-tratamiento/', {'bloquear': 'si'}, format='json').status_code, 400)
+
+    def test_solicitudes_se_exportan_y_se_borran_con_la_cuenta(self):
+        self.client.post('/api/auth/derechos/', {'tipo': 'RECTIFICACION', 'detalle': 'x'}, format='json')
+        self.assertEqual(len(self.client.get('/api/auth/mis-datos/').data['solicitudes_de_derechos']), 1)
+        derechos_titular.eliminar_cuenta(self.usuario)
+        self.assertFalse(SolicitudTitular.objects.filter(usuario=self.usuario).exists())
+
+
+class RotacionDeLlavesTests(APITestCase):
+    """`rotar_llaves_biometricas`: re-cifra con la primera clave, nunca pierde ni pisa un vector ilegible."""
+
+    def setUp(self):
+        from cryptography.fernet import Fernet
+        self.clave_vieja, self.clave_nueva = Fernet.generate_key().decode(), Fernet.generate_key().decode()
+        _, comuna, tipo = _crear_region_comuna_tipo()
+        with override_settings(BIOMETRIC_ENCRYPTION_KEYS=[self.clave_vieja]):
+            self.usuario = _crear_usuario('rot@test.com', comuna=comuna, tipo_cuenta=tipo)
+            self.usuario.encoding_facial = [0.25] * 128
+            self.usuario.save()
+
+    def _crudo(self):
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT "ENCODING_FACIAL" FROM "USUARIO" WHERE "ID_USUARIO" = %s', [self.usuario.pk])
+            return cursor.fetchone()[0]
+
+    def test_rota_a_la_clave_nueva_y_el_vector_sigue_legible(self):
+        from cryptography.fernet import Fernet
+        with override_settings(BIOMETRIC_ENCRYPTION_KEYS=[self.clave_nueva, self.clave_vieja]):
+            call_command('rotar_llaves_biometricas', verbosity=0)
+        Fernet(self.clave_nueva.encode()).decrypt(self._crudo().encode())  # no lanza: ya está con la nueva
+        with override_settings(BIOMETRIC_ENCRYPTION_KEYS=[self.clave_nueva]):  # la vieja ya se puede retirar
+            self.usuario.refresh_from_db()
+            self.assertEqual(self.usuario.encoding_facial, [0.25] * 128)
+
+    def test_dry_run_no_modifica_nada(self):
+        antes = self._crudo()
+        with override_settings(BIOMETRIC_ENCRYPTION_KEYS=[self.clave_nueva, self.clave_vieja]):
+            call_command('rotar_llaves_biometricas', '--dry-run', verbosity=0)
+        self.assertEqual(self._crudo(), antes)
+
+    def test_un_vector_ilegible_no_se_pisa(self):
+        antes = self._crudo()
+        with override_settings(BIOMETRIC_ENCRYPTION_KEYS=[self.clave_nueva]):  # sin la vieja: no puede descifrar
+            call_command('rotar_llaves_biometricas', verbosity=0)
+        self.assertEqual(self._crudo(), antes)

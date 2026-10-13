@@ -1,66 +1,35 @@
 # KeyServ — Plan de mejoras 2026/2027 (Ley 21.719 + postulación Corfo)
 
-> **Constancia en el repo, para no perder el plan al cambiar de equipo.**
-> Esta versión fue **reconstruida** a partir de `docs/fase-0-reconocimiento.md` y
-> `docs/plan-ajustes.md`, no es el texto original del plan maestro. Las fases 0, 1, 2/3, 5
-> y 6 están respaldadas por esos documentos; **la Fase 4 y los detalles de la Fase 5 (bot)
-> no se pudieron reconstruir** y están marcados como pendientes. Si tienes el texto
-> original, pégalo aquí o reemplaza este archivo.
->
-> Cambios de alcance: ver `docs/plan-ajustes.md` (registro vivo). Estado: tabla al final.
+> Resumen del plan maestro **original** (7 fases, pegado por el usuario el 2026-10-12; texto completo solo en local,
+> `docs/privado/PLAN_MAESTRO_ORIGINAL.md`, gitignorado). Reemplaza la reconstrucción anterior, que había mezclado
+> las fases (ver `docs/plan-ajustes.md`, entrada 2026-10-12). Estado actual y retoma: `docs/ESTADO_Y_PROXIMOS_PASOS.md`.
 
 ## Principios
 
-- Cumplimiento de la Ley 21.719 (datos personales, biometría como dato sensible) va
-  **antes** que bot y rediseño.
-- Reusar lo que ya funciona (rostro servidor-side con prueba de vida por parpadeo,
-  biometría nativa del dispositivo); no construir paralelo.
-- Cada cambio de alcance se registra en `docs/plan-ajustes.md` con fecha y justificación.
+- Objetivo principal: cumplir la **Ley 21.719** (vigente desde **2026-12-01**; la biometría es dato sensible) y poder
+  postular a **Corfo**. Si hay conflicto entre cumplimiento y una mejora visual/funcional, gana el cumplimiento.
+- Prioridad: Fases 1–4 (cumplimiento) antes que 5–6 (bot y diseño). Debe quedar **evidencia documental**.
+- Commits pequeños **en español y directo a `master`** (el plan original pedía inglés y una rama por fase; el dueño decidió
+  no hacerlo, ver `plan-ajustes.md`), tests en verde antes de cerrar, ADRs en `docs/adr/`, strangler fig. Nunca borrar biometría ni migrar datos reales sin respaldo y confirmación explícita.
+- Ningún dato personal o biométrico a servicios externos de IA.
 
-## Fases
+## Fases y estado (2026-10-12)
 
-| Fase | Tema | Contenido |
+| Fase | Tema | Estado |
 |---|---|---|
-| 0 | Reconocimiento | Estado real del repo, deuda y riesgos priorizados → `docs/fase-0-reconocimiento.md` |
-| 1 | Auditoría | Hallazgos baratos y de bajo riesgo; inventario de datos; documentos de cumplimiento (registro de actividades de tratamiento, lista de encargados en `docs/cumplimiento/`; EIPD en `docs/legal/`) |
-| 2 | Identidad | Enforcement de verificación de identidad al contratar y publicar (hoy **no existe**), comparando plataformas: PC/notebook, celular, respaldo sin biometría |
-| 3 | Biometría y datos | Cifrado de `encoding_facial`, consentimiento explícito (BD + UI), derechos del titular (exportar, suprimir), retención automatizada |
-| 4 | _Pendiente de reconstruir_ | — |
-| 5 | Bot | _Detalle pendiente de reconstruir_ |
-| 6 | Rediseño del frontend | Bento grid, container queries, `clamp()`, View Transitions, `@defer`, standalone/signals, i18n ES/EN, accesibilidad; modernización ruta por ruta (strangler fig) |
+| 0 | Reconocimiento → `fase-0-reconocimiento.md` | Hecha |
+| 1 | Auditoría de datos sensibles → `fase-1-auditoria-datos.md` | **Hecha** (hallazgos corregidos; abiertos: revisión legal, contratos con encargados, `Pago.respuesta_bruta`) |
+| 2 | Reforzar la verificación existente (ADR + diagrama) | **Hecha**: `adr/0001` con diagrama Mermaid; WebAuthn evaluado y diferido |
+| 3 | Refuerzo (cifrado, bloqueo, auditoría, rotación, tests) | **Hecha**: cifrado Fernet, enforcement con vigencia de 180 días, `EventoVerificacion`, `rotar_llaves_biometricas` + guía, tests de fallos (E2E de navegador no: el demo tiene el enforcement apagado) |
+| 4 | Cumplimiento visible | **Hecha**: consentimiento, "Mis datos" completo (descargar, corregir, oponerse, bloquear, eliminar), retención visible en la política, protocolo de brechas, EIPD/registro/encargados en borrador (falta revisión legal) |
+| 5 | Bot asistente con IA (NVIDIA NIM) | Pendiente (necesita una API key de NVIDIA, la crea el dueño) |
+| 6 | Rediseño visual 2026/27 | Pendiente; **requiere propuesta visual aprobada antes de implementar** |
+| 7 | Calidad y cierre (README, `resumen-mejoras.md`, índice y matriz en `docs/cumplimiento/`) | Pendiente |
 
-## Backlog priorizado (de la Fase 0)
+Pospuesto por presupuesto/entorno: revisión legal por abogado, entorno de producción real
+(`BIOMETRIC_ENCRYPTION_KEYS`, `EXIGIR_IDENTIDAD_VERIFICADA`), respaldo del keystore Android (PC de torre).
 
-**Crítico:** `encoding_facial` sin cifrar y editable en `/admin/` · cero enforcement de
-identidad · cero consentimiento biométrico · cero endpoints de derechos del titular.
-**Alto:** `media/` público y adivinable · sin EIPD/registro de tratamiento/encargados.
-**Medio:** retención sin automatizar (`limpiar_mensajes_antiguos` no programado, sin purga
-de `IntentoAccesoSospechoso`/`TokenSesion`) · logs con email/IP · `Pago.respuesta_bruta`.
-**Bajo:** accesibilidad/i18n (Fase 6).
+## Hecho que no estaba en el plan
 
-Orden sugerido dentro de 2/3: consentimiento y cifrado **antes** del enforcement (no tiene
-sentido forzar captura de rostro sin consentimiento).
-
-## Estado
-
-| Ítem | Estado |
-|---|---|
-| Fase 0 reconocimiento | Hecho (2026-10-10) |
-| Venv local resincronizado | Hecho |
-| Node.js LTS en esta máquina | Instalado (v24.20, 2026-10-10); reabrir terminal para PATH |
-| `UsuarioAdmin`: `password`/`encoding_facial` solo lectura | Hecho (Fase 1) |
-| `CORS_URLS_REGEX` acotado a `/api/*` | Hecho (Fase 1) |
-| `requests` en `requirements.txt` | Hecho (Fase 1) |
-| Logs sin email en claro (hash corto) | Hecho (Fase 1) |
-| Artefactos de huella fuera de git (`.gitignore`) | Hecho (Fase 1) |
-| `media/`: fotos de reseñas a almacenamiento privado (opción A; chat y documentos ya lo estaban) | Hecho (Fase 1) |
-| Registro de tratamiento y lista de encargados (borradores, `docs/cumplimiento/`) | Hecho, falta validación legal |
-| EIPD borrador (`docs/legal/eipd-reconocimiento-facial.md`) | Hecho; decisiones de producto tomadas, falta revisión legal y firma |
-| Rama `fase-0-reconocimiento` fusionada a `master` local (sin push) | Hecho; backend 290 OK, frontend 77 OK |
-| Fase 2/3 · consentimiento biométrico (modelo versionado, gating en rostro, revocar borra el vector; Django + API + Ionic) | Hecho, pendiente de revisión legal del texto |
-| Fase 2 · cifrado de `encoding_facial` en reposo (Fernet, claves rotables; migración cifra filas existentes) | Hecho. **En producción real hay que configurar `BIOMETRIC_ENCRYPTION_KEYS` (distinta de `SECRET_KEY`) y respaldar la clave fuera de la BD** |
-| Fase 2 · enforcement de identidad al contratar/publicar (`EXIGIR_IDENTIDAD_VERIFICADA`) | Hecho, **apagado por defecto** (la demo no tiene biometría); encender en producción real |
-| Fase 2 · vía alternativa sin biometría (advertencia + código por correo + documento revisado por staff; API, admin e Ionic) | Hecho. Falta pantalla en las plantillas Django (en retiro, se omite). Desde 2026-10-12 también la revisa el grupo Moderador, con registro de quién/cuándo y aviso en el dashboard |
-| Fase 3 · exportar y eliminar datos del titular (`/api/auth/mis-datos/`, `/api/auth/eliminar-cuenta/`, UI en Ionic) | Hecho; el alcance de lo que se conserva (contratos/pagos) requiere validación legal |
-| Fase 3 · retención automatizable (`mantenimiento_retencion`) | Comandos hechos y agendados semanalmente con GitHub Actions (`retencion.yml`); falta cargar el secreto `DATABASE_URL` en el repo |
-| Fases 4–6 | Pendientes |
+Demo en Render + Neon (la Postgres de Render expiró), tests del backend de ~13 min a ~25 s (`settings_test.py`), reorden de
+la documentación, Moderador revisa la vía alternativa, retención agendada con GitHub Actions. Detalle en `plan-ajustes.md`.

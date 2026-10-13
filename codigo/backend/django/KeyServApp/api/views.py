@@ -26,7 +26,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import biometria, consentimiento, derechos_titular, identidad, verificacion_alternativa
+from .. import biometria, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
 from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
@@ -35,6 +35,7 @@ from ..forms import (
     RecuperarForm, RegistroForm, ValoracionForm,
 )
 from ..models import (
+    EventoVerificacion, SolicitudTitular,
     Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region,
     Transaccion, TipoCuenta, Usuario, UsuarioConversacion, Valoracion, ValoracionImagen, VerificacionAlternativa,
@@ -250,8 +251,7 @@ class VerificarBiometriaNativaView(APIView):
 
     def post(self, request):
         usuario = request.user
-        usuario.verificado_biometricamente = True
-        usuario.save(update_fields=['verificado_biometricamente'])
+        verificaciones.marcar_verificado(usuario, EventoVerificacion.NATIVA)
         logger.info('Verificación biométrica nativa exitosa (api): usuario_id=%s', usuario.id_usuario)
         return Response(UsuarioMeSerializer(usuario).data)
 
@@ -333,12 +333,14 @@ class RostroRegistrarView(APIView):
                 os.remove(ruta)
 
         if encoding is None:
+            verificaciones.registrar_fallo(request.user, EventoVerificacion.ROSTRO, 'registro_rostro', 'prueba de vida no superada')
             return Response(
                 {'detail': 'No se pudo validar la prueba de vida — mira a la cámara, parpadea una vez durante la captura, y asegúrate de tener buena luz.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         request.user.encoding_facial = encoding
         request.user.save()
+        verificaciones.registrar_evento(request.user, EventoVerificacion.ROSTRO, 'registro_rostro', EventoVerificacion.EXITOSO)
         logger.info('Rostro de referencia registrado (api): usuario_id=%s', request.user.id_usuario)
         return Response({'detail': 'Rostro registrado. Ahora puedes verificarlo.'})
 
@@ -366,13 +368,13 @@ class RostroVerificarView(APIView):
                 os.remove(ruta)
 
         if resultado is True:
-            usuario.verificado_biometricamente = True
-            usuario.save()
+            verificaciones.marcar_verificado(usuario, EventoVerificacion.ROSTRO)
             logger.info('Rostro verificado (api): usuario_id=%s', usuario.id_usuario)
             return Response(UsuarioMeSerializer(usuario).data)
+        verificaciones.registrar_fallo(usuario, EventoVerificacion.ROSTRO, 'verificacion', 'no coincide' if resultado is False else 'no procesable')
         if resultado is False:
-            return Response({'detail': 'El rostro no coincide con el registrado. Intentá nuevamente.'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({'detail': 'No se pudo procesar la foto. Intentá nuevamente.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'El rostro no coincide con el registrado. Inténtalo nuevamente.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'No se pudo procesar la foto. Inténtalo nuevamente.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PerfilView(APIView):
@@ -571,6 +573,57 @@ class MisDatosView(APIView):
     def get(self, request):
         logger.info('Exportación de datos personales (api): usuario_id=%s', request.user.id_usuario)
         return Response(derechos_titular.exportar_datos(request.user))
+
+
+class DerechosView(APIView):
+    """
+    `GET /api/auth/derechos/` — estado de "Mis datos": si el tratamiento está bloqueado y las solicitudes de
+    la persona con su plazo de respuesta (30 días). `POST` crea una solicitud de `RECTIFICACION` (texto libre,
+    la atiende el staff) u `OPOSICION` (con `finalidad: "biometria"` se aplica al instante: se revoca el
+    consentimiento y se borra el vector; otra finalidad queda para revisión manual).
+    """
+
+    def _estado(self, usuario):
+        return {
+            'tratamiento_bloqueado': derechos_titular.tratamiento_bloqueado(usuario),
+            'solicitudes': [
+                {'id': s.id_solicitud, 'tipo': s.tipo, 'estado': s.estado, 'detalle': s.detalle,
+                 'respuesta': s.respuesta, 'creado_en': s.creado_en, 'vence_en': s.vence_en, 'vencida': s.vencida}
+                for s in SolicitudTitular.objects.filter(usuario=usuario)[:50]
+            ],
+        }
+
+    def get(self, request):
+        return Response(self._estado(request.user))
+
+    def post(self, request):
+        tipo = request.data.get('tipo')
+        detalle = (request.data.get('detalle') or '').strip()[:1000]
+        if tipo == SolicitudTitular.OPOSICION and request.data.get('finalidad') == 'biometria':
+            derechos_titular.solicitar_oposicion_biometria(request.user)
+            logger.info('Oposición biométrica aplicada (api): usuario_id=%s', request.user.id_usuario)
+            return Response(self._estado(request.user), status=status.HTTP_201_CREATED)
+        if tipo not in (SolicitudTitular.RECTIFICACION, SolicitudTitular.OPOSICION):
+            return Response({'detail': 'Tipo de solicitud no válido.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not detalle:
+            return Response({'detail': 'Cuéntanos qué necesitas.'}, status=status.HTTP_400_BAD_REQUEST)
+        if SolicitudTitular.objects.filter(usuario=request.user, estado=SolicitudTitular.RECIBIDA).count() >= 5:
+            return Response({'detail': 'Tienes varias solicitudes pendientes; espera su respuesta.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        SolicitudTitular.objects.create(usuario=request.user, tipo=tipo, detalle=detalle)
+        logger.info('Solicitud de titular recibida (api): usuario_id=%s tipo=%s', request.user.id_usuario, tipo)
+        return Response(self._estado(request.user), status=status.HTTP_201_CREATED)
+
+
+class BloqueoTratamientoView(APIView):
+    """`POST /api/auth/bloqueo-tratamiento/` con `{bloquear: true|false}` — derecho de bloqueo, reversible (ver `derechos_titular.fijar_bloqueo`)."""
+
+    def post(self, request):
+        bloquear = request.data.get('bloquear')
+        if not isinstance(bloquear, bool):
+            return Response({'detail': 'Indica bloquear: true o false.'}, status=status.HTTP_400_BAD_REQUEST)
+        derechos_titular.fijar_bloqueo(request.user, bloquear)
+        logger.info('Bloqueo de tratamiento %s (api): usuario_id=%s', 'activado' if bloquear else 'desactivado', request.user.id_usuario)
+        return Response(UsuarioMeSerializer(request.user).data)
 
 
 class EliminarCuentaView(APIView):
@@ -823,7 +876,9 @@ class PublicacionListView(generics.ListAPIView):
         lng = self.request.query_params.get('lng', '').strip()
         radio_km = self.request.query_params.get('radio_km', '').strip()
 
-        publicaciones = Publicaciones.objects.filter(estado_moderacion=Publicaciones.APROBADA)
+        publicaciones = Publicaciones.objects.filter(
+            estado_moderacion=Publicaciones.APROBADA, usuario_publicador__tratamiento_bloqueado_en__isnull=True,
+        )
         if query:
             query_unaccent = Unaccent(Value(query))
             publicaciones = publicaciones.annotate(
@@ -903,6 +958,8 @@ class PublicacionCrearView(APIView):
     def post(self, request):
         if not request.user.es_proveedor:
             return Response({'detail': 'Solo los proveedores pueden publicar servicios.'}, status=status.HTTP_403_FORBIDDEN)
+        if derechos_titular.tratamiento_bloqueado(request.user):
+            return Response({'detail': derechos_titular.MENSAJE_BLOQUEADO, 'code': derechos_titular.CODIGO_BLOQUEADO}, status=status.HTTP_403_FORBIDDEN)
         if identidad.falta_verificar(request.user):
             return Response({'detail': identidad.MENSAJE, 'code': identidad.CODIGO}, status=status.HTTP_403_FORBIDDEN)
 
@@ -998,6 +1055,10 @@ class ContratacionListCreateView(APIView):
         if cliente == proveedor:
             return Response({'detail': 'No puedes contratar tu propia publicación.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if derechos_titular.tratamiento_bloqueado(cliente):
+            return Response({'detail': derechos_titular.MENSAJE_BLOQUEADO, 'code': derechos_titular.CODIGO_BLOQUEADO}, status=status.HTTP_403_FORBIDDEN)
+        if derechos_titular.tratamiento_bloqueado(proveedor):
+            return Response({'detail': 'Este proveedor no está disponible por el momento.'}, status=status.HTTP_400_BAD_REQUEST)
         if identidad.falta_verificar(cliente):
             return Response({'detail': identidad.MENSAJE, 'code': identidad.CODIGO}, status=status.HTTP_403_FORBIDDEN)
 

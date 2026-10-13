@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { Router } from '@angular/router';
 
-import { Auth } from '../core/auth';
+import { Auth, EstadoDerechos } from '../core/auth';
 import { Tema, Tema3Estados } from '../core/tema';
 
 /**
@@ -51,6 +51,14 @@ export class PreferenciasPage implements OnInit {
   eliminando = false;
   errorEliminar: string | null = null;
 
+  // Derechos: rectificación, oposición a la biometría y bloqueo del tratamiento.
+  derechos: EstadoDerechos | null = null;
+  detalleRectificacion = '';
+  enviandoSolicitud = false;
+  errorDerechos: string | null = null;
+  confirmandoOposicion = false;
+  cambiandoBloqueo = false;
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly auth: Auth,
@@ -63,6 +71,68 @@ export class PreferenciasPage implements OnInit {
     this.auth.me().subscribe((usuario) => {
       this.formularioPreferencias.patchValue({ notificaciones_sonido: usuario.notificaciones_sonido });
       this.cargando = false;
+    });
+    this.cargarDerechos();
+  }
+
+  cargarDerechos(): void {
+    this.auth.derechos().subscribe({ next: (d) => (this.derechos = d) });
+  }
+
+  enviarRectificacion(): void {
+    if (!this.detalleRectificacion.trim() || this.enviandoSolicitud) {
+      return;
+    }
+    this.enviandoSolicitud = true;
+    this.errorDerechos = null;
+    this.auth.crearSolicitudDerecho('RECTIFICACION', this.detalleRectificacion.trim()).subscribe({
+      next: (d) => {
+        this.derechos = d;
+        this.detalleRectificacion = '';
+        this.enviandoSolicitud = false;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.errorDerechos = error.error?.detail ?? 'No pudimos enviar tu solicitud. Intenta nuevamente.';
+        this.enviandoSolicitud = false;
+      },
+    });
+  }
+
+  /** Oposición al tratamiento biométrico: revoca el consentimiento y borra el vector facial al instante. */
+  oponerseABiometria(): void {
+    if (this.enviandoSolicitud) {
+      return;
+    }
+    this.enviandoSolicitud = true;
+    this.errorDerechos = null;
+    this.auth.crearSolicitudDerecho('OPOSICION', '', 'biometria').subscribe({
+      next: (d) => {
+        this.derechos = d;
+        this.confirmandoOposicion = false;
+        this.enviandoSolicitud = false;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.errorDerechos = error.error?.detail ?? 'No pudimos aplicar tu oposición. Intenta nuevamente.';
+        this.enviandoSolicitud = false;
+      },
+    });
+  }
+
+  alternarBloqueo(): void {
+    if (!this.derechos || this.cambiandoBloqueo) {
+      return;
+    }
+    this.cambiandoBloqueo = true;
+    this.errorDerechos = null;
+    this.auth.bloquearTratamiento(!this.derechos.tratamiento_bloqueado).subscribe({
+      next: () => {
+        this.cambiandoBloqueo = false;
+        this.cargarDerechos();
+      },
+      error: () => {
+        this.errorDerechos = 'No pudimos cambiar el bloqueo. Intenta nuevamente.';
+        this.cambiandoBloqueo = false;
+      },
     });
   }
 

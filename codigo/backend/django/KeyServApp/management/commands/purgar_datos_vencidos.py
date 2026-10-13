@@ -2,6 +2,7 @@
 Retención de datos de seguridad y sesiones:
 
 - `IntentoAccesoSospechoso` (IP, ciudad, país, user-agent) más viejos que --dias-seguridad (365).
+- `EventoVerificacion` (auditoría de verificaciones) más viejos que --dias-eventos (365).
 - `TokenSesion` expirados o revocados hace más de --dias-sesiones (30).
 
 Pensado para correr periódicamente (ver `mantenimiento_retencion`, que lo junta con
@@ -15,7 +16,7 @@ from django.core.management.base import BaseCommand
 from django.db.models import Q
 from django.utils import timezone
 
-from KeyServApp.models import IntentoAccesoSospechoso, TokenSesion
+from KeyServApp.models import EventoVerificacion, IntentoAccesoSospechoso, TokenSesion
 
 
 class Command(BaseCommand):
@@ -24,6 +25,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--dias-seguridad', type=int, default=365)
         parser.add_argument('--dias-sesiones', type=int, default=30)
+        parser.add_argument('--dias-eventos', type=int, default=365)
         parser.add_argument('--dry-run', action='store_true')
 
     def handle(self, *args, **opts):
@@ -32,10 +34,12 @@ class Command(BaseCommand):
         limite_sesion = ahora - timedelta(days=opts['dias_sesiones'])
         tokens = TokenSesion.objects.filter(Q(expira_en__lt=limite_sesion) | Q(revocado_en__lt=limite_sesion))
 
-        n_intentos, n_tokens = intentos.count(), tokens.count()
+        eventos = EventoVerificacion.objects.filter(fecha__lt=ahora - timedelta(days=opts['dias_eventos']))
+        n_intentos, n_tokens, n_eventos = intentos.count(), tokens.count(), eventos.count()
         if opts['dry_run']:
-            self.stdout.write(f'Se borrarían {n_intentos} intentos sospechosos y {n_tokens} tokens (dry-run).')
+            self.stdout.write(f'Se borrarían {n_intentos} intentos sospechosos, {n_tokens} tokens y {n_eventos} eventos de verificación (dry-run).')
             return
         intentos.delete()
         tokens.delete()
-        self.stdout.write(self.style.SUCCESS(f'Borrados {n_intentos} intentos sospechosos y {n_tokens} tokens de sesión.'))
+        eventos.delete()
+        self.stdout.write(self.style.SUCCESS(f'Borrados {n_intentos} intentos sospechosos, {n_tokens} tokens de sesión y {n_eventos} eventos de verificación.'))

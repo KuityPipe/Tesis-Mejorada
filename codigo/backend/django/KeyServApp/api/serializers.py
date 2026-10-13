@@ -32,6 +32,7 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
     patrón que `RegistroForm`) sin una segunda request.
     """
     region = serializers.SerializerMethodField()
+    tratamiento_bloqueado = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
@@ -40,12 +41,15 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
             'apellido_usuario', 'apellido2_usuario', 'telefono', 'email',
             'direccion_usuario', 'edad', 'es_proveedor',
             'verificado_biometricamente', 'foto_perfil', 'areas_servicio',
-            'experiencia', 'notificaciones_sonido', 'comuna', 'region',
+            'experiencia', 'notificaciones_sonido', 'comuna', 'region', 'tratamiento_bloqueado',
         ]
         read_only_fields = fields
 
     def get_region(self, usuario) -> int | None:
         return usuario.comuna.region_id if usuario.comuna else None
+
+    def get_tratamiento_bloqueado(self, usuario) -> bool:
+        return bool(usuario.tratamiento_bloqueado_en)
 
 
 class DocumentoPerfilSerializer(serializers.ModelSerializer):
