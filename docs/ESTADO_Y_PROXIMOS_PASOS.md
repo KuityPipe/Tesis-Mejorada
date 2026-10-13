@@ -3,6 +3,10 @@
 > Punto de retoma. Última actualización: 2026-10-13, al cierre de la sesión. Complementa
 > `docs/PLAN_MAESTRO_2026-27.md` (plan y estado por fase) y `docs/plan-ajustes.md` (cambios de alcance).
 
+## Sesión 2026-10-13 (tarde: despliegues y CI)
+
+- Render `keyserv-api` despliega `master` (comprobado: `/api/auth/mis-datos/` → 401). Netlify: producción = `master`, publicación automática; no construye si el commit no toca `codigo/frontend/ionic` (cancela con "no content change", es normal). Se quitó `api-ionic-migration` del disparador de `tests.yml` y se borraron los environments viejos de GitHub (`api-ionic-migration - keyserv-api/keyserv-db`, creados por Render).
+
 ## Sesión 2026-10-13 (rediseño pulido, todo commiteado)
 
 - Tarjetas de servicios con vista previa animada (`app-pub-card`), lista alternativa y paginador numerado de 20 en Servicios y Mis contrataciones (selector Cuadros/Lista, se recuerda).
@@ -47,7 +51,7 @@
 - Definir `BIOMETRIC_ENCRYPTION_KEYS` (clave Fernet, distinta de `SECRET_KEY`) en producción real y respaldarla fuera de la BD.
   Generar con `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
 - Encender `EXIGIR_IDENTIDAD_VERIFICADA=True` solo en producción real (la demo no tiene biometría).
-- Retención: workflow semanal listo (`.github/workflows/retencion.yml`). **Falta cargar el secreto `DATABASE_URL` (cadena de Neon) en GitHub → Settings → Secrets and variables → Actions** y probarlo una vez a mano (Actions → Retención de datos → Run workflow, dry-run).
+- Retención: workflow semanal listo (`.github/workflows/retencion.yml`). Secreto `DATABASE_URL` (cadena de Neon) cargado en GitHub y workflow probado a mano en dry-run, en verde (2026-10-13).
 - La vía alternativa sin biometría existe en API, admin (superusuario y Moderador, con registro y aviso en el dashboard) e Ionic; la pantalla en las plantillas Django se omite (en retiro).
 - Revisión de un abogado: texto del consentimiento (`KeyServApp/consentimiento.py`), advertencia (`verificacion_alternativa.py`),
   EIPD (`docs/legal/`), registro de tratamiento y encargados (`docs/cumplimiento/`), y qué se conserva al eliminar una cuenta.
@@ -56,7 +60,7 @@
 
 **Plan maestro original (7 fases, ver `PLAN_MAESTRO_2026-27.md`; texto completo local en `docs/privado/`)**
 - Fases 0–4: **hechas** (2026-10-12). Cerradas ese día: documento de auditoría (`fase-1-auditoria-datos.md`), ADRs 0001–0004 con diagrama, vigencia de 180 días y `EventoVerificacion`, `rotar_llaves_biometricas` + guía, "Mis datos" completo (rectificación, oposición, bloqueo), retención visible en `privacidad.html`, protocolo de brechas.
-- **Fase 5 (asistente con IA): hecha** (2026-10-12, ADR 0005, CI en verde). Modelo principal `google/gemma-4-31b-it` (5–20 s), respaldo `meta/llama-3.2-11b-vision-instruct`, y flujo guiado sin IA. **Pendiente del dueño: cargar `NVIDIA_API_KEY` en Render** (Environment de `keyserv-api`); los modelos ya son el valor por defecto. Límites: plan gratuito de NVIDIA con cupo; la mayoría de los modelos del catálogo responden 404 al chat; el enmascarado por patrones no es infalible.
+- **Fase 5 (asistente con IA): hecha** (2026-10-12, ADR 0005, CI en verde). Modelo principal `google/gemma-4-31b-it` (5–20 s), respaldo `meta/llama-3.2-11b-vision-instruct`, y flujo guiado sin IA. `NVIDIA_API_KEY` cargada en Render y verificada en vivo (2026-10-13: `POST /api/asistente/` responde `origen=ia`). Límites: plan gratuito de NVIDIA con cupo; la mayoría de los modelos del catálogo responden 404 al chat; el enmascarado por patrones no es infalible.
 - **Fase 7: hecha** (2026-10-12, CI en verde): `docs/cumplimiento/README.md` (matriz requisito → evidencia), `docs/resumen-mejoras.md`, READMEs renovados, consentimiento v2 (informa el período), E2E del asistente y de "Mis datos".
 - **Fase 6 (rediseño visual): hecha en lo visual** (2026-10-13; `docs/fase-6/README.md`, copia de seguridad = tag `pre-rediseno-fase-6`). Quedan, por decisión del dueño o por riesgo, el inglés (i18n), la migración a standalone/signals y `@defer`.
 - Convención decidida por el dueño: commits en español, directo a `master`, tags para hitos (`pre-cierre-fases-1-4`).
