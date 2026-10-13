@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 
 import { VerificacionAlternativaPage } from './verificacion-alternativa.page';
+import { SharedModule } from '../shared/shared.module';
 import { EstadoVerificacionAlternativa } from './verificacion-alternativa';
 
 describe('VerificacionAlternativaPage', () => {
@@ -19,7 +20,7 @@ describe('VerificacionAlternativaPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [VerificacionAlternativaPage],
-      imports: [IonicModule.forRoot(), FormsModule, HttpClientTestingModule, RouterTestingModule],
+      imports: [IonicModule.forRoot(), FormsModule, HttpClientTestingModule, RouterTestingModule, SharedModule],
     }).compileComponents();
     fixture = TestBed.createComponent(VerificacionAlternativaPage);
     component = fixture.componentInstance;

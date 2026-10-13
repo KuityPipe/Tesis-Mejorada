@@ -7,70 +7,75 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
-  <ng-container *ngIf="!cargando && !consentimientoVigente">
-    <div class="ks-section" appReveal>
-      <h2 class="ks-section-title">Consentimiento para reconocimiento facial</h2>
-      <ion-card>
+  <div class="ks-layout-main-side ks-verif-layout">
+    <div class="ks-verif-principal">
+    <ng-container *ngIf="!cargando && !consentimientoVigente">
+      <div class="ks-section" appReveal>
+        <h2 class="ks-section-title">Consentimiento para reconocimiento facial</h2>
+        <ion-card>
+          <ion-card-content>
+            <p>{{ textoConsentimiento }}</p>
+            <ion-item lines="none">
+              <ion-checkbox [(ngModel)]="acepto" labelPlacement="end" justify="start">
+                Acepto el tratamiento de mi rostro en los términos descritos.
+              </ion-checkbox>
+            </ion-item>
+            <ion-text color="danger" *ngIf="error"><p>{{ error }}</p></ion-text>
+            <ion-button expand="block" [disabled]="!acepto || guardandoConsentimiento" (click)="aceptarConsentimiento()">
+              Aceptar y continuar
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!cargando && consentimientoVigente">
+      <!-- Mismo avatar-ícono circular con gradiente que .ks-fingerprint-scanner en rostro.html del sitio Django — a esta pantalla le faltaba ese encabezado, quedaba directo al segment/card. -->
+      <div class="ks-bio-header" appReveal>
+        <div class="ks-fingerprint-scanner" [class.ks-scanning]="capturando || enviando"><ion-icon name="body-outline"></ion-icon></div>
+        <h1 *ngIf="modo === 'verificar'">Verificación facial</h1>
+        <h1 *ngIf="modo === 'registrar'">{{ tieneReferencia ? 'Registrar un nuevo rostro de referencia' : 'Registrar rostro de referencia' }}</h1>
+        <p>{{ instruccion }}</p>
+      </div>
+
+      <ion-segment [value]="modo" *ngIf="tieneReferencia">
+        <ion-segment-button value="verificar" (click)="cambiarModo('verificar')">
+          <ion-label>Verificar</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="registrar" (click)="cambiarModo('registrar')">
+          <ion-label>Reemplazar rostro</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      <ion-card class="ion-margin-top">
         <ion-card-content>
-          <p>{{ textoConsentimiento }}</p>
-          <ion-item lines="none">
-            <ion-checkbox [(ngModel)]="acepto" labelPlacement="end" justify="start">
-              Acepto el tratamiento de mi rostro en los términos descritos.
-            </ion-checkbox>
-          </ion-item>
-          <ion-text color="danger" *ngIf="error"><p>{{ error }}</p></ion-text>
-          <ion-button expand="block" [disabled]="!acepto || guardandoConsentimiento" (click)="aceptarConsentimiento()">
-            Aceptar y continuar
-          </ion-button>
+          <div>
+            <video #video autoplay playsinline muted [class.ion-hide]="!camaraActiva"></video>
+            <canvas #canvas class="ion-hide"></canvas>
+
+            <ion-button expand="block" *ngIf="!camaraActiva" (click)="iniciarCamara()">
+              Iniciar cámara
+            </ion-button>
+            <ion-button expand="block" *ngIf="camaraActiva" (click)="capturar()" [disabled]="capturando || enviando">
+              {{ capturando || enviando ? 'Capturando…' : 'Capturar (parpadea durante la captura)' }}
+            </ion-button>
+
+            <ion-text color="danger" *ngIf="error"><p>{{ error }}</p></ion-text>
+            <ion-text color="success" *ngIf="exito"><p>{{ exito }}</p></ion-text>
+          </div>
         </ion-card-content>
       </ion-card>
+
+      <ion-button expand="block" fill="outline" color="medium" (click)="revocarConsentimiento()">
+        Revocar consentimiento y eliminar mis datos faciales
+      </ion-button>
+    </ng-container>
     </div>
-  </ng-container>
-
-  <ng-container *ngIf="!cargando && consentimientoVigente">
-    <!-- Mismo avatar-ícono circular con gradiente que .ks-fingerprint-scanner en rostro.html del sitio Django — a esta pantalla le faltaba ese encabezado, quedaba directo al segment/card. -->
-    <div class="ks-bio-header" appReveal>
-      <div class="ks-fingerprint-scanner" [class.ks-scanning]="capturando || enviando"><ion-icon name="body-outline"></ion-icon></div>
-      <h1 *ngIf="modo === 'verificar'">Verificación facial</h1>
-      <h1 *ngIf="modo === 'registrar'">{{ tieneReferencia ? 'Registrar un nuevo rostro de referencia' : 'Registrar rostro de referencia' }}</h1>
-      <p>{{ instruccion }}</p>
-    </div>
-
-    <ion-segment [value]="modo" *ngIf="tieneReferencia">
-      <ion-segment-button value="verificar" (click)="cambiarModo('verificar')">
-        <ion-label>Verificar</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="registrar" (click)="cambiarModo('registrar')">
-        <ion-label>Reemplazar rostro</ion-label>
-      </ion-segment-button>
-    </ion-segment>
-
-    <ion-card class="ion-margin-top">
-      <ion-card-content>
-        <div>
-          <video #video autoplay playsinline muted [class.ion-hide]="!camaraActiva"></video>
-          <canvas #canvas class="ion-hide"></canvas>
-
-          <ion-button expand="block" *ngIf="!camaraActiva" (click)="iniciarCamara()">
-            Iniciar cámara
-          </ion-button>
-          <ion-button expand="block" *ngIf="camaraActiva" (click)="capturar()" [disabled]="capturando || enviando">
-            {{ capturando || enviando ? 'Capturando…' : 'Capturar (parpadea durante la captura)' }}
-          </ion-button>
-
-          <ion-text color="danger" *ngIf="error"><p>{{ error }}</p></ion-text>
-          <ion-text color="success" *ngIf="exito"><p>{{ exito }}</p></ion-text>
-        </div>
-      </ion-card-content>
-    </ion-card>
-
-    <ion-button expand="block" fill="outline" color="medium" (click)="revocarConsentimiento()">
-      Revocar consentimiento y eliminar mis datos faciales
-    </ion-button>
-  </ng-container>
+    <app-verificacion-lateral actual="rostro"></app-verificacion-lateral>
+  </div>
 </ion-content>

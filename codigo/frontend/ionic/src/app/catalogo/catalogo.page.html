@@ -54,9 +54,8 @@
           <ion-icon name="close-circle-outline" slot="start"></ion-icon>
           Quitar ubicación
         </ion-button>
+        <ion-button type="submit" fill="solid" class="ks-filter-aplicar">Aplicar filtros</ion-button>
       </div>
-
-      <ion-button type="submit" fill="outline" expand="block">Aplicar filtros</ion-button>
     </form>
   </div>
 
@@ -65,19 +64,20 @@
   <!-- Mismo .ks-section-header que catalogo.html: título dinámico (resultados de búsqueda vs. listado completo) + contador. -->
   <div class="ks-section-header" *ngIf="!cargandoInicial">
     <h2>{{ filtros.q ? 'Resultados para "' + filtros.q + '"' : 'Todos los servicios' }}</h2>
-    <span>{{ total }} publicación{{ total === 1 ? '' : 'es' }}</span>
+    <span>{{ total }} {{ total === 1 ? 'publicación' : 'publicaciones' }}</span>
   </div>
 
   <!-- Grid de cards con imagen — mismo .ks-card-grid/.ks-card que catalogo.html del sitio Django, en vez de una lista ion-item plana. [routerLink] arma la navegación a /catalogo/:id sin recargar la página (SPA). -->
   <div class="ks-card-grid" *ngIf="!cargandoInicial && publicaciones.length">
     <a class="ks-card-tile" *ngFor="let publicacion of publicaciones; let i = index" [routerLink]="['/catalogo', publicacion.id_publicacion]" appReveal [appRevealDelay]="(i % 12) * 50">
       <div class="ks-card-tile-img">
-        <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
+        <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" loading="lazy" (error)="publicacion.imagen_portada = null" />
         <ng-template #sinImagen>
           <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline"></ion-icon></div>
         </ng-template>
       </div>
       <div class="ks-card-tile-body">
+        <span class="ks-trust-badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Identidad verificada</span>
         <h3>{{ publicacion.titulo }}</h3>
         <p>{{ publicacion.sub_titulo || publicacion.categoria }}</p>
         <p *ngIf="publicacion.precio" style="font-weight:800; color: var(--ks-navy-dark); margin:0 0 10px;">${{ publicacion.precio | number }}</p>

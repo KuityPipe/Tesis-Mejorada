@@ -11,6 +11,8 @@ import { RevealDirective } from './reveal.directive';
 import { TopNavComponent } from './top-nav/top-nav';
 import { AccountMenuComponent } from './account-menu/account-menu';
 import { AsistenteComponent } from './asistente/asistente';
+import { ImgFallbackDirective } from './img-fallback.directive';
+import { VerificacionLateralComponent } from './verificacion-lateral/verificacion-lateral';
 
 /**
  * Módulo de componentes/directivas reutilizables entre páginas —
@@ -27,7 +29,7 @@ import { AsistenteComponent } from './asistente/asistente';
  */
 @NgModule({
   imports: [CommonModule, FormsModule, RouterModule, IonicModule],
-  declarations: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent],
-  exports: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent],
+  declarations: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent],
+  exports: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent, ImgFallbackDirective, VerificacionLateralComponent],
 })
 export class SharedModule {}

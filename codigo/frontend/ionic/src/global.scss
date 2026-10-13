@@ -1321,3 +1321,175 @@ ion-item.ion-valid.ion-touched::after {
     margin-inline: auto;
   }
 }
+
+/* =====================================================================
+   FASE 6 — base del rediseño ("Confianza cálida", ver docs/fase-6/)
+   Accesibilidad (foco visible, menos movimiento), tipografía fluida y un
+   sistema de layout para aprovechar todo el ancho sin perder las secciones.
+===================================================================== */
+
+// Foco visible y consistente para teclado (WCAG 2.4.7/2.4.11): antes dependía del default de cada componente.
+:where(a, button, input, textarea, select, [tabindex]):focus-visible,
+ion-button:focus-visible,
+ion-item:focus-visible {
+  outline: 3px solid var(--ks-navy);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+:root[data-theme="dark"] :where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline-color: #7fb0f5;
+}
+
+// Títulos con escala fluida (clamp): crecen con el ancho sin saltos en cada breakpoint.
+h1 { font-size: clamp(1.6rem, 1.2rem + 1.8vw, 2.4rem); line-height: 1.15; }
+h2 { font-size: clamp(1.3rem, 1.1rem + 1vw, 1.8rem); line-height: 1.2; }
+h3 { font-size: clamp(1.1rem, 1rem + .4vw, 1.3rem); line-height: 1.25; }
+
+// Respeta "reducir movimiento" del sistema (WCAG 2.3.3).
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// Layout en columnas: las páginas con secciones independientes (perfil, preferencias, detalle...) las reparten en
+// 2 columnas desde ~900px en vez de dejar una columna angosta con espacios vacíos a los lados. Cada hijo directo
+// es una sección; `ks-span-all` hace que una ocupe todo el ancho (encabezados, tablas, el chat).
+.ks-layout-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 24px;
+  align-items: start;
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  > .ks-span-all {
+    grid-column: 1 / -1;
+  }
+}
+
+// Variante 2/1: una columna principal ancha y otra lateral (resumen, acciones) desde 1000px.
+.ks-layout-main-side {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 24px;
+  align-items: start;
+
+  @media (min-width: 1000px) {
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  }
+
+  > .ks-span-all {
+    grid-column: 1 / -1;
+  }
+}
+
+// Bento grid del inicio: tarjetas de distinto tamaño que llenan el ancho.
+.ks-bento {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+
+  > * { grid-column: span 6; }
+
+  @media (min-width: 700px) {
+    > .ks-bento-2 { grid-column: span 3; }
+    > .ks-bento-3 { grid-column: span 2; }
+    > .ks-bento-4 { grid-column: span 4; }
+  }
+  @media (min-width: 1000px) {
+    > .ks-bento-hero { grid-column: span 4; grid-row: span 2; }
+  }
+}
+
+.ks-tile {
+  background: var(--ks-surface);
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-lg);
+  padding: clamp(16px, 2.5vw, 28px);
+}
+
+// Insignia de confianza reutilizable ("Identidad verificada", "Datos protegidos").
+.ks-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-dark);
+}
+
+// El botón flotante del asistente no debe tapar el final de la página.
+.ks-footer {
+  padding-bottom: 72px;
+}
+
+// Páginas de secciones en tarjeta que antes quedaban en una columna angosta con espacios vacíos a los lados:
+// con `ks-content-cols` el contenido fluye en 2 columnas balanceadas (CSS multi-column) desde 900px, así cada
+// sección conserva su tarjeta y las alturas distintas no dejan huecos. Los encabezados, el pie y lo marcado con
+// `.ks-span-all` (p. ej. el chat) ocupan todo el ancho.
+ion-content.ks-content-cols::part(scroll) {
+  max-width: 1200px;
+}
+
+@media (min-width: 900px) {
+  ion-content.ks-content-cols::part(scroll) {
+    column-count: 2;
+    column-gap: 24px;
+  }
+}
+
+ion-content.ks-content-cols > * {
+  break-inside: avoid;
+}
+
+ion-content.ks-content-cols > .ks-page-header,
+ion-content.ks-content-cols > app-footer,
+ion-content.ks-content-cols > .ks-quick-actions,
+ion-content.ks-content-cols > .ks-span-all {
+  column-span: all;
+}
+
+// Casillas de categorías en rejilla (en vez de una lista larguísima de una columna).
+.ks-areas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0 12px;
+}
+
+// Selector de archivos nativo con el estilo de la marca (antes mostraba el botón gris del navegador).
+input[type='file'] {
+  max-width: 100%;
+  font: inherit;
+  color: var(--ks-ink-soft);
+
+  &::file-selector-button {
+    margin-right: 12px;
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--ks-navy);
+    color: #fff;
+    font: 700 0.9rem 'Nunito', sans-serif;
+    cursor: pointer;
+  }
+
+  &::file-selector-button:hover {
+    background: var(--ks-navy-dark);
+  }
+}
+
+// Imagen que no cargó (ver shared/img-fallback.directive.ts): se oculta y queda el fondo del contenedor.
+img.ks-img-rota {
+  visibility: hidden;
+}

@@ -95,3 +95,16 @@ verificación **reciente** (180 días), registro de eventos de verificación sin
 rotación de llaves, y tests de fallos (Fase 3); "Mis datos" con rectificación, oposición y bloqueo, política de retención
 visible y protocolo de brechas (Fase 4). Decisiones: ver `docs/adr/0003` y `0004`. Quedan fuera por decisión del dueño:
 revisión legal, entorno de producción real y respaldo del keystore de Android.
+
+## 2026-10-13 — Fase 6 (rediseño): decisiones de alcance
+
+- **Dirección aprobada:** "Confianza cálida" (se conserva la identidad azul marino / verde azulado / coral), todas las
+  pantallas, textos solo en español por ahora (i18n ES/EN queda para después). Propuesta y maqueta en `docs/fase-6/`.
+- **Copia de seguridad antes de cambiar nada:** tag `pre-rediseno-fase-6` (= la versión publicada el 2026-10-13). Para
+  volver: `git checkout pre-rediseno-fase-6 -- codigo/frontend/ionic` y push, o en Netlify "Deploys → ese deploy → Publish deploy".
+- **View Transitions descartadas por ahora:** `ion-router-outlet` ya anima las transiciones entre páginas; sumar
+  `withViewTransitions()` las duplicaría y chocaría en móvil. Se usan las animaciones nativas de Ionic.
+- **Contraste:** el texto blanco sobre el verde azulado (3,2:1) y el coral (2,6:1) no cumplía WCAG AA; los botones pasan a
+  `#0C7F6D` (4,9:1). El verde/coral vivos quedan solo para decoración.
+- **Uso del ancho:** las páginas de secciones pasan de una columna angosta (900 px) a 2 columnas balanceadas
+  (`ks-content-cols`, CSS multi-column) y el detalle de servicio usa ficha lateral fija; así no quedan espacios sin usar.

@@ -26,6 +26,7 @@
   --ks-navy-light: #E9F0FA;
   --ks-teal: #12A38C;
   --ks-teal-dark: #0C8272;
+  --ks-teal-strong: #0C7F6D; // texto/botones con texto blanco: 4,9:1 (el #12A38C da 3,2:1)
   --ks-teal-light: #E1F7F2;
   --ks-coral: #FF7A50;
   --ks-coral-dark: #E85A30;
@@ -51,12 +52,14 @@
   --ion-color-primary-tint: #235086;
 
   /* ---------- Secondary = teal ---------- */
-  --ion-color-secondary: var(--ks-teal);
-  --ion-color-secondary-rgb: 18, 163, 140;
+  // Fase 6: antes #12A38C con texto blanco (3,2:1, no pasa WCAG AA); ahora #0C7F6D (4,9:1). El verde vivo
+  // sigue disponible como --ks-teal para decoración e íconos grandes.
+  --ion-color-secondary: var(--ks-teal-strong);
+  --ion-color-secondary-rgb: 12, 127, 109;
   --ion-color-secondary-contrast: #ffffff;
   --ion-color-secondary-contrast-rgb: 255, 255, 255;
-  --ion-color-secondary-shade: #108f7b;
-  --ion-color-secondary-tint: #2aac98;
+  --ion-color-secondary-shade: #0b705f;
+  --ion-color-secondary-tint: #268c7c;
 
   /* ---------- Tertiary = coral ---------- */
   --ion-color-tertiary: var(--ks-coral);
@@ -66,12 +69,12 @@
   --ion-color-tertiary-shade: #e06b46;
   --ion-color-tertiary-tint: #ff8762;
 
-  --ion-color-success: #12A38C;
-  --ion-color-success-rgb: 18, 163, 140;
+  --ion-color-success: #0C7F6D;
+  --ion-color-success-rgb: 12, 127, 109;
   --ion-color-success-contrast: #ffffff;
   --ion-color-success-contrast-rgb: 255, 255, 255;
-  --ion-color-success-shade: #108f7b;
-  --ion-color-success-tint: #2aac98;
+  --ion-color-success-shade: #0b705f;
+  --ion-color-success-tint: #268c7c;
 
   --ion-color-warning: #FF7A50;
   --ion-color-warning-rgb: 255, 122, 80;

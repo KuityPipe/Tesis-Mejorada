@@ -23,6 +23,8 @@ import { Publicaciones, PublicacionDetalle } from '../publicaciones';
   standalone: false,
 })
 export class DetallePage implements OnInit {
+  /** Si la foto principal no carga (archivo faltante), se oculta la galería en vez de dejar un hueco. */
+  galeriaRota = false;
   publicacion: PublicacionDetalle | null = null;
   cargando = true;
   contratando = false;

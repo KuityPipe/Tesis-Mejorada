@@ -8,77 +8,103 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
-  <!-- Mismo .ks-hero que paginicio.html del sitio Django (banda de marca + búsqueda rápida + tags populares). -->
-  <div class="ks-hero" appReveal>
-    <h1>Encuentra profesionales de confianza, verificados con huella digital</h1>
-    <p>Servicios del hogar cerca de ti, con proveedores verificados biométricamente.</p>
+  <!-- Fase 6: inicio en bento grid — la propuesta de valor, la búsqueda y los diferenciadores de confianza llenan el ancho. -->
+  <div class="ks-bento ks-inicio-bento">
+    <section class="ks-tile ks-bento-hero ks-inicio-hero" appReveal aria-labelledby="titulo-inicio">
+      <span class="ks-inicio-etiqueta">Servicios del hogar en Chile</span>
+      <h1 id="titulo-inicio">Encuentra profesionales de confianza, con identidad verificada</h1>
+      <p>Cada proveedor verifica su identidad con la biometría de su teléfono o por una vía alternativa, y tus datos siempre quedan bajo tu control.</p>
 
-    <form (ngSubmit)="buscar()">
-      <ion-searchbar placeholder="¿Qué servicio necesitas? Ej: gasfitería, jardinería…" [(ngModel)]="q" name="q" (ionChange)="buscar()"></ion-searchbar>
-    </form>
+      <form (ngSubmit)="buscar()" role="search">
+        <ion-searchbar placeholder="¿Qué servicio necesitas? Ej: gasfitería, jardinería…" [(ngModel)]="q" name="q" (ionChange)="buscar()" aria-label="Buscar un servicio"></ion-searchbar>
+      </form>
 
-    <div class="ks-hero-tags">
-      <span>Popular:</span>
-      <ion-chip (click)="buscarTag('gasfiteria')">Gasfitería</ion-chip>
-      <ion-chip (click)="buscarTag('jardineria')">Jardinería</ion-chip>
-      <ion-chip (click)="buscarTag('electricidad')">Electricidad</ion-chip>
-      <ion-chip (click)="buscarTag('limpieza')">Limpieza</ion-chip>
+      <div class="ks-hero-tags">
+        <span>Popular:</span>
+        <ion-chip (click)="buscarTag('gasfiteria')">Gasfitería</ion-chip>
+        <ion-chip (click)="buscarTag('jardineria')">Jardinería</ion-chip>
+        <ion-chip (click)="buscarTag('electricidad')">Electricidad</ion-chip>
+        <ion-chip (click)="buscarTag('limpieza')">Limpieza</ion-chip>
+      </div>
+    </section>
+
+    <div class="ks-tile ks-bento-2 ks-inicio-dato" appReveal [appRevealDelay]="60">
+      <strong>180 días</strong>
+      <span>de vigencia de cada verificación de identidad</span>
     </div>
-  </div>
+    <div class="ks-tile ks-bento-2 ks-inicio-dato" appReveal [appRevealDelay]="100">
+      <strong>0 fotos</strong>
+      <span>de tu rostro guardadas: solo un código cifrado, o nada si usas la biometría del teléfono</span>
+    </div>
 
-  <!-- Mismos 3 paneles ("Identidad verificada"/"Calificaciones reales"/"Mensajería directa") que paginicio.html. -->
-  <div class="ks-feature-grid">
-    <ion-card appReveal [appRevealDelay]="0">
-      <ion-card-content>
-        <ion-icon name="finger-print-outline"></ion-icon>
-        <h3>Identidad verificada</h3>
-        <p>Huella dactilar y reconocimiento facial antes de operar en la plataforma.</p>
-      </ion-card-content>
-    </ion-card>
-    <ion-card appReveal [appRevealDelay]="80">
-      <ion-card-content>
-        <ion-icon name="star-outline"></ion-icon>
-        <h3>Calificaciones reales</h3>
-        <p>Cada servicio completado se califica — elige con reseñas de verdad.</p>
-      </ion-card-content>
-    </ion-card>
-    <ion-card appReveal [appRevealDelay]="160">
-      <ion-card-content>
-        <ion-icon name="chatbubbles-outline"></ion-icon>
-        <h3>Mensajería directa</h3>
-        <p>Coordina los detalles del servicio sin salir de la plataforma.</p>
-      </ion-card-content>
-    </ion-card>
+    <div class="ks-tile ks-bento-3 ks-inicio-pilar" appReveal [appRevealDelay]="0">
+      <ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon>
+      <h3>Identidad verificada</h3>
+      <p>Biometría del teléfono, reconocimiento facial o una revisión manual de tu documento, antes de operar.</p>
+    </div>
+    <div class="ks-tile ks-bento-3 ks-inicio-pilar" appReveal [appRevealDelay]="80">
+      <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
+      <h3>Calificaciones reales</h3>
+      <p>Cada servicio completado se califica: elige con reseñas de verdad.</p>
+    </div>
+    <div class="ks-tile ks-bento-3 ks-inicio-pilar" appReveal [appRevealDelay]="160">
+      <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+      <h3>Tus datos, tus reglas</h3>
+      <p>Descarga, corrige, bloquea o elimina tu información cuando quieras, desde la app.</p>
+    </div>
   </div>
 
   <!-- Servicios destacados — reusa Publicaciones.listar() (mismo .ks-card-tile que catalogo.page). -->
   <div class="ks-section">
-    <p class="ks-section-title">Servicios destacados</p>
+    <div class="ks-inicio-encabezado">
+      <h2 class="ks-section-title">Servicios destacados</h2>
+      <a routerLink="/catalogo" class="ks-inicio-ver-todo">Ver todo el catálogo →</a>
+    </div>
 
     <app-skeleton *ngIf="cargandoDestacadas" variante="card" [cantidad]="3"></app-skeleton>
 
     <div class="ks-card-grid" *ngIf="!cargandoDestacadas && destacadas.length">
       <a class="ks-card-tile" *ngFor="let publicacion of destacadas; let i = index" [routerLink]="['/catalogo', publicacion.id_publicacion]" appReveal [appRevealDelay]="i * 60">
         <div class="ks-card-tile-img">
-          <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" />
+          <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" (error)="publicacion.imagen_portada = null" />
           <ng-template #sinImagen>
-            <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline"></ion-icon></div>
+            <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline" aria-hidden="true"></ion-icon></div>
           </ng-template>
         </div>
         <div class="ks-card-tile-body">
+          <span class="ks-trust-badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Identidad verificada</span>
           <h3>{{ publicacion.titulo }}</h3>
           <p>{{ publicacion.sub_titulo || publicacion.categoria }}</p>
           <div class="ks-card-tile-footer">
-            <span><ion-icon name="person-circle-outline"></ion-icon> {{ publicacion.proveedor.nombre_usuario }}</span>
+            <span><ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon> {{ publicacion.proveedor.nombre_usuario }}</span>
             <span class="ks-card-tile-rating" *ngIf="publicacion.proveedor.total_valoraciones">
-              <ion-icon name="star"></ion-icon> {{ publicacion.proveedor.puntuacion_promedio }}
+              <ion-icon name="star" aria-hidden="true"></ion-icon> {{ publicacion.proveedor.puntuacion_promedio }}
             </span>
           </div>
         </div>
       </a>
     </div>
+  </div>
 
-    <ion-button expand="block" fill="outline" routerLink="/catalogo">Ver todo el catálogo</ion-button>
+  <!-- Cómo funciona + para proveedores: llena el ancho con contenido útil en vez de espacio vacío. -->
+  <div class="ks-layout-main-side ks-inicio-pasos-fila">
+    <section class="ks-section">
+      <h2 class="ks-section-title">Cómo funciona</h2>
+      <ol class="ks-inicio-pasos">
+        <li appReveal><strong>Busca</strong><span>Filtra por servicio, comuna, cercanía o calificación.</span></li>
+        <li appReveal [appRevealDelay]="60"><strong>Solicita y coordina</strong><span>El proveedor confirma y acuerdan el detalle por el chat de cada trabajo.</span></li>
+        <li appReveal [appRevealDelay]="120"><strong>Paga seguro</strong><span>Con tarjeta o transferencia; KeyServ nunca ve los datos de tu tarjeta.</span></li>
+        <li appReveal [appRevealDelay]="180"><strong>Califica</strong><span>Al terminar, valora al proveedor para ayudar a otras personas.</span></li>
+      </ol>
+    </section>
+
+    <aside class="ks-tile ks-inicio-proveedor" appReveal>
+      <ion-icon name="construct-outline" aria-hidden="true"></ion-icon>
+      <h3>¿Ofreces servicios?</h3>
+      <p>Publica lo que haces, verifica tu identidad y llega a más clientes.</p>
+      <ion-button *ngIf="!conSesion" routerLink="/registro" fill="solid" color="secondary">Crear mi cuenta</ion-button>
+      <ion-button *ngIf="conSesion" routerLink="/catalogo/crear" fill="solid" color="secondary">Publicar un servicio</ion-button>
+    </aside>
   </div>
 
   <app-footer></app-footer>

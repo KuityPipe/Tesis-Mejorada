@@ -1,0 +1,26 @@
+<aside class="ks-verif-lateral" aria-label="Opciones de verificación y privacidad">
+  <section class="ks-tile">
+    <h2>Formas de verificarte</h2>
+    <ul class="ks-verif-opciones">
+      <li *ngFor="let o of opciones">
+        <a [routerLink]="o.ruta" [class.ks-verif-actual]="o.id === actual" [attr.aria-current]="o.id === actual ? 'page' : null">
+          <ion-icon [name]="o.icono" aria-hidden="true"></ion-icon>
+          <span>
+            <strong>{{ o.titulo }}</strong>
+            <span class="ks-trust-badge" *ngIf="o.recomendada">Recomendada</span>
+            <small>{{ o.detalle }}</small>
+          </span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="ks-tile ks-verif-privacidad">
+    <h2><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon> Qué hacemos con tus datos</h2>
+    <ul>
+      <li>No guardamos fotos ni huellas: solo un código cifrado si usas el rostro.</li>
+      <li>Tu verificación vale 180 días; después se repite.</li>
+      <li>Puedes retirar tu consentimiento y borrar tus datos cuando quieras desde <a routerLink="/preferencias">Preferencias</a>.</li>
+    </ul>
+  </section>
+</aside>

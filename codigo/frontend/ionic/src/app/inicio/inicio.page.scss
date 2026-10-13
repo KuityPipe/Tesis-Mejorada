@@ -1,0 +1,205 @@
+// Inicio (Fase 6, "Confianza cálida"): bento grid que llena el ancho con la propuesta de valor, la búsqueda y los
+// diferenciadores de confianza. Los helpers de layout (.ks-bento, .ks-tile, .ks-layout-main-side) viven en global.scss.
+
+.ks-inicio-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(135deg, var(--ks-navy) 0%, #0a2f5e 100%);
+  border: 0;
+
+  // Resplandor decorativo con el verde vivo (solo decoración, nunca lleva texto encima)
+  &::after {
+    content: '';
+    position: absolute;
+    right: -70px;
+    bottom: -70px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--ks-teal) 0%, transparent 65%);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  h1 {
+    color: #fff;
+    margin: 6px 0 12px;
+    max-width: 18ch;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0 0 18px;
+    max-width: 52ch;
+  }
+
+  form,
+  .ks-hero-tags {
+    position: relative;
+    z-index: 1;
+  }
+
+  ion-searchbar {
+    padding: 0;
+    --background: #fff;
+    --color: #14213d;
+    --placeholder-color: #4a5873;
+    --icon-color: #4a5873;
+    max-width: 520px;
+    margin: 0;
+  }
+
+  .ks-hero-tags {
+    justify-content: flex-start;
+    margin-top: 14px;
+
+    span {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+}
+
+.ks-inicio-etiqueta {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8ff0dc;
+}
+
+.ks-inicio-dato {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+
+  strong {
+    font-family: 'Quicksand', sans-serif;
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    line-height: 1.1;
+    color: var(--ks-teal-dark);
+  }
+
+  span {
+    color: var(--ks-ink-soft);
+    font-size: 0.92rem;
+  }
+}
+
+.ks-inicio-pilar {
+  ion-icon {
+    font-size: 1.8rem;
+    color: var(--ks-teal-dark);
+  }
+
+  h3 {
+    margin: 8px 0 4px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--ks-ink-soft);
+    font-size: 0.92rem;
+  }
+}
+
+.ks-inicio-bento {
+  margin-bottom: 28px;
+}
+
+.ks-inicio-encabezado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  .ks-section-title {
+    margin: 0;
+  }
+}
+
+.ks-inicio-ver-todo {
+  font-weight: 700;
+  color: var(--ks-navy);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.ks-inicio-pasos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  counter-reset: paso;
+
+  li {
+    counter-increment: paso;
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    column-gap: 14px;
+    align-items: start;
+    background: var(--ks-surface);
+    border: 1px solid var(--ks-border);
+    border-radius: var(--ks-radius-md);
+    padding: 14px 16px;
+
+    &::before {
+      content: counter(paso);
+      grid-row: span 2;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--ks-navy);
+      color: #fff;
+      font-family: 'Quicksand', sans-serif;
+      font-weight: 700;
+    }
+
+    strong {
+      font-family: 'Quicksand', sans-serif;
+    }
+
+    span {
+      color: var(--ks-ink-soft);
+      font-size: 0.92rem;
+    }
+  }
+}
+
+.ks-inicio-proveedor {
+  text-align: center;
+  background: linear-gradient(160deg, var(--ks-teal-light), var(--ks-coral-light));
+
+  ion-icon {
+    font-size: 2rem;
+    color: var(--ks-navy);
+  }
+
+  h3 {
+    margin: 8px 0 4px;
+  }
+
+  p {
+    margin: 0 0 14px;
+    color: var(--ks-ink);
+  }
+}
+
+// Junto al hero (4 columnas), las dos cifras se apilan en las 2 columnas restantes.
+@media (min-width: 1000px) {
+  .ks-inicio-dato {
+    grid-column: span 2;
+  }
+}

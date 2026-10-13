@@ -7,35 +7,40 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
 
-  <ng-container *ngIf="!cargando">
-    <!-- Mismo avatar-ícono circular con gradiente que rostro.page (y .ks-fingerprint-scanner en base.css) — misma familia visual pese a que esta pantalla no tiene equivalente Django directo (nueva de Fase 5). -->
-    <div class="ks-bio-header" appReveal>
-      <div class="ks-fingerprint-scanner" [class.ks-scanning]="verificando"><ion-icon name="finger-print-outline"></ion-icon></div>
-      <h1 *ngIf="yaVerificado">Ya estás verificado biométricamente</h1>
-      <h1 *ngIf="!yaVerificado && !disponible">Biometría no disponible en este dispositivo</h1>
-      <h1 *ngIf="!yaVerificado && disponible">Verifica tu identidad con {{ tipoBiometria }}</h1>
-      <p *ngIf="!yaVerificado && !disponible">No detectamos Face ID, huella u otro sensor biométrico configurado. Puedes verificarte por <a routerLink="/rostro">reconocimiento facial</a> o, si prefieres no usar biometría, por la <a routerLink="/verificacion-alternativa">vía alternativa</a> (más lenta, con código por correo y revisión de tu documento).</p>
-      <p *ngIf="!yaVerificado && disponible">Usamos la biometría de tu propio teléfono — la huella o tu cara nunca se envían a nuestros servidores, solo confirmamos que tu dispositivo ya la validó.</p>
+  <div class="ks-layout-main-side ks-verif-layout">
+    <div class="ks-verif-principal">
+    <ng-container *ngIf="!cargando">
+      <!-- Mismo avatar-ícono circular con gradiente que rostro.page (y .ks-fingerprint-scanner en base.css) — misma familia visual pese a que esta pantalla no tiene equivalente Django directo (nueva de Fase 5). -->
+      <div class="ks-bio-header" appReveal>
+        <div class="ks-fingerprint-scanner" [class.ks-scanning]="verificando"><ion-icon name="finger-print-outline"></ion-icon></div>
+        <h1 *ngIf="yaVerificado">Ya estás verificado biométricamente</h1>
+        <h1 *ngIf="!yaVerificado && !disponible">Biometría no disponible en este dispositivo</h1>
+        <h1 *ngIf="!yaVerificado && disponible">Verifica tu identidad con {{ tipoBiometria }}</h1>
+        <p *ngIf="!yaVerificado && !disponible">No detectamos Face ID, huella u otro sensor biométrico configurado. Puedes verificarte por <a routerLink="/rostro">reconocimiento facial</a> o, si prefieres no usar biometría, por la <a routerLink="/verificacion-alternativa">vía alternativa</a> (más lenta, con código por correo y revisión de tu documento).</p>
+        <p *ngIf="!yaVerificado && disponible">Usamos la biometría de tu propio teléfono — la huella o tu cara nunca se envían a nuestros servidores, solo confirmamos que tu dispositivo ya la validó.</p>
+      </div>
+
+      <ion-card *ngIf="!yaVerificado && disponible">
+        <ion-card-content>
+          <ion-button expand="block" (click)="verificar()" [disabled]="verificando">
+            {{ verificando ? 'Verificando…' : ('Verificar con ' + tipoBiometria) }}
+          </ion-button>
+
+          <ion-text color="danger" *ngIf="error">
+            <p class="ion-padding-start">{{ error }}</p>
+          </ion-text>
+          <ion-text color="success" *ngIf="exito">
+            <p class="ion-padding-start">¡Listo! Quedaste verificado biométricamente.</p>
+          </ion-text>
+        </ion-card-content>
+      </ion-card>
+    </ng-container>
     </div>
-
-    <ion-card *ngIf="!yaVerificado && disponible">
-      <ion-card-content>
-        <ion-button expand="block" (click)="verificar()" [disabled]="verificando">
-          {{ verificando ? 'Verificando…' : ('Verificar con ' + tipoBiometria) }}
-        </ion-button>
-
-        <ion-text color="danger" *ngIf="error">
-          <p class="ion-padding-start">{{ error }}</p>
-        </ion-text>
-        <ion-text color="success" *ngIf="exito">
-          <p class="ion-padding-start">¡Listo! Quedaste verificado biométricamente.</p>
-        </ion-text>
-      </ion-card-content>
-    </ion-card>
-  </ng-container>
+    <app-verificacion-lateral actual="nativa"></app-verificacion-lateral>
+  </div>
 </ion-content>

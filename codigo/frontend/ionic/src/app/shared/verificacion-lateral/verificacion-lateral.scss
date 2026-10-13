@@ -1,0 +1,70 @@
+.ks-verif-lateral {
+  display: grid;
+  gap: 16px;
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.ks-verif-opciones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+
+  a {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    border: 1px solid var(--ks-border);
+    border-radius: var(--ks-radius-md);
+    color: var(--ks-ink);
+    text-decoration: none;
+
+    &:hover {
+      border-color: var(--ks-teal);
+    }
+
+    &.ks-verif-actual {
+      border-color: var(--ks-navy);
+      background: var(--ks-navy-light);
+    }
+
+    ion-icon {
+      font-size: 1.4rem;
+      color: var(--ks-navy);
+      margin-top: 2px;
+    }
+
+    strong {
+      font-family: 'Quicksand', sans-serif;
+      margin-right: 6px;
+    }
+
+    small {
+      display: block;
+      color: var(--ks-ink-soft);
+      font-size: 0.85rem;
+      margin-top: 2px;
+    }
+  }
+}
+
+.ks-verif-privacidad {
+  ul {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+    color: var(--ks-ink-soft);
+    font-size: 0.92rem;
+  }
+}

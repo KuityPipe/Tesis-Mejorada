@@ -7,7 +7,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
@@ -18,27 +18,36 @@
     <div class="ks-page-header">
       <h1><ion-icon name="storefront-outline"></ion-icon> {{ pub.titulo }} <ion-badge *ngIf="pub.categoria" color="tertiary">{{ pub.categoria }}</ion-badge></h1>
       <p *ngIf="pub.sub_titulo">{{ pub.sub_titulo }}</p>
-      <p *ngIf="pub.precio" style="font-weight:800; font-size:1.3rem; margin:6px 0 0;">${{ pub.precio | number }} CLP</p>
     </div>
 
-    <div class="imagenes" *ngIf="pub.imagenes.length" appReveal>
-      <img *ngFor="let imagen of pub.imagenes" [src]="imagen.url" [alt]="pub.titulo" />
-    </div>
+    <!-- Fase 6: galería + descripción + reseñas a la izquierda, ficha fija (precio, proveedor, mapa, contratar) a la derecha. -->
+    <div class="ks-detalle-grid">
+      <section class="ks-detalle-galeria" *ngIf="pub.imagenes.length && !galeriaRota" appReveal aria-label="Fotos del servicio">
+        <img class="ks-detalle-foto-principal" [src]="pub.imagenes[0].url" [alt]="pub.titulo" (error)="galeriaRota = true" />
+        <div class="ks-detalle-miniaturas" *ngIf="pub.imagenes.length > 1">
+          <img *ngFor="let imagen of pub.imagenes.slice(1)" [src]="imagen.url" [alt]="'Foto adicional de ' + pub.titulo" loading="lazy" />
+        </div>
+      </section>
 
-    <ion-card class="ion-margin-top" appReveal [appRevealDelay]="60">
-      <ion-card-content>
+      <section class="ks-tile ks-detalle-descripcion" appReveal [appRevealDelay]="60">
+        <h2>Sobre este servicio</h2>
         <p>{{ pub.descripcion_publicacion }}</p>
+      </section>
 
-        <ion-item lines="none">
+      <aside class="ks-tile ks-detalle-ficha" appReveal [appRevealDelay]="40" aria-label="Contratar este servicio">
+        <p class="ks-detalle-precio" *ngIf="pub.precio">${{ pub.precio | number }} <small>CLP · precio de referencia</small></p>
+        <span class="ks-trust-badge"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> Identidad verificada</span>
+
+        <ion-item lines="none" class="ks-detalle-proveedor">
           <ion-avatar slot="start" *ngIf="pub.proveedor.foto_perfil">
             <img [src]="pub.proveedor.foto_perfil" [alt]="pub.proveedor.nombre_usuario" />
           </ion-avatar>
           <!-- Mismo .ks-avatar-brand (iniciales sobre el gradiente de marca) que usa home.page cuando el proveedor no tiene foto de perfil subida. -->
-          <div class="ks-avatar-brand" slot="start" *ngIf="!pub.proveedor.foto_perfil">{{ pub.proveedor.nombre_usuario.charAt(0) }}</div>
+          <div class="ks-avatar-brand" slot="start" *ngIf="!pub.proveedor.foto_perfil" aria-hidden="true">{{ pub.proveedor.nombre_usuario.charAt(0) }}</div>
           <ion-label>
-            <h2>{{ pub.proveedor.nombre_usuario }} {{ pub.proveedor.apellido_usuario }}</h2>
+            <h3>{{ pub.proveedor.nombre_usuario }} {{ pub.proveedor.apellido_usuario }}</h3>
             <p *ngIf="pub.proveedor.comuna">{{ pub.proveedor.comuna }}, {{ pub.proveedor.region }}</p>
-            <p *ngIf="pub.proveedor.puntuacion_promedio">★ {{ pub.proveedor.puntuacion_promedio }} ({{ pub.proveedor.total_valoraciones }})</p>
+            <p *ngIf="pub.proveedor.puntuacion_promedio">★ {{ pub.proveedor.puntuacion_promedio }} ({{ pub.proveedor.total_valoraciones }} reseñas)</p>
           </ion-label>
         </ion-item>
 
@@ -46,7 +55,7 @@
         <div class="mini-mapa" *ngIf="mapaUrl">
           <iframe [src]="mapaUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Ubicación aproximada del proveedor"></iframe>
           <a [href]="enlaceGoogleMaps" target="_blank" rel="noopener">
-            <ion-icon name="map-outline"></ion-icon> Abrir en Google Maps
+            <ion-icon name="map-outline" aria-hidden="true"></ion-icon> Abrir en Google Maps
           </a>
         </div>
 
@@ -54,28 +63,25 @@
           {{ contratando ? 'Enviando…' : 'Contratar' }}
         </ion-button>
         <ion-text color="danger" *ngIf="errorContratar">
-          <p class="ion-padding-start">{{ errorContratar }}</p>
+          <p role="alert">{{ errorContratar }}</p>
         </ion-text>
-      </ion-card-content>
-    </ion-card>
+        <p class="ks-detalle-nota">Pagas solo cuando el proveedor confirma, y KeyServ nunca ve los datos de tu tarjeta.</p>
+      </aside>
 
-    <div class="ks-section" appReveal [appRevealDelay]="120">
-      <p class="ks-section-title">Reseñas</p>
-      <ion-card>
-        <ion-card-content>
-          <ion-list *ngIf="pub.resenas.length; else sinResenas" lines="full">
-            <ion-item *ngFor="let resena of pub.resenas" lines="full">
-              <ion-label class="ion-text-wrap">
-                <h3>{{ resena.usuario_emisor }} — ★{{ resena.puntuacion }}</h3>
-                <p>{{ resena.comentario }}</p>
-              </ion-label>
-            </ion-item>
-          </ion-list>
-          <ng-template #sinResenas>
-            <p>Todavía no hay reseñas para este servicio.</p>
-          </ng-template>
-        </ion-card-content>
-      </ion-card>
+      <section class="ks-detalle-resenas" appReveal [appRevealDelay]="120">
+        <h2 class="ks-section-title">Reseñas</h2>
+        <ion-list *ngIf="pub.resenas.length; else sinResenas" lines="full" class="ks-tile ks-detalle-lista-resenas">
+          <ion-item *ngFor="let resena of pub.resenas" lines="full">
+            <ion-label class="ion-text-wrap">
+              <h3>{{ resena.usuario_emisor }} — ★{{ resena.puntuacion }}</h3>
+              <p>{{ resena.comentario }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+        <ng-template #sinResenas>
+          <p class="ks-tile ks-detalle-sin-resenas">Todavía no hay reseñas para este servicio.</p>
+        </ng-template>
+      </section>
     </div>
   </ng-container>
 </ion-content>

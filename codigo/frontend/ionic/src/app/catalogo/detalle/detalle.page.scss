@@ -1,14 +1,106 @@
-.imagenes {
+// Fase 6: en móvil las secciones se apilan (galería, ficha, descripción, reseñas); desde 1000px la ficha pasa a una
+// columna derecha fija que acompaña al contenido mientras se lee.
+.ks-detalle-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'galeria'
+    'ficha'
+    'descripcion'
+    'resenas';
+  align-items: start;
+
+  @media (min-width: 1000px) {
+    gap: 20px 28px;
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+    grid-template-areas:
+      'galeria ficha'
+      'descripcion ficha'
+      'resenas ficha';
+  }
+}
+
+.ks-detalle-galeria { grid-area: galeria; }
+.ks-detalle-descripcion { grid-area: descripcion; }
+.ks-detalle-resenas { grid-area: resenas; }
+
+.ks-detalle-ficha {
+  grid-area: ficha;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (min-width: 1000px) {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+.ks-detalle-foto-principal {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: var(--ks-radius-lg);
+  display: block;
+}
+
+.ks-detalle-miniaturas {
   display: flex;
   gap: 8px;
+  margin-top: 8px;
   overflow-x: auto;
-  margin-bottom: 16px;
 
   img {
-    height: 180px;
-    border-radius: var(--ks-radius-md);
+    height: 84px;
+    border-radius: var(--ks-radius-sm);
     flex-shrink: 0;
   }
+}
+
+.ks-detalle-precio {
+  margin: 0;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  color: var(--ks-navy);
+
+  small {
+    display: block;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--ks-ink-soft);
+  }
+}
+
+.ks-detalle-proveedor {
+  --padding-start: 0;
+  --background: transparent;
+}
+
+.ks-detalle-nota {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ks-ink-soft);
+}
+
+.ks-detalle-descripcion h2 {
+  margin: 0 0 8px;
+}
+
+.ks-detalle-descripcion p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ks-detalle-lista-resenas {
+  padding: 0;
+}
+
+.ks-detalle-sin-resenas {
+  margin: 0;
+  color: var(--ks-ink-soft);
 }
 
 .mini-mapa {

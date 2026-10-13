@@ -7,79 +7,84 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
   <div *ngIf="cargando" class="ion-text-center ion-padding"><ion-spinner></ion-spinner></div>
 
-  <ng-container *ngIf="!cargando && estado">
-    <p class="ion-padding-horizontal">
-      La forma más rápida y segura de verificarte es la <a routerLink="/biometria">biometría de tu teléfono</a>.
-      Esta vía alternativa es más lenta: necesita un código en tu correo y la revisión de tu documento de identidad.
-    </p>
+  <div class="ks-layout-main-side ks-verif-layout">
+    <div class="ks-verif-principal">
+    <ng-container *ngIf="!cargando && estado">
+      <p class="ion-padding-horizontal">
+        La forma más rápida y segura de verificarte es la <a routerLink="/biometria">biometría de tu teléfono</a>.
+        Esta vía alternativa es más lenta: necesita un código en tu correo y la revisión de tu documento de identidad.
+      </p>
 
-    <ion-card *ngIf="paso === 'verificada'">
-      <ion-card-content>Tu identidad está verificada.</ion-card-content>
-    </ion-card>
+      <ion-card *ngIf="paso === 'verificada'">
+        <ion-card-content>Tu identidad está verificada.</ion-card-content>
+      </ion-card>
 
-    <ion-card *ngIf="paso === 'revision'">
-      <ion-card-content>
-        Recibimos tu documento. Lo revisamos manualmente; te avisaremos cuando tu identidad quede verificada.
-      </ion-card-content>
-    </ion-card>
-
-    <ng-container *ngIf="estado.estado === 'RECHAZADA'">
-      <ion-card color="warning">
+      <ion-card *ngIf="paso === 'revision'">
         <ion-card-content>
-          Tu verificación anterior fue rechazada{{ estado.motivo_rechazo ? ': ' + estado.motivo_rechazo : '.' }}
+          Recibimos tu documento. Lo revisamos manualmente; te avisaremos cuando tu identidad quede verificada.
         </ion-card-content>
       </ion-card>
+
+      <ng-container *ngIf="estado.estado === 'RECHAZADA'">
+        <ion-card color="warning">
+          <ion-card-content>
+            Tu verificación anterior fue rechazada{{ estado.motivo_rechazo ? ': ' + estado.motivo_rechazo : '.' }}
+          </ion-card-content>
+        </ion-card>
+      </ng-container>
+
+      <div class="ks-section" *ngIf="paso === 'advertencia'">
+        <p class="ks-section-title">1. Advertencia</p>
+        <ion-card>
+          <ion-card-content>
+            <p>{{ estado.advertencia }}</p>
+            <ion-item lines="none">
+              <ion-checkbox [(ngModel)]="aceptoAdvertencia" labelPlacement="end" justify="start">
+                Entiendo y acepto continuar bajo mi propio riesgo.
+              </ion-checkbox>
+            </ion-item>
+            <ion-button expand="block" [disabled]="!aceptoAdvertencia || trabajando" (click)="iniciar()">
+              Enviarme un código al correo
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <div class="ks-section" *ngIf="paso === 'codigo'">
+        <p class="ks-section-title">2. Código del correo</p>
+        <ion-card>
+          <ion-card-content>
+            <p>Te enviamos un código de 6 dígitos. Vence en 15 minutos.</p>
+            <ion-item>
+              <ion-input label="Código" labelPlacement="floating" inputmode="numeric" maxlength="6" [(ngModel)]="codigo"></ion-input>
+            </ion-item>
+            <ion-button expand="block" class="ion-margin-top" [disabled]="codigo.length !== 6 || trabajando" (click)="confirmarCodigo()">
+              Confirmar código
+            </ion-button>
+            <ion-button expand="block" fill="clear" [disabled]="trabajando" (click)="iniciar()">Reenviar código</ion-button>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <div class="ks-section" *ngIf="paso === 'documento'">
+        <p class="ks-section-title">3. Documento de identidad</p>
+        <ion-card>
+          <ion-card-content>
+            <p>Sube una foto clara de tu cédula (JPG, PNG o PDF). Solo la ve el equipo que revisa tu verificación.</p>
+            <input type="file" accept="image/jpeg,image/png,application/pdf" (change)="seleccionarArchivo($event)" />
+            <ion-button expand="block" class="ion-margin-top" [disabled]="!archivo || trabajando" (click)="enviarDocumento()">
+              Enviar documento
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <ion-text color="danger" *ngIf="error"><p class="ion-padding-horizontal">{{ error }}</p></ion-text>
     </ng-container>
-
-    <div class="ks-section" *ngIf="paso === 'advertencia'">
-      <p class="ks-section-title">1. Advertencia</p>
-      <ion-card>
-        <ion-card-content>
-          <p>{{ estado.advertencia }}</p>
-          <ion-item lines="none">
-            <ion-checkbox [(ngModel)]="aceptoAdvertencia" labelPlacement="end" justify="start">
-              Entiendo y acepto continuar bajo mi propio riesgo.
-            </ion-checkbox>
-          </ion-item>
-          <ion-button expand="block" [disabled]="!aceptoAdvertencia || trabajando" (click)="iniciar()">
-            Enviarme un código al correo
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
     </div>
-
-    <div class="ks-section" *ngIf="paso === 'codigo'">
-      <p class="ks-section-title">2. Código del correo</p>
-      <ion-card>
-        <ion-card-content>
-          <p>Te enviamos un código de 6 dígitos. Vence en 15 minutos.</p>
-          <ion-item>
-            <ion-input label="Código" labelPlacement="floating" inputmode="numeric" maxlength="6" [(ngModel)]="codigo"></ion-input>
-          </ion-item>
-          <ion-button expand="block" class="ion-margin-top" [disabled]="codigo.length !== 6 || trabajando" (click)="confirmarCodigo()">
-            Confirmar código
-          </ion-button>
-          <ion-button expand="block" fill="clear" [disabled]="trabajando" (click)="iniciar()">Reenviar código</ion-button>
-        </ion-card-content>
-      </ion-card>
-    </div>
-
-    <div class="ks-section" *ngIf="paso === 'documento'">
-      <p class="ks-section-title">3. Documento de identidad</p>
-      <ion-card>
-        <ion-card-content>
-          <p>Sube una foto clara de tu cédula (JPG, PNG o PDF). Solo la ve el equipo que revisa tu verificación.</p>
-          <input type="file" accept="image/jpeg,image/png,application/pdf" (change)="seleccionarArchivo($event)" />
-          <ion-button expand="block" class="ion-margin-top" [disabled]="!archivo || trabajando" (click)="enviarDocumento()">
-            Enviar documento
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
-    </div>
-
-    <ion-text color="danger" *ngIf="error"><p class="ion-padding-horizontal">{{ error }}</p></ion-text>
-  </ng-container>
+    <app-verificacion-lateral actual="alternativa"></app-verificacion-lateral>
+  </div>
 </ion-content>

@@ -7,7 +7,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
@@ -186,7 +186,7 @@
     </div>
 
     <!-- Chat -->
-    <div class="ks-section" appReveal>
+    <div class="ks-section ks-span-all" appReveal>
       <div class="ks-chat-titulo-row">
         <p class="ks-section-title">Mensajes</p>
         <ion-button fill="clear" size="small" type="button" (click)="exportarChat()" [disabled]="exportandoChat">

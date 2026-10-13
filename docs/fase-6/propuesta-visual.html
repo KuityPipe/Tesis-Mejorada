@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KeyServ — Propuesta visual (Fase 6)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== Tokens (la propuesta): se aplicarán como variables CSS y se mapearán a las variables de Ionic ===== */
+  :root {
+    --ks-bg: #FFF8F1;           /* crema */
+    --ks-surface: #FFFFFF;
+    --ks-surface-2: #F3F7FC;    /* azul muy claro */
+    --ks-text: #14213D;         /* 15.2:1 sobre crema */
+    --ks-text-soft: #4A5873;    /* 6.8:1 */
+    --ks-primary: #0B3D78;      /* azul KeyServ, 10.2:1 sobre crema */
+    --ks-primary-ink: #FFFFFF;
+    --ks-teal: #12A38C;         /* decorativo / íconos grandes (no para texto blanco) */
+    --ks-teal-strong: #0C7F6D;  /* botones y texto: 4.9:1 con texto blanco */
+    --ks-coral: #FF7A50;        /* acento decorativo */
+    --ks-coral-strong: #C2410C; /* texto/botones de acento: 5.2:1 con blanco */
+    --ks-border: rgba(11, 61, 120, .14);
+    --ks-shadow: 0 1px 2px rgba(10,26,51,.06), 0 8px 24px rgba(10,26,51,.08);
+    --ks-radius: 20px;
+    --ks-radius-sm: 12px;
+    --ks-ring: #0B3D78;
+    --ks-font-head: 'Quicksand', system-ui, sans-serif;
+    --ks-font-body: 'Nunito', system-ui, sans-serif;
+    /* escala tipográfica fluida (clamp) */
+    --ks-step-0: clamp(1rem, .96rem + .2vw, 1.125rem);
+    --ks-step-1: clamp(1.25rem, 1.1rem + .7vw, 1.6rem);
+    --ks-step-3: clamp(2rem, 1.3rem + 3vw, 3.6rem);
+    --ks-space: clamp(14px, 2vw, 24px);
+  }
+  :root[data-tema="noche"] {
+    --ks-bg: #0A1A33; --ks-surface: #11284A; --ks-surface-2: #0E2140;
+    --ks-text: #F2F6FC; --ks-text-soft: #A9B8D0;
+    --ks-primary: #7FB0F5; --ks-primary-ink: #0A1A33;
+    --ks-teal: #3DD6BC; --ks-teal-strong: #3DD6BC;
+    --ks-coral: #FF9A78; --ks-coral-strong: #FF9A78;
+    --ks-border: rgba(169,184,208,.2); --ks-shadow: 0 8px 28px rgba(0,0,0,.4); --ks-ring: #7FB0F5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ks-bg); color: var(--ks-text); font: 400 var(--ks-step-0)/1.55 var(--ks-font-body); transition: background .3s, color .3s; }
+  h1, h2, h3 { font-family: var(--ks-font-head); line-height: 1.12; margin: 0 0 .4em; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--ks-ring); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--ks-space); }
+
+  header.top { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px) saturate(1.4); background: color-mix(in srgb, var(--ks-bg) 78%, transparent); border-bottom: 1px solid var(--ks-border); }
+  .top .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { font: 700 1.45rem var(--ks-font-head); color: var(--ks-primary); text-decoration: none; }
+  .logo b { color: var(--ks-teal-strong); }
+  .acciones { display: flex; gap: 10px; align-items: center; }
+
+  .btn { display: inline-flex; gap: 8px; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; border: 0; border-radius: 999px; font: 700 1rem var(--ks-font-body); cursor: pointer; text-decoration: none; transition: transform .15s, box-shadow .15s; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primario { background: var(--ks-primary); color: var(--ks-primary-ink); }
+  .btn-acento { background: var(--ks-coral-strong); color: #fff; }
+  :root[data-tema="noche"] .btn-acento { color: #0A1A33; }
+  .btn-suave { background: transparent; color: var(--ks-primary); box-shadow: inset 0 0 0 2px var(--ks-border); }
+
+  section { padding: clamp(28px, 6vw, 64px) 0; }
+  .etiqueta { display: inline-block; font: 700 .8rem var(--ks-font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--ks-teal-strong); margin-bottom: 8px; }
+  .nota { font-size: .9rem; color: var(--ks-text-soft); }
+
+  /* ===== Inicio: bento grid ===== */
+  .bento { display: grid; gap: var(--ks-space); grid-template-columns: repeat(6, 1fr); }
+  .tile { background: var(--ks-surface); border: 1px solid var(--ks-border); border-radius: var(--ks-radius); padding: clamp(18px, 3vw, 30px); box-shadow: var(--ks-shadow); }
+  .tile.hero { grid-column: span 4; grid-row: span 2; background: linear-gradient(135deg, var(--ks-primary), #0a2f5e); color: #fff; position: relative; overflow: hidden; }
+  :root[data-tema="noche"] .tile.hero { background: linear-gradient(135deg, #14335f, #0d2547); }
+  .tile.hero h1 { font-size: var(--ks-step-3); max-width: 14ch; }
+  .tile.hero p { max-width: 38ch; opacity: .92; }
+  .tile.hero::after { content: ""; position: absolute; right: -60px; bottom: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, var(--ks-teal) 0%, transparent 65%); opacity: .55; }
+  .busqueda { display: flex; gap: 8px; background: #fff; border-radius: 999px; padding: 6px; margin-top: 18px; max-width: 440px; position: relative; z-index: 1; }
+  .busqueda input { flex: 1; border: 0; background: transparent; padding: 0 14px; font: 1rem var(--ks-font-body); color: #14213D; min-width: 0; }
+  .tile.dato { grid-column: span 2; }
+  .dato strong { display: block; font: 700 clamp(1.8rem, 3vw, 2.4rem) var(--ks-font-head); color: var(--ks-teal-strong); }
+  .tile.confianza { grid-column: span 3; display: flex; gap: 14px; align-items: flex-start; }
+  .icono { flex: none; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--ks-surface-2); font-size: 1.4rem; }
+  @media (max-width: 760px) { .bento { grid-template-columns: 1fr 1fr; } .tile.hero { grid-column: span 2; } .tile.dato { grid-column: span 1; } .tile.confianza { grid-column: span 2; } }
+
+  /* ===== Catálogo: tarjetas con container queries ===== */
+  .grilla { display: grid; gap: var(--ks-space); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .card-contenedor { container-type: inline-size; }
+  .servicio { display: grid; background: var(--ks-surface); border: 1px solid var(--ks-border); border-radius: var(--ks-radius); overflow: hidden; box-shadow: var(--ks-shadow); transition: transform .2s; }
+  .servicio:hover { transform: translateY(-3px); }
+  .servicio .foto { aspect-ratio: 16/10; background: linear-gradient(135deg, var(--ks-surface-2), color-mix(in srgb, var(--ks-teal) 30%, var(--ks-surface-2))); display: grid; place-items: center; font-size: 2.4rem; }
+  .servicio .cuerpo { padding: 16px; display: grid; gap: 6px; }
+  .servicio h3 { font-size: 1.15rem; margin: 0; }
+  .precio { font: 700 1.2rem var(--ks-font-head); color: var(--ks-primary); }
+  .insignia { display: inline-flex; gap: 6px; align-items: center; width: fit-content; padding: 3px 10px; border-radius: 999px; font: 700 .78rem var(--ks-font-body); background: color-mix(in srgb, var(--ks-teal) 18%, transparent); color: var(--ks-teal-strong); }
+  @container (min-width: 380px) { .servicio { grid-template-columns: 150px 1fr; } .servicio .foto { aspect-ratio: auto; height: 100%; } }
+
+  /* ===== Verificación: el momento estrella ===== */
+  .verif { display: grid; gap: 24px; grid-template-columns: 1fr 1fr; align-items: center; }
+  @media (max-width: 760px) { .verif { grid-template-columns: 1fr; } }
+  .escaner { position: relative; width: min(280px, 70vw); aspect-ratio: 1; margin: 0 auto; display: grid; place-items: center; }
+  .escaner svg { width: 100%; height: 100%; }
+  .anillo { fill: none; stroke: var(--ks-teal); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 520; stroke-dashoffset: 520; transform-origin: center; transform: rotate(-90deg); }
+  .anillo-base { fill: none; stroke: var(--ks-border); stroke-width: 6; }
+  .visto { fill: none; stroke: var(--ks-teal-strong); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 90; stroke-dashoffset: 90; }
+  .escaner.activo .anillo { animation: llenar 2.2s ease-out forwards; }
+  .escaner.activo .visto { animation: trazar .5s 2.2s ease-out forwards; }
+  .pulso { position: absolute; inset: 18%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--ks-teal) 35%, transparent), transparent 70%); animation: latir 2.4s ease-in-out infinite; }
+  .escaner.activo .pulso { animation-duration: 1.2s; }
+  .pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: p; }
+  .pasos li { counter-increment: p; display: flex; gap: 12px; align-items: center; background: var(--ks-surface); border: 1px solid var(--ks-border); border-radius: var(--ks-radius-sm); padding: 12px 14px; }
+  .pasos li::before { content: counter(p); flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--ks-primary); color: var(--ks-primary-ink); font: 700 .9rem var(--ks-font-head); }
+  @keyframes llenar { to { stroke-dashoffset: 0; } }
+  @keyframes trazar { to { stroke-dashoffset: 0; } }
+  @keyframes latir { 0%,100% { transform: scale(.92); opacity: .7; } 50% { transform: scale(1.06); opacity: 1; } }
+
+  /* ===== Entrada al hacer scroll ===== */
+  .rev { opacity: 0; transform: translateY(18px); transition: opacity .6s, transform .6s; }
+  .rev.visible { opacity: 1; transform: none; }
+
+  /* ===== Muestras de color ===== */
+  .muestras { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .muestra { border-radius: var(--ks-radius-sm); padding: 14px; font-size: .85rem; border: 1px solid var(--ks-border); }
+  .muestra b { display: block; font-size: 1rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    .rev { opacity: 1; transform: none; }
+    .escaner .anillo, .escaner .visto { stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#">Key<b>Serv</b></a>
+    <div class="acciones">
+      <button class="btn btn-suave" id="tema" aria-pressed="false">🌙 Modo noche</button>
+      <a class="btn btn-primario" href="#">Ingresar</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <span class="etiqueta">1 · Inicio — bento grid</span>
+    <div class="bento rev">
+      <div class="tile hero">
+        <h1>Servicios del hogar de personas verificadas</h1>
+        <p>Encuentra a quien necesitas, con identidad comprobada y tus datos bajo tu control.</p>
+        <form class="busqueda" role="search" onsubmit="return false">
+          <input type="search" placeholder="¿Qué necesitas? Ej: gasfitería" aria-label="Buscar un servicio">
+          <button class="btn btn-acento" type="submit">Buscar</button>
+        </form>
+      </div>
+      <div class="tile dato"><strong>180 días</strong><span class="nota">de vigencia de cada verificación de identidad</span></div>
+      <div class="tile dato"><strong>0 fotos</strong><span class="nota">de tu rostro guardadas: solo un código cifrado</span></div>
+      <div class="tile confianza"><div class="icono" aria-hidden="true">🔐</div><div><h3>Tus datos, tus reglas</h3><span class="nota">Descarga, corrige, bloquea o elimina tu información desde la app.</span></div></div>
+      <div class="tile confianza"><div class="icono" aria-hidden="true">🤝</div><div><h3>Pagos seguros</h3><span class="nota">Webpay o transferencia. Nunca vemos los datos de tu tarjeta.</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="etiqueta">2 · Catálogo — tarjetas que se adaptan a su contenedor</span>
+    <div class="grilla rev">
+      <div class="card-contenedor"><article class="servicio"><div class="foto" aria-hidden="true">🔧</div><div class="cuerpo"><span class="insignia">✔ Identidad verificada</span><h3>Gasfitería a domicilio</h3><span class="nota">Santiago · ★ 4,8</span><span class="precio">Desde $25.000</span></div></article></div>
+      <div class="card-contenedor"><article class="servicio"><div class="foto" aria-hidden="true">🌿</div><div class="cuerpo"><span class="insignia">✔ Identidad verificada</span><h3>Jardinería y poda</h3><span class="nota">Providencia · ★ 4,6</span><span class="precio">Desde $18.000</span></div></article></div>
+      <div class="card-contenedor"><article class="servicio"><div class="foto" aria-hidden="true">🎨</div><div class="cuerpo"><span class="insignia">✔ Identidad verificada</span><h3>Pintura de interiores</h3><span class="nota">Ñuñoa · ★ 4,9</span><span class="precio">Desde $40.000</span></div></article></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="etiqueta">3 · Verificación de identidad — el momento estrella</span>
+    <div class="verif rev">
+      <div>
+        <h2>Verifica tu identidad en segundos</h2>
+        <ol class="pasos">
+          <li>Elige cómo: biometría del teléfono, rostro o sin biometría.</li>
+          <li>Acepta el consentimiento, que puedes retirar cuando quieras.</li>
+          <li>Listo: tu verificación vale 180 días.</li>
+        </ol>
+        <p><button class="btn btn-primario" id="probar">▶ Ver la animación</button></p>
+      </div>
+      <div class="escaner" id="escaner" aria-hidden="true">
+        <div class="pulso"></div>
+        <svg viewBox="0 0 200 200"><circle class="anillo-base" cx="100" cy="100" r="82"/><circle class="anillo" cx="100" cy="100" r="82"/><path class="visto" d="M70 102 l22 22 l40 -46"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="etiqueta">4 · Paleta con contraste verificado (WCAG 2.2 AA)</span>
+    <h2>Los colores de marca se conservan; cambian los que llevan texto</h2>
+    <p class="nota">Hoy el texto blanco sobre el verde azulado (3,2:1) y sobre el coral (2,6:1) no llega al mínimo de 4,5:1. La propuesta usa versiones más profundas para botones y texto, y deja los tonos vivos para decoración.</p>
+    <div class="muestras rev">
+      <div class="muestra" style="background:#0B3D78;color:#fff"><b>Azul KeyServ #0B3D78</b>blanco 10,8:1 · sobre crema 10,2:1 ✔</div>
+      <div class="muestra" style="background:#0C7F6D;color:#fff"><b>Verde profundo #0C7F6D</b>blanco 4,9:1 ✔ (reemplaza al #12A38C en botones)</div>
+      <div class="muestra" style="background:#C2410C;color:#fff"><b>Coral profundo #C2410C</b>blanco 5,2:1 ✔ (reemplaza al #FF7A50 en botones)</div>
+      <div class="muestra" style="background:#12A38C;color:#14213D"><b>Verde vivo #12A38C</b>solo decoración e íconos grandes</div>
+      <div class="muestra" style="background:#FF7A50;color:#14213D"><b>Coral vivo #FF7A50</b>solo decoración y acentos</div>
+      <div class="muestra" style="background:#0A1A33;color:#F2F6FC"><b>Noche #0A1A33</b>texto 16:1 · verde 9,5:1 · coral 8,4:1 ✔</div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap"><p class="nota">Maqueta de propuesta. No es la app: muestra la dirección de arte (tokens, bento grid, container queries, animación de verificación, modo noche, <code>prefers-reduced-motion</code>).</p></footer>
+
+<script>
+  const raiz = document.documentElement, boton = document.getElementById('tema');
+  boton.addEventListener('click', () => {
+    const noche = raiz.dataset.tema !== 'noche';
+    if (noche) raiz.dataset.tema = 'noche'; else delete raiz.dataset.tema;
+    boton.setAttribute('aria-pressed', noche);
+    boton.textContent = noche ? '☀️ Modo día' : '🌙 Modo noche';
+  });
+  const io = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } }), { threshold: .15 });
+  document.querySelectorAll('.rev').forEach(el => io.observe(el));
+  const escaner = document.getElementById('escaner');
+  document.getElementById('probar').addEventListener('click', () => { escaner.classList.remove('activo'); void escaner.offsetWidth; escaner.classList.add('activo'); });
+</script>
+</body>
+</html>

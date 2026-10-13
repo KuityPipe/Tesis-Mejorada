@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { Auth } from '../core/auth';
 import { Publicaciones, PublicacionResumen } from '../catalogo/publicaciones';
 
 /**
@@ -32,7 +33,13 @@ export class InicioPage implements OnInit {
   constructor(
     private readonly api: Publicaciones,
     private readonly router: Router,
+    private readonly auth: Auth,
   ) {}
+
+  /** El aviso "¿Ofreces servicios?" invita a registrarse: solo tiene sentido sin sesión. */
+  get conSesion(): boolean {
+    return this.auth.estaAutenticado();
+  }
 
   ngOnInit(): void {
     this.api.listar(1).subscribe({
