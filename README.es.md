@@ -8,13 +8,13 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue)](LICENSE)
 
-Un marketplace chileno de servicios del hogar con verificación biométrica de identidad (reconocimiento facial por cámara y Face ID/huella nativos del teléfono). Empezó como proyecto de tesis universitaria; hoy se sigue desarrollando como producto real.
+Un marketplace chileno de servicios del hogar con verificación de identidad (Face ID/huella nativos del teléfono, reconocimiento facial por cámara, o una vía sin biometría), construido para cumplir la nueva ley chilena de datos personales (Ley 21.719). Empezó como proyecto de tesis universitaria; hoy se sigue desarrollando como producto real.
 
 ![Catálogo de servicios de KeyServ](assets/imagenes/catalogo-keyserv.jpg)
 
 ## Demo en vivo
 
-**[keyserv.netlify.app](https://keyserv.netlify.app)** — backend en Render (tier gratis, puede tardar ~50s en despertar en el primer request tras un rato inactivo), frontend en Netlify. Catálogo, cuenta/login, contrataciones y búsqueda por geolocalización están en vivo; la biometría nativa y el reconocimiento facial no son parte de este demo (para eso, el video, cuando exista). Credenciales demo:
+**[keyserv.netlify.app](https://keyserv.netlify.app)** — backend en Render (tier gratis, puede tardar ~50s en despertar en el primer request tras un rato inactivo), frontend en Netlify. Catálogo, cuenta/login, contrataciones y búsqueda por geolocalización están en vivo; el asistente con IA (botón flotante) responde preguntas frecuentes y busca en el catálogo. La biometría nativa y el reconocimiento facial no son parte de este demo (para eso, el video, cuando exista). Credenciales demo:
 
 - `cliente.demo@demo.keyserv` / `Demo1234` (cliente)
 - `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (proveedor)
@@ -28,9 +28,11 @@ También corre local en pocos minutos — ver [Cómo correrlo local](#cómo-corr
 - **Frontend**: Ionic 8 + Angular 20 + Capacitor — un solo código para web, Android e iOS
 - **Auth**: JWT hecho a mano (PyJWT), no `djangorestframework-simplejwt` — ver [Decisiones técnicas](#decisiones-técnicas)
 - **Pagos**: Transbank Webpay Plus (tarjetas) + Khipu (transferencia bancaria)
-- **Biometría**: reconocimiento facial por cámara con detección de vida por parpadeo, y biometría nativa del dispositivo (Face ID / huella vía Capacitor) — un demo anterior de huella dactilar por imagen en el navegador se retiró una vez que estas dos quedaron listas
+- **Biometría**: biometría nativa del dispositivo (Face ID / huella vía Capacitor, principal), reconocimiento facial por cámara con detección de vida por parpadeo (secundaria; solo se guarda un vector de 128 números **cifrado**, nunca una imagen) y una vía sin biometría (código por correo + documento revisado por una persona)
+- **Asistente con IA**: preguntas frecuentes + búsqueda en el catálogo con NVIDIA NIM (API compatible con OpenAI, intercambiable); los datos personales se enmascaran antes de salir del servidor y hay un flujo guiado sin IA como respaldo
+- **Cumplimiento de la Ley 21.719**: consentimiento, cifrado en reposo, derechos del titular (acceso, rectificación, oposición, bloqueo, supresión), retención automatizada y registro de auditoría — ver [Cumplimiento](#cumplimiento-ley-21719)
 - **Ubicación**: búsqueda por geolocalización (posición real del dispositivo vía `@capacitor/geolocation`, distancia Haversine calculada en la API, filtro de radio), con vista previa de mapa + link a Google Maps en cada publicación
-- **Tests**: 290 tests de backend + 77 de frontend, todos en verde (más una suite E2E con Playwright que corre contra la app real en CI)
+- **Tests**: 407 tests de backend + 93 de frontend, todos en verde (más una suite E2E con Playwright que corre contra la app real en CI)
 
 Actualmente coexisten dos frontends: los templates originales renderizados por Django y la nueva app Ionic/Angular, que habla con una API REST hecha con DRF. La migración a Ionic sigue un enfoque "strangler fig" — las pantallas se retiran del app de templates área por área, no en un solo corte grande.
 
@@ -55,20 +57,36 @@ flowchart TB
     TPL --> VIEWS
     ION -- "Bearer token" --> API
 
-    VIEWS --> DB[("PostgreSQL")]
+    VIEWS --> DB[("PostgreSQL<br/>(Neon)")]
     API --> DB
 
     VIEWS --> PAY
     API --> PAY
     VIEWS --> BIO
     API --> BIO
+    API -- "solo texto enmascarado" --> LLM
 
     subgraph EXTERNAL["Servicios externos"]
         direction LR
         PAY["Transbank Webpay<br/>+ Khipu"]
-        BIO["Biometría<br/>huella · rostro por cámara · nativa<br/>Face ID / huella"]
+        BIO["Biometría<br/>nativa Face ID / huella · rostro por cámara<br/>(vector cifrado) · vía sin biometría"]
+        LLM["LLM del asistente<br/>NVIDIA NIM"]
     end
 ```
+
+## Cumplimiento (Ley 21.719)
+
+KeyServ trata un único dato sensible — el vector derivado del rostro — por lo que el cumplimiento de la ley de datos personales se priorizó antes que el bot y el rediseño. Lo implementado, con la evidencia de cada requisito en una [matriz de cumplimiento](docs/cumplimiento/README.md):
+
+- **Minimización:** no se guardan imágenes del rostro ni huellas; la biometría nativa nunca llega al servidor.
+- **Cifrado en reposo** del vector facial con claves rotables ([ADR 0002](docs/adr/0002-cifrado-del-vector-facial.md)) y almacenamiento privado para documentos de identidad y fotos de chat/reseñas.
+- **Consentimiento versionado y revocable** antes de cualquier captura del rostro; revocar borra el vector.
+- **Verificación de identidad con vigencia** (180 días) y un registro de auditoría que nunca contiene datos biométricos ([ADR 0003](docs/adr/0003-vigencia-y-auditoria-de-verificaciones.md)).
+- **Derechos del titular dentro de la app:** descargar, corregir, oponerse, bloquear (reversible) y eliminar ([ADR 0004](docs/adr/0004-derechos-del-titular.md)), con control del plazo de 30 días.
+- **Retención automatizada** y un protocolo de respuesta a brechas; borradores de la EIPD, el registro de actividades y la lista de encargados.
+- **Ningún dato personal a una IA externa:** el asistente solo ve texto enmascarado y datos públicos del catálogo ([ADR 0005](docs/adr/0005-asistente-con-ia-externa.md)).
+
+Los textos legales son **borradores** técnicos; la revisión de un abogado sigue pendiente (ver los [riesgos residuales](docs/cumplimiento/README.md#riesgos-residuales-y-lo-pendiente)).
 
 ## Decisiones técnicas
 
@@ -114,6 +132,7 @@ Este proyecto se construyó con Claude Code como par de desarrollo. Cada decisi�
 ## Roadmap
 
 - Un video corto (flujo de contratación, pago, app nativa Android con biometría)
+- Rediseño visual del frontend y revisión de un abogado de los documentos de cumplimiento
 
 ## Licencia
 
@@ -124,6 +143,7 @@ Este proyecto se construyó con Claude Code como par de desarrollo. Cada decisi�
 El proyecto mantiene documentación de ingeniería inusualmente detallada, escrita a medida que pasaba el trabajo y no después:
 
 - [`docs/INFORME_PROYECTO_KEYSERV.md`](docs/INFORME_PROYECTO_KEYSERV.md) — el informe de proyecto completo: problema, arquitectura y resultados, escrito como continuación de la tesis de 2023 de la que nació este proyecto (también disponible como `docs/INFORME_PROYECTO_KEYSERV.docx`, listo para exportar a PDF)
+- [`docs/cumplimiento/README.md`](docs/cumplimiento/README.md) — carpeta de evidencia de cumplimiento y matriz requisito por requisito; [`docs/resumen-mejoras.md`](docs/resumen-mejoras.md) — resumen ejecutivo de las mejoras 2026/27; [`docs/adr/`](docs/adr/) — decisiones de arquitectura
 - [`docs/PLAN_MIGRACION_IONIC.md`](docs/PLAN_MIGRACION_IONIC.md) — el plan por fases de la migración de Django a Ionic
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — gaps y decisiones registradas a lo largo del proyecto
 - [`docs/DATABASE_DOCUMENTATION.md`](docs/DATABASE_DOCUMENTATION.md) — referencia del modelo de datos

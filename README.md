@@ -8,13 +8,13 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-A Chilean home-services marketplace with biometric identity verification (webcam-based facial recognition and native Face ID/fingerprint). Started as a university thesis project, now being developed as a real product.
+A Chilean home-services marketplace with biometric identity verification (native Face ID/fingerprint, webcam facial recognition, or a no-biometrics fallback), built to comply with Chile's new personal-data law (Ley 21.719). Started as a university thesis project, now being developed as a real product.
 
 ![KeyServ service catalog](assets/imagenes/catalogo-keyserv.jpg)
 
 ## Live demo
 
-**[keyserv.netlify.app](https://keyserv.netlify.app)** — backend on Render (free tier, may take ~50s to wake up on the first request after inactivity), frontend on Netlify. Catalog, account/login, contracting and geolocation search are live; native biometrics and facial recognition aren't part of this demo (see the video instead, once it exists). Demo logins:
+**[keyserv.netlify.app](https://keyserv.netlify.app)** — backend on Render (free tier, may take ~50s to wake up on the first request after inactivity), frontend on Netlify. Catalog, account/login, contracting and geolocation search are live; the AI assistant (floating button) answers FAQs and searches the catalog. Native biometrics and facial recognition aren't part of this demo (see the video instead, once it exists). Demo logins:
 
 - `cliente.demo@demo.keyserv` / `Demo1234` (client)
 - `marcelo.gasfiteria@demo.keyserv` / `Demo1234` (provider)
@@ -28,9 +28,11 @@ It also runs locally in a few minutes — see [Running locally](#running-locally
 - **Frontend**: Ionic 8 + Angular 20 + Capacitor — one codebase for web, Android and iOS
 - **Auth**: hand-rolled JWT (PyJWT), not `djangorestframework-simplejwt` — see [Technical decisions](#technical-decisions)
 - **Payments**: Transbank Webpay Plus (cards) + Khipu (bank transfer)
-- **Biometrics**: webcam-based facial recognition with blink-liveness detection, and native device biometrics (Face ID / fingerprint via Capacitor) — an earlier browser-based fingerprint-image demo was retired once these two shipped
+- **Biometrics**: native device biometrics (Face ID / fingerprint via Capacitor, primary), webcam facial recognition with blink-liveness detection (secondary; only an **encrypted** 128-number vector is stored, never an image), and a no-biometrics fallback (email code + document reviewed by a person)
+- **AI assistant**: FAQ + catalog search through NVIDIA NIM (OpenAI-compatible API, swappable); personal data is masked before leaving the server and a no-AI guided flow is the fallback
+- **Data-protection compliance (Ley 21.719)**: consent, encryption at rest, data-subject rights (access, rectification, opposition, blocking, erasure), automated retention, audit log — see [Compliance](#compliance-ley-21719)
 - **Location**: geolocation-based search (real device position via `@capacitor/geolocation`, Haversine distance computed in the API, radius filter), with a map preview + Google Maps link on each listing
-- **Tests**: 290 backend tests + 77 frontend tests, both green (plus a Playwright E2E suite running against the real app in CI)
+- **Tests**: 407 backend tests + 93 frontend tests, both green (plus a Playwright E2E suite running against the real app in CI)
 
 Two frontends currently coexist: the original Django server-rendered templates and the new Ionic/Angular app, talking to a DRF REST API. The Ionic migration follows a strangler-fig approach — screens are retired from the template app one area at a time, not in one big cutover.
 
@@ -55,20 +57,36 @@ flowchart TB
     TPL --> VIEWS
     ION -- "Bearer token" --> API
 
-    VIEWS --> DB[("PostgreSQL")]
+    VIEWS --> DB[("PostgreSQL<br/>(Neon)")]
     API --> DB
 
     VIEWS --> PAY
     API --> PAY
     VIEWS --> BIO
     API --> BIO
+    API -- "masked text only" --> LLM
 
     subgraph EXTERNAL["External services"]
         direction LR
         PAY["Transbank Webpay<br/>+ Khipu"]
-        BIO["Biometrics<br/>fingerprint · webcam face · native<br/>Face ID / fingerprint"]
+        BIO["Biometrics<br/>native Face ID / fingerprint · webcam face<br/>(encrypted vector) · no-biometrics fallback"]
+        LLM["Assistant LLM<br/>NVIDIA NIM"]
     end
 ```
+
+## Compliance (Ley 21.719)
+
+KeyServ handles one sensitive datum — the vector derived from a face — so data-protection compliance was prioritised ahead of the bot and the redesign. What's implemented, with the evidence for each requirement in a [compliance matrix](docs/cumplimiento/README.md):
+
+- **Data minimisation:** no face images or fingerprints are stored; native biometrics never reach the server.
+- **Encryption at rest** of the face vector with rotatable keys ([ADR 0002](docs/adr/0002-cifrado-del-vector-facial.md)), private storage for identity documents and chat/review photos.
+- **Versioned, revocable consent** before any face capture; revoking deletes the vector.
+- **Identity verification that expires** (180 days) with an audit trail that never contains biometric data ([ADR 0003](docs/adr/0003-vigencia-y-auditoria-de-verificaciones.md)).
+- **Data-subject rights in the app:** download, rectify, oppose, block (reversible) and delete ([ADR 0004](docs/adr/0004-derechos-del-titular.md)), with a 30-day deadline tracker.
+- **Automated retention** and a breach-response protocol; drafts of the DPIA, record of processing activities and processor list.
+- **No personal data to external AI:** the assistant only sees masked text and public catalog data ([ADR 0005](docs/adr/0005-asistente-con-ia-externa.md)).
+
+The legal texts are technical **drafts**; a lawyer's review is still pending (see [residual risks](docs/cumplimiento/README.md#riesgos-residuales-y-lo-pendiente)).
 
 ## Technical decisions
 
@@ -114,6 +132,7 @@ This project was built with Claude Code as a development pair. Every architectur
 ## Roadmap
 
 - A short video walkthrough (contracting flow, payment, native Android app with biometrics)
+- Visual redesign of the frontend and a lawyer's review of the compliance documents
 
 ## License
 
@@ -124,6 +143,7 @@ This project was built with Claude Code as a development pair. Every architectur
 The project keeps unusually detailed engineering docs, written as the work happened rather than after the fact:
 
 - [`docs/INFORME_PROYECTO_KEYSERV.md`](docs/INFORME_PROYECTO_KEYSERV.md) — the fuller project report (Spanish): problem statement, architecture, and results, structured as the continuation of the original 2023 thesis this project started from (also available as `docs/INFORME_PROYECTO_KEYSERV.docx`, ready to export to PDF)
+- [`docs/cumplimiento/README.md`](docs/cumplimiento/README.md) — compliance evidence folder and requirement-by-requirement matrix; [`docs/resumen-mejoras.md`](docs/resumen-mejoras.md) — executive summary of the 2026/27 improvements; [`docs/adr/`](docs/adr/) — architecture decisions
 - [`docs/PLAN_MIGRACION_IONIC.md`](docs/PLAN_MIGRACION_IONIC.md) — the phased plan for the Django-to-Ionic migration
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — tracked gaps and decisions across the project
 - [`docs/DATABASE_DOCUMENTATION.md`](docs/DATABASE_DOCUMENTATION.md) — data model reference

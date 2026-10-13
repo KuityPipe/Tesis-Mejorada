@@ -14,6 +14,8 @@ El repo es público (portafolio). Esta tabla dice qué hay, para qué sirve y si
 | `fase-1-auditoria-datos.md` | Inventario de datos, hallazgos y brechas frente a la ley | Sí |
 | `adr/` | Decisiones de arquitectura (verificación, cifrado, vigencia/auditoría, derechos del titular, asistente con IA) | Sí |
 | `legal/protocolo-de-brechas.md` | Protocolo ante brechas de seguridad, **borrador** | Con reserva: marcar como borrador |
+| `cumplimiento/README.md` | **Carpeta de evidencia de cumplimiento**: índice, medidas técnicas, matriz requisito → evidencia y riesgos residuales | Sí |
+| `resumen-mejoras.md` | Resumen ejecutivo de las mejoras 2026/27 (tesis, portafolio, Corfo) | Sí |
 | `cumplimiento/rotacion-de-llaves.md` | Cómo rotar la clave de cifrado biométrico | Sí |
 | `legal/eipd-reconocimiento-facial.md` | EIPD, **borrador sin revisión legal** | Con reserva: marcar como borrador |
 | `cumplimiento/*.md` | Registro de tratamiento y encargados, **borradores** | Con reserva: ídem |

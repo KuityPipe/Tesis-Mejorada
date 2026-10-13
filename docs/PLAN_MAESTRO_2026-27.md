@@ -24,7 +24,7 @@
 | 4 | Cumplimiento visible | **Hecha**: consentimiento, "Mis datos" completo (descargar, corregir, oponerse, bloquear, eliminar), retención visible en la política, protocolo de brechas, EIPD/registro/encargados en borrador (falta revisión legal) |
 | 5 | Bot asistente con IA (NVIDIA NIM) | **Implementado** (ADR 0005): preguntas frecuentes + búsqueda en el catálogo, enmascarado de datos personales, flujo guiado sin IA, botón flotante en todas las pantallas. Falta probarlo con una clave real y cargarla en Render |
 | 6 | Rediseño visual 2026/27 | Pendiente; **requiere propuesta visual aprobada antes de implementar** |
-| 7 | Calidad y cierre (README, `resumen-mejoras.md`, índice y matriz en `docs/cumplimiento/`) | Pendiente |
+| 7 | Calidad y cierre (README, `resumen-mejoras.md`, índice y matriz en `docs/cumplimiento/`) | **Hecha** (2026-10-12): `cumplimiento/README.md` con matriz, `resumen-mejoras.md`, READMEs renovados, E2E del asistente y de "Mis datos" |
 
 Pospuesto por presupuesto/entorno: revisión legal por abogado, entorno de producción real
 (`BIOMETRIC_ENCRYPTION_KEYS`, `EXIGIR_IDENTIDAD_VERIFICADA`), respaldo del keystore Android (PC de torre).
