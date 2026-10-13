@@ -12,7 +12,7 @@ El repo es público (portafolio). Esta tabla dice qué hay, para qué sirve y si
 | `plan-ajustes.md` | Registro fechado de cambios de alcance | Sí |
 | `fase-0-reconocimiento.md` | Auditoría inicial y riesgos | Con reserva: lista riesgos de seguridad (ya mitigados la mayoría) |
 | `fase-1-auditoria-datos.md` | Inventario de datos, hallazgos y brechas frente a la ley | Sí |
-| `adr/` | Decisiones de arquitectura (verificación, cifrado, vigencia/auditoría, derechos del titular) | Sí |
+| `adr/` | Decisiones de arquitectura (verificación, cifrado, vigencia/auditoría, derechos del titular, asistente con IA) | Sí |
 | `legal/protocolo-de-brechas.md` | Protocolo ante brechas de seguridad, **borrador** | Con reserva: marcar como borrador |
 | `cumplimiento/rotacion-de-llaves.md` | Cómo rotar la clave de cifrado biométrico | Sí |
 | `legal/eipd-reconocimiento-facial.md` | EIPD, **borrador sin revisión legal** | Con reserva: marcar como borrador |

@@ -375,6 +375,21 @@ EXIGIR_IDENTIDAD_VERIFICADA = env.bool('EXIGIR_IDENTIDAD_VERIFICADA', default=Fa
 # Días que vale una verificación de identidad (identidad.py); pasado ese plazo hay que repetirla.
 # Propuesta técnica (180 días), a validar con asesoría legal junto con el resto de la política de retención.
 IDENTIDAD_VIGENCIA_DIAS = env.int('IDENTIDAD_VIGENCIA_DIAS', default=180)
+# Asistente con IA (KeyServApp/asistente.py). Cualquier proveedor con API compatible con OpenAI; por defecto NVIDIA NIM
+# (API gratuita de prototipado, con límites de uso). Sin clave el asistente responde con un flujo guiado sin IA.
+LLM_BASE_URL = env('LLM_BASE_URL', default='https://integrate.api.nvidia.com/v1')
+LLM_API_KEY = env('LLM_API_KEY', default=env('NVIDIA_API_KEY', default=''))
+# Modelos probados con la clave gratuita (2026-10-12): gemma-4-31b-it responde mejor y respeta las reglas (5-20 s);
+# llama-3.2-11b-vision-instruct es más rápido (2-5 s) pero menos preciso, por eso queda solo de respaldo. El catálogo
+# gratuito cambia: varios modelos que figuran en la lista responden 404 al chat.
+LLM_MODEL = env('LLM_MODEL', default='google/gemma-4-31b-it')
+LLM_MODEL_RESPALDO = env('LLM_MODEL_RESPALDO', default='meta/llama-3.2-11b-vision-instruct')
+LLM_TIMEOUT_SEGUNDOS = env.int('LLM_TIMEOUT_SEGUNDOS', default=20)
+LLM_TIMEOUT_RESPALDO_SEGUNDOS = env.int('LLM_TIMEOUT_RESPALDO_SEGUNDOS', default=12)
+LLM_MAX_TOKENS = env.int('LLM_MAX_TOKENS', default=400)
+# Mensajes por ventana de 10 minutos al asistente (por usuario, o por IP si no hay sesión)
+ASISTENTE_LIMITE_USUARIO = env.int('ASISTENTE_LIMITE_USUARIO', default=30)
+ASISTENTE_LIMITE_ANONIMO = env.int('ASISTENTE_LIMITE_ANONIMO', default=10)
 JWT_ALGORITHM = 'HS256'
 JWT_ACCESS_TOKEN_MINUTOS = env.int('JWT_ACCESS_TOKEN_MINUTOS', default=20)
 JWT_REFRESH_TOKEN_DIAS = env.int('JWT_REFRESH_TOKEN_DIAS', default=30)

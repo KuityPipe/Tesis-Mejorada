@@ -1,0 +1,58 @@
+<button
+  type="button"
+  class="ks-asistente-boton"
+  [attr.aria-label]="abierto ? 'Cerrar el asistente' : 'Abrir el asistente de KeyServ'"
+  [attr.aria-expanded]="abierto"
+  aria-controls="ks-asistente-panel"
+  (click)="alternar()"
+>
+  <ion-icon [name]="abierto ? 'close' : 'chatbubble-ellipses-outline'" aria-hidden="true"></ion-icon>
+</button>
+
+<section id="ks-asistente-panel" class="ks-asistente-panel" *ngIf="abierto" role="dialog" aria-label="Asistente de KeyServ">
+  <header class="ks-asistente-cabecera">
+    <strong>Asistente de KeyServ</strong>
+    <button type="button" class="ks-asistente-cerrar" aria-label="Cerrar el asistente" (click)="alternar()">
+      <ion-icon name="close" aria-hidden="true"></ion-icon>
+    </button>
+  </header>
+
+  <p class="ks-asistente-aviso" role="note">{{ avisoIa }}</p>
+
+  <div class="ks-asistente-registro" #registro role="log" aria-live="polite" aria-relevant="additions">
+    <div *ngFor="let b of burbujas" class="ks-asistente-fila" [class.ks-asistente-propio]="b.rol === 'user'">
+      <div class="ks-asistente-burbuja">{{ b.texto }}</div>
+      <div class="ks-asistente-servicios" *ngIf="b.servicios?.length">
+        <a *ngFor="let s of b.servicios" class="ks-asistente-servicio" [routerLink]="['/catalogo', s.id]" (click)="abierto = false">
+          <strong>{{ s.titulo }}</strong>
+          <span>{{ s.categoria || 'Servicio' }}<ng-container *ngIf="s.comuna"> · {{ s.comuna }}</ng-container></span>
+          <span>{{ precio(s) }}<ng-container *ngIf="s.puntuacion"> · ★ {{ s.puntuacion }}</ng-container></span>
+        </a>
+      </div>
+    </div>
+    <div class="ks-asistente-fila" *ngIf="enviando"><div class="ks-asistente-burbuja ks-asistente-escribiendo">Escribiendo…</div></div>
+  </div>
+
+  <div class="ks-asistente-sugerencias" *ngIf="burbujas.length <= 1 && !enviando">
+    <button type="button" *ngFor="let s of sugerencias" (click)="usarSugerencia(s)">{{ s }}</button>
+  </div>
+
+  <p class="ks-asistente-error" *ngIf="error" role="alert">{{ error }}</p>
+
+  <form class="ks-asistente-formulario" (ngSubmit)="enviar()">
+    <input
+      #campo
+      name="mensaje"
+      type="text"
+      maxlength="500"
+      autocomplete="off"
+      placeholder="Escribe tu pregunta…"
+      aria-label="Escribe tu pregunta al asistente"
+      [(ngModel)]="texto"
+      [disabled]="enviando"
+    />
+    <button type="submit" aria-label="Enviar mensaje" [disabled]="!texto.trim() || enviando">
+      <ion-icon name="send" aria-hidden="true"></ion-icon>
+    </button>
+  </form>
+</section>

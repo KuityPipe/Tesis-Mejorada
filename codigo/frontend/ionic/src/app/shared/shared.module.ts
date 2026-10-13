@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 
@@ -9,6 +10,7 @@ import { SkeletonComponent } from './skeleton/skeleton';
 import { RevealDirective } from './reveal.directive';
 import { TopNavComponent } from './top-nav/top-nav';
 import { AccountMenuComponent } from './account-menu/account-menu';
+import { AsistenteComponent } from './asistente/asistente';
 
 /**
  * Módulo de componentes/directivas reutilizables entre páginas —
@@ -24,8 +26,8 @@ import { AccountMenuComponent } from './account-menu/account-menu';
  * propias.
  */
 @NgModule({
-  imports: [CommonModule, RouterModule, IonicModule],
-  declarations: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent],
-  exports: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent],
+  imports: [CommonModule, FormsModule, RouterModule, IonicModule],
+  declarations: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent],
+  exports: [FooterComponent, EmptyStateComponent, SkeletonComponent, RevealDirective, TopNavComponent, AccountMenuComponent, AsistenteComponent],
 })
 export class SharedModule {}

@@ -26,7 +26,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import biometria, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
+from .. import asistente, biometria, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
 from .. import pagos
 from .. import views as vistas_legacy
 from ..forms import (
@@ -573,6 +573,41 @@ class MisDatosView(APIView):
     def get(self, request):
         logger.info('Exportación de datos personales (api): usuario_id=%s', request.user.id_usuario)
         return Response(derechos_titular.exportar_datos(request.user))
+
+
+class AsistenteView(APIView):
+    """
+    `POST /api/asistente/` con `{mensajes: [{rol: 'user'|'assistant', texto}]}` — asistente de preguntas
+    frecuentes y búsqueda en el catálogo (ver `asistente.py`). Público: no necesita sesión y, si la hay, **no se usa
+    ningún dato de la cuenta** (solo para el límite de uso). Límite por usuario o por IP en ventanas de 10 minutos.
+    """
+    permission_classes = [AllowAny]
+    VENTANA_SEGUNDOS = 600
+
+    def post(self, request):
+        autenticado = bool(getattr(request.user, 'is_authenticated', False))
+        sujeto = f'u{request.user.pk}' if autenticado else f'ip{vistas_legacy._obtener_ip_cliente(request)}'
+        limite = settings.ASISTENTE_LIMITE_USUARIO if autenticado else settings.ASISTENTE_LIMITE_ANONIMO
+        clave = f'asistente:{sujeto}'
+        cache.add(clave, 0, self.VENTANA_SEGUNDOS)  # ventana fija: solo se crea la primera vez
+        usados = cache.get(clave, 0)
+        if usados >= limite:
+            return Response(
+                {'detail': 'Has usado el asistente muchas veces seguidas. Prueba de nuevo en unos minutos.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        try:
+            cache.incr(clave)
+        except ValueError:  # expiró entre el add y el incr
+            cache.set(clave, 1, self.VENTANA_SEGUNDOS)
+
+        mensajes = request.data.get('mensajes')
+        if not isinstance(mensajes, list) or not mensajes:
+            return Response({'detail': 'Escribe un mensaje.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            return Response(asistente.responder(mensajes))
+        except ValueError:
+            return Response({'detail': 'Escribe un mensaje.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DerechosView(APIView):

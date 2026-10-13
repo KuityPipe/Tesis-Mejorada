@@ -22,7 +22,7 @@
 | 2 | Reforzar la verificación existente (ADR + diagrama) | **Hecha**: `adr/0001` con diagrama Mermaid; WebAuthn evaluado y diferido |
 | 3 | Refuerzo (cifrado, bloqueo, auditoría, rotación, tests) | **Hecha**: cifrado Fernet, enforcement con vigencia de 180 días, `EventoVerificacion`, `rotar_llaves_biometricas` + guía, tests de fallos (E2E de navegador no: el demo tiene el enforcement apagado) |
 | 4 | Cumplimiento visible | **Hecha**: consentimiento, "Mis datos" completo (descargar, corregir, oponerse, bloquear, eliminar), retención visible en la política, protocolo de brechas, EIPD/registro/encargados en borrador (falta revisión legal) |
-| 5 | Bot asistente con IA (NVIDIA NIM) | Pendiente (necesita una API key de NVIDIA, la crea el dueño) |
+| 5 | Bot asistente con IA (NVIDIA NIM) | **Implementado** (ADR 0005): preguntas frecuentes + búsqueda en el catálogo, enmascarado de datos personales, flujo guiado sin IA, botón flotante en todas las pantallas. Falta probarlo con una clave real y cargarla en Render |
 | 6 | Rediseño visual 2026/27 | Pendiente; **requiere propuesta visual aprobada antes de implementar** |
 | 7 | Calidad y cierre (README, `resumen-mejoras.md`, índice y matriz en `docs/cumplimiento/`) | Pendiente |
 

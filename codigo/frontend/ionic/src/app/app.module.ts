@@ -9,6 +9,7 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { authInterceptor } from './core/auth-interceptor';
 import { Auth } from './core/auth';
+import { SharedModule } from './shared/shared.module';
 
 /**
  * Módulo raíz — el único que se carga de entrada (todo lo demás, como
@@ -25,7 +26,7 @@ import { Auth } from './core/auth';
  */
 @NgModule({
   declarations: [AppComponent],
-  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule],
+  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, SharedModule],
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideHttpClient(withInterceptors([authInterceptor])),

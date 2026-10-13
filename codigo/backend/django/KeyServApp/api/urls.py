@@ -21,6 +21,7 @@ urlpatterns = [
     path('auth/verificacion-alternativa/codigo/', views.VerificacionAlternativaCodigoView.as_view(), name='verif-alt-codigo'),
     path('auth/verificacion-alternativa/documento/', views.VerificacionAlternativaDocumentoView.as_view(), name='verif-alt-documento'),
     path('auth/mis-datos/', views.MisDatosView.as_view(), name='mis-datos'),
+    path('asistente/', views.AsistenteView.as_view(), name='asistente'),
     path('auth/derechos/', views.DerechosView.as_view(), name='derechos'),
     path('auth/bloqueo-tratamiento/', views.BloqueoTratamientoView.as_view(), name='bloqueo-tratamiento'),
     path('auth/eliminar-cuenta/', views.EliminarCuentaView.as_view(), name='eliminar-cuenta'),

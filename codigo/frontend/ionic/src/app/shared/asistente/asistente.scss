@@ -1,0 +1,209 @@
+// Botón flotante + panel del asistente. Colores de marca vía variables de theme/variables.scss.
+:host {
+  display: contents;
+}
+
+.ks-asistente-boton {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2000;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ion-color-secondary, #12a38c);
+  color: #fff;
+  font-size: 26px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(8, 44, 87, 0.3);
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: scale(1.06);
+  }
+  &:focus-visible {
+    outline: 3px solid var(--ion-color-primary, #0b3d78);
+    outline-offset: 3px;
+  }
+}
+
+.ks-asistente-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 84px;
+  z-index: 2000;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(560px, calc(100vh - 110px));
+  display: flex;
+  flex-direction: column;
+  background: var(--ion-background-color, #fff);
+  color: var(--ion-text-color, #1b2a41);
+  border: 1px solid var(--ion-border-color, rgba(11, 61, 120, 0.15));
+  border-radius: 18px;
+  box-shadow: 0 14px 40px rgba(8, 44, 87, 0.28);
+  overflow: hidden;
+  animation: ks-asistente-entrada 0.18s ease-out;
+}
+
+@keyframes ks-asistente-entrada {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-asistente-panel { animation: none; }
+  .ks-asistente-boton { transition: none; }
+}
+
+.ks-asistente-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--ion-color-primary, #0b3d78);
+  color: #fff;
+}
+
+.ks-asistente-cerrar {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 22px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.ks-asistente-aviso {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  line-height: 1.35;
+  background: var(--ks-coral-light, #ffe4d6);
+  color: #6b2a10;
+}
+
+.ks-asistente-registro {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 12px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ks-asistente-fila {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+
+  &.ks-asistente-propio {
+    align-items: flex-end;
+
+    .ks-asistente-burbuja {
+      background: var(--ion-color-primary, #0b3d78);
+      color: #fff;
+    }
+  }
+}
+
+.ks-asistente-burbuja {
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--ks-navy-light, #e9f0fa);
+  color: var(--ion-text-color, #1b2a41);
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ks-asistente-escribiendo {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.ks-asistente-servicios {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.ks-asistente-servicio {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--ion-border-color, rgba(11, 61, 120, 0.2));
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  font-size: 13px;
+
+  span { opacity: 0.8; }
+  &:hover { border-color: var(--ion-color-secondary, #12a38c); }
+  &:focus-visible { outline: 3px solid var(--ion-color-primary, #0b3d78); }
+}
+
+.ks-asistente-sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 12px 8px;
+
+  button {
+    border: 1px solid var(--ion-color-secondary, #12a38c);
+    background: transparent;
+    color: var(--ion-color-secondary-shade, #0c8272);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+}
+
+.ks-asistente-error {
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--ion-color-danger, #c0392b);
+}
+
+.ks-asistente-formulario {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--ion-border-color, rgba(11, 61, 120, 0.12));
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--ion-border-color, rgba(11, 61, 120, 0.25));
+    border-radius: 999px;
+    padding: 9px 14px;
+    font-size: 16px; // 16px evita el zoom automático en iOS
+    background: transparent;
+    color: inherit;
+  }
+
+  button {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--ion-color-secondary, #12a38c);
+    color: #fff;
+    font-size: 18px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+}
