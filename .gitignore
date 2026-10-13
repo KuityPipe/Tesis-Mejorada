@@ -46,3 +46,7 @@ codigo/biometria/huella/Imprimir para motivacion y traducir.pdf
 
 # Textos del plan original y notas privadas del dueño del proyecto (solo local)
 docs/privado/
+
+# Scripts temporales de capturas de pantalla (revisión visual local)
+codigo/frontend/ionic/tmp-*.mjs
+codigo/frontend/ionic/tmp-*.png
