@@ -40,7 +40,7 @@
 
 **Plan maestro original (7 fases, ver `PLAN_MAESTRO_2026-27.md`; texto completo local en `docs/privado/`)**
 - Fases 0–4: **hechas** (2026-10-12). Cerradas ese día: documento de auditoría (`fase-1-auditoria-datos.md`), ADRs 0001–0004 con diagrama, vigencia de 180 días y `EventoVerificacion`, `rotar_llaves_biometricas` + guía, "Mis datos" completo (rectificación, oposición, bloqueo), retención visible en `privacidad.html`, protocolo de brechas.
-- **Fase 5 (bot NVIDIA NIM):** necesita que el dueño cree una API key gratuita en build.nvidia.com (`nvapi-...`). Proxy en Django, filtro de datos personales, widget en Ionic, aviso de IA externa, respaldo sin IA.
+- **Fase 5 (asistente con IA): hecha** (2026-10-12, ADR 0005, CI en verde). Modelo principal `google/gemma-4-31b-it` (5–20 s), respaldo `meta/llama-3.2-11b-vision-instruct`, y flujo guiado sin IA. **Pendiente del dueño: cargar `NVIDIA_API_KEY` en Render** (Environment de `keyserv-api`); los modelos ya son el valor por defecto. Límites: plan gratuito de NVIDIA con cupo; la mayoría de los modelos del catálogo responden 404 al chat; el enmascarado por patrones no es infalible.
 - **Fase 6 (rediseño):** propuesta visual para aprobación antes de implementar.
 - **Fase 7:** README, `resumen-mejoras.md`, índice y matriz de cumplimiento en `docs/cumplimiento/`.
 - Convención decidida por el dueño: commits en español, directo a `master`, tags para hitos (`pre-cierre-fases-1-4`).
