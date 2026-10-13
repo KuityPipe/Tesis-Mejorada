@@ -30,6 +30,18 @@ export class InicioPage implements OnInit {
   cargandoDestacadas = true;
   q = '';
 
+  /** Categorías de la portada: nombre visible, término de búsqueda (sin tildes) e ícono de fondo. */
+  readonly categorias = [
+    { nombre: 'Gasfitería', q: 'gasfiteria', icono: 'water-outline' },
+    { nombre: 'Electricidad', q: 'electricidad', icono: 'flash-outline' },
+    { nombre: 'Jardinería', q: 'jardineria', icono: 'leaf-outline' },
+    { nombre: 'Limpieza', q: 'limpieza', icono: 'sparkles-outline' },
+    { nombre: 'Pintura', q: 'pintura', icono: 'color-palette-outline' },
+    { nombre: 'Carpintería', q: 'carpinteria', icono: 'hammer-outline' },
+    { nombre: 'Mudanzas', q: 'mudanzas', icono: 'cube-outline' },
+    { nombre: 'Cerrajería', q: 'cerrajeria', icono: 'key-outline' },
+  ];
+
   constructor(
     private readonly api: Publicaciones,
     private readonly router: Router,
@@ -56,6 +68,11 @@ export class InicioPage implements OnInit {
   /** Mismo destino que el `<form method="get" action="{% url 'catalogo' %}">` de paginicio.html — navega al catálogo completo con `q` como query param. */
   buscar(): void {
     this.router.navigate(['/catalogo'], { queryParams: this.q ? { q: this.q } : {} });
+  }
+
+  /** Lleva la vista a la sección de servicios (el botón "Desliza" del hero). */
+  irAServicios(): void {
+    document.getElementById('servicios')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   buscarTag(termino: string): void {

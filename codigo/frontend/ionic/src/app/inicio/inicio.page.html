@@ -7,58 +7,74 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide">
-  <!-- Fase 6: inicio en bento grid — la propuesta de valor, la búsqueda y los diferenciadores de confianza llenan el ancho. -->
-  <div class="ks-bento ks-inicio-bento">
-    <section class="ks-tile ks-bento-hero ks-inicio-hero" appReveal aria-labelledby="titulo-inicio">
-      <span class="ks-inicio-etiqueta">Servicios del hogar en Chile</span>
-      <h1 id="titulo-inicio">Encuentra profesionales de confianza, con identidad verificada</h1>
-      <p>Cada proveedor verifica su identidad con la biometría de su teléfono o por una vía alternativa, y tus datos siempre quedan bajo tu control.</p>
+<ion-content [fullscreen]="true" class="ks-content-bleed">
+  <!-- HERO a pantalla completa: fondo con malla/brillos y tarjetas de vidrio flotantes (estilo 2026). -->
+  <section class="ks-hero26" aria-labelledby="titulo-inicio">
+    <div class="ks-hero26-fondo" aria-hidden="true"></div>
+    <div class="ks-contenedor ks-hero26-grid">
+      <div class="ks-hero26-texto" appReveal>
+        <span class="ks-hero26-etiqueta"><i class="ks-hero26-punto"></i> Servicios del hogar en Chile · 2026</span>
+        <h1 id="titulo-inicio">Contrata con <em>identidad verificada</em>, sin sorpresas.</h1>
+        <p>Cada proveedor verifica quién es con la biometría de su teléfono o por una vía sin biometría, y tus datos siempre quedan bajo tu control.</p>
 
-      <form (ngSubmit)="buscar()" role="search">
-        <ion-searchbar placeholder="¿Qué servicio necesitas? Ej: gasfitería, jardinería…" [(ngModel)]="q" name="q" (ionChange)="buscar()" aria-label="Buscar un servicio"></ion-searchbar>
-      </form>
+        <form (ngSubmit)="buscar()" role="search" class="ks-hero26-busqueda">
+          <ion-searchbar placeholder="¿Qué necesitas? Ej: gasfitería, jardinería…" [(ngModel)]="q" name="q" (ionChange)="buscar()" aria-label="Buscar un servicio"></ion-searchbar>
+        </form>
 
-      <div class="ks-hero-tags">
-        <span>Popular:</span>
-        <ion-chip (click)="buscarTag('gasfiteria')">Gasfitería</ion-chip>
-        <ion-chip (click)="buscarTag('jardineria')">Jardinería</ion-chip>
-        <ion-chip (click)="buscarTag('electricidad')">Electricidad</ion-chip>
-        <ion-chip (click)="buscarTag('limpieza')">Limpieza</ion-chip>
+        <div class="ks-hero26-chips">
+          <span>Popular</span>
+          <button type="button" (click)="buscarTag('gasfiteria')">Gasfitería</button>
+          <button type="button" (click)="buscarTag('jardineria')">Jardinería</button>
+          <button type="button" (click)="buscarTag('electricidad')">Electricidad</button>
+          <button type="button" (click)="buscarTag('limpieza')">Limpieza</button>
+        </div>
       </div>
-    </section>
 
-    <div class="ks-tile ks-bento-2 ks-inicio-dato" appReveal [appRevealDelay]="60">
-      <strong>180 días</strong>
-      <span>de vigencia de cada verificación de identidad</span>
-    </div>
-    <div class="ks-tile ks-bento-2 ks-inicio-dato" appReveal [appRevealDelay]="100">
-      <strong>0 fotos</strong>
-      <span>de tu rostro guardadas: solo un código cifrado, o nada si usas la biometría del teléfono</span>
-    </div>
+      <div class="ks-hero26-hud" aria-hidden="true">
+        <div class="ks-vidrio ks-hud-1"><ion-icon name="checkmark-circle"></ion-icon><div><strong>Identidad verificada</strong><span>Biometría, rostro o documento</span></div></div>
+        <div class="ks-vidrio ks-hud-2"><strong>180 días</strong><span>vigencia de cada verificación</span></div>
+        <div class="ks-vidrio ks-hud-3"><strong>0 fotos</strong><span>de tu rostro guardadas</span></div>
+      </div>
 
-    <div class="ks-tile ks-bento-3 ks-inicio-pilar" appReveal [appRevealDelay]="0">
-      <ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon>
-      <h3>Identidad verificada</h3>
-      <p>Biometría del teléfono, reconocimiento facial o una revisión manual de tu documento, antes de operar.</p>
+      <a class="ks-hero26-scroll" href="javascript:void(0)" (click)="irAServicios()" aria-label="Ir a los servicios">Desliza <span class="ks-flecha">↓</span></a>
     </div>
-    <div class="ks-tile ks-bento-3 ks-inicio-pilar" appReveal [appRevealDelay]="80">
-      <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
-      <h3>Calificaciones reales</h3>
-      <p>Cada servicio completado se califica: elige con reseñas de verdad.</p>
-    </div>
-    <div class="ks-tile ks-bento-3 ks-inicio-pilar" appReveal [appRevealDelay]="160">
-      <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
-      <h3>Tus datos, tus reglas</h3>
-      <p>Descarga, corrige, bloquea o elimina tu información cuando quieras, desde la app.</p>
+  </section>
+
+  <!-- Tira de palabras en movimiento -->
+  <div class="ks-marquee" aria-hidden="true">
+    <div class="ks-marquee-pista">
+      <ng-container *ngFor="let vuelta of [1, 2]">
+        <ng-container *ngFor="let cat of categorias">
+          <span>{{ cat.nombre }}</span><span class="ks-punto">✦</span>
+        </ng-container>
+      </ng-container>
     </div>
   </div>
 
-  <!-- Servicios destacados — reusa Publicaciones.listar() (mismo .ks-card-tile que catalogo.page). -->
-  <div class="ks-section">
-    <div class="ks-inicio-encabezado">
-      <h2 class="ks-section-title">Servicios destacados</h2>
-      <a routerLink="/catalogo" class="ks-inicio-ver-todo">Ver todo el catálogo →</a>
+  <!-- 01 · Servicios por categoría: tarjetas con ícono grande de fondo y texto encima -->
+  <section class="ks-contenedor ks-seccion" id="servicios">
+    <div class="ks-seccion-titulo" appReveal>
+      <span class="ks-num">01 /</span>
+      <h2>¿Qué necesitas hoy?</h2>
+      <a class="ks-seccion-link" routerLink="/catalogo">Ver todo <span class="ks-flecha">→</span></a>
+    </div>
+
+    <div class="ks-cat-grid">
+      <button type="button" class="ks-cat" *ngFor="let cat of categorias; let i = index" (click)="buscarTag(cat.q)" appReveal [appRevealDelay]="i * 40">
+        <ion-icon [name]="cat.icono" class="ks-cat-marca" aria-hidden="true"></ion-icon>
+        <span class="ks-cat-n">{{ (i + 1) < 10 ? '0' + (i + 1) : (i + 1) }}</span>
+        <strong>{{ cat.nombre }}</strong>
+        <span class="ks-cat-flecha"><span class="ks-flecha">→</span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 02 · Servicios destacados -->
+  <section class="ks-contenedor ks-seccion">
+    <div class="ks-seccion-titulo" appReveal>
+      <span class="ks-num">02 /</span>
+      <h2>Servicios destacados</h2>
+      <a class="ks-seccion-link" routerLink="/catalogo">Catálogo completo <span class="ks-flecha">→</span></a>
     </div>
 
     <app-skeleton *ngIf="cargandoDestacadas" variante="card" [cantidad]="3"></app-skeleton>
@@ -84,28 +100,48 @@
         </div>
       </a>
     </div>
-  </div>
+  </section>
 
-  <!-- Cómo funciona + para proveedores: llena el ancho con contenido útil en vez de espacio vacío. -->
-  <div class="ks-layout-main-side ks-inicio-pasos-fila">
-    <section class="ks-section">
-      <h2 class="ks-section-title">Cómo funciona</h2>
-      <ol class="ks-inicio-pasos">
-        <li appReveal><strong>Busca</strong><span>Filtra por servicio, comuna, cercanía o calificación.</span></li>
-        <li appReveal [appRevealDelay]="60"><strong>Solicita y coordina</strong><span>El proveedor confirma y acuerdan el detalle por el chat de cada trabajo.</span></li>
-        <li appReveal [appRevealDelay]="120"><strong>Paga seguro</strong><span>Con tarjeta o transferencia; KeyServ nunca ve los datos de tu tarjeta.</span></li>
-        <li appReveal [appRevealDelay]="180"><strong>Califica</strong><span>Al terminar, valora al proveedor para ayudar a otras personas.</span></li>
-      </ol>
-    </section>
+  <!-- Banda a sangre con imagen de fondo y texto encima (el fondo se reemplaza por una foto con --ks-banda-foto) -->
+  <section class="ks-banda26" aria-labelledby="titulo-banda">
+    <div class="ks-banda26-fondo" aria-hidden="true"></div>
+    <div class="ks-contenedor ks-banda26-contenido" appReveal>
+      <span class="ks-micro-claro">Tu casa, tus reglas</span>
+      <h2 id="titulo-banda">Descarga, corrige, bloquea o elimina tus datos. Cuando quieras.</h2>
+      <p>No guardamos fotos de tu rostro ni tu huella. Y si prefieres no usar biometría, hay una vía alternativa con revisión de tu documento.</p>
+      <div class="ks-banda26-acciones">
+        <ion-button *ngIf="!conSesion" routerLink="/registro" color="light">Crear mi cuenta</ion-button>
+        <ion-button *ngIf="conSesion" routerLink="/preferencias" color="light">Ir a Mis datos</ion-button>
+        <ion-button routerLink="/acerca-de-nosotros" fill="outline" color="light">Conocer KeyServ</ion-button>
+      </div>
+    </div>
+  </section>
 
-    <aside class="ks-tile ks-inicio-proveedor" appReveal>
-      <ion-icon name="construct-outline" aria-hidden="true"></ion-icon>
-      <h3>¿Ofreces servicios?</h3>
-      <p>Publica lo que haces, verifica tu identidad y llega a más clientes.</p>
-      <ion-button *ngIf="!conSesion" routerLink="/registro" fill="solid" color="secondary">Crear mi cuenta</ion-button>
-      <ion-button *ngIf="conSesion" routerLink="/catalogo/crear" fill="solid" color="secondary">Publicar un servicio</ion-button>
-    </aside>
-  </div>
+  <!-- 03 · Cómo funciona -->
+  <section class="ks-contenedor ks-seccion">
+    <div class="ks-seccion-titulo" appReveal>
+      <span class="ks-num">03 /</span>
+      <h2>Cómo funciona</h2>
+    </div>
+    <ol class="ks-pasos26">
+      <li appReveal><span class="ks-paso-n">01</span><strong>Busca</strong><p>Filtra por servicio, comuna, cercanía o calificación.</p></li>
+      <li appReveal [appRevealDelay]="60"><span class="ks-paso-n">02</span><strong>Solicita y coordina</strong><p>El proveedor confirma y acuerdan el detalle por el chat de cada trabajo.</p></li>
+      <li appReveal [appRevealDelay]="120"><span class="ks-paso-n">03</span><strong>Paga seguro</strong><p>Con tarjeta o transferencia; KeyServ nunca ve los datos de tu tarjeta.</p></li>
+      <li appReveal [appRevealDelay]="180"><span class="ks-paso-n">04</span><strong>Califica</strong><p>Al terminar, valora al proveedor para ayudar a otras personas.</p></li>
+    </ol>
+  </section>
 
-  <app-footer></app-footer>
+  <!-- 04 · Para proveedores -->
+  <section class="ks-contenedor ks-seccion">
+    <div class="ks-proveedor26" appReveal>
+      <div>
+        <span class="ks-micro">04 / Para proveedores</span>
+        <h2>¿Ofreces servicios? Llega a más clientes con tu identidad respaldada.</h2>
+      </div>
+      <ion-button *ngIf="!conSesion" routerLink="/registro" color="secondary" size="large">Crear mi cuenta <span class="ks-flecha">→</span></ion-button>
+      <ion-button *ngIf="conSesion" routerLink="/catalogo/crear" color="secondary" size="large">Publicar un servicio <span class="ks-flecha">→</span></ion-button>
+    </div>
+  </section>
+
+  <div class="ks-contenedor"><app-footer></app-footer></div>
 </ion-content>

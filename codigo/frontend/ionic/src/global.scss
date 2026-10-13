@@ -1615,3 +1615,216 @@ img.ks-img-rota {
   margin-top: 6px;
   white-space: normal;
 }
+
+/* =====================================================================
+   FASE 6b — Estilo 2026 ("menos cuadrado", más inmersivo)
+   Referencia de técnicas: ideve.cl (hero a pantalla completa con texto sobre
+   imagen, tira de palabras en movimiento, secciones numeradas, etiquetas
+   en mayúsculas pequeñas, tarjetas con flecha). Solo técnicas, no su estética.
+===================================================================== */
+
+// ---- Header a todo el ancho con el menú en el extremo derecho, con efecto vidrio ----
+ion-toolbar::part(container) {
+  max-width: none;
+}
+
+ion-toolbar {
+  --background: color-mix(in srgb, var(--ks-surface) 93%, transparent);
+  --padding-start: clamp(16px, 3vw, 40px);
+  --padding-end: clamp(16px, 3vw, 40px);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+}
+
+// ---- El contenido se adapta al ancho de la pantalla (antes quedaba en una columna fija) ----
+ion-content::part(scroll) {
+  max-width: min(1180px, 100%);
+}
+
+ion-content.ks-content-wide::part(scroll),
+ion-content.ks-content-cols::part(scroll) {
+  max-width: min(1520px, 100%);
+}
+
+ion-content.ion-padding {
+  --padding-start: clamp(16px, 3vw, 48px);
+  --padding-end: clamp(16px, 3vw, 48px);
+}
+
+// Páginas "a sangre" (inicio): sin tope de ancho; las secciones internas usan .ks-contenedor.
+ion-content.ks-content-bleed::part(scroll) {
+  max-width: none;
+}
+
+ion-content.ks-content-bleed {
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 0;
+}
+
+.ks-contenedor {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 3vw, 48px);
+}
+
+// ---- Encabezado de página como banner oscuro con brillo, en vez de una franja plana ----
+.ks-page-header {
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 clamp(20px, 3vw, 32px);
+  padding: clamp(26px, 4vw, 48px) clamp(20px, 3.5vw, 44px);
+  color: #fff;
+  background:
+    radial-gradient(60% 120% at 100% 0%, rgba(18, 163, 140, 0.55) 0%, transparent 60%),
+    radial-gradient(50% 100% at 0% 100%, rgba(255, 122, 80, 0.28) 0%, transparent 60%),
+    linear-gradient(135deg, #0b3d78 0%, #0a2f5e 100%);
+  border-radius: var(--ks-radius-lg);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.14);
+    -webkit-mask: url('/assets/fondos/malla.svg') center / cover no-repeat;
+    mask: url('/assets/fondos/malla.svg') center / cover no-repeat;
+    pointer-events: none;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  h1 {
+    color: #fff;
+    font-size: clamp(1.7rem, 1.2rem + 2.4vw, 3rem);
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.86);
+  }
+
+  h1 ion-icon {
+    color: #8ff0dc;
+  }
+}
+
+// El grid de columnas no debe cortar el banner
+ion-content.ks-content-cols > .ks-page-header {
+  column-span: all;
+}
+
+// ---- Piezas reutilizables del estilo 2026 ----
+.ks-micro {
+  display: inline-block;
+  font: 700 0.78rem 'Nunito', sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ks-teal-dark);
+}
+
+.ks-seccion-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0 0 clamp(16px, 2.5vw, 28px);
+
+  .ks-num {
+    font: 700 0.9rem 'Quicksand', sans-serif;
+    color: var(--ks-teal-dark);
+    letter-spacing: 0.08em;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(1.7rem, 1.2rem + 2vw, 2.8rem);
+    letter-spacing: -0.015em;
+  }
+
+  .ks-seccion-link {
+    margin-left: auto;
+    font-weight: 700;
+    color: var(--ks-navy);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+}
+
+// Tira de palabras en movimiento (la animación se detiene con "reducir movimiento").
+.ks-marquee {
+  overflow: hidden;
+  border-block: 1px solid var(--ks-border);
+  background: var(--ks-surface);
+  white-space: nowrap;
+
+  .ks-marquee-pista {
+    display: inline-flex;
+    gap: 40px;
+    padding: 14px 0;
+    animation: ks-marquee 36s linear infinite;
+  }
+
+  span {
+    font: 700 1rem 'Quicksand', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ks-navy);
+  }
+
+  span.ks-punto {
+    color: var(--ks-coral);
+  }
+}
+
+@keyframes ks-marquee {
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-marquee .ks-marquee-pista {
+    animation: none;
+  }
+}
+
+// Tarjetas suaves (menos cuadradas): sombra difusa y sin borde duro
+.ks-tile,
+ion-card,
+.ks-card-tile {
+  border-radius: var(--ks-radius-lg);
+  box-shadow: var(--ks-shadow);
+}
+
+ion-card {
+  border-color: transparent;
+}
+
+// Botones y chips un poco más grandes y redondeados
+ion-button {
+  --padding-start: 1.4em;
+  --padding-end: 1.4em;
+}
+
+.ks-flecha {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+a:hover > .ks-flecha,
+.ks-con-flecha:hover .ks-flecha {
+  transform: translateX(4px);
+}
+
+// Dentro del banner oscuro, la barra de filtros es una tarjeta clara: su texto no debe heredar el blanco del banner.
+.ks-page-header .ks-filter-bar {
+  color: var(--ks-ink);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.45);
+
+  p,
+  ion-label,
+  ion-select {
+    color: var(--ks-ink);
+  }
+}

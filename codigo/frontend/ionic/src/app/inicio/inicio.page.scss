@@ -1,206 +1,456 @@
-// Inicio (Fase 6, "Confianza cálida"): bento grid que llena el ancho con la propuesta de valor, la búsqueda y los
-// diferenciadores de confianza. Los helpers de layout (.ks-bento, .ks-tile, .ks-layout-main-side) viven en global.scss.
+// Inicio 2026 ("Confianza cálida", estilo inmersivo): hero a pantalla completa con texto sobre fondo, tarjetas de
+// vidrio, tira de palabras, secciones numeradas y una banda a sangre con texto encima. Los fondos son generados
+// (degradados + malla SVG) y se pueden reemplazar por fotos con --ks-hero-foto / --ks-banda-foto.
 
-.ks-inicio-hero {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+// Colores fijos (no --ks-navy): en modo noche --ks-navy es un azul claro y el texto blanco perdería contraste.
+$navy: #0b3d78;
+$navy-hondo: #082c57;
+$verde: #0c7f6d;
+$coral: #c2410c;
+
+.ks-seccion {
+  padding-block: clamp(36px, 6vw, 84px);
+}
+
+// ---------------- HERO ----------------
+.ks-hero26 {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   color: #fff;
-  // Colores fijos (no --ks-navy): en modo noche --ks-navy es un azul claro y el texto blanco perdería contraste.
-  background: linear-gradient(135deg, #0b3d78 0%, #0a2f5e 100%);
-  border: 0;
+  min-height: min(86vh, 860px);
+  display: grid;
+  align-items: center;
+  padding-block: clamp(48px, 8vw, 110px);
+  background: $navy-hondo;
+}
 
-  // Resplandor decorativo con el verde vivo (solo decoración, nunca lleva texto encima)
+.ks-hero26-fondo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    var(--ks-hero-foto, none) center / cover no-repeat,
+    radial-gradient(55% 70% at 85% 15%, rgba(18, 163, 140, 0.6) 0%, transparent 62%),
+    radial-gradient(45% 60% at 10% 95%, rgba(255, 122, 80, 0.38) 0%, transparent 60%),
+    radial-gradient(60% 80% at 50% 50%, #0f4a8f 0%, $navy-hondo 85%);
+
+  // Malla de líneas de nivel como textura, enmascarada para tomar el color que queramos
   &::after {
     content: '';
     position: absolute;
-    right: -70px;
-    bottom: -70px;
-    width: 280px;
-    height: 280px;
-    border-radius: 50%;
-    background: radial-gradient(circle, var(--ks-teal) 0%, transparent 65%);
-    opacity: 0.45;
-    pointer-events: none;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.2);
+    -webkit-mask: url('/assets/fondos/malla.svg') center / cover no-repeat;
+    mask: url('/assets/fondos/malla.svg') center / cover no-repeat;
   }
 
-  h1 {
+  // Si hay foto, un velo oscuro mantiene legible el texto
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(8, 44, 87, 0.92) 0%, rgba(8, 44, 87, 0.55) 60%, rgba(8, 44, 87, 0.2) 100%);
+    opacity: var(--ks-hero-velo, 0);
+  }
+}
+
+.ks-hero26-grid {
+  display: grid;
+  gap: clamp(28px, 5vw, 64px);
+  align-items: center;
+  position: relative;
+
+  @media (min-width: 1000px) {
+    grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  }
+}
+
+.ks-hero26-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 0.78rem 'Nunito', sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8ff0dc;
+  margin-bottom: 18px;
+}
+
+.ks-hero26-punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #8ff0dc;
+  box-shadow: 0 0 0 0 rgba(143, 240, 220, 0.7);
+  animation: ks-pulso 2.2s infinite;
+}
+
+@keyframes ks-pulso {
+  70% { box-shadow: 0 0 0 12px rgba(143, 240, 220, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(143, 240, 220, 0); }
+}
+
+.ks-hero26 h1 {
+  color: #fff;
+  font-size: clamp(2.4rem, 1.2rem + 5vw, 5.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  margin: 0 0 22px;
+  max-width: 15ch;
+
+  em {
+    font-style: italic;
+    background: linear-gradient(90deg, #8ff0dc, #ffb59a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    // La cursiva se salía de la caja y el degradado recortaba la última letra
+    // (en cada línea cuando la frase se parte en dos: box-decoration-break: clone)
+    padding: 0 0.16em;
+    margin: 0 -0.16em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+}
+
+// Los destacados se reparten todo el ancho aunque sean pocos
+.ks-seccion .ks-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.ks-hero26-texto > p {
+  font-size: clamp(1.02rem, 0.95rem + 0.4vw, 1.25rem);
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 52ch;
+  margin: 0 0 28px;
+}
+
+.ks-hero26-busqueda ion-searchbar {
+  padding: 0;
+  max-width: 600px;
+  --background: rgba(255, 255, 255, 0.96);
+  --color: #14213d;
+  --placeholder-color: #4a5873;
+  --icon-color: #4a5873;
+  --border-radius: 999px;
+  --box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.5);
+  font-size: 1.05rem;
+}
+
+.ks-hero26-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+
+  span {
+    font: 700 0.78rem 'Nunito', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    margin-right: 4px;
+  }
+
+  button {
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
-    margin: 6px 0 12px;
-    max-width: 18ch;
-  }
+    font: 700 0.9rem 'Nunito', sans-serif;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s;
 
-  p {
-    color: rgba(255, 255, 255, 0.92);
-    margin: 0 0 18px;
-    max-width: 52ch;
-  }
-
-  form,
-  .ks-hero-tags {
-    position: relative;
-    z-index: 1;
-  }
-
-  ion-searchbar {
-    padding: 0;
-    --background: #fff;
-    --color: #14213d;
-    --placeholder-color: #4a5873;
-    --icon-color: #4a5873;
-    max-width: 520px;
-    margin: 0;
-  }
-
-  .ks-hero-tags {
-    justify-content: flex-start;
-    margin-top: 14px;
-
-    span {
-      color: rgba(255, 255, 255, 0.85);
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
   }
 }
 
-.ks-inicio-etiqueta {
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+// Tarjetas de vidrio flotantes (HUD)
+.ks-hero26-hud {
+  display: none;
+  position: relative;
+  min-height: 360px;
+
+  @media (min-width: 1000px) {
+    display: block;
+  }
+}
+
+.ks-vidrio {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-radius: 24px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.5);
+  animation: ks-flota 7s ease-in-out infinite;
+
+  strong {
+    display: block;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.15rem;
+  }
+
+  span {
+    display: block;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  ion-icon {
+    font-size: 2rem;
+    color: #8ff0dc;
+  }
+}
+
+.ks-hud-1 { top: 0; left: 6%; animation-delay: 0s; }
+.ks-hud-2 { top: 38%; right: 0; flex-direction: column; align-items: flex-start; gap: 2px; animation-delay: -2s; strong { font-size: 2.2rem; } }
+.ks-hud-3 { bottom: 0; left: 14%; flex-direction: column; align-items: flex-start; gap: 2px; animation-delay: -4s; strong { font-size: 2.2rem; } }
+
+@keyframes ks-flota {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.ks-hero26-scroll {
+  position: absolute;
+  left: clamp(16px, 3vw, 48px);
+  bottom: -28px;
+  display: none;
+  font: 700 0.8rem 'Nunito', sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+
+  @media (min-width: 1000px) {
+    display: inline-block;
+  }
+}
+
+// ---------------- CATEGORÍAS ----------------
+.ks-cat-grid {
+  display: grid;
+  gap: clamp(12px, 1.6vw, 20px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  @media (min-width: 760px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ks-cat {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  text-align: left;
+  cursor: pointer;
+  border: 0;
+  border-radius: var(--ks-radius-lg);
+  min-height: clamp(150px, 16vw, 220px);
+  padding: 20px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  box-shadow: var(--ks-shadow);
+  background: linear-gradient(145deg, $navy, $verde);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+  &:nth-child(4n + 2) { background: linear-gradient(145deg, $navy-hondo, $navy); }
+  &:nth-child(4n + 3) { background: linear-gradient(145deg, $verde, $navy-hondo); }
+  &:nth-child(4n + 4) { background: linear-gradient(145deg, $coral, $navy); }
+
+  &:hover {
+    transform: translateY(-6px);
+  }
+
+  strong {
+    font-family: 'Quicksand', sans-serif;
+    font-size: clamp(1.15rem, 1rem + 0.8vw, 1.6rem);
+  }
+}
+
+.ks-cat-marca {
+  position: absolute;
+  right: -14px;
+  top: -10px;
+  font-size: clamp(110px, 12vw, 170px);
+  color: rgba(255, 255, 255, 0.16);
+  z-index: -1;
+  transition: transform 0.4s ease;
+}
+
+.ks-cat:hover .ks-cat-marca {
+  transform: scale(1.12) rotate(-6deg);
+}
+
+.ks-cat-n {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  font: 700 0.8rem 'Quicksand', sans-serif;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.ks-cat-flecha {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 1.2rem;
+}
+
+// ---------------- BANDA A SANGRE ----------------
+.ks-banda26 {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  padding-block: clamp(56px, 9vw, 130px);
+  margin-block: clamp(20px, 4vw, 48px);
+}
+
+.ks-banda26-fondo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    var(--ks-banda-foto, none) center / cover no-repeat,
+    radial-gradient(50% 90% at 90% 20%, rgba(255, 122, 80, 0.45) 0%, transparent 60%),
+    radial-gradient(60% 100% at 0% 100%, rgba(18, 163, 140, 0.5) 0%, transparent 60%),
+    linear-gradient(120deg, $navy-hondo, $navy);
+
+  // Ilustración de línea (casa, llave, huella) como marca de agua detrás del texto
+  &::after {
+    content: '';
+    position: absolute;
+    right: 3%;
+    top: 50%;
+    width: min(46vw, 640px);
+    aspect-ratio: 800 / 520;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.22);
+    -webkit-mask: url('/assets/fondos/hogar.svg') center / contain no-repeat;
+    mask: url('/assets/fondos/hogar.svg') center / contain no-repeat;
+  }
+}
+
+.ks-banda26-contenido {
+  position: relative;
+
+  h2 {
+    color: #fff;
+    font-size: clamp(1.9rem, 1.1rem + 3.2vw, 3.8rem);
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    max-width: 20ch;
+    margin: 10px 0 16px;
+  }
+
+  p {
+    max-width: 54ch;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: clamp(1rem, 0.95rem + 0.35vw, 1.2rem);
+    margin: 0 0 24px;
+  }
+}
+
+.ks-micro-claro {
+  font: 700 0.78rem 'Nunito', sans-serif;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #8ff0dc;
 }
 
-.ks-inicio-dato {
+.ks-banda26-acciones {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-
-  strong {
-    font-family: 'Quicksand', sans-serif;
-    font-size: clamp(1.8rem, 3vw, 2.5rem);
-    line-height: 1.1;
-    color: var(--ks-teal-dark);
-  }
-
-  span {
-    color: var(--ks-ink-soft);
-    font-size: 0.92rem;
-  }
-}
-
-.ks-inicio-pilar {
-  ion-icon {
-    font-size: 1.8rem;
-    color: var(--ks-teal-dark);
-  }
-
-  h3 {
-    margin: 8px 0 4px;
-  }
-
-  p {
-    margin: 0;
-    color: var(--ks-ink-soft);
-    font-size: 0.92rem;
-  }
-}
-
-.ks-inicio-bento {
-  margin-bottom: 28px;
-}
-
-.ks-inicio-encabezado {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
-
-  .ks-section-title {
-    margin: 0;
-  }
+  gap: 10px;
 }
 
-.ks-inicio-ver-todo {
-  font-weight: 700;
-  color: var(--ks-navy);
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.ks-inicio-pasos {
+// ---------------- PASOS ----------------
+.ks-pasos26 {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 12px;
-  counter-reset: paso;
+  gap: clamp(14px, 2vw, 24px);
+  grid-template-columns: minmax(0, 1fr);
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (min-width: 1000px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 
   li {
-    counter-increment: paso;
-    display: grid;
-    grid-template-columns: 36px 1fr;
-    column-gap: 14px;
-    align-items: start;
+    position: relative;
+    padding: 28px 24px 24px;
     background: var(--ks-surface);
-    border: 1px solid var(--ks-border);
-    border-radius: var(--ks-radius-md);
-    padding: 14px 16px;
-
-    &::before {
-      content: counter(paso);
-      grid-row: span 2;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      background: var(--ks-navy);
-      color: #fff;
-      font-family: 'Quicksand', sans-serif;
-      font-weight: 700;
-    }
-
-    strong {
-      font-family: 'Quicksand', sans-serif;
-    }
-
-    span {
-      color: var(--ks-ink-soft);
-      font-size: 0.92rem;
-    }
-  }
-}
-
-.ks-inicio-proveedor {
-  text-align: center;
-  background: linear-gradient(160deg, var(--ks-teal-light), var(--ks-coral-light));
-
-  ion-icon {
-    font-size: 2rem;
-    color: var(--ks-navy);
+    border-radius: var(--ks-radius-lg);
+    box-shadow: var(--ks-shadow);
+    overflow: hidden;
   }
 
-  h3 {
-    margin: 8px 0 4px;
+  strong {
+    display: block;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.25rem;
+    margin: 66px 0 6px;
   }
 
   p {
-    margin: 0 0 14px;
-    color: var(--ks-ink);
+    margin: 0;
+    color: var(--ks-ink-soft);
   }
 }
 
-// Junto al hero (4 columnas), las dos cifras se apilan en las 2 columnas restantes.
-@media (min-width: 1000px) {
-  .ks-inicio-dato {
-    grid-column: span 2;
+.ks-paso-n {
+  position: absolute;
+  top: 6px;
+  left: 18px;
+  font: 700 4.6rem/1 'Quicksand', sans-serif;
+  letter-spacing: -0.04em;
+  color: var(--ks-teal-light);
+  -webkit-text-stroke: 1.5px var(--ks-teal);
+  opacity: 0.9;
+}
+
+// ---------------- PROVEEDORES ----------------
+.ks-proveedor26 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: clamp(28px, 4vw, 56px);
+  border-radius: var(--ks-radius-lg);
+  background: linear-gradient(120deg, var(--ks-teal-light), var(--ks-coral-light));
+
+  h2 {
+    margin: 8px 0 0;
+    max-width: 24ch;
+    font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.5rem);
+    letter-spacing: -0.02em;
   }
 }

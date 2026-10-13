@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- casa -->
+  <path d="M120 300 L300 150 L480 300"/>
+  <path d="M155 280 V440 H445 V280"/>
+  <rect x="270" y="340" width="60" height="100" rx="6"/>
+  <rect x="180" y="320" width="64" height="56" rx="6"/><path d="M212 320 V376 M180 348 H244"/>
+  <rect x="356" y="320" width="64" height="56" rx="6"/><path d="M388 320 V376 M356 348 H420"/>
+  <circle cx="320" cy="392" r="3"/>
+  <!-- llave -->
+  <circle cx="610" cy="180" r="46"/><circle cx="610" cy="180" r="16"/>
+  <path d="M644 214 L760 330 M720 290 L744 266 M740 310 L764 286"/>
+  <!-- huella -->
+  <path d="M560 400 c0 -34 28 -62 62 -62 s62 28 62 62"/>
+  <path d="M578 400 c0 -24 20 -44 44 -44 s44 20 44 44"/>
+  <path d="M596 400 c0 -14 12 -26 26 -26 s26 12 26 26"/>
+  <path d="M612 400 v34 M632 400 v22"/>
+  <!-- chispas -->
+  <path d="M470 100 v28 M456 114 h28 M690 90 v20 M680 100 h20 M90 200 v20 M80 210 h20"/>
+</svg>

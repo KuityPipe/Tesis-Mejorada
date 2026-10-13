@@ -24,6 +24,18 @@
 | Veracidad del texto | Se quitó "huella dactilar" donde ya no es cierto; copy alineado con las tres vías de verificación reales |
 | Robustez | Imágenes rotas se ocultan sin dejar huecos; presupuestos de estilos por componente ampliados |
 
+## Ajuste "estilo 2026" (2026-10-13, a pedido del dueño)
+
+Tras ver el resultado, se pidió menos "cuadrado", el menú en el extremo derecho, pantalla auto-ajustable e imágenes de fondo con
+texto, tomando como referencia las técnicas de ideve.cl:
+- **Header a todo el ancho** con el menú y la cuenta en el extremo derecho, efecto vidrio; el contenido se adapta al ancho (hasta 1520 px).
+- **Inicio inmersivo:** hero a pantalla completa con fondo generado (degradados + malla de líneas), tarjetas de vidrio flotantes, tira de
+  palabras en movimiento, secciones numeradas (01 / 02...), tarjetas de categorías con ícono grande de fondo y texto encima, banda
+  a sangre con ilustración de línea y texto, pasos con números grandes.
+- **Banners de página oscuros** con brillo y malla en todas las pantallas internas; esquinas más redondeadas (28 px) y sombras difusas.
+- **Fondos sin fotos por ahora:** son degradados y SVG propios (`assets/fondos/`). Para usar fotos reales basta definir
+  `--ks-hero-foto` / `--ks-banda-foto` (con `--ks-hero-velo: 1` para oscurecer y mantener legible el texto).
+
 ## Qué NO se hizo (y por qué)
 
 - **Textos en inglés (i18n ES/EN):** decisión del dueño, por ahora solo español.

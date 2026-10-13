@@ -38,10 +38,10 @@
   --ks-neutral-bg: #F1F1F1;
   --ks-neutral-text: #6B6B6B;
   --ks-gradient-brand: linear-gradient(135deg, var(--ks-navy) 0%, var(--ks-teal) 55%, var(--ks-coral) 100%);
-  --ks-shadow: 0 10px 30px -12px rgba(11, 61, 120, 0.25);
-  --ks-radius-lg: 20px;
-  --ks-radius-md: 14px;
-  --ks-radius-sm: 10px;
+  --ks-shadow: 0 1px 2px rgba(10, 26, 51, 0.04), 0 18px 40px -16px rgba(11, 61, 120, 0.28);
+  --ks-radius-lg: 28px;
+  --ks-radius-md: 20px;
+  --ks-radius-sm: 14px;
 
   /* ---------- Primary = navy ---------- */
   --ion-color-primary: var(--ks-navy);
