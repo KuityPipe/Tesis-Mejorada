@@ -2466,3 +2466,17 @@ class AsistenteApiTests(APITestCase):
         with self.assertLogs('KeyServApp.asistente', level='INFO') as logs:
             self._preguntar('mi frase secreta única 12345 palabra')
         self.assertNotIn('frase secreta', '\n'.join(logs.output))
+
+
+class EsDemoApiTests(APITestCase):
+    """Las cuentas @demo.keyserv se marcan como de prueba en la API para que el frontend lo avise."""
+
+    def test_proveedor_demo_se_marca_y_uno_real_no(self):
+        _, comuna, tipo = _crear_region_comuna_tipo()
+        demo = _crear_usuario('alguien@demo.keyserv', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo)
+        real = _crear_usuario('persona@gmail.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo)
+        Publicaciones.objects.create(usuario_publicador=demo, titulo='De prueba', estado_moderacion=Publicaciones.APROBADA)
+        Publicaciones.objects.create(usuario_publicador=real, titulo='Real', estado_moderacion=Publicaciones.APROBADA)
+        resp = self.client.get('/api/publicaciones/')
+        por_titulo = {p['titulo']: p['proveedor']['es_demo'] for p in resp.data['results']}
+        self.assertEqual(por_titulo, {'De prueba': True, 'Real': False})

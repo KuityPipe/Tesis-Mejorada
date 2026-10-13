@@ -33,8 +33,12 @@ texto, tomando como referencia las técnicas de ideve.cl:
   palabras en movimiento, secciones numeradas (01 / 02...), tarjetas de categorías con ícono grande de fondo y texto encima, banda
   a sangre con ilustración de línea y texto, pasos con números grandes.
 - **Banners de página oscuros** con brillo y malla en todas las pantallas internas; esquinas más redondeadas (28 px) y sombras difusas.
-- **Fondos sin fotos por ahora:** son degradados y SVG propios (`assets/fondos/`). Para usar fotos reales basta definir
-  `--ks-hero-foto` / `--ks-banda-foto` (con `--ks-hero-velo: 1` para oscurecer y mantener legible el texto).
+- **Fotos libres de derechos (CC0):** paisaje de montaña en el hero, lago en la banda y una foto por oficio en las 12 tarjetas de
+  categorías y en las publicaciones demo (`assets/fotos/`, créditos en `docs/CREDITOS_IMAGENES.md`); más dibujos propios en `assets/fondos/`.
+  Se cambian con las variables CSS `--ks-hero-foto` / `--ks-banda-foto`.
+- **Datos de prueba:** `sembrar_datos_demo` ahora crea 24 proveedores de 24 oficios (profesores, programadora, ama de casa, jardinero,
+  carpintero, cuidado de personas, cocina, contador, mecánico...), con reseñas variadas. Cada publicación lo avisa: texto de aviso en la
+  descripción, etiqueta `DEMO` sobre la foto y un aviso en el detalle (la API marca `es_demo` a las cuentas `@demo.keyserv`).
 
 ## Qué NO se hizo (y por qué)
 

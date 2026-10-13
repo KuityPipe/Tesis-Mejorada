@@ -26,32 +26,31 @@ $coral: #c2410c;
 }
 
 .ks-hero26-fondo {
+  --ks-hero-foto: url('/assets/fotos/paisaje-montana.jpg');
   position: absolute;
   inset: 0;
   z-index: -1;
-  background:
-    var(--ks-hero-foto, none) center / cover no-repeat,
-    radial-gradient(55% 70% at 85% 15%, rgba(18, 163, 140, 0.6) 0%, transparent 62%),
-    radial-gradient(45% 60% at 10% 95%, rgba(255, 122, 80, 0.38) 0%, transparent 60%),
-    radial-gradient(60% 80% at 50% 50%, #0f4a8f 0%, $navy-hondo 85%);
+  background: var(--ks-hero-foto, none) center / cover no-repeat, $navy-hondo;
+
+  // Velo de marca sobre la foto: mantiene legible el texto y tiñe con los colores de KeyServ
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(55% 70% at 85% 15%, rgba(18, 163, 140, 0.4) 0%, transparent 62%),
+      radial-gradient(45% 60% at 10% 95%, rgba(255, 122, 80, 0.3) 0%, transparent 60%),
+      linear-gradient(90deg, rgba(8, 44, 87, 0.94) 0%, rgba(8, 44, 87, 0.72) 55%, rgba(8, 44, 87, 0.4) 100%);
+  }
 
   // Malla de líneas de nivel como textura, enmascarada para tomar el color que queramos
   &::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.14);
     -webkit-mask: url('/assets/fondos/malla.svg') center / cover no-repeat;
     mask: url('/assets/fondos/malla.svg') center / cover no-repeat;
-  }
-
-  // Si hay foto, un velo oscuro mantiene legible el texto
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, rgba(8, 44, 87, 0.92) 0%, rgba(8, 44, 87, 0.55) 60%, rgba(8, 44, 87, 0.2) 100%);
-    opacity: var(--ks-hero-velo, 0);
   }
 }
 
@@ -258,7 +257,7 @@ $coral: #c2410c;
   cursor: pointer;
   border: 0;
   border-radius: var(--ks-radius-lg);
-  min-height: clamp(150px, 16vw, 220px);
+  min-height: clamp(150px, 16vw, 230px);
   padding: 20px;
   color: #fff;
   display: flex;
@@ -266,12 +265,11 @@ $coral: #c2410c;
   justify-content: flex-end;
   gap: 4px;
   box-shadow: var(--ks-shadow);
-  background: linear-gradient(145deg, $navy, $verde);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-
-  &:nth-child(4n + 2) { background: linear-gradient(145deg, $navy-hondo, $navy); }
-  &:nth-child(4n + 3) { background: linear-gradient(145deg, $verde, $navy-hondo); }
-  &:nth-child(4n + 4) { background: linear-gradient(145deg, $coral, $navy); }
+  // Foto de fondo (variable --foto puesta en la plantilla) con degradado para que el texto se lea
+  background:
+    linear-gradient(180deg, rgba(8, 44, 87, 0.05) 20%, rgba(8, 44, 87, 0.92) 100%),
+    var(--foto, linear-gradient(145deg, $navy, $verde)) center / cover no-repeat;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-size 0.4s ease;
 
   &:hover {
     transform: translateY(-6px);
@@ -279,22 +277,26 @@ $coral: #c2410c;
 
   strong {
     font-family: 'Quicksand', sans-serif;
-    font-size: clamp(1.15rem, 1rem + 0.8vw, 1.6rem);
+    font-size: clamp(1.1rem, 0.95rem + 0.8vw, 1.55rem);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    padding-right: 52px; // deja lugar a la flecha
   }
 }
 
-.ks-cat-marca {
+.ks-cat-icono {
   position: absolute;
-  right: -14px;
-  top: -10px;
-  font-size: clamp(110px, 12vw, 170px);
-  color: rgba(255, 255, 255, 0.16);
-  z-index: -1;
-  transition: transform 0.4s ease;
-}
-
-.ks-cat:hover .ks-cat-marca {
-  transform: scale(1.12) rotate(-6deg);
+  top: 14px;
+  right: 14px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .ks-cat-n {
@@ -330,14 +332,20 @@ $coral: #c2410c;
 }
 
 .ks-banda26-fondo {
+  --ks-banda-foto: url('/assets/fotos/paisaje-lago.jpg');
   position: absolute;
   inset: 0;
   z-index: -1;
-  background:
-    var(--ks-banda-foto, none) center / cover no-repeat,
-    radial-gradient(50% 90% at 90% 20%, rgba(255, 122, 80, 0.45) 0%, transparent 60%),
-    radial-gradient(60% 100% at 0% 100%, rgba(18, 163, 140, 0.5) 0%, transparent 60%),
-    linear-gradient(120deg, $navy-hondo, $navy);
+  background: var(--ks-banda-foto, none) center / cover no-repeat, $navy-hondo;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(50% 90% at 90% 20%, rgba(255, 122, 80, 0.35) 0%, transparent 60%),
+      linear-gradient(100deg, rgba(8, 44, 87, 0.94) 0%, rgba(8, 44, 87, 0.78) 50%, rgba(8, 44, 87, 0.45) 100%);
+  }
 
   // Ilustración de línea (casa, llave, huella) como marca de agua detrás del texto
   &::after {

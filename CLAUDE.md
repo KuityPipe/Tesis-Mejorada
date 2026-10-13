@@ -46,7 +46,7 @@ npm run lint
 npm run test:e2e                         # Playwright against the REAL app; needs backend running on :8000 with demo data (sembrar_datos_demo); web only
 ```
 
-Management commands worth knowing: `loaddata catalogos_iniciales` (regions/comunas/catalog tables — required after a fresh `migrate`), `sembrar_datos_demo` (idempotent demo dataset), `configurar_grupo_moderador` (rerun after adding admin models), `descargar_geoip`, and the retention pair `limpiar_mensajes_antiguos` / `purgar_datos_vencidos`, run together by `mantenimiento_retencion` — scheduled weekly by `.github/workflows/retencion.yml` (GitHub Actions against Neon; needs the repo secret `DATABASE_URL`; manual run defaults to dry-run).
+Management commands worth knowing: `loaddata catalogos_iniciales` (regions/comunas/catalog tables — required after a fresh `migrate`), `sembrar_datos_demo` (idempotent demo dataset: 24 providers in 24 trades, local CC0 photos from the frontend `assets/fotos`, every publication carries a demo notice; API exposes `proveedor.es_demo` for `@demo.keyserv` accounts), `configurar_grupo_moderador` (rerun after adding admin models), `descargar_geoip`, and the retention pair `limpiar_mensajes_antiguos` / `purgar_datos_vencidos`, run together by `mantenimiento_retencion` — scheduled weekly by `.github/workflows/retencion.yml` (GitHub Actions against Neon; needs the repo secret `DATABASE_URL`; manual run defaults to dry-run).
 
 Env vars live in `codigo/backend/django/.env` (gitignored; template `.env.example` at root). Database is **PostgreSQL** (not MySQL; the thesis restriction no longer applies) and needs the `unaccent` extension (created by migration `0009`).
 

@@ -21,6 +21,8 @@ export interface Proveedor {
   /** Coordenada aproximada de la comuna (plaza principal, no la dirección exacta) — `null` si esa comuna todavía no está geocodificada. A diferencia de `puntuacion_promedio`, llega como `number` de JS directo (ver el comentario en ProveedorSerializer.get_latitud, api/serializers.py). */
   latitud: number | null;
   longitud: number | null;
+  /** Cuenta de demostración (datos ficticios): se avisa en tarjetas y detalle. */
+  es_demo?: boolean;
 }
 
 // Campos de PublicacionListSerializer — versión liviana para el listado.

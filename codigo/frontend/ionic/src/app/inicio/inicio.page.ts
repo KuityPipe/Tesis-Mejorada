@@ -32,14 +32,18 @@ export class InicioPage implements OnInit {
 
   /** Categorías de la portada: nombre visible, término de búsqueda (sin tildes) e ícono de fondo. */
   readonly categorias = [
-    { nombre: 'Gasfitería', q: 'gasfiteria', icono: 'water-outline' },
-    { nombre: 'Electricidad', q: 'electricidad', icono: 'flash-outline' },
-    { nombre: 'Jardinería', q: 'jardineria', icono: 'leaf-outline' },
-    { nombre: 'Limpieza', q: 'limpieza', icono: 'sparkles-outline' },
-    { nombre: 'Pintura', q: 'pintura', icono: 'color-palette-outline' },
-    { nombre: 'Carpintería', q: 'carpinteria', icono: 'hammer-outline' },
-    { nombre: 'Mudanzas', q: 'mudanzas', icono: 'cube-outline' },
-    { nombre: 'Cerrajería', q: 'cerrajeria', icono: 'key-outline' },
+    { nombre: 'Gasfitería', q: 'gasfiteria', icono: 'water-outline', foto: 'reparaciones' },
+    { nombre: 'Electricidad', q: 'electricidad', icono: 'flash-outline', foto: 'electricidad' },
+    { nombre: 'Jardinería', q: 'jardineria', icono: 'leaf-outline', foto: 'jardineria' },
+    { nombre: 'Limpieza y aseo', q: 'limpieza', icono: 'sparkles-outline', foto: 'limpieza' },
+    { nombre: 'Pintura', q: 'pintura', icono: 'color-palette-outline', foto: 'pintura' },
+    { nombre: 'Carpintería', q: 'carpinteria', icono: 'hammer-outline', foto: 'carpinteria' },
+    { nombre: 'Mudanzas', q: 'mudanzas', icono: 'cube-outline', foto: 'mudanzas' },
+    { nombre: 'Cerrajería', q: 'cerrajeria', icono: 'key-outline', foto: 'cerrajeria' },
+    { nombre: 'Clases particulares', q: 'clases', icono: 'school-outline', foto: 'clases' },
+    { nombre: 'Programación', q: 'programacion', icono: 'code-slash-outline', foto: 'programacion' },
+    { nombre: 'Cuidado de personas', q: 'cuidado', icono: 'heart-outline', foto: 'cuidado' },
+    { nombre: 'Cocina y catering', q: 'cocina', icono: 'restaurant-outline', foto: 'cocina' },
   ];
 
   constructor(

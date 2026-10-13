@@ -2002,29 +2002,48 @@ class SembrarDatosDemoCommandTests(TestCase):
 
     def test_comando_es_idempotente_y_crea_lo_esperado(self):
         call_command('sembrar_datos_demo', verbosity=0)
+        total = Contratacion.objects.count()
         call_command('sembrar_datos_demo', verbosity=0)  # segunda corrida: no debe duplicar nada.
+        self.assertEqual(Contratacion.objects.count(), total)
 
         self.assertEqual(User.objects.filter(username='admin', is_superuser=True).count(), 1)
         self.assertEqual(User.objects.filter(username='moderador').count(), 1)
         self.assertTrue(User.objects.get(username='moderador').groups.filter(name='Moderador').exists())
 
-        self.assertEqual(Usuario.objects.filter(es_proveedor=True).count(), 8)
-        self.assertEqual(Publicaciones.objects.filter(estado_moderacion=Publicaciones.APROBADA).count(), 8)
-        self.assertEqual(Contratacion.objects.count(), 4)
+        self.assertEqual(Usuario.objects.filter(es_proveedor=True).count(), 24)
+        self.assertEqual(Publicaciones.objects.filter(estado_moderacion=Publicaciones.APROBADA).count(), 24)
         self.assertEqual(
             set(Contratacion.objects.values_list('estado', flat=True)),
             {Contratacion.SOLICITADA, Contratacion.CONFIRMADA, Contratacion.EN_CURSO, Contratacion.COMPLETADA},
         )
+        self.assertEqual(Contratacion.objects.exclude(estado=Contratacion.COMPLETADA).count(), 3)  # una por cada estado no final
 
     def test_contratacion_completada_tiene_pago_y_valoracion_aprobada(self):
         call_command('sembrar_datos_demo', verbosity=0)
 
-        completada = Contratacion.objects.get(estado=Contratacion.COMPLETADA)
+        completada = Contratacion.objects.filter(estado=Contratacion.COMPLETADA).order_by('pk').first()
         self.assertTrue(hasattr(completada, 'pago'))
         self.assertEqual(completada.pago.estado, Pago.PAGADO)
         self.assertTrue(hasattr(completada, 'valoracion'))
         self.assertEqual(completada.valoracion.estado_moderacion, Valoracion.APROBADA)
         self.assertEqual(completada.proveedor.ranking.total_valoraciones, 1)
+
+    def test_cada_publicacion_avisa_que_es_una_prueba_y_tiene_foto_local(self):
+        call_command('sembrar_datos_demo', verbosity=0)
+        call_command('sembrar_datos_demo', verbosity=0)  # el aviso no se duplica al re-sembrar
+
+        for publicacion in Publicaciones.objects.all():
+            self.assertEqual(publicacion.descripcion_publicacion.count('PUBLICACIÓN DE PRUEBA (DEMO)'), 1, publicacion.titulo)
+            imagen = publicacion.imagenes.get()
+            self.assertTrue(imagen.url_imagen.startswith('assets/fotos/'), imagen.url_imagen)
+            self.assertNotIn('picsum', imagen.url_imagen)
+
+    def test_cubre_oficios_muy_distintos_y_ranking_con_resenas(self):
+        call_command('sembrar_datos_demo', verbosity=0)
+        categorias = set(Publicaciones.objects.values_list('categoria', flat=True))
+        for esperada in ('Clases particulares', 'Programación y diseño web', 'Jardinería', 'Carpintería', 'Cuidado de niños y adultos mayores'):
+            self.assertIn(esperada, categorias)
+        self.assertGreaterEqual(Valoracion.objects.filter(estado_moderacion=Valoracion.APROBADA).count(), 10)
 
     def test_proveedores_usan_comunas_geocodificadas(self):
         call_command('sembrar_datos_demo', verbosity=0)

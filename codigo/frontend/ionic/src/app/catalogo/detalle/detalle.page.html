@@ -20,6 +20,11 @@
       <p *ngIf="pub.sub_titulo">{{ pub.sub_titulo }}</p>
     </div>
 
+    <div class="ks-aviso-demo" *ngIf="pub.proveedor.es_demo" role="note">
+      <ion-icon name="flask-outline" aria-hidden="true"></ion-icon>
+      <p><strong>Publicación de prueba (demo).</strong> Este servicio, el proveedor, su precio y sus reseñas son ficticios y existen solo para mostrar cómo funciona KeyServ.</p>
+    </div>
+
     <!-- Fase 6: galería + descripción + reseñas a la izquierda, ficha fija (precio, proveedor, mapa, contratar) a la derecha. -->
     <div class="ks-detalle-grid">
       <section class="ks-detalle-galeria" *ngIf="pub.imagenes.length && !galeriaRota" appReveal aria-label="Fotos del servicio">

@@ -323,13 +323,15 @@ class ProveedorSerializer(serializers.ModelSerializer):
     # lo manda como texto por `COERCE_DECIMAL_TO_STRING`).
     latitud = serializers.SerializerMethodField()
     longitud = serializers.SerializerMethodField()
+    # Cuentas de demostración (`sembrar_datos_demo`, correos @demo.keyserv): el frontend avisa que son de prueba.
+    es_demo = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
         fields = [
             'id_usuario', 'nombre_usuario', 'apellido_usuario', 'foto_perfil',
             'comuna', 'region', 'puntuacion_promedio', 'total_valoraciones',
-            'latitud', 'longitud',
+            'latitud', 'longitud', 'es_demo',
         ]
         read_only_fields = fields
 
@@ -348,6 +350,9 @@ class ProveedorSerializer(serializers.ModelSerializer):
         if not usuario.comuna or usuario.comuna.longitud is None:
             return None
         return float(usuario.comuna.longitud)
+
+    def get_es_demo(self, usuario) -> bool:
+        return (usuario.email or '').endswith('@demo.keyserv')
 
     def get_puntuacion_promedio(self, usuario):
         ranking = getattr(usuario, 'ranking', None)

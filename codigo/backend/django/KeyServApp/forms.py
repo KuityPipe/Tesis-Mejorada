@@ -270,7 +270,10 @@ CATEGORIAS_PUBLICACION = [
     'Gasfitería', 'Electricidad', 'Jardinería', 'Limpieza del hogar',
     'Pintura', 'Carpintería', 'Mudanzas', 'Cerrajería',
     'Cuidado de mascotas', 'Clases particulares', 'Belleza y bienestar',
-    'Tecnología y soporte',
+    'Tecnología y soporte', 'Programación y diseño web',
+    'Cuidado de niños y adultos mayores', 'Cocina y catering',
+    'Reparación de artefactos', 'Fotografía y video',
+    'Contabilidad y trámites', 'Mecánica y automotriz',
 ]
 OTRA_CATEGORIA = 'Otra'
 

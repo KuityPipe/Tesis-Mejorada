@@ -1828,3 +1828,42 @@ a:hover > .ks-flecha,
     color: var(--ks-ink);
   }
 }
+
+// Etiqueta "DEMO" sobre la foto de las tarjetas y aviso en el detalle: todo lo sembrado en el demo es ficticio.
+.ks-demo-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font: 800 0.7rem 'Nunito', sans-serif;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: #c2410c;
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+}
+
+.ks-aviso-demo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 clamp(14px, 2vw, 22px);
+  padding: 14px 18px;
+  border-radius: var(--ks-radius-md);
+  background: var(--ks-coral-light);
+  color: #6b2a10;
+  border: 1px solid rgba(194, 65, 12, 0.3);
+
+  ion-icon {
+    flex: none;
+    font-size: 1.5rem;
+    margin-top: 2px;
+    color: #c2410c;
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.45;
+  }
+}

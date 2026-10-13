@@ -71,6 +71,7 @@
   <div class="ks-card-grid" *ngIf="!cargandoInicial && publicaciones.length">
     <a class="ks-card-tile" *ngFor="let publicacion of publicaciones; let i = index" [routerLink]="['/catalogo', publicacion.id_publicacion]" appReveal [appRevealDelay]="(i % 12) * 50">
       <div class="ks-card-tile-img">
+        <span class="ks-demo-tag" *ngIf="publicacion.proveedor.es_demo" title="Publicación de prueba">DEMO</span>
         <img *ngIf="publicacion.imagen_portada; else sinImagen" [src]="publicacion.imagen_portada" [alt]="publicacion.titulo" loading="lazy" (error)="publicacion.imagen_portada = null" />
         <ng-template #sinImagen>
           <div class="ks-card-tile-img-placeholder"><ion-icon name="construct-outline"></ion-icon></div>
