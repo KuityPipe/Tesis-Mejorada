@@ -2,6 +2,7 @@
 # Build command del servicio backend en Render (ver render.yaml, demo
 # desplegado — docs/PLAN_PORTAFOLIO.md Nivel 2.2). Corre una sola vez por
 # deploy, desde la raíz del repo (mismo layout que requirements*.txt).
+# (Redeploy 2026-10-13: primer deploy desde master, para crear el environment en GitHub.)
 #
 # Orden importa: `migrate` aplica la migración 0027 (coordenadas de las 9
 # comunas geocodificadas) antes de que exista la fila de Comuna real —
