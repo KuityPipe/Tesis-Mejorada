@@ -34,7 +34,7 @@ pip install -r requirements.txt          # CI uses requirements-ci.txt, Render u
 cd codigo/backend/django
 python manage.py migrate
 python manage.py runserver 8000          # API docs: /api/docs/ (Swagger), /api/schema/
-python manage.py test KeyServApp         # ~340 tests, SLOW (~8 min); tests.py = template views, tests_api.py = REST API
+python manage.py test KeyServApp --settings=KeyServProject.settings_test   # ~340 tests in ~25 s (MD5 hasher, tests only); without --settings it takes ~12 min because of PBKDF2. tests.py = template views, tests_api.py = REST API
 python manage.py test KeyServApp.tests_api.RostroApiTests                       # one class
 python manage.py test KeyServApp.tests.ContratacionFlowTests.test_flujo_completo_de_contratacion_y_valoracion   # one method
 
@@ -88,6 +88,6 @@ Android build, signed release build, and the Windows/OneDrive/JDK gotchas: see `
 
 - Python 3.14 / Django 5.2 (4.2's template `Context.__copy__` breaks on 3.14). `setuptools<81` is pinned because `face_recognition_models` needs `pkg_resources`; `face_recognition` is installed `--no-deps` alongside `dlib-bin`.
 - The repo lives under OneDrive: Gradle builds can fail with `AccessDeniedException` on `android/app/build/` — delete that folder and rebuild.
-- The backend test suite is slow; to iterate use a single class/method, not the full run.
+- Always run backend tests with `--settings=KeyServProject.settings_test` (swaps PBKDF2 for MD5; 12 min → 25 s, same 341 tests). Never use that settings module outside tests.
 - Legacy standalone scripts in `codigo/biometria/huella/` (`REGISTRO_BD`, `AUTENTIFICACION`, `GUARDAR_DOCUMENTO`, `CONEXION_BD`) are broken by design; the Django-side fingerprint flow was removed — only `IMAGEN_HUELLA.py` still runs standalone.
 - Docs and commit messages are written in Spanish; the user-facing copy uses Chilean "tú" (not voseo).

@@ -49,7 +49,7 @@ jobs:
 
       - name: Run Django test suite
         working-directory: codigo/backend/django
-        run: python manage.py test KeyServApp
+        run: python manage.py test KeyServApp --settings=KeyServProject.settings_test
 
   frontend:
     runs-on: ubuntu-latest

@@ -40,6 +40,5 @@
 
 ## Ideas rápidas de mejora
 
-- Suite del backend lenta (~8 min): probar `MD5PasswordHasher` solo en la configuración de tests, `--parallel` y `--keepdb`.
-  Medir antes con `--timing`.
+- Suite del backend: hecho. `KeyServProject/settings_test.py` (hasher MD5) baja 341 tests de 12 min 48 s a 22,6 s; CI lo usa. Queda como opción `--parallel`/`--keepdb`, ya no necesario.
 - Respaldar fuera del repo el keystore de Android (`android/app/keyserv-release.keystore` y `keystore.properties`).
