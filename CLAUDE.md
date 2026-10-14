@@ -34,19 +34,19 @@ pip install -r requirements.txt          # CI uses requirements-ci.txt, Render u
 cd codigo/backend/django
 python manage.py migrate
 python manage.py runserver 8000          # API docs: /api/docs/ (Swagger), /api/schema/
-python manage.py test KeyServApp --settings=KeyServProject.settings_test   # ~410 tests in ~25 s (MD5 hasher, tests only); without --settings it takes ~12 min because of PBKDF2. tests.py = template views, tests_api.py = REST API
+python manage.py test KeyServApp --settings=KeyServProject.settings_test   # ~418 tests in ~25 s (MD5 hasher, tests only); without --settings it takes ~12 min because of PBKDF2. tests.py = template views, tests_api.py = REST API
 python manage.py test KeyServApp.tests_api.RostroApiTests                       # one class
 python manage.py test KeyServApp.tests.ContratacionFlowTests.test_flujo_completo_de_contratacion_y_valoracion   # one method
 
 # frontend (needs Node; v24 installed — reopen the terminal if not on PATH)
 cd codigo/frontend/ionic
 npm install; npm start                   # ng serve on :8100 (must match CORS_ALLOWED_ORIGINS)
-npm test                                 # Karma/Jasmine, HttpClient mocked (~98 tests); CI uses ng test --watch=false --browsers=ChromeHeadlessCI
-npm run lint
+npm test                                 # Karma/Jasmine, HttpClient mocked (~115 tests); CI uses ng test --watch=false --browsers=ChromeHeadlessCI
+npm run lint                             # 105 pre-existing `prefer-inject` errors (constructor injection); CI does not run lint
 npm run test:e2e                         # Playwright against the REAL app; needs backend running on :8000 with demo data (sembrar_datos_demo); web only
 ```
 
-Management commands worth knowing: `loaddata catalogos_iniciales` (regions/comunas/catalog tables — required after a fresh `migrate`), `sembrar_datos_demo` (idempotent demo dataset: 24 providers in 24 trades, local CC0 photos from the frontend `assets/fotos`, every publication carries a demo notice; API exposes `proveedor.es_demo` for `@demo.keyserv` accounts), `configurar_grupo_moderador` (rerun after adding admin models), `descargar_geoip`, and the retention pair `limpiar_mensajes_antiguos` / `purgar_datos_vencidos`, run together by `mantenimiento_retencion` — scheduled weekly by `.github/workflows/retencion.yml` (GitHub Actions against Neon; needs the repo secret `DATABASE_URL`; manual run defaults to dry-run).
+Management commands worth knowing: `loaddata catalogos_iniciales` (regions/comunas/catalog tables — required after a fresh `migrate`), `sembrar_datos_demo` (idempotent demo dataset: 24 providers in 24 trades, local CC0 photos from the frontend `assets/fotos`, every publication carries a demo notice; API exposes `proveedor.es_demo` for `@demo.keyserv` accounts; the `admin`/`moderador` staff passwords come from the env var `DEMO_STAFF_PASSWORD` — never hardcode them, the repo is public; without it new staff accounts get a random password. Re-run it locally after changing `FOTO_POR_CATEGORIA`, it also updates already-seeded photo URLs), `configurar_grupo_moderador` (rerun after adding admin models), `descargar_geoip`, and the retention pair `limpiar_mensajes_antiguos` / `purgar_datos_vencidos`, run together by `mantenimiento_retencion` — scheduled weekly by `.github/workflows/retencion.yml` (GitHub Actions against Neon; needs the repo secret `DATABASE_URL`; manual run defaults to dry-run).
 
 Env vars live in `codigo/backend/django/.env` (gitignored; template `.env.example` at root). Database is **PostgreSQL** (not MySQL; the thesis restriction no longer applies) and needs the `unaccent` extension (created by migration `0009`).
 
@@ -96,6 +96,21 @@ Android build, signed release build, and the Windows/OneDrive/JDK gotchas: see `
 
 - Python 3.14 / Django 5.2 (4.2's template `Context.__copy__` breaks on 3.14). `setuptools<81` is pinned because `face_recognition_models` needs `pkg_resources`; `face_recognition` is installed `--no-deps` alongside `dlib-bin`.
 - The repo lives under OneDrive: Gradle builds can fail with `AccessDeniedException` on `android/app/build/` — delete that folder and rebuild.
-- Always run backend tests with `--settings=KeyServProject.settings_test` (swaps PBKDF2 for MD5; 12 min → 25 s, same ~410 tests). Never use that settings module outside tests.
+- Always run backend tests with `--settings=KeyServProject.settings_test` (swaps PBKDF2 for MD5; 12 min → 25 s, same ~418 tests). Never use that settings module outside tests.
 - Legacy standalone scripts in `codigo/biometria/huella/` (`REGISTRO_BD`, `AUTENTIFICACION`, `GUARDAR_DOCUMENTO`, `CONEXION_BD`) are broken by design; the Django-side fingerprint flow was removed — only `IMAGEN_HUELLA.py` still runs standalone.
 - Docs and commit messages are written in Spanish; the user-facing copy uses Chilean "tú" (not voseo).
+- Most source files are **CRLF** (Windows checkout): when editing with scripts, normalize `\r\n` → `\n`, edit, and write back with `\r\n` (an exact-match edit on `\n` text silently fails otherwise). The Bash tool also chokes on heredocs that contain apostrophes in quoted CSS/TS; write such files with the Write tool.
+- Visual checks: `playwright-core` from `codigo/frontend/ionic/node_modules` works headless against `:8100` / `:8000` (login with the `@demo.keyserv` accounts, password `Demo1234`) and against the live demo; the Chrome extension is optional.
+- Netlify does **not** build a commit that leaves `codigo/frontend/ionic` untouched ("Canceled build due to no content change" is normal); Render only redeploys when `codigo/backend/django/**`, `requirements-render.txt` or `render_build.sh` change. Render also creates GitHub "environments" named `<branch> - <service>`; they are harmless and can be deleted.
+- Don't use `git stash` to compare lint baselines in a dirty tree with untracked files: it is easy to lose track; use a clean checkout instead.
+
+## Session log — 2026-10-13/14 (what was done, in order)
+
+Everything below is on `master` (last commit `f075ac9`); details and open items live in `docs/ESTADO_Y_PROXIMOS_PASOS.md`.
+
+1. **Deploy verification.** Render `keyserv-api` deploys `master` (checked: `/api/auth/mis-datos/` → 401); Netlify production branch is `master`. The old `api-ionic-migration - keyserv-*` GitHub environments were deleted and the branch was dropped from `tests.yml`. `NVIDIA_API_KEY` is loaded in Render (`POST /api/asistente/` answers `origen=ia`); the repo secret `DATABASE_URL` works (retention workflow green).
+2. **Security.** Admin/moderator passwords were public in the README and the seed: removed, now `DEMO_STAFF_PASSWORD` (set in Render; the old `KeyServ2026!` no longer works).
+3. **Visual work (Ionic).** Hero with a tools photo (`hero-oficios.jpg`, CC0) and own photos for Fotografía/Mecánica/Contabilidad (`docs/CREDITOS_IMAGENES.md`); README screenshots retaken from the live demo; "Acerca de nosotros" carousel redone (theme panel + card list, arrows next to the dots, mouse drag, swipe, keyboard, height follows the active slide); "Mi cuenta" in two balanced columns (recent jobs, provider block, last payments, identity verification, tips) with the footer pinned to the bottom (`ks-pie-abajo`); privacy policy as an Ionic page (`/privacidad`, scroll-spy index, animated cards); registration redone (3-step tracker, cards, account-type picker, location summary, password strength, RUT/phone format hints). The contact map (`contacto-seccion`) stretches to the same height as the form column on desktop (`align-items: stretch` + `flex: 1` iframe), so no empty space is left under it.
+4. **Audit of 20 screens (web + mobile) and fixes.** Phone with `+56` caused a 500 (int32 column) → validated 8–9 digits; RUT check digit + uniqueness (`rut.py`, `core/rut.ts`); required privacy-policy checkbox stored as `politica_aceptada_en` (migration `0034`); 404 page; per-route titles; `es-CL` locale; `robots.txt`/`sitemap.xml`/manifest/icons/Open Graph in `src/publico/`; security headers in `netlify.toml`.
+5. **Corfo/business decisions (owner).** Applies as a natural person (Corfo helps with the paperwork if awarded); revenue = 3–5 % commission on each paid service (ads / paid featured listings per category and zone are a later idea); edge = fast, safe payment with verified identity and, if viable, invoices/IVA to the SII. Owner still has to: run the Google Forms survey with real people (employment/informality metrics), build the budget and assumptions, decide on team/advisers and pay a lawyer for the legal review. Neon stays in São Paulo (latency accepted).
+6. **Still open (needs an owner decision or external input):** real SMTP (password recovery and the alternative-verification code only print to the console in the demo), Terms and Conditions page (needs legal text), email verification at sign-up, a full CSP on Netlify, the `0 fotos de tu rostro` wording vs. the ID-document path, the policy's "agosto de 2026" date and its duplicate Django copy (Play Store link), and the lint debt.

@@ -9,6 +9,8 @@
 
   @media (min-width: 900px) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    // Las dos columnas miden lo mismo: el mapa se estira hasta el final del formulario, sin fondo vacío debajo.
+    align-items: stretch;
   }
 }
 
@@ -32,11 +34,20 @@ ion-card {
   background: var(--ks-surface);
   box-shadow: var(--ks-shadow);
 
+  display: flex;
+  flex-direction: column;
+
   iframe {
     display: block;
     width: 100%;
     height: clamp(300px, 46vh, 460px);
     border: 0;
+
+    @media (min-width: 900px) {
+      flex: 1;
+      height: auto;
+      min-height: 360px;
+    }
   }
 }
 
