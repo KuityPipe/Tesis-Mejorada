@@ -210,6 +210,8 @@ class Usuario(models.Model):
     # Cuándo se obtuvo la verificación biométrica vigente (nativa o rostro). La identidad solo cuenta
     # como verificada si es reciente (`settings.IDENTIDAD_VIGENCIA_DIAS`, ver identidad.py).
     verificado_en = models.DateTimeField(null=True, blank=True, db_column='VERIFICADO_EN')
+    # Cuándo aceptó la política de privacidad al registrarse (constancia exigible por la Ley 21.719). Null: cuentas anteriores.
+    politica_aceptada_en = models.DateTimeField(null=True, blank=True, db_column='POLITICA_ACEPTADA_EN')
     # Derecho de bloqueo (Ley 21.719): mientras esté fijado, la cuenta se conserva pero no se trata
     # activamente — sus publicaciones salen del catálogo y no puede contratar ni publicar. Reversible.
     tratamiento_bloqueado_en = models.DateTimeField(null=True, blank=True, db_column='TRATAMIENTO_BLOQUEADO_EN')

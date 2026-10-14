@@ -1,0 +1,15 @@
+# KeyServ — qué pueden indexar los buscadores. Las pantallas de cuenta no tienen contenido público.
+User-agent: *
+Allow: /
+Disallow: /home
+Disallow: /perfil/
+Disallow: /preferencias
+Disallow: /reservas
+Disallow: /mensajes
+Disallow: /contratacion/
+Disallow: /pago/
+Disallow: /biometria
+Disallow: /rostro
+Disallow: /verificacion-alternativa
+
+Sitemap: https://keyserv.netlify.app/sitemap.xml

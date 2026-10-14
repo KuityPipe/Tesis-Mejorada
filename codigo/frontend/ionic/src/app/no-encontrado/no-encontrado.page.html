@@ -1,0 +1,32 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
+    <ion-title>Página no encontrada</ion-title>
+    <app-top-nav slot="end"></app-top-nav>
+    <app-tema-toggle slot="end"></app-tema-toggle>
+    <app-account-menu slot="end"></app-account-menu>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-pie-abajo ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/paisaje-lago.jpg)">
+  <section class="ks-404">
+    <div class="ks-404-cifra" aria-hidden="true">
+      <span>4</span><ion-icon name="key-outline"></ion-icon><span>4</span>
+    </div>
+    <h1>No encontramos esta página</h1>
+    <p>Puede que el enlace esté viejo o que la dirección tenga un error. Mientras tanto, busca lo que necesitas:</p>
+
+    <form class="ks-404-buscar" (ngSubmit)="buscar()">
+      <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      <input type="search" name="q" [(ngModel)]="q" placeholder="¿Qué servicio necesitas? Ej: gasfitería" aria-label="Buscar un servicio" autocomplete="off">
+      <ion-button type="submit" size="small">Buscar</ion-button>
+    </form>
+
+    <div class="ks-404-acciones">
+      <ion-button routerLink="/"><ion-icon name="home-outline" slot="start"></ion-icon> Ir al inicio</ion-button>
+      <ion-button fill="outline" routerLink="/catalogo"><ion-icon name="grid-outline" slot="start"></ion-icon> Ver servicios</ion-button>
+    </div>
+  </section>
+
+  <app-footer></app-footer>
+</ion-content>

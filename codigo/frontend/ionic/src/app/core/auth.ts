@@ -104,6 +104,8 @@ export interface DatosRegistro {
   es_proveedor: boolean;
   password: string;
   password_confirm: string;
+  /** Aceptó la política de privacidad (el servidor la exige y guarda la fecha). */
+  acepta_politica: boolean;
 }
 
 /**

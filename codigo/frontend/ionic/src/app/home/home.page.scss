@@ -1,0 +1,375 @@
+// Mi cuenta: columna principal (lo que está pasando) + columna lateral (tu perfil, verificación y pagos).
+.ks-cuenta {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: 24px;
+
+  @media (min-width: 1000px) {
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  }
+}
+
+// Las dos columnas miden lo mismo: la última tarjeta de la más corta se estira, así no queda fondo vacío.
+.ks-cuenta-principal,
+.ks-cuenta-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+
+  > :last-child {
+    flex: 1;
+  }
+}
+
+.ks-cuenta-monto {
+  font: 800 1rem 'Quicksand', sans-serif;
+  color: var(--ks-navy-dark);
+}
+
+// La lista de consejos reparte su espacio si la tarjeta se estira.
+.ks-cuenta-consejos {
+  display: flex;
+  flex-direction: column;
+}
+
+.ks-cuenta-consejos ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 12px;
+
+  li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 0.93rem;
+    line-height: 1.5;
+    color: var(--ks-ink-soft);
+  }
+
+  ion-icon {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    font-size: 1.2rem;
+    color: var(--ks-teal-strong);
+  }
+
+  strong {
+    color: var(--ks-ink);
+  }
+}
+
+.ks-cuenta-bloque {
+  padding: 18px 20px;
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-surface);
+  border: 1px solid var(--ks-border);
+  box-shadow: var(--ks-shadow);
+}
+
+.ks-cuenta-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font: 700 1.1rem 'Quicksand', sans-serif;
+    color: var(--ks-navy-dark);
+
+    ion-icon {
+      color: var(--ks-teal-strong);
+      font-size: 1.3rem;
+    }
+  }
+
+  a {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--ks-teal-strong);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.ks-cuenta-texto {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ks-ink-soft);
+}
+
+// Trabajos en curso
+.ks-cuenta-trabajos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li + li {
+    border-top: 1px solid var(--ks-border);
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 4px;
+    color: var(--ks-ink);
+    text-decoration: none;
+    border-radius: 12px;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--ks-teal-light) 55%, transparent);
+    }
+
+    > ion-icon {
+      color: var(--ks-ink-soft);
+    }
+  }
+}
+
+.ks-cuenta-trabajo-texto {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    color: var(--ks-ink-soft);
+  }
+}
+
+.ks-cuenta-vacio {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 6px 0 2px;
+
+  > ion-icon {
+    font-size: 2rem;
+    color: var(--ks-teal-strong);
+  }
+
+  p {
+    margin: 0;
+    color: var(--ks-ink-soft);
+    line-height: 1.55;
+  }
+}
+
+// Si la última tarjeta de la columna se estira para igualar la altura, su estado vacío queda centrado.
+.ks-cuenta-principal > :last-child {
+  display: flex;
+  flex-direction: column;
+
+  .ks-cuenta-vacio {
+    flex: 1;
+    align-content: center;
+    justify-items: center;
+    text-align: center;
+    padding: 12px 0;
+
+    > ion-icon {
+      font-size: 2.6rem;
+    }
+  }
+}
+
+// Enlaces como tarjetitas con ícono (en vez de una lista de texto suelta)
+.ks-cuenta-enlaces {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.ks-cuenta-enlaces-compactos {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ks-cuenta-enlace {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--ks-border);
+  background: var(--ks-surface);
+  color: var(--ks-ink);
+  text-decoration: none;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--ks-teal);
+    box-shadow: var(--ks-shadow);
+  }
+}
+
+.ks-cuenta-enlace-ico {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-strong);
+  font-size: 1.3rem;
+}
+
+.ks-cuenta-enlace-txt {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+
+  strong {
+    font-family: 'Quicksand', sans-serif;
+  }
+
+  small {
+    color: var(--ks-ink-soft);
+    line-height: 1.35;
+  }
+}
+
+.ks-cuenta-enlace-flecha {
+  color: var(--ks-ink-soft);
+}
+
+.ks-cuenta-acciones {
+  margin-top: 12px;
+}
+
+.ks-cuenta-texto-boton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ks-ink-soft);
+  font: 600 0.9rem 'Nunito', sans-serif;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ks-coral-dark);
+  }
+}
+
+// Reseñas
+.ks-cuenta-resenas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    padding: 10px 0;
+
+    & + li {
+      border-top: 1px solid var(--ks-border);
+    }
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: var(--ks-ink-soft);
+    line-height: 1.5;
+  }
+
+  small {
+    color: var(--ks-coral-dark);
+  }
+}
+
+.ks-cuenta-estrellas {
+  margin-left: 6px;
+  color: var(--ks-coral-dark);
+}
+
+// Perfil (columna lateral)
+.ks-cuenta-perfil {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  h2 {
+    margin: 0;
+    font: 700 1.15rem 'Quicksand', sans-serif;
+    color: var(--ks-navy-dark);
+  }
+
+  p {
+    margin: 2px 0 8px;
+    color: var(--ks-ink-soft);
+    overflow-wrap: anywhere;
+  }
+}
+
+.ks-cuenta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ks-cuenta-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font: 700 0.78rem 'Nunito', sans-serif;
+  background: color-mix(in srgb, var(--ks-ink) 8%, transparent);
+  color: var(--ks-ink-soft);
+
+  &.is-si {
+    background: var(--ks-teal-light);
+    color: var(--ks-teal-strong);
+  }
+}
+
+@media (max-width: 600px) {
+  .ks-cuenta-trabajos a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+
+    .ks-cuenta-monto {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+
+    .ks-cuenta-trabajo-texto {
+      grid-column: 1;
+    }
+
+    ion-badge {
+      grid-column: 1;
+      grid-row: 2;
+      justify-self: start;
+    }
+
+    > ion-icon {
+      display: none;
+    }
+  }
+
+  .ks-cuenta-bloque {
+    padding: 16px;
+  }
+}

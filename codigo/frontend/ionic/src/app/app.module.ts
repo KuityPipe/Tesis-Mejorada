@@ -1,4 +1,6 @@
-import { APP_INITIALIZER, NgModule } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeEsCl from '@angular/common/locales/es-CL';
+import { APP_INITIALIZER, LOCALE_ID, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { RouteReuseStrategy } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -10,6 +12,9 @@ import { AppRoutingModule } from './app-routing.module';
 import { authInterceptor } from './core/auth-interceptor';
 import { Auth } from './core/auth';
 import { SharedModule } from './shared/shared.module';
+
+// Chile: separador de miles con punto ($25.000) y fechas día/mes/año en los pipes `number` y `date`.
+registerLocaleData(localeEsCl);
 
 /**
  * Módulo raíz — el único que se carga de entrada (todo lo demás, como
@@ -28,6 +33,7 @@ import { SharedModule } from './shared/shared.module';
   declarations: [AppComponent],
   imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, SharedModule],
   providers: [
+    { provide: LOCALE_ID, useValue: 'es-CL' },
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideHttpClient(withInterceptors([authInterceptor])),
     {

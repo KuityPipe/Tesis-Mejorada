@@ -10,7 +10,7 @@
       <a routerLink="/catalogo">Servicios</a>
       <a routerLink="/" fragment="acerca" (click)="ir('acerca')">Acerca de nosotros</a>
       <a routerLink="/" fragment="contacto" (click)="ir('contacto')">Contacto</a>
-      <a [href]="urlPrivacidad" target="_blank" rel="noopener">Privacidad</a>
+      <a routerLink="/privacidad" (click)="ir()">Privacidad</a>
     </nav>
     <p class="ks-footer-copy">© {{ anioActual }} KeyServ</p>
   </div>

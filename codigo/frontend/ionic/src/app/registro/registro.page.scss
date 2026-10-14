@@ -1,0 +1,519 @@
+// Registro: indicador de pasos + tarjetas con encabezado propio.
+.ks-reg {
+  width: 100%;
+  max-width: 1100px;
+  margin-inline: auto;
+  padding-bottom: 16px;
+}
+
+.ks-reg-intro {
+  text-align: center;
+  margin-bottom: 18px;
+
+  h1 {
+    margin: 0 0 4px;
+    font-family: var(--ks-display, 'Quicksand', sans-serif);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    font-size: clamp(1.9rem, 1.3rem + 2vw, 2.8rem);
+    color: var(--ks-navy-dark);
+  }
+
+  p {
+    margin: 0;
+    color: var(--ks-ink-soft);
+  }
+}
+
+// ---- Pasos ----
+.ks-reg-pasos {
+  position: relative;
+  list-style: none;
+  margin: 0 auto 22px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  border-radius: var(--ks-radius-lg);
+  background: color-mix(in srgb, var(--ks-surface) 90%, transparent);
+  border: 1px solid var(--ks-border);
+  box-shadow: var(--ks-shadow);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+
+    &.is-actual,
+    &.is-completo {
+      opacity: 1;
+    }
+  }
+}
+
+.ks-reg-paso-circulo {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--ks-border);
+  background: var(--ks-surface);
+  font: 800 1rem 'Quicksand', sans-serif;
+  color: var(--ks-ink-soft);
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+
+  ion-icon {
+    font-size: 1.3rem;
+    animation: ks-reg-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .is-actual & {
+    border-color: var(--ks-teal-strong);
+    color: var(--ks-teal-strong);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--ks-teal-strong) 18%, transparent);
+  }
+
+  .is-completo & {
+    background: var(--ks-teal-strong);
+    border-color: var(--ks-teal-strong);
+    color: #fff;
+  }
+}
+
+@keyframes ks-reg-pop {
+  from {
+    transform: scale(0.2);
+  }
+}
+
+.ks-reg-paso-texto {
+  display: grid;
+  min-width: 0;
+
+  strong {
+    font-family: 'Quicksand', sans-serif;
+    color: var(--ks-navy-dark);
+  }
+
+  small {
+    color: var(--ks-ink-soft);
+    line-height: 1.3;
+  }
+}
+
+// Barra de avance bajo los pasos
+.ks-reg-pasos-barra {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ks-ink) 8%, transparent);
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--ks-teal-strong), var(--ks-coral));
+    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+// ---- Tarjetas ----
+.ks-reg-form {
+  display: grid;
+  gap: 18px;
+}
+
+.ks-reg-fila {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ks-reg-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(18px, 2.4vw, 28px);
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-surface);
+  border: 1px solid var(--ks-border);
+  box-shadow: var(--ks-shadow);
+}
+
+.ks-reg-cab {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  h2 {
+    margin: 0;
+    font: 800 1.35rem var(--ks-display, 'Quicksand', sans-serif);
+    letter-spacing: -0.02em;
+    color: var(--ks-navy-dark);
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 0.92rem;
+    color: var(--ks-ink-soft);
+  }
+}
+
+.ks-reg-n {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(145deg, var(--ks-teal-strong), #0a3a6f);
+  color: #fff;
+  font-size: 1.5rem;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--ks-teal-strong) 35%, transparent);
+}
+
+// ---- Campos ----
+.ks-reg-campos {
+  display: grid;
+  gap: 12px 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ks-reg-campos-2 {
+  @media (min-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ks-reg-campos-4 {
+  @media (min-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1000px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ks-reg-campo {
+  min-width: 0;
+  transition: opacity 0.25s ease;
+
+  ion-item {
+    margin: 0;
+  }
+
+  // Comuna bloqueada hasta elegir región: se ve apagada y no parece un campo roto.
+  &.is-bloqueado {
+    opacity: 0.55;
+  }
+}
+
+.ks-reg-error {
+  margin: 4px 0 0 6px;
+  font-size: 0.82rem;
+  color: var(--ion-color-danger, #c5221f);
+  animation: ks-reg-error 0.25s ease;
+}
+
+.ks-reg-error-general {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+@keyframes ks-reg-error {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+// ---- Resumen de ubicación ----
+.ks-reg-lugar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1.5px dashed var(--ks-border);
+  background-image: radial-gradient(color-mix(in srgb, var(--ks-ink) 12%, transparent) 1px, transparent 1px);
+  background-size: 14px 14px;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+
+  div {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+
+  strong {
+    font-family: 'Quicksand', sans-serif;
+    color: var(--ks-navy-dark);
+  }
+
+  small {
+    color: var(--ks-ink-soft);
+    line-height: 1.4;
+  }
+
+  &.is-elegido {
+    border-style: solid;
+    border-color: var(--ks-teal-strong);
+    background-color: var(--ks-teal-light);
+    background-image: none;
+  }
+}
+
+.ks-reg-lugar-pin {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ks-surface);
+  color: var(--ks-ink-soft);
+  font-size: 1.3rem;
+  transition: background 0.3s ease, color 0.3s ease;
+
+  .is-elegido & {
+    background: var(--ks-teal-strong);
+    color: #fff;
+    animation: ks-reg-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+// ---- Tipo de cuenta ----
+.ks-reg-tipos {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  button {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    justify-items: start;
+    align-content: start;
+    padding: 14px 14px 16px;
+    border-radius: 18px;
+    border: 2px solid var(--ks-border);
+    background: var(--ks-surface);
+    color: var(--ks-ink);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+
+    ion-icon {
+      font-size: 1.7rem;
+      color: var(--ks-teal-strong);
+    }
+
+    strong {
+      font: 800 1rem 'Quicksand', sans-serif;
+      color: var(--ks-navy-dark);
+    }
+
+    small {
+      color: var(--ks-ink-soft);
+      line-height: 1.35;
+    }
+
+    &:hover {
+      transform: translateY(-3px);
+      border-color: var(--ks-teal);
+    }
+
+    &.is-activo {
+      border-color: var(--ks-teal-strong);
+      background: var(--ks-teal-light);
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--ks-teal-strong) 22%, transparent);
+
+      // Marca de seleccionado
+      &::after {
+        content: '✓';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--ks-teal-strong);
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 800;
+        animation: ks-reg-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+    }
+  }
+}
+
+.ks-reg-ayuda {
+  margin: -6px 0 0 4px;
+  font-size: 0.85rem;
+  color: var(--ks-ink-soft);
+}
+
+// ---- Seguridad de la contraseña ----
+.ks-reg-fuerza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  --ks-fuerza: var(--ks-border);
+
+  &[data-nivel='1'] {
+    --ks-fuerza: #d93025;
+  }
+
+  &[data-nivel='2'] {
+    --ks-fuerza: #f29900;
+  }
+
+  &[data-nivel='3'] {
+    --ks-fuerza: #5fa800;
+  }
+
+  &[data-nivel='4'] {
+    --ks-fuerza: var(--ks-teal-strong);
+  }
+
+  small {
+    color: var(--ks-ink-soft);
+  }
+}
+
+.ks-reg-fuerza-barras {
+  display: flex;
+  gap: 4px;
+  width: 120px;
+
+  i {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ks-ink) 12%, transparent);
+    transition: background 0.3s ease;
+  }
+
+  @for $n from 1 through 4 {
+    .ks-reg-fuerza[data-nivel='#{$n}'] & i:nth-child(-n + #{$n}) {
+      background: var(--ks-fuerza);
+    }
+  }
+}
+
+.ks-reg-coincide {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ion-color-danger, #c5221f);
+
+  &.is-ok {
+    color: var(--ks-teal-strong);
+  }
+}
+
+// ---- Enviar ----
+.ks-reg-enviar {
+  max-width: 520px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+@media (max-width: 600px) {
+  .ks-reg-pasos {
+    padding: 12px 10px 14px;
+    gap: 4px;
+
+    li {
+      flex-direction: column;
+      gap: 6px;
+      text-align: center;
+    }
+
+    small {
+      display: none;
+    }
+
+    strong {
+      font-size: 0.82rem;
+    }
+
+    .ks-reg-pasos-barra {
+      left: 10px;
+      right: 10px;
+    }
+  }
+
+  .ks-reg-tipos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ks-reg-cab h2 {
+    font-size: 1.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-reg-paso-circulo ion-icon,
+  .ks-reg-lugar-pin,
+  .ks-reg-error,
+  .ks-reg-tipos button.is-activo::after {
+    animation: none;
+  }
+}
+
+// Pista de formato bajo los campos (RUT y teléfono): la gente se confunde con puntos, guion y +56.
+.ks-reg-pista {
+  margin: 4px 0 0 6px;
+  font-size: 0.8rem;
+  color: var(--ks-ink-soft);
+
+  strong {
+    color: var(--ks-teal-strong);
+    letter-spacing: 0.02em;
+  }
+}
+
+// Casilla de aceptación de la política de privacidad
+.ks-reg-acepto {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ks-teal-light) 55%, transparent);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ks-ink-soft);
+
+  ion-checkbox {
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+
+  a {
+    color: var(--ks-teal-strong);
+    font-weight: 700;
+  }
+}

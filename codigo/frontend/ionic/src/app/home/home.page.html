@@ -8,7 +8,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-content-cols ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/hero-oficios.jpg)">
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-pie-abajo ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/hero-oficios.jpg)">
   <div *ngIf="cargando" class="ion-text-center ion-padding">
     <ion-spinner></ion-spinner>
   </div>
@@ -58,113 +58,154 @@
       </div>
     </div>
 
-    <div class="ks-section ks-fila-doble" *ngIf="trabajosActuales.length">
-      <p class="ks-section-title"><ion-icon name="time-outline"></ion-icon> Trabajos actuales</p>
-      <ion-card>
-        <ion-card-content>
-          <ion-list lines="full">
-            <ion-item *ngFor="let c of trabajosActuales" [routerLink]="['/contratacion', c.id_contratacion]" button detail>
-              <ion-label class="ion-text-wrap">
-                <h2>{{ c.publicacion_titulo }}</h2>
-                <p>Proveedor: {{ c.proveedor_nombre }}</p>
-                <!-- El estado va debajo del texto: a la derecha, en móvil, dejaba al título una columna de pocos píxeles. -->
-                <ion-badge [color]="colorEstado(c.estado)" class="ks-trabajo-estado">{{ etiquetaEstado(c.estado) }}</ion-badge>
-              </ion-label>
-            </ion-item>
-          </ion-list>
-          <ion-button expand="block" fill="outline" class="ion-margin-top" routerLink="/reservas">
-            Ver todas mis contrataciones
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
-    </div>
+    <div class="ks-cuenta ks-span-all">
+      <div class="ks-cuenta-principal">
+        <!-- Lo que está pasando ahora: trabajos en curso (o una invitación a empezar si no hay ninguno). -->
+        <section class="ks-cuenta-bloque" appReveal>
+          <header class="ks-cuenta-cab">
+            <h2><ion-icon name="time-outline" aria-hidden="true"></ion-icon> Trabajos actuales</h2>
+            <a routerLink="/reservas" *ngIf="trabajosActuales.length">Ver todos</a>
+          </header>
+          <ul class="ks-cuenta-trabajos" *ngIf="trabajosActuales.length; else sinTrabajos">
+            <li *ngFor="let c of trabajosActuales">
+              <a [routerLink]="['/contratacion', c.id_contratacion]">
+                <span class="ks-cuenta-trabajo-texto">
+                  <strong>{{ c.publicacion_titulo }}</strong>
+                  <small>Proveedor: {{ c.proveedor_nombre }}</small>
+                </span>
+                <ion-badge [color]="colorEstado(c.estado)">{{ etiquetaEstado(c.estado) }}</ion-badge>
+                <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+              </a>
+            </li>
+          </ul>
+          <ng-template #sinTrabajos>
+            <div class="ks-cuenta-vacio">
+              <ion-icon name="briefcase-outline" aria-hidden="true"></ion-icon>
+              <p>No tienes trabajos en curso. Cuando contrates un servicio, o alguien te contrate, lo verás aquí.</p>
+              <ion-button size="small" fill="outline" routerLink="/catalogo">Explorar servicios</ion-button>
+            </div>
+          </ng-template>
+        </section>
 
-    <div class="ks-section">
-      <p class="ks-section-title">Tu cuenta</p>
-      <ion-card>
-        <ion-card-content>
-          <ion-item lines="none">
-            <div class="ks-avatar-brand" slot="start">{{ usuario.nombre_usuario.charAt(0) }}</div>
-            <ion-label>
-              <h2>{{ usuario.nombre_usuario }} {{ usuario.apellido_usuario }}</h2>
-              <p>{{ usuario.email }}</p>
-            </ion-label>
-          </ion-item>
-          <ion-item lines="none">
-            <ion-label>Proveedor</ion-label>
-            <ion-badge [color]="usuario.es_proveedor ? 'success' : 'medium'" slot="end">
-              {{ usuario.es_proveedor ? 'Sí' : 'No' }}
-            </ion-badge>
-          </ion-item>
-          <ion-item lines="none">
-            <ion-label>Verificado biométricamente</ion-label>
-            <ion-badge [color]="usuario.verificado_biometricamente ? 'success' : 'medium'" slot="end">
-              {{ usuario.verificado_biometricamente ? 'Sí' : 'No' }}
-            </ion-badge>
-          </ion-item>
-          <!-- Mismo botón "Convertirme en proveedor"/"Dejar de ofrecer servicios" que perfil.html en Django. -->
-          <ion-button expand="block" fill="outline" size="small" class="ion-margin-top" (click)="alternarProveedor()">
-            <ion-icon [name]="usuario.es_proveedor ? 'toggle' : 'toggle-outline'" slot="start"></ion-icon>
-            {{ usuario.es_proveedor ? 'Dejar de ofrecer servicios' : 'Convertirme en proveedor' }}
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
-    </div>
+        <!-- Todo lo de proveedor junto: publicaciones y perfil público; o la invitación a serlo. -->
+        <section class="ks-cuenta-bloque" appReveal [appRevealDelay]="60">
+          <header class="ks-cuenta-cab">
+            <h2><ion-icon name="construct-outline" aria-hidden="true"></ion-icon> {{ usuario.es_proveedor ? 'Tu actividad como proveedor' : 'Ofrece tus servicios' }}</h2>
+          </header>
+          <p class="ks-cuenta-texto" *ngIf="!usuario.es_proveedor">Si trabajas por tu cuenta, publica lo que haces, llega a más clientes y cobra con identidad respaldada.</p>
+          <div class="ks-cuenta-enlaces">
+            <a class="ks-cuenta-enlace" routerLink="/perfil/publicaciones" *ngIf="usuario.es_proveedor">
+              <span class="ks-cuenta-enlace-ico"><ion-icon name="albums-outline" aria-hidden="true"></ion-icon></span>
+              <span class="ks-cuenta-enlace-txt"><strong>Mis publicaciones</strong><small>Edita, pausa o elimina lo que ofreces.</small></span>
+              <ion-icon name="chevron-forward" class="ks-cuenta-enlace-flecha" aria-hidden="true"></ion-icon>
+            </a>
+            <a class="ks-cuenta-enlace" routerLink="/perfil/proveedor">
+              <span class="ks-cuenta-enlace-ico"><ion-icon name="id-card-outline" aria-hidden="true"></ion-icon></span>
+              <span class="ks-cuenta-enlace-txt"><strong>Perfil de proveedor</strong><small>Tus áreas de servicio y tu experiencia.</small></span>
+              <ion-icon name="chevron-forward" class="ks-cuenta-enlace-flecha" aria-hidden="true"></ion-icon>
+            </a>
+          </div>
+          <div class="ks-cuenta-acciones">
+            <ion-button *ngIf="!usuario.es_proveedor" size="small" (click)="alternarProveedor()">
+              <ion-icon name="toggle-outline" slot="start"></ion-icon> Convertirme en proveedor
+            </ion-button>
+            <button type="button" class="ks-cuenta-texto-boton" *ngIf="usuario.es_proveedor" (click)="alternarProveedor()">Dejar de ofrecer servicios</button>
+          </div>
+        </section>
 
-    <!-- Equivalente Ionic del panel "Reseñas y calificaciones recibidas" de perfil.html. Sin cap — Django tampoco pagina esto. -->
-    <div class="ks-section" *ngIf="resenasRecibidas.length">
-      <p class="ks-section-title"><ion-icon name="star-outline"></ion-icon> Reseñas recibidas</p>
-      <ion-card>
-        <ion-card-content>
-          <ion-list lines="full">
-            <ion-item *ngFor="let resena of resenasRecibidas" lines="full">
-              <ion-label class="ion-text-wrap">
-                <h3>{{ resena.usuario_emisor }} — ★{{ resena.puntuacion }}</h3>
-                <p>{{ resena.comentario }}</p>
-                <p *ngIf="resena.estado_moderacion === 'PENDIENTE'" style="color: var(--ks-coral-dark);">Pendiente de revisión por un moderador.</p>
-              </ion-label>
-            </ion-item>
-          </ion-list>
-        </ion-card-content>
-      </ion-card>
-    </div>
+        <section class="ks-cuenta-bloque" appReveal [appRevealDelay]="100">
+          <header class="ks-cuenta-cab">
+            <h2><ion-icon name="wallet-outline" aria-hidden="true"></ion-icon> Pagos</h2>
+            <a routerLink="/perfil/pagos">Ver historial completo</a>
+          </header>
+          <ul class="ks-cuenta-trabajos" *ngIf="pagosRecientes.length; else sinPagos">
+            <li *ngFor="let pago of pagosRecientes">
+              <a [routerLink]="['/contratacion', pago.contratacion_id]">
+                <span class="ks-cuenta-trabajo-texto">
+                  <strong>{{ pago.publicacion_titulo }}</strong>
+                  <small>{{ pago.metodo === 'WEBPAY' ? 'Webpay Plus' : 'Khipu' }} · {{ pago.fecha_creacion | date:'dd/MM/yyyy' }}</small>
+                </span>
+                <span class="ks-cuenta-monto">${{ pago.monto | number }}</span>
+                <ion-badge [color]="colorPago(pago.estado)">{{ pago.estado }}</ion-badge>
+                <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+              </a>
+            </li>
+          </ul>
+          <ng-template #sinPagos>
+            <div class="ks-cuenta-vacio">
+              <ion-icon name="receipt-outline" aria-hidden="true"></ion-icon>
+              <p>Todavía no tienes pagos. Cuando pagues un servicio, lo verás aquí con su estado.</p>
+              <ion-button size="small" fill="outline" routerLink="/catalogo">Explorar servicios</ion-button>
+            </div>
+          </ng-template>
+        </section>
 
-    <div class="ks-section">
-      <ion-card>
-        <ion-card-content>
-          <ion-list lines="full">
-            <ion-item routerLink="/perfil/editar" button detail>
-              <ion-label>Editar perfil</ion-label>
-            </ion-item>
-            <ion-item routerLink="/perfil/proveedor" button detail>
-              <ion-label>Perfil de proveedor</ion-label>
-            </ion-item>
-            <ion-item routerLink="/perfil/publicaciones" button detail *ngIf="usuario.es_proveedor">
-              <ion-label>Mis publicaciones</ion-label>
-            </ion-item>
-            <ion-item routerLink="/perfil/pagos" button detail>
-              <ion-label>Historial de pagos</ion-label>
-            </ion-item>
-            <ion-item routerLink="/preferencias" button detail>
-              <ion-label>Preferencias de la cuenta</ion-label>
-            </ion-item>
-            <ng-container *ngIf="!usuario.verificado_biometricamente">
-              <ion-item routerLink="/biometria" button detail>
-                <ion-label>Verificación biométrica</ion-label>
-              </ion-item>
-              <ion-item routerLink="/rostro" button detail>
-                <ion-label>Reconocimiento facial</ion-label>
-              </ion-item>
-            </ng-container>
-            <ion-item routerLink="/" fragment="acerca" button detail>
-              <ion-label>Acerca de nosotros</ion-label>
-            </ion-item>
-            <ion-item routerLink="/" fragment="contacto" button detail lines="none">
-              <ion-label>Contacto</ion-label>
-            </ion-item>
-          </ion-list>
-        </ion-card-content>
-      </ion-card>
+        <section class="ks-cuenta-bloque" *ngIf="resenasRecibidas.length" appReveal [appRevealDelay]="120">
+          <header class="ks-cuenta-cab">
+            <h2><ion-icon name="star-outline" aria-hidden="true"></ion-icon> Reseñas recibidas</h2>
+          </header>
+          <ul class="ks-cuenta-resenas">
+            <li *ngFor="let resena of resenasRecibidas">
+              <strong>{{ resena.usuario_emisor }} <span class="ks-cuenta-estrellas">★ {{ resena.puntuacion }}</span></strong>
+              <p>{{ resena.comentario }}</p>
+              <small *ngIf="resena.estado_moderacion === 'PENDIENTE'">Pendiente de revisión por un moderador.</small>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <aside class="ks-cuenta-lado" aria-label="Tu cuenta">
+        <section class="ks-cuenta-bloque ks-cuenta-perfil" appReveal>
+          <div class="ks-avatar-brand">{{ usuario.nombre_usuario.charAt(0) }}</div>
+          <div>
+            <h2>{{ usuario.nombre_usuario }} {{ usuario.apellido_usuario }}</h2>
+            <p>{{ usuario.email }}</p>
+            <div class="ks-cuenta-chips">
+              <span class="ks-cuenta-chip" [class.is-si]="usuario.es_proveedor">{{ usuario.es_proveedor ? 'Proveedor' : 'Cliente' }}</span>
+              <span class="ks-cuenta-chip" [class.is-si]="usuario.verificado_biometricamente">{{ usuario.verificado_biometricamente ? 'Identidad verificada' : 'Sin verificar' }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Verificación: si ya está verificada, solo lo confirma; si no, ofrece las tres vías. -->
+        <section class="ks-cuenta-bloque" appReveal [appRevealDelay]="60">
+          <header class="ks-cuenta-cab">
+            <h2><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon> Verificación de identidad</h2>
+          </header>
+          <p class="ks-cuenta-texto" *ngIf="usuario.verificado_biometricamente">Tu identidad está verificada. Dura 180 días y puedes renovarla cuando quieras.</p>
+          <p class="ks-cuenta-texto" *ngIf="!usuario.verificado_biometricamente">Verifícate para contratar y publicar con más confianza. Elige la forma que prefieras:</p>
+          <div class="ks-cuenta-enlaces ks-cuenta-enlaces-compactos">
+            <a class="ks-cuenta-enlace" routerLink="/biometria">
+              <span class="ks-cuenta-enlace-ico"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></span>
+              <span class="ks-cuenta-enlace-txt"><strong>Biometría del teléfono</strong></span>
+              <ion-icon name="chevron-forward" class="ks-cuenta-enlace-flecha" aria-hidden="true"></ion-icon>
+            </a>
+            <a class="ks-cuenta-enlace" routerLink="/rostro">
+              <span class="ks-cuenta-enlace-ico"><ion-icon name="scan-outline" aria-hidden="true"></ion-icon></span>
+              <span class="ks-cuenta-enlace-txt"><strong>Reconocimiento facial</strong></span>
+              <ion-icon name="chevron-forward" class="ks-cuenta-enlace-flecha" aria-hidden="true"></ion-icon>
+            </a>
+            <a class="ks-cuenta-enlace" routerLink="/verificacion-alternativa">
+              <span class="ks-cuenta-enlace-ico"><ion-icon name="document-text-outline" aria-hidden="true"></ion-icon></span>
+              <span class="ks-cuenta-enlace-txt"><strong>Sin biometría</strong></span>
+              <ion-icon name="chevron-forward" class="ks-cuenta-enlace-flecha" aria-hidden="true"></ion-icon>
+            </a>
+          </div>
+        </section>
+
+        <!-- Cierra la columna lateral y se estira para igualar la altura de la columna principal. -->
+        <section class="ks-cuenta-bloque ks-cuenta-consejos" appReveal [appRevealDelay]="120">
+          <header class="ks-cuenta-cab">
+            <h2><ion-icon name="bulb-outline" aria-hidden="true"></ion-icon> Consejos para contratar seguro</h2>
+          </header>
+          <ul>
+            <li><ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon><span>Contrata y paga siempre dentro de KeyServ: así tu pago y tu historial quedan respaldados.</span></li>
+            <li><ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon><span>Revisa que el proveedor tenga la insignia <strong>Identidad verificada</strong>.</span></li>
+            <li><ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon><span>Acuerda el detalle y el monto por el chat del trabajo antes de empezar.</span></li>
+            <li><ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon><span>Al terminar, califica el servicio: ayuda a otras personas a elegir bien.</span></li>
+          </ul>
+        </section>
+      </aside>
     </div>
 
     <app-footer></app-footer>

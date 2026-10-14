@@ -11,20 +11,38 @@ from types import SimpleNamespace
 from django import forms
 from django.contrib.auth import password_validation
 from django.contrib.auth.hashers import make_password
+from django.utils import timezone
 
+from .rut import normalizar_rut, rut_valido
 from .models import Consulta, Usuario, Region, Comuna, Publicaciones, Valoracion, Mensaje
+
+
+def _campo_telefono(etiqueta):
+    """
+    `Usuario.telefono` es un entero de 32 bits (máx. 2.147.483.647): un celular con código de país (+56 9...) lo
+    desborda y la base respondía 500. Se piden 8-9 dígitos, sin el +56, y se avisa en vez de fallar.
+    """
+    return forms.IntegerField(
+        label=etiqueta, min_value=10_000_000, max_value=999_999_999,
+        error_messages={
+            'invalid': 'Escribe solo números, sin espacios ni signos.',
+            'min_value': 'El número es muy corto. Escríbelo sin el +56, por ejemplo 912345678.',
+            'max_value': 'El número es muy largo. Escríbelo sin el +56, por ejemplo 912345678.',
+        },
+    )
 
 
 class RegistroForm(forms.Form):
     """Formulario de registro de un nuevo Usuario (cliente y/o proveedor)."""
-    rut = forms.CharField(max_length=10, label='RUT')
+    # Se acepta con puntos o sin ellos (hasta 14 caracteres escritos); clean_rut lo deja normalizado en máx. 10.
+    rut = forms.CharField(max_length=14, label='RUT')
     nombre1 = forms.CharField(max_length=40, label='Nombre')
     nombre2 = forms.CharField(max_length=40, required=False, label='Segundo nombre')
     apellido1 = forms.CharField(max_length=40, label='Apellido')
     apellido2 = forms.CharField(max_length=40, required=False, label='Segundo apellido')
     # RNF011 del PDF: "mayor de edad" — se valida en clean_edad().
     edad = forms.IntegerField(min_value=0, max_value=120, label='Edad')
-    telefono = forms.IntegerField(label='Teléfono')
+    telefono = _campo_telefono('Teléfono')
     email = forms.EmailField(label='Correo electrónico')
     direccion = forms.CharField(max_length=80, required=False, label='Dirección')
     region = forms.ModelChoiceField(queryset=Region.objects.all(), label='Región')
@@ -36,6 +54,9 @@ class RegistroForm(forms.Form):
     # Queda sin asignar (Usuario.tipo_cuenta y Transaccion.tipo_cuenta son
     # nullable) hasta que exista un flujo de upgrade real.
     es_proveedor = forms.BooleanField(required=False, label='¿Ofreces servicios como proveedor?')
+    # Aceptación de la política de privacidad. Opcional acá porque el formulario de plantillas (en retiro) no la tiene;
+    # la API la exige (RegistroView) y se guarda la fecha en `Usuario.politica_aceptada_en`.
+    acepta_politica = forms.BooleanField(required=False, label='Acepto la política de privacidad')
     # RNF010 del PDF pedía mínimo 6 — se subió a 8 (mínimo real que además
     # aplica AUTH_PASSWORD_VALIDATORS.MinimumLengthValidator en settings.py,
     # ver clean() más abajo) y se sumó validación de fondo: contraseñas de la
@@ -43,6 +64,15 @@ class RegistroForm(forms.Form):
     # nombre/correo quedan rechazadas — antes "123456a" pasaba sin problema.
     password = forms.CharField(widget=forms.PasswordInput, min_length=8, label='Contraseña')
     password_confirm = forms.CharField(widget=forms.PasswordInput, label='Confirmar contraseña')
+
+    def clean_rut(self):
+        """RUT real (dígito verificador correcto) y no registrado antes."""
+        rut = normalizar_rut(self.cleaned_data['rut'])
+        if not rut_valido(rut):
+            raise forms.ValidationError('RUT inválido. Escríbelo con guion y sin puntos, por ejemplo 12345678-5.')
+        if Usuario.objects.filter(rut_usuario=rut).exists():
+            raise forms.ValidationError('Ya existe una cuenta con este RUT.')
+        return rut
 
     def clean_edad(self):
         """RNF011: el usuario debe ser mayor de edad."""
@@ -98,6 +128,7 @@ class RegistroForm(forms.Form):
             direccion_usuario=self.cleaned_data.get('direccion') or None,
             comuna=self.cleaned_data['comuna'],
             es_proveedor=self.cleaned_data.get('es_proveedor', False),
+            politica_aceptada_en=timezone.now() if self.cleaned_data.get('acepta_politica') else None,
             transaccion=transaccion,
             password=make_password(self.cleaned_data['password']),
         )
@@ -114,7 +145,7 @@ class LoginForm(forms.Form):
 class RecuperarForm(forms.Form):
     """Paso 1 de /recuperar/: identifica la cuenta por correo + teléfono (no solo correo, para no convertir el formulario en una forma fácil de confirmar qué correos están registrados) antes de mandar el enlace de restablecimiento."""
     email = forms.EmailField(label='Correo electrónico')
-    telefono = forms.IntegerField(label='Número de teléfono')
+    telefono = _campo_telefono('Número de teléfono')
 
 
 class NuevaPasswordForm(forms.Form):

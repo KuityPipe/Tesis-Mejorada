@@ -26,8 +26,9 @@ describe('FooterComponent', () => {
     expect(component.anioActual).toBe(new Date().getFullYear());
   });
 
-  it('arma la URL de privacidad a partir de environment.apiUrl, sin el sufijo /api', () => {
-    expect(component.urlPrivacidad).toMatch(/\/privacidad\/$/);
-    expect(component.urlPrivacidad).not.toContain('/api/');
+  it('enlaza la política de privacidad dentro de la app, no al sitio de Django', () => {
+    const enlace: HTMLAnchorElement = fixture.nativeElement.querySelector('a[href="/privacidad"]');
+    expect(enlace).toBeTruthy();
+    expect(enlace.target).not.toBe('_blank');
   });
 });

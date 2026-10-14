@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { Auth } from '../core/auth';
@@ -25,7 +25,7 @@ import { Publicaciones, PublicacionResumen } from '../catalogo/publicaciones';
   styleUrls: ['./inicio.page.scss'],
   standalone: false,
 })
-export class InicioPage implements OnInit {
+export class InicioPage implements OnInit, AfterViewInit, OnDestroy {
   destacadas: PublicacionResumen[] = [];
   cargandoDestacadas = true;
   q = '';
@@ -50,6 +50,7 @@ export class InicioPage implements OnInit {
   readonly acercaSlides = [
     {
       id: 'acerca',
+      icono: 'key-outline',
       etiqueta: 'Acerca de nosotros',
       titulo: 'Acerca de nosotros',
       subtitulo: '«Contratar un servicio para tu casa no debería sentirse como una apuesta.» Esa es la idea que le dio partida a KeyServ: una plataforma chilena que conecta a quien necesita un servicio con proveedores verificados de verdad, para que sepas con quién estás tratando antes de dejarlo entrar a tu casa.',
@@ -61,6 +62,7 @@ export class InicioPage implements OnInit {
     },
     {
       id: 'quienes',
+      icono: 'people-outline',
       etiqueta: 'Quiénes somos',
       titulo: 'Quiénes somos',
       subtitulo: 'Un equipo pequeño con una pregunta simple, y lo que queremos lograr con ella.',
@@ -72,6 +74,7 @@ export class InicioPage implements OnInit {
     },
     {
       id: 'pilares',
+      icono: 'shield-checkmark-outline',
       etiqueta: 'Nuestros pilares',
       titulo: 'Nuestros pilares',
       subtitulo: 'Los cuatro principios con los que se diseña cada parte de la plataforma.',
@@ -84,6 +87,7 @@ export class InicioPage implements OnInit {
     },
     {
       id: 'tolerancia',
+      icono: 'hand-left-outline',
       etiqueta: 'Lo que no toleramos',
       titulo: 'Lo que no estamos dispuestos a tolerar',
       subtitulo: 'Cuatro cosas que la plataforma está hecha para evitar.',
@@ -105,9 +109,17 @@ export class InicioPage implements OnInit {
     private readonly ruta: ActivatedRoute,
   ) {}
 
+  @ViewChild('pista') private readonly pistaRef?: ElementRef<HTMLElement>;
+  private observador?: ResizeObserver;
+
+  /** `true` mientras se arrastra con el mouse: apaga el imán del scroll para que el carrusel siga el puntero. */
+  arrastrando = false;
+  private arrastre: { x: number; scroll: number; indice: number; movido: boolean } | null = null;
+
   /** Lleva el carrusel de "Acerca de nosotros" a una diapositiva. */
   irASlide(carrusel: HTMLElement, indice: number): void {
-    carrusel.scrollTo({ left: indice * carrusel.clientWidth, behavior: 'smooth' });
+    const reducido = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    carrusel.scrollTo({ left: indice * carrusel.clientWidth, behavior: reducido ? 'auto' : 'smooth' });
   }
 
   moverSlide(carrusel: HTMLElement, sentido: 1 | -1): void {
@@ -117,7 +129,61 @@ export class InicioPage implements OnInit {
 
   /** Mantiene resaltada la pestaña de la diapositiva que se está viendo. */
   alScrollearCarrusel(carrusel: HTMLElement): void {
-    this.slideActivo = Math.round(carrusel.scrollLeft / carrusel.clientWidth);
+    const indice = Math.round(carrusel.scrollLeft / carrusel.clientWidth);
+    if (indice !== this.slideActivo) {
+      this.slideActivo = indice;
+      this.ajustarAltura(carrusel);
+    }
+  }
+
+  /** El carrusel mide lo que mide el tema que se ve, no el más largo: así no queda un hueco bajo los temas cortos. */
+  private ajustarAltura(carrusel: HTMLElement): void {
+    const slide = carrusel.children[this.slideActivo] as HTMLElement | undefined;
+    if (slide) carrusel.style.height = `${slide.offsetHeight + 18}px`;
+  }
+
+  ngAfterViewInit(): void {
+    const carrusel = this.pistaRef?.nativeElement;
+    if (!carrusel || typeof ResizeObserver === 'undefined') return;
+    this.observador = new ResizeObserver(() => this.ajustarAltura(carrusel));
+    Array.from(carrusel.children).forEach((slide) => this.observador?.observe(slide));
+  }
+
+  ngOnDestroy(): void {
+    this.observador?.disconnect();
+  }
+
+  /** Con el dedo el scroll horizontal ya es nativo; el mouse necesita arrastre propio. */
+  iniciarArrastre(evento: PointerEvent, carrusel: HTMLElement): void {
+    if (evento.pointerType !== 'mouse' || evento.button !== 0) return;
+    this.arrastre = { x: evento.clientX, scroll: carrusel.scrollLeft, indice: this.slideActivo, movido: false };
+  }
+
+  moverArrastre(evento: PointerEvent, carrusel: HTMLElement): void {
+    const a = this.arrastre;
+    if (!a) return;
+    const dx = evento.clientX - a.x;
+    if (!a.movido) {
+      if (Math.abs(dx) < 6) return;
+      a.movido = true;
+      this.arrastrando = true;
+      carrusel.setPointerCapture(evento.pointerId);
+    }
+    carrusel.scrollLeft = a.scroll - dx;
+  }
+
+  terminarArrastre(evento: PointerEvent, carrusel: HTMLElement): void {
+    const a = this.arrastre;
+    this.arrastre = null;
+    if (!a || !a.movido) return;
+    const dx = evento.clientX - a.x;
+    let indice = Math.round(carrusel.scrollLeft / carrusel.clientWidth);
+    // Un arrastre corto pero decidido también cambia de tema, como al deslizar con el dedo.
+    if (Math.abs(dx) > 50) indice = a.indice + (dx < 0 ? 1 : -1);
+    indice = Math.max(0, Math.min(this.acercaSlides.length - 1, indice));
+    this.irASlide(carrusel, indice);
+    // El imán se reactiva cuando termina la animación, para que no pegue un salto.
+    setTimeout(() => (this.arrastrando = false), 450);
   }
 
   /** El aviso "¿Ofreces servicios?" invita a registrarse: solo tiene sentido sin sesión. */

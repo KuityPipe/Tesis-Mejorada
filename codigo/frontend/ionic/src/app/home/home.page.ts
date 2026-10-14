@@ -5,10 +5,13 @@ import { AlertController } from '@ionic/angular';
 import { Auth, Usuario } from '../core/auth';
 import { Contrataciones, ContratacionResumen } from '../contrataciones/contrataciones';
 import { Notificaciones } from '../core/notificaciones';
+import { Pagos, PagoHistorial } from '../pago/pagos';
 import { Retroalimentacion } from '../core/retroalimentacion';
 import { Resenas, ResenaRecibida } from './resenas';
 
 const ESTADOS_ACTIVOS = ['SOLICITADA', 'CONFIRMADA', 'EN_CURSO'];
+
+const COLOR_PAGO: Record<string, string> = { PENDIENTE: 'warning', PAGADO: 'success', RECHAZADO: 'danger', ANULADO: 'medium' };
 
 /**
  * Pantalla protegida (`canActivate: [authGuard]` en app-routing.module.ts)
@@ -30,6 +33,8 @@ export class HomePage implements OnInit {
   cargando = true;
   trabajosActuales: ContratacionResumen[] = [];
   resenasRecibidas: ResenaRecibida[] = [];
+  /** Los últimos pagos (el historial completo vive en /perfil/pagos). */
+  pagosRecientes: PagoHistorial[] = [];
 
   // Badge de no leídos en el tile "Mensajes" — equivalente Ionic del badge
   // que Django pinta en el ícono de chat del header (contar_mensajes_no_leidos,
@@ -43,6 +48,7 @@ export class HomePage implements OnInit {
     private readonly contratacionesApi: Contrataciones,
     private readonly notificaciones: Notificaciones,
     private readonly resenasApi: Resenas,
+    private readonly pagosApi: Pagos,
     private readonly alertController: AlertController,
     private readonly retroalimentacion: Retroalimentacion,
   ) {}
@@ -75,6 +81,14 @@ export class HomePage implements OnInit {
       },
     });
 
+    // Últimos pagos: no es crítico, si falla el bloque solo muestra su estado vacío.
+    this.pagosApi.historial().subscribe({
+      next: (pagos) => {
+        this.pagosRecientes = pagos.slice(0, 3);
+      },
+      error: () => {},
+    });
+
     // Reseñas recibidas — equivalente Ionic de la sección homónima de
     // perfil.html, sin cap (Django tampoco pagina esto).
     this.resenasApi.recibidas().subscribe({
@@ -85,6 +99,10 @@ export class HomePage implements OnInit {
         // No crítico — la sección simplemente no aparece.
       },
     });
+  }
+
+  colorPago(estado: string): string {
+    return COLOR_PAGO[estado] ?? 'medium';
   }
 
   colorEstado(estado: string): string {

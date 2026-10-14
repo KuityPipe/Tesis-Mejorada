@@ -509,7 +509,7 @@ class RegistroApiTests(APITestCase):
             'rut': '11111111-1', 'nombre1': 'Test', 'nombre2': '', 'apellido1': 'Usuario', 'apellido2': '',
             'edad': 30, 'telefono': 912345678, 'email': 'nuevo_api@test.com',
             'region': self.region.id_region, 'comuna': self.comuna.id_comuna, 'direccion': 'Calle Falsa 123',
-            'password': 'ClaveSegura2026!', 'password_confirm': 'ClaveSegura2026!',
+            'password': 'ClaveSegura2026!', 'password_confirm': 'ClaveSegura2026!', 'acepta_politica': True,
         }
         datos.update(overrides)
         return datos
@@ -538,6 +538,48 @@ class RegistroApiTests(APITestCase):
 
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(Usuario.objects.filter(email='nuevo_api@test.com').count(), 1)
+
+    def test_registro_con_telefono_con_codigo_de_pais_devuelve_400_no_500(self):
+        # +56 9 1234 5678 → 56912345678 no cabe en el entero de 32 bits de la base: antes respondía 500.
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(telefono=56912345678, email='tel_largo@test.com'), format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('telefono', resp.data)
+        self.assertFalse(Usuario.objects.filter(email='tel_largo@test.com').exists())
+
+    def test_registro_sin_aceptar_la_politica_devuelve_400(self):
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(acepta_politica=False, email='sin_politica@test.com'), format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('acepta_politica', resp.data)
+        self.assertFalse(Usuario.objects.filter(email='sin_politica@test.com').exists())
+
+    def test_registro_guarda_la_fecha_de_aceptacion_de_la_politica(self):
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(), format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        self.assertIsNotNone(Usuario.objects.get(email='nuevo_api@test.com').politica_aceptada_en)
+
+    def test_registro_con_rut_de_digito_verificador_incorrecto_devuelve_400(self):
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(rut='12345678-9', email='rut_malo@test.com'), format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('rut', resp.data)
+
+    def test_registro_con_rut_con_puntos_lo_guarda_normalizado(self):
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(rut='12.345.678-5', email='rut_puntos@test.com'), format='json')
+
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(Usuario.objects.get(email='rut_puntos@test.com').rut_usuario, '12345678-5')
+
+    def test_registro_con_rut_ya_registrado_devuelve_400(self):
+        _crear_usuario('otro@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        Usuario.objects.filter(email='otro@test.com').update(rut_usuario='22222222-2')
+
+        resp = self.client.post('/api/auth/registro/', self._datos_validos(rut='22222222-2', email='dup_rut@test.com'), format='json')
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('rut', resp.data)
 
     def test_registro_menor_de_edad_devuelve_400(self):
         resp = self.client.post('/api/auth/registro/', self._datos_validos(edad=15, email='menor_api@test.com'), format='json')

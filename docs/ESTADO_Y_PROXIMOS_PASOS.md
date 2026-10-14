@@ -3,6 +3,13 @@
 > Punto de retoma. Última actualización: 2026-10-13, al cierre de la sesión. Complementa
 > `docs/PLAN_MAESTRO_2026-27.md` (plan y estado por fase) y `docs/plan-ajustes.md` (cambios de alcance).
 
+## Sesión 2026-10-13/14 (noche: auditoría completa y arreglos, SIN commitear)
+
+- Auditoría de 20 pantallas en web y celular (errores de consola, desbordes, imágenes, accesibilidad), más el flujo registro → login → cuenta. Hallazgos arreglados: teléfono con `+56` daba 500 (columna int32: ahora 8–9 dígitos con aviso claro), RUT sin validar (dígito verificador + único, `rut.py`), registro sin aceptación de la política (casilla obligatoria, fecha en `Usuario.politica_aceptada_en`, migración 0034), página 404, título por página, fechas/precios en es-CL (`$25.000`, `13/10/2026`), `robots.txt`/`sitemap.xml`/manifest/íconos/Open Graph (`src/publico/`) y cabeceras de seguridad en `netlify.toml`.
+- Rediseño de varias pantallas: carrusel de "Acerca de nosotros" (arrastre con mouse y dedo), "Mi cuenta" en dos columnas, página de privacidad en Ionic (`/privacidad`) y registro con indicador de pasos y tarjetas.
+- Pendiente tras esto: SMTP real (hoy recuperar contraseña y el código de la vía sin biometría salen por consola en el demo), página de Términos y Condiciones (requiere texto legal), verificar el correo al registrarse, h1 en las pantallas de verificación y "Mis publicaciones", objetivos táctiles de 24 px, deuda de lint (105 × `prefer-inject`, el CI no corre lint) y una CSP completa en Netlify. Cambiar el enlace de Play Store a `https://keyserv.netlify.app/privacidad` si se quiere el diseño nuevo, y decidir la fecha "agosto de 2026" de la política.
+- Cuentas viejas del demo: el registro ya exige la política solo en la API; las APK antiguas sin la casilla no podrán registrar hasta actualizarse.
+
 ## Sesión 2026-10-13 (tarde: despliegues y CI)
 
 - Seguridad: las claves de `admin`/`moderador` salieron del repo (README y `sembrar_datos_demo.py`). Ahora vienen de la variable `DEMO_STAFF_PASSWORD` (puesta en Render, se reaplica en cada deploy; sin ella, clave aleatoria). La clave vieja `KeyServ2026!` ya no sirve en el demo. En local, define la variable antes de sembrar para entrar a `/admin/`.

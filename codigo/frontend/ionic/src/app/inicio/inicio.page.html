@@ -125,36 +125,47 @@
       <div class="ks-seccion-titulo" appReveal>
         <span class="ks-num">04 /</span>
         <h2 id="titulo-acerca">Conoce <em>KeyServ</em></h2>
-        <p class="ks-seccion-intro">Quiénes somos, en qué creemos y qué no vamos a tolerar. Cambia de tema con las pestañas.</p>
+        <p class="ks-seccion-intro">Quiénes somos, en qué creemos y qué no vamos a tolerar.</p>
       </div>
 
-      <div class="ks-acerca26-barra" appReveal>
-        <div class="ks-acerca26-tabs" role="tablist">
-          <button type="button" role="tab" *ngFor="let slide of acercaSlides; let i = index" [class.is-activo]="slideActivo === i" [attr.aria-selected]="slideActivo === i" (click)="irASlide(pista, i)">{{ slide.etiqueta }}</button>
-        </div>
-        <div class="ks-carrusel-flechas">
-          <button type="button" (click)="moverSlide(pista, -1)" aria-label="Anterior"><ion-icon name="chevron-back" aria-hidden="true"></ion-icon></button>
-          <button type="button" (click)="moverSlide(pista, 1)" aria-label="Siguiente"><ion-icon name="chevron-forward" aria-hidden="true"></ion-icon></button>
-        </div>
+      <div class="ks-acerca26-tabs" role="tablist" aria-label="Temas de Acerca de nosotros" appReveal>
+        <button type="button" role="tab" *ngFor="let slide of acercaSlides; let i = index" [class.is-activo]="slideActivo === i" [attr.aria-selected]="slideActivo === i" (click)="irASlide(pista, i)">
+          <ion-icon [name]="slide.icono" aria-hidden="true"></ion-icon><span>{{ slide.etiqueta }}</span>
+        </button>
       </div>
 
-      <div class="ks-acerca26-pista" #pista tabindex="0" aria-label="Acerca de nosotros" (scroll)="alScrollearCarrusel(pista)">
-        <article class="ks-acerca26-slide" *ngFor="let slide of acercaSlides" [id]="slide.id === 'acerca' ? null : 'acerca-' + slide.id">
-          <h3>{{ slide.titulo }}</h3>
-          <p class="ks-acerca26-sub">{{ slide.subtitulo }}</p>
+      <div class="ks-acerca26-pista" [class.is-arrastrando]="arrastrando" #pista tabindex="0" role="region" aria-roledescription="carrusel" aria-label="Acerca de nosotros"
+        (scroll)="alScrollearCarrusel(pista)"
+        (keydown.arrowleft)="moverSlide(pista, -1)" (keydown.arrowright)="moverSlide(pista, 1)"
+        (pointerdown)="iniciarArrastre($event, pista)" (pointermove)="moverArrastre($event, pista)"
+        (pointerup)="terminarArrastre($event, pista)" (pointercancel)="terminarArrastre($event, pista)">
+        <article class="ks-acerca26-slide" *ngFor="let slide of acercaSlides; let i = index" [class.is-activa]="slideActivo === i" [id]="slide.id === 'acerca' ? null : 'acerca-' + slide.id">
+          <header class="ks-acerca26-lado">
+            <span class="ks-acerca26-n" aria-hidden="true">0{{ i + 1 }}</span>
+            <ion-icon class="ks-acerca26-icono" [name]="slide.icono" aria-hidden="true"></ion-icon>
+            <h3>{{ slide.titulo }}</h3>
+            <p class="ks-acerca26-sub">{{ slide.subtitulo }}</p>
+          </header>
           <div class="ks-acerca26-tarjetas">
-            <div class="ks-carrusel-tarjeta" *ngFor="let item of slide.tarjetas">
-              <ion-icon [name]="item.icono" aria-hidden="true"></ion-icon>
-              <h4>{{ item.titulo }}</h4>
-              <p>{{ item.texto }}</p>
+            <div class="ks-carrusel-tarjeta" *ngFor="let item of slide.tarjetas; let j = index" [style.--i]="j">
+              <span class="ks-carrusel-icono"><ion-icon [name]="item.icono" aria-hidden="true"></ion-icon></span>
+              <div>
+                <h4>{{ item.titulo }}</h4>
+                <p>{{ item.texto }}</p>
+              </div>
             </div>
           </div>
         </article>
       </div>
 
-      <div class="ks-acerca26-puntos" aria-hidden="true">
-        <i *ngFor="let slide of acercaSlides; let i = index" [class.is-activo]="slideActivo === i"></i>
+      <div class="ks-acerca26-control">
+        <button type="button" class="ks-acerca26-flecha" (click)="moverSlide(pista, -1)" aria-label="Tema anterior"><ion-icon name="arrow-back" aria-hidden="true"></ion-icon></button>
+        <div class="ks-acerca26-puntos">
+          <button type="button" *ngFor="let slide of acercaSlides; let i = index" [class.is-activo]="slideActivo === i" (click)="irASlide(pista, i)" [attr.aria-label]="'Ir a ' + slide.etiqueta" [attr.aria-current]="slideActivo === i"></button>
+        </div>
+        <button type="button" class="ks-acerca26-flecha" (click)="moverSlide(pista, 1)" aria-label="Tema siguiente"><ion-icon name="arrow-forward" aria-hidden="true"></ion-icon></button>
       </div>
+      <p class="ks-acerca26-ayuda"><ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon> Desliza o arrastra para cambiar de tema</p>
     </div>
   </section>
 

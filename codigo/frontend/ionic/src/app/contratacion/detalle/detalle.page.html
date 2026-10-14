@@ -103,19 +103,19 @@
           <div class="ks-progress-steps">
             <div class="ks-progress-step" [ngClass]="clasePaso('SOLICITADA')">
               <div class="dot"></div>Solicitada
-              <span class="ks-progress-fecha" *ngIf="fechaPaso('SOLICITADA')">{{ fechaPaso('SOLICITADA') | date:'short' }}</span>
+              <span class="ks-progress-fecha" *ngIf="fechaPaso('SOLICITADA')">{{ fechaPaso('SOLICITADA') | date:'dd/MM/yyyy HH:mm' }}</span>
             </div>
             <div class="ks-progress-step" [ngClass]="clasePaso('CONFIRMADA')">
               <div class="dot"></div>Confirmada
-              <span class="ks-progress-fecha" *ngIf="fechaPaso('CONFIRMADA')">{{ fechaPaso('CONFIRMADA') | date:'short' }}</span>
+              <span class="ks-progress-fecha" *ngIf="fechaPaso('CONFIRMADA')">{{ fechaPaso('CONFIRMADA') | date:'dd/MM/yyyy HH:mm' }}</span>
             </div>
             <div class="ks-progress-step" [ngClass]="clasePaso('EN_CURSO')">
               <div class="dot"></div>Pagada / en curso
-              <span class="ks-progress-fecha" *ngIf="fechaPaso('EN_CURSO')">{{ fechaPaso('EN_CURSO') | date:'short' }}</span>
+              <span class="ks-progress-fecha" *ngIf="fechaPaso('EN_CURSO')">{{ fechaPaso('EN_CURSO') | date:'dd/MM/yyyy HH:mm' }}</span>
             </div>
             <div class="ks-progress-step" [ngClass]="clasePaso('COMPLETADA')">
               <div class="dot"></div>Completada
-              <span class="ks-progress-fecha" *ngIf="fechaPaso('COMPLETADA')">{{ fechaPaso('COMPLETADA') | date:'short' }}</span>
+              <span class="ks-progress-fecha" *ngIf="fechaPaso('COMPLETADA')">{{ fechaPaso('COMPLETADA') | date:'dd/MM/yyyy HH:mm' }}</span>
             </div>
           </div>
         </ion-card-content>
@@ -161,7 +161,7 @@
           <ion-list lines="none">
             <ion-item *ngFor="let h of c.historial" lines="none">
               <ion-label>{{ etiquetaEstado(h.estado) }}</ion-label>
-              <ion-note slot="end">{{ h.fecha | date:'short' }}</ion-note>
+              <ion-note slot="end">{{ h.fecha | date:'dd/MM/yyyy HH:mm' }}</ion-note>
             </ion-item>
           </ion-list>
         </ion-card-content>

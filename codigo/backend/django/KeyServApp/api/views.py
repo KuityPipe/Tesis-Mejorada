@@ -181,8 +181,13 @@ class RegistroView(APIView):
 
     def post(self, request):
         form = RegistroForm(request.data)
-        if not form.is_valid():
-            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        valido = form.is_valid()
+        errores = {campo: list(mensajes) for campo, mensajes in form.errors.items()}
+        # Constancia de consentimiento: sin aceptar la política de privacidad no se crea la cuenta.
+        if not form.cleaned_data.get('acepta_politica'):
+            errores['acepta_politica'] = ['Debes aceptar la política de privacidad para crear tu cuenta.']
+        if not valido or errores:
+            return Response(errores, status=status.HTTP_400_BAD_REQUEST)
 
         # Sin tipo_cuenta: ver comentario en forms.py sobre por qué ya no se elige acá.
         transaccion = Transaccion.objects.create()

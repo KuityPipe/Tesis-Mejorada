@@ -1,8 +1,6 @@
 import { desplazarTrasNavegar } from '../desplazamiento';
 import { Component } from '@angular/core';
 
-import { environment } from '../../../environments/environment';
-
 /**
  * Footer compartido (marca + links + copyright) — equivalente Ionic del
  * `<footer class="ks-footer">` de `base.html` en el sitio Django, que
@@ -29,13 +27,4 @@ export class FooterComponent {
     desplazarTrasNavegar(fragmento);
   }
 
-  /**
-   * La política de privacidad vive en el sitio Django (`/privacidad/`, ver
-   * `KeyServApp/templates/KeyServApp/privacidad.html`) en vez de duplicarse
-   * acá — un solo documento legal, no dos copias que puedan divergir. Se
-   * deriva de `environment.apiUrl` (le saca el sufijo `/api`) para que
-   * apunte solo a Render en producción y a `:8000` en desarrollo, sin
-   * hardcodear la URL dos veces.
-   */
-  readonly urlPrivacidad = `${environment.apiUrl.replace(/\/api\/?$/, '')}/privacidad/`;
 }

@@ -15,6 +15,7 @@ const routes: Routes = [
     // (mismo criterio que /servicios/crear/ vs /servicios/<pk>/ en Django,
     // que tampoco chocan porque <pk> es un IntConverter).
     path: 'crear',
+    title: 'Publicar un servicio · KeyServ',
     loadChildren: () => import('./crear/crear.module').then( m => m.CrearPageModule),
     canActivate: [authGuard],
   },
@@ -22,6 +23,7 @@ const routes: Routes = [
     // :id es el pk de Publicaciones — DetallePage lo lee de la ruta con
     // ActivatedRoute, no de un query param.
     path: ':id',
+    title: 'Detalle del servicio · KeyServ',
     loadChildren: () => import('./detalle/detalle.module').then( m => m.DetallePageModule)
   },
 ];

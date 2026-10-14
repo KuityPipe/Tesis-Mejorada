@@ -1,0 +1,177 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
+    <ion-title>Privacidad</ion-title>
+    <app-top-nav slot="end"></app-top-nav>
+    <app-tema-toggle slot="end"></app-tema-toggle>
+    <app-account-menu slot="end"></app-account-menu>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-pie-abajo">
+  <!-- Portada de la política: título, fecha y lo esencial en cuatro cifras. -->
+  <header class="ks-priv-hero">
+    <div class="ks-priv-hero-fondo" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="ks-priv-hero-texto">
+      <span class="ks-priv-sello"><ion-icon name="shield-checkmark" aria-hidden="true"></ion-icon> Tus datos, tus reglas</span>
+      <h1>Política de <em>privacidad</em></h1>
+      <p>Qué datos recolectamos, para qué, y qué puedes hacer al respecto. Escrita para que se entienda, no para esconder nada.</p>
+      <small>Última actualización: {{ actualizacion }}</small>
+    </div>
+    <ul class="ks-priv-esencial" aria-label="Lo esencial">
+      <li *ngFor="let e of esencial; let i = index" appReveal [appRevealDelay]="i * 80">
+        <ion-icon [name]="e.icono" aria-hidden="true"></ion-icon>
+        <strong>{{ e.valor }}</strong>
+        <span>{{ e.etiqueta }}</span>
+        <small>{{ e.detalle }}</small>
+      </li>
+    </ul>
+  </header>
+
+  <p class="ks-priv-alcance" appReveal>
+    Esta política aplica al sitio web de KeyServ y a la app KeyServ para Android: las dos hablan con el mismo backend y manejan los mismos datos. KeyServ es un proyecto en desarrollo activo (partió como tesis universitaria, hoy se sigue construyendo como producto); esta política describe lo que la plataforma realmente hace hoy, no una promesa genérica.
+  </p>
+
+  <div class="ks-priv">
+    <!-- Índice: columna fija en escritorio, fila deslizable en celular; marca la sección que se está leyendo. -->
+    <nav class="ks-priv-indice" aria-label="Contenido de la política">
+      <p>En esta página</p>
+      <ul>
+        <li *ngFor="let item of indice">
+          <button type="button" [class.is-activo]="seccionActiva === item.id" [attr.aria-current]="seccionActiva === item.id ? 'true' : null" (click)="irA(item.id)">
+            <ion-icon [name]="item.icono" aria-hidden="true"></ion-icon><span>{{ item.texto }}</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="ks-priv-secciones">
+      <!-- 1 · Datos -->
+      <section id="datos" class="ks-priv-seccion" appReveal>
+        <header>
+          <span class="ks-priv-n">01</span>
+          <div>
+            <h2>Qué datos recolectamos</h2>
+            <p>Solo pedimos lo que la plataforma necesita para funcionar: verificar tu identidad, conectarte con proveedores o clientes reales, y procesar pagos y contrataciones.</p>
+          </div>
+        </header>
+        <ul class="ks-priv-lista">
+          <li *ngFor="let d of datos; let i = index" appReveal [appRevealDelay]="i * 50">
+            <span class="ks-priv-ico"><ion-icon [name]="d.icono" aria-hidden="true"></ion-icon></span>
+            <div>
+              <h3>{{ d.titulo }}</h3>
+              <p>{{ d.texto }}</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 2 · Terceros -->
+      <section id="terceros" class="ks-priv-seccion" appReveal>
+        <header>
+          <span class="ks-priv-n">02</span>
+          <div>
+            <h2>Con quién compartimos datos</h2>
+            <p>No vendemos datos a nadie. Los únicos terceros involucrados son los que hacen falta para que la plataforma funcione.</p>
+          </div>
+        </header>
+        <ul class="ks-priv-terceros">
+          <li *ngFor="let t of terceros; let i = index" appReveal [appRevealDelay]="i * 50">
+            <div class="ks-priv-tercero-cab">
+              <span class="ks-priv-ico"><ion-icon [name]="t.icono" aria-hidden="true"></ion-icon></span>
+              <div>
+                <h3>{{ t.nombre }}</h3>
+                <span class="ks-priv-etiqueta">{{ t.funcion }}</span>
+              </div>
+            </div>
+            <p>{{ t.detalle }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 3 · Plazos -->
+      <section id="plazos" class="ks-priv-seccion" appReveal>
+        <header>
+          <span class="ks-priv-n">03</span>
+          <div>
+            <h2>Cuánto tiempo guardamos tus datos</h2>
+            <p>Mientras tu cuenta esté activa, conservamos los datos necesarios para que la plataforma funcione (perfil, contrataciones, calificaciones, historial de pagos). Estos son los plazos concretos.</p>
+          </div>
+        </header>
+        <ul class="ks-priv-plazos">
+          <li *ngFor="let p of plazos; let i = index" appReveal [appRevealDelay]="i * 50">
+            <div class="ks-priv-plazo-valor"><strong>{{ p.valor }}</strong><span>{{ p.unidad }}</span></div>
+            <div>
+              <h3>{{ p.titulo }}</h3>
+              <p>{{ p.nota }}</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 4 · Protección -->
+      <section id="proteccion" class="ks-priv-seccion" appReveal>
+        <header>
+          <span class="ks-priv-n">04</span>
+          <div>
+            <h2>Cómo protegemos tus datos</h2>
+            <p>Medidas técnicas que ya están funcionando, no promesas.</p>
+          </div>
+        </header>
+        <ul class="ks-priv-lista">
+          <li *ngFor="let d of proteccion; let i = index" appReveal [appRevealDelay]="i * 50">
+            <span class="ks-priv-ico"><ion-icon [name]="d.icono" aria-hidden="true"></ion-icon></span>
+            <div>
+              <h3>{{ d.titulo }}</h3>
+              <p>{{ d.texto }}</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 5 · Derechos -->
+      <section id="derechos" class="ks-priv-seccion" appReveal>
+        <header>
+          <span class="ks-priv-n">05</span>
+          <div>
+            <h2>Tus derechos</h2>
+            <p>Desde <strong>Preferencias → Mis datos</strong> de la app puedes ejercerlos tú mismo, sin pedirle permiso a nadie.</p>
+          </div>
+        </header>
+        <ul class="ks-priv-derechos">
+          <li *ngFor="let d of derechos; let i = index" appReveal [appRevealDelay]="i * 60">
+            <ion-icon [name]="d.icono" aria-hidden="true"></ion-icon>
+            <h3>{{ d.titulo }}</h3>
+            <p>{{ d.texto }}</p>
+          </li>
+        </ul>
+        <div class="ks-priv-cta">
+          <ion-button routerLink="/preferencias"><ion-icon name="settings-outline" slot="start"></ion-icon> Ir a Mis datos</ion-button>
+        </div>
+        <p class="ks-priv-legal">Como usuario en Chile, estos derechos están amparados por la Ley 19.628 sobre protección de la vida privada, y por la Ley 21.719 en las materias que ya haya puesto en vigencia.</p>
+      </section>
+
+      <!-- 6 · Menores y contacto -->
+      <section id="contacto" class="ks-priv-seccion" appReveal>
+        <header>
+          <span class="ks-priv-n">06</span>
+          <div>
+            <h2>Menores de edad y contacto</h2>
+            <p>KeyServ pide la edad al registrarse y no está pensado para menores de 18 años.</p>
+          </div>
+        </header>
+        <div class="ks-priv-contacto">
+          <div>
+            <h3>¿Dudas sobre esta política o tus datos?</h3>
+            <p>Escríbenos desde el formulario de contacto de la plataforma y te respondemos.</p>
+          </div>
+          <ion-button routerLink="/" fragment="contacto" (click)="ir('contacto')"><ion-icon name="mail-outline" slot="start"></ion-icon> Ir a contacto</ion-button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <app-footer></app-footer>
+</ion-content>

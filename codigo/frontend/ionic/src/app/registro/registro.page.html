@@ -17,133 +17,198 @@
   </ion-toolbar>
 </ion-header>
 
+
 <ion-content [fullscreen]="true" class="ks-pie-abajo ion-padding ks-content-wide ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/paisaje-lago.jpg)">
-  <!-- Mismo h1+subtítulo centrado que login.page.html — sin esto la pantalla arrancaba directo en
-  "Datos personales" sin ningún saludo, se sentía como un formulario tirado ahí en vez de un paso
-  considerado ("se ve muy a la rápida", feedback en vivo del usuario). -->
-  <div class="ks-auth ks-auth-solo">
-    <div class="ks-auth-form">
-      <div class="ion-text-center ion-margin-bottom" appReveal>
-        <h1>Crea tu cuenta</h1>
-        <p>Completa tus datos para empezar a usar KeyServ.</p>
+  <div class="ks-reg">
+    <div class="ks-reg-intro" appReveal>
+      <h1>Crea tu cuenta</h1>
+      <p>Son tres pasos cortos. Te toma menos de dos minutos.</p>
+    </div>
+
+    <!-- Indicador de pasos: se va completando a medida que cada sección queda lista. -->
+    <ol class="ks-reg-pasos" appReveal [appRevealDelay]="40" aria-label="Avance del registro">
+      <li *ngFor="let paso of pasos" [class.is-completo]="pasoCompleto(paso.n)" [class.is-actual]="pasoActual === paso.n" [attr.aria-current]="pasoActual === paso.n ? 'step' : null">
+        <span class="ks-reg-paso-circulo">
+          <ion-icon *ngIf="pasoCompleto(paso.n); else numero" name="checkmark" aria-hidden="true"></ion-icon>
+          <ng-template #numero>{{ paso.n }}</ng-template>
+        </span>
+        <span class="ks-reg-paso-texto">
+          <strong>{{ paso.titulo }}</strong>
+          <small>{{ paso.detalle }}</small>
+        </span>
+      </li>
+      <span class="ks-reg-pasos-barra" aria-hidden="true"><i [style.width.%]="progreso"></i></span>
+    </ol>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ks-reg-form">
+      <!-- 1 · Datos personales -->
+      <section class="ks-reg-tarjeta ks-reg-datos" appReveal [appRevealDelay]="80">
+        <header class="ks-reg-cab">
+          <span class="ks-reg-n"><ion-icon name="person-outline" aria-hidden="true"></ion-icon></span>
+          <div>
+            <h2>Tus datos</h2>
+            <p>Para que proveedores y clientes sepan con quién tratan.</p>
+          </div>
+        </header>
+        <div class="ks-reg-campos ks-reg-campos-4">
+          <div class="ks-reg-campo">
+            <ion-item><ion-input label="RUT" labelPlacement="floating" formControlName="rut" placeholder="Ej.: 12345678-5" (ionBlur)="ordenarRut()"></ion-input></ion-item>
+            <p class="ks-reg-error" *ngIf="mensajeError('rut'); else pistaRut">{{ mensajeError('rut') }}</p>
+            <ng-template #pistaRut><p class="ks-reg-pista">Ejemplo: <strong>12345678-5</strong> (con guion)</p></ng-template>
+          </div>
+          <div class="ks-reg-campo">
+            <ion-item><ion-input label="Nombre" labelPlacement="floating" formControlName="nombre1"></ion-input></ion-item>
+            <p class="ks-reg-error" *ngIf="mensajeError('nombre1')">{{ mensajeError('nombre1') }}</p>
+          </div>
+          <div class="ks-reg-campo">
+            <ion-item><ion-input label="Segundo nombre (opcional)" labelPlacement="floating" formControlName="nombre2"></ion-input></ion-item>
+          </div>
+          <div class="ks-reg-campo">
+            <ion-item><ion-input label="Edad" labelPlacement="floating" type="number" formControlName="edad"></ion-input></ion-item>
+            <p class="ks-reg-error" *ngIf="mensajeError('edad')">{{ mensajeError('edad') }}</p>
+          </div>
+          <div class="ks-reg-campo">
+            <ion-item><ion-input label="Apellido" labelPlacement="floating" formControlName="apellido1"></ion-input></ion-item>
+            <p class="ks-reg-error" *ngIf="mensajeError('apellido1')">{{ mensajeError('apellido1') }}</p>
+          </div>
+          <div class="ks-reg-campo">
+            <ion-item><ion-input label="Segundo apellido (opcional)" labelPlacement="floating" formControlName="apellido2"></ion-input></ion-item>
+          </div>
+          <div class="ks-reg-campo">
+            <ion-item><ion-input label="Teléfono" labelPlacement="floating" type="tel" formControlName="telefono" placeholder="Ej.: 912345678"></ion-input></ion-item>
+            <p class="ks-reg-error" *ngIf="mensajeError('telefono'); else pistaTelefono">{{ mensajeError('telefono') }}</p>
+            <ng-template #pistaTelefono><p class="ks-reg-pista">Ejemplo: <strong>912345678</strong> (sin +56)</p></ng-template>
+          </div>
+          <div class="ks-reg-campo">
+            <ion-item><ion-input label="Correo electrónico" labelPlacement="floating" type="email" formControlName="email" autocomplete="email"></ion-input></ion-item>
+            <p class="ks-reg-error" *ngIf="mensajeError('email')">{{ mensajeError('email') }}</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="ks-reg-fila">
+        <!-- 2 · Ubicación -->
+        <section class="ks-reg-tarjeta ks-reg-ubicacion" appReveal [appRevealDelay]="140">
+          <header class="ks-reg-cab">
+            <span class="ks-reg-n"><ion-icon name="location-outline" aria-hidden="true"></ion-icon></span>
+            <div>
+              <h2>Ubicación</h2>
+              <p>Así te mostramos servicios cerca de ti.</p>
+            </div>
+          </header>
+
+          <div class="ks-reg-campos">
+            <div class="ks-reg-campo">
+              <ion-item>
+                <ion-select label="Región" labelPlacement="floating" interface="popover" [interfaceOptions]="opcionesLista" placeholder="Elige tu región" formControlName="region" (ionChange)="alCambiarRegion($event.detail.value)">
+                  <ion-select-option *ngFor="let region of regiones" [value]="region.id_region">{{ region.nombre_region }}</ion-select-option>
+                </ion-select>
+              </ion-item>
+              <p class="ks-reg-error" *ngIf="mensajeError('region')">{{ mensajeError('region') }}</p>
+            </div>
+
+            <div class="ks-reg-campo" [class.is-bloqueado]="formulario.controls.comuna.disabled">
+              <ion-item>
+                <ion-select label="Comuna" labelPlacement="floating" interface="modal" [interfaceOptions]="opcionesComuna" cancelText="Cancelar" [placeholder]="formulario.controls.comuna.disabled ? 'Primero elige la región' : 'Elige tu comuna'" formControlName="comuna">
+                  <ion-select-option *ngFor="let comuna of comunas" [value]="comuna.id_comuna">{{ comuna.nombre_comuna }}</ion-select-option>
+                </ion-select>
+              </ion-item>
+              <p class="ks-reg-error" *ngIf="mensajeError('comuna')">{{ mensajeError('comuna') }}</p>
+            </div>
+          </div>
+
+          <div class="ks-reg-campos">
+            <div class="ks-reg-campo">
+              <ion-item><ion-input label="Dirección (opcional)" labelPlacement="floating" formControlName="direccion" placeholder="Calle y número"></ion-input></ion-item>
+            </div>
+          </div>
+
+          <!-- Resumen vivo: confirma lo elegido; mientras tanto explica por qué se pide. -->
+          <div class="ks-reg-lugar" [class.is-elegido]="!!ubicacionElegida" aria-live="polite">
+            <span class="ks-reg-lugar-pin"><ion-icon name="location" aria-hidden="true"></ion-icon></span>
+            <div *ngIf="ubicacionElegida; else sinLugar">
+              <strong>{{ ubicacionElegida.comuna }}</strong>
+              <small>{{ ubicacionElegida.region }}</small>
+            </div>
+            <ng-template #sinLugar>
+              <div>
+                <strong>Aún no eliges tu comuna</strong>
+                <small>La usamos para ordenar los servicios por cercanía. Tu dirección exacta nunca se muestra a otros.</small>
+              </div>
+            </ng-template>
+          </div>
+        </section>
+
+        <!-- 3 · Cuenta -->
+        <section class="ks-reg-tarjeta ks-reg-cuenta" appReveal [appRevealDelay]="200">
+          <header class="ks-reg-cab">
+            <span class="ks-reg-n"><ion-icon name="key-outline" aria-hidden="true"></ion-icon></span>
+            <div>
+              <h2>Tu cuenta</h2>
+              <p>Elige cómo vas a usar KeyServ y protege tu acceso.</p>
+            </div>
+          </header>
+
+          <!-- Tipo de cuenta: dos opciones grandes en vez de una casilla chica. -->
+          <div class="ks-reg-tipos" role="radiogroup" aria-label="Tipo de cuenta">
+            <button type="button" role="radio" [attr.aria-checked]="!formulario.controls.es_proveedor.value" [class.is-activo]="!formulario.controls.es_proveedor.value" (click)="elegirTipo(false)">
+              <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+              <strong>Busco servicios</strong>
+              <small>Contrata proveedores con identidad verificada.</small>
+            </button>
+            <button type="button" role="radio" [attr.aria-checked]="formulario.controls.es_proveedor.value" [class.is-activo]="formulario.controls.es_proveedor.value" (click)="elegirTipo(true)">
+              <ion-icon name="construct-outline" aria-hidden="true"></ion-icon>
+              <strong>Ofrezco servicios</strong>
+              <small>Publica lo que haces y consigue clientes.</small>
+            </button>
+          </div>
+          <p class="ks-reg-ayuda">Puedes cambiarlo cuando quieras desde tu cuenta.</p>
+
+          <div class="ks-reg-campos">
+            <div class="ks-reg-campo">
+              <ion-item>
+                <ion-input label="Contraseña" labelPlacement="floating" type="password" formControlName="password" autocomplete="new-password">
+                  <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+                </ion-input>
+              </ion-item>
+              <p class="ks-reg-error" *ngIf="mensajeError('password')">{{ mensajeError('password') }}</p>
+            </div>
+            <div class="ks-reg-campo">
+              <ion-item>
+                <ion-input label="Confirmar contraseña" labelPlacement="floating" type="password" formControlName="password_confirm" autocomplete="new-password">
+                  <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+                </ion-input>
+              </ion-item>
+              <p class="ks-reg-error" *ngIf="mensajeError('password_confirm')">{{ mensajeError('password_confirm') }}</p>
+            </div>
+          </div>
+
+          <div class="ks-reg-fuerza" *ngIf="formulario.controls.password.value" [attr.data-nivel]="fuerzaClave.nivel">
+            <span class="ks-reg-fuerza-barras" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <small>Seguridad: <strong>{{ fuerzaClave.etiqueta }}</strong></small>
+            <small class="ks-reg-coincide" *ngIf="formulario.controls.password_confirm.value" [class.is-ok]="clavesCoinciden">
+              <ion-icon [name]="clavesCoinciden ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
+              {{ clavesCoinciden ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden' }}
+            </small>
+          </div>
+        </section>
       </div>
 
-      <form [formGroup]="formulario" (ngSubmit)="enviar()" class="ks-registro">
-        <div class="ks-section ks-registro-ancho" appReveal>
-          <p class="ks-section-title">Datos personales</p>
-          <ion-card>
-            <ion-card-content>
-              <ion-list lines="none" class="ks-form-grid ks-form-grid-3">
-                <ion-item>
-                  <ion-input label="RUT" labelPlacement="floating" formControlName="rut"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('rut')"><p class="ion-padding-start">{{ mensajeError('rut') }}</p></ion-text>
-
-                <ion-item>
-                  <ion-input label="Nombre" labelPlacement="floating" formControlName="nombre1"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('nombre1')"><p class="ion-padding-start">{{ mensajeError('nombre1') }}</p></ion-text>
-
-                <ion-item>
-                  <ion-input label="Segundo nombre (opcional)" labelPlacement="floating" formControlName="nombre2"></ion-input>
-                </ion-item>
-
-                <ion-item>
-                  <ion-input label="Apellido" labelPlacement="floating" formControlName="apellido1"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('apellido1')"><p class="ion-padding-start">{{ mensajeError('apellido1') }}</p></ion-text>
-
-                <ion-item>
-                  <ion-input label="Segundo apellido (opcional)" labelPlacement="floating" formControlName="apellido2"></ion-input>
-                </ion-item>
-
-                <ion-item>
-                  <ion-input label="Edad" labelPlacement="floating" type="number" formControlName="edad"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('edad')"><p class="ion-padding-start">{{ mensajeError('edad') }}</p></ion-text>
-
-                <ion-item>
-                  <ion-input label="Teléfono" labelPlacement="floating" type="tel" formControlName="telefono"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('telefono')"><p class="ion-padding-start">{{ mensajeError('telefono') }}</p></ion-text>
-
-                <ion-item>
-                  <ion-input label="Correo electrónico" labelPlacement="floating" type="email" formControlName="email" autocomplete="email"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('email')"><p class="ion-padding-start">{{ mensajeError('email') }}</p></ion-text>
-
-                <ion-item>
-                  <ion-input label="Dirección (opcional)" labelPlacement="floating" formControlName="direccion"></ion-input>
-                </ion-item>
-              </ion-list>
-            </ion-card-content>
-          </ion-card>
+      <!-- Enviar -->
+      <div class="ks-reg-enviar" appReveal [appRevealDelay]="260">
+        <!-- Aceptación de la política: queda registrada con fecha en la cuenta. -->
+        <div class="ks-reg-acepto">
+          <ion-checkbox formControlName="acepta_politica" aria-label="Acepto la política de privacidad"></ion-checkbox>
+          <span>Acepto la <a routerLink="/privacidad" target="_blank" rel="noopener">política de privacidad</a> y autorizo el tratamiento de mis datos para crear y mantener mi cuenta.</span>
         </div>
+        <p class="ks-reg-error" *ngIf="mensajeError('acepta_politica')">{{ mensajeError('acepta_politica') }}</p>
 
-        <div class="ks-section ks-registro-mitad" appReveal [appRevealDelay]="80">
-          <p class="ks-section-title">Ubicación</p>
-          <ion-card>
-            <ion-card-content>
-              <ion-list lines="none" class="ks-form-grid">
-                <!-- (ionChange) además del binding normal del form: necesitamos reaccionar al cambio de región para repoblar el select de comuna, no solo guardar el valor. -->
-                <ion-item>
-                  <ion-select label="Región" labelPlacement="floating" formControlName="region" (ionChange)="alCambiarRegion($event.detail.value)">
-                    <ion-select-option *ngFor="let region of regiones" [value]="region.id_region">{{ region.nombre_region }}</ion-select-option>
-                  </ion-select>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('region')"><p class="ion-padding-start">{{ mensajeError('region') }}</p></ion-text>
-
-                <ion-item>
-                  <ion-select label="Comuna" labelPlacement="floating" formControlName="comuna">
-                    <ion-select-option *ngFor="let comuna of comunas" [value]="comuna.id_comuna">{{ comuna.nombre_comuna }}</ion-select-option>
-                  </ion-select>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('comuna')"><p class="ion-padding-start">{{ mensajeError('comuna') }}</p></ion-text>
-              </ion-list>
-            </ion-card-content>
-          </ion-card>
-        </div>
-
-        <div class="ks-section ks-registro-mitad" appReveal [appRevealDelay]="160">
-          <p class="ks-section-title">Cuenta</p>
-          <ion-card>
-            <ion-card-content>
-              <ion-list lines="none" class="ks-form-grid">
-                <ion-item class="ks-span-all">
-                  <ion-checkbox formControlName="es_proveedor">¿Ofreces servicios como proveedor?</ion-checkbox>
-                </ion-item>
-
-                <ion-item>
-                  <ion-input label="Contraseña" labelPlacement="floating" type="password" formControlName="password" autocomplete="new-password"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('password')"><p class="ion-padding-start">{{ mensajeError('password') }}</p></ion-text>
-
-                <ion-item>
-                  <ion-input label="Confirmar contraseña" labelPlacement="floating" type="password" formControlName="password_confirm" autocomplete="new-password"></ion-input>
-                </ion-item>
-                <ion-text color="danger" *ngIf="mensajeError('password_confirm')"><p class="ion-padding-start">{{ mensajeError('password_confirm') }}</p></ion-text>
-              </ion-list>
-
-            </ion-card-content>
-          </ion-card>
-        </div>
-
-        <div class="ks-section ks-registro-ancho ks-registro-enviar" appReveal [appRevealDelay]="220">
-          <ion-card>
-            <ion-card-content>
-              <ion-text color="danger" *ngIf="errorGeneral">
-                <p class="ion-padding-start">{{ errorGeneral }}</p>
-              </ion-text>
-
-              <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
-                {{ enviando ? 'Creando cuenta…' : 'Crear cuenta' }}
-              </ion-button>
-            </ion-card-content>
-          </ion-card>
-        </div>
-
-        <ion-button class="ks-registro-ancho" expand="block" fill="clear" routerLink="/login">¿Ya tienes cuenta? Inicia sesión</ion-button>
-      </form>
-    </div>
+        <p class="ks-reg-error ks-reg-error-general" *ngIf="errorGeneral">{{ errorGeneral }}</p>
+        <ion-button expand="block" size="large" type="submit" [disabled]="enviando">
+          {{ enviando ? 'Creando cuenta…' : 'Crear cuenta' }}
+        </ion-button>
+        <ion-button expand="block" fill="clear" routerLink="/login">¿Ya tienes cuenta? Inicia sesión</ion-button>
+      </div>
+    </form>
   </div>
 </ion-content>

@@ -45,7 +45,7 @@
                   </p>
                   <p *ngIf="!conv.ultimo_mensaje_contenido" style="color: var(--ks-ink-soft);">Todavía no hay mensajes.</p>
                 </ion-label>
-                <ion-note slot="end" *ngIf="conv.ultimo_mensaje_fecha">{{ conv.ultimo_mensaje_fecha | date:'short' }}</ion-note>
+                <ion-note slot="end" *ngIf="conv.ultimo_mensaje_fecha">{{ conv.ultimo_mensaje_fecha | date:'dd/MM/yyyy HH:mm' }}</ion-note>
               </ion-item>
             </ion-list>
           </ion-card-content>
