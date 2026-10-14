@@ -445,20 +445,226 @@ $coral: #c2410c;
 }
 
 // ---------------- PROVEEDORES ----------------
-.ks-proveedor26 {
+// Menos aire entre la 05 y la 06: se apilan sin dejar solo el fondo de la página a la vista.
+.ks-seccion-prov {
+  padding-block: clamp(20px, 3vw, 40px) 0;
+}
+
+.ks-seccion-cto {
+  padding-top: clamp(28px, 4vw, 52px);
+}
+
+.ks-prov {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: clamp(22px, 3vw, 44px);
+  align-items: center;
+  padding: clamp(26px, 4vw, 56px);
+  border-radius: var(--ks-radius-lg);
+  color: #fff;
+  background:
+    linear-gradient(100deg, rgba(8, 44, 87, 0.96) 0%, rgba(8, 44, 87, 0.86) 55%, rgba(8, 44, 87, 0.6) 100%),
+    radial-gradient(60% 90% at 100% 0%, rgba(18, 163, 140, 0.5), transparent 70%),
+    url('/assets/fotos/carpinteria.jpg') center / cover no-repeat,
+    $navy-hondo;
+
+  @media (min-width: 960px) {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+
+  .ks-micro {
+    color: #7ff0dc;
+  }
+
+  h2 {
+    margin: 10px 0 0;
+    max-width: 22ch;
+    font-size: clamp(1.7rem, 1.2rem + 2.2vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: #fff;
+
+    em {
+      font-style: italic;
+      background: linear-gradient(100deg, #7ff0dc, #ffb08f);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      padding-right: 0.1em;
+    }
+  }
+}
+
+// Anillos que flotan despacio detrás del contenido
+.ks-prov-fondo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  span {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.14);
+    animation: ks-prov-flota 14s ease-in-out infinite;
+
+    &:nth-child(1) {
+      width: 300px;
+      height: 300px;
+      right: -70px;
+      top: -100px;
+    }
+
+    &:nth-child(2) {
+      width: 180px;
+      height: 180px;
+      right: 22%;
+      bottom: -80px;
+      border-color: rgba(127, 240, 220, 0.25);
+      animation-delay: -5s;
+    }
+
+    &:nth-child(3) {
+      width: 110px;
+      height: 110px;
+      left: 46%;
+      top: 10%;
+      border-color: rgba(255, 122, 80, 0.3);
+      animation-delay: -9s;
+    }
+  }
+}
+
+@keyframes ks-prov-flota {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-12px, 16px, 0) scale(1.06);
+  }
+}
+
+.ks-prov-ventajas {
+  list-style: none;
+  margin: 18px 0 20px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    font: 700 0.85rem 'Quicksand', sans-serif;
+    transition: transform 0.2s ease, background 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    ion-icon {
+      color: #7ff0dc;
+      font-size: 1.1rem;
+    }
+  }
+}
+
+.ks-prov-acciones {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: clamp(28px, 4vw, 56px);
-  border-radius: var(--ks-radius-lg);
-  background: linear-gradient(120deg, var(--ks-teal-light), var(--ks-coral-light));
+  gap: 12px 18px;
 
-  h2 {
-    margin: 8px 0 0;
-    max-width: 24ch;
-    font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.5rem);
-    letter-spacing: -0.02em;
+  small {
+    color: rgba(255, 255, 255, 0.75);
+  }
+}
+
+// Tres pasos unidos por una línea
+.ks-prov-pasos {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 31px;
+    top: 36px;
+    bottom: 36px;
+    width: 2px;
+    background: linear-gradient(180deg, #7ff0dc, rgba(255, 122, 80, 0.7));
+    opacity: 0.55;
+  }
+
+  li {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.25s ease, background 0.25s ease;
+
+    &:hover {
+      transform: translateX(6px);
+      background: rgba(255, 255, 255, 0.17);
+    }
+
+    div {
+      display: grid;
+      flex: 1;
+      min-width: 0;
+
+      strong {
+        font-family: 'Quicksand', sans-serif;
+        font-size: 1.05rem;
+      }
+
+      small {
+        color: rgba(255, 255, 255, 0.78);
+        line-height: 1.4;
+      }
+    }
+
+    > ion-icon {
+      font-size: 1.7rem;
+      color: #7ff0dc;
+      opacity: 0.85;
+    }
+  }
+}
+
+.ks-prov-n {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #12a38c, #0c7f6d);
+  box-shadow: 0 0 0 5px rgba(18, 163, 140, 0.25);
+  font: 800 1rem 'Quicksand', sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-prov-fondo span {
+    animation: none;
   }
 }

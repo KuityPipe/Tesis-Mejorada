@@ -169,24 +169,51 @@
     </div>
   </section>
 
-  <!-- 05 · Para proveedores -->
-  <section class="ks-contenedor ks-seccion">
-    <div class="ks-proveedor26" appReveal>
-      <div>
+  <!-- 05 · Para proveedores: panel con foto, ventajas y los tres pasos para empezar. -->
+  <section class="ks-contenedor ks-seccion ks-seccion-prov">
+    <div class="ks-prov" appReveal>
+      <div class="ks-prov-fondo" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="ks-prov-texto">
         <span class="ks-micro">05 / Para proveedores</span>
-        <h2>¿Ofreces servicios? Llega a más clientes con tu identidad respaldada.</h2>
+        <h2>¿Ofreces servicios? <em>Llega a más clientes</em> con tu identidad respaldada.</h2>
+        <ul class="ks-prov-ventajas">
+          <li><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon> Perfil con identidad verificada</li>
+          <li><ion-icon name="card-outline" aria-hidden="true"></ion-icon> Pagos seguros con Webpay</li>
+          <li><ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon> Chat directo con tus clientes</li>
+          <li><ion-icon name="star-outline" aria-hidden="true"></ion-icon> Reputación con calificaciones reales</li>
+        </ul>
+        <div class="ks-prov-acciones">
+          <ion-button *ngIf="!conSesion" routerLink="/registro" color="secondary" size="large">Crear mi cuenta <span class="ks-flecha">→</span></ion-button>
+          <ion-button *ngIf="conSesion" routerLink="/catalogo/crear" color="secondary" size="large">Publicar un servicio <span class="ks-flecha">→</span></ion-button>
+          <small>Te toma menos de dos minutos.</small>
+        </div>
       </div>
-      <ion-button *ngIf="!conSesion" routerLink="/registro" color="secondary" size="large">Crear mi cuenta <span class="ks-flecha">→</span></ion-button>
-      <ion-button *ngIf="conSesion" routerLink="/catalogo/crear" color="secondary" size="large">Publicar un servicio <span class="ks-flecha">→</span></ion-button>
+      <ol class="ks-prov-pasos">
+        <li appReveal [appRevealDelay]="100">
+          <span class="ks-prov-n">1</span>
+          <div><strong>Crea tu cuenta</strong><small>Tus datos y tu comuna, en tres pasos cortos.</small></div>
+          <ion-icon name="person-add-outline" aria-hidden="true"></ion-icon>
+        </li>
+        <li appReveal [appRevealDelay]="200">
+          <span class="ks-prov-n">2</span>
+          <div><strong>Verifica tu identidad</strong><small>Con la biometría de tu teléfono, tu rostro o tu documento.</small></div>
+          <ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon>
+        </li>
+        <li appReveal [appRevealDelay]="300">
+          <span class="ks-prov-n">3</span>
+          <div><strong>Publica y recibe clientes</strong><small>Cuéntales qué haces, en qué comunas y a qué precio.</small></div>
+          <ion-icon name="megaphone-outline" aria-hidden="true"></ion-icon>
+        </li>
+      </ol>
     </div>
   </section>
 
   <!-- 06 · Contacto: antes era una página aparte; ahora cierra la portada, con el mapa de la oficina. -->
-  <section class="ks-contenedor ks-seccion" id="contacto">
+  <section class="ks-contenedor ks-seccion ks-seccion-cto" id="contacto">
     <div class="ks-seccion-titulo" appReveal>
       <span class="ks-num">06 /</span>
       <h2>Hablemos<em>.</em></h2>
-      <p class="ks-seccion-intro">Escríbenos, llámanos o pasa por la oficina. Una persona de verdad responde cada consulta.</p>
+      <p class="ks-seccion-intro">Escríbenos y una persona de verdad te responde.</p>
     </div>
     <app-contacto-seccion></app-contacto-seccion>
   </section>

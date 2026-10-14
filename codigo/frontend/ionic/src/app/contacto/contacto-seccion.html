@@ -1,86 +1,79 @@
-<!-- Contacto: vive al final de la portada (antes era una página aparte). Datos de contacto + formulario + mapa de la oficina (ficticia). -->
-<div class="ks-contacto-grid">
-  <div class="ks-contacto-col">
-    <div class="ks-feature-grid ks-contacto-datos">
-      <div class="ks-contact-tile">
-        <ion-icon name="person-outline"></ion-icon>
-        <p class="label">Ingeniero de soporte</p>
-        <p class="value">Felipe Salinas</p>
+<!-- Contacto: cierra la portada. Un formulario corto a la izquierda y el mapa de la oficina (ficticia) a la derecha, del mismo alto. -->
+<div class="ks-cto">
+  <section class="ks-cto-form" appReveal aria-labelledby="cto-titulo">
+    <ng-container *ngIf="!enviadoOk; else gracias">
+      <header class="ks-cto-cab">
+        <span class="ks-cto-sello"><ion-icon name="paper-plane-outline" aria-hidden="true"></ion-icon> Escríbenos</span>
+        <h3 id="cto-titulo">Cuéntanos qué necesitas</h3>
+        <p>Déjanos tu contacto y tu mensaje. Una persona de verdad lo lee y te responde.</p>
+      </header>
+
+      <form [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+        <div class="ks-cto-campos">
+          <div class="ks-cto-campo" *ngIf="requiereDatosContacto">
+            <ion-item><ion-input label="Tu nombre" labelPlacement="floating" formControlName="nombre_contacto" autocomplete="name"></ion-input></ion-item>
+            <p class="ks-cto-error" *ngIf="mensajeError('nombre_contacto')">{{ mensajeError('nombre_contacto') }}</p>
+          </div>
+          <div class="ks-cto-campo" *ngIf="requiereDatosContacto">
+            <ion-item><ion-input label="Tu correo" labelPlacement="floating" type="email" formControlName="email_contacto" autocomplete="email"></ion-input></ion-item>
+            <p class="ks-cto-error" *ngIf="mensajeError('email_contacto')">{{ mensajeError('email_contacto') }}</p>
+          </div>
+          <div class="ks-cto-campo">
+            <ion-item><ion-input label="Teléfono (opcional)" labelPlacement="floating" type="tel" formControlName="telefono_contacto" autocomplete="tel" placeholder="Ej.: +56 9 1234 5678"></ion-input></ion-item>
+            <p class="ks-cto-error" *ngIf="mensajeError('telefono_contacto')">{{ mensajeError('telefono_contacto') }}</p>
+          </div>
+          <div class="ks-cto-campo">
+            <ion-item><ion-input label="Asunto" labelPlacement="floating" formControlName="asunto_consulta" placeholder="Ej.: Necesito un gasfiter en Maipú"></ion-input></ion-item>
+            <p class="ks-cto-error" *ngIf="mensajeError('asunto_consulta')">{{ mensajeError('asunto_consulta') }}</p>
+          </div>
+          <div class="ks-cto-campo ks-cto-ancho">
+            <ion-item>
+              <ion-textarea label="Tu mensaje" labelPlacement="floating" formControlName="descripcion" [autoGrow]="true" rows="4" [counter]="true" maxlength="1000"></ion-textarea>
+            </ion-item>
+            <p class="ks-cto-error" *ngIf="mensajeError('descripcion')">{{ mensajeError('descripcion') }}</p>
+          </div>
+        </div>
+
+        <p class="ks-cto-error ks-cto-error-general" *ngIf="errorGeneral">{{ errorGeneral }}</p>
+
+        <ion-button expand="block" size="large" type="submit" class="ks-cto-enviar" [disabled]="enviando">
+          <ion-icon slot="start" [name]="enviando ? 'hourglass-outline' : 'paper-plane-outline'"></ion-icon>
+          {{ enviando ? 'Enviando…' : 'Enviar mensaje' }}
+        </ion-button>
+      </form>
+    </ng-container>
+
+    <ng-template #gracias>
+      <div class="ks-cto-gracias" role="status">
+        <svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"></circle><path d="M15 27 l8 8 l15 -17"></path></svg>
+        <h3>¡Recibimos tu mensaje!</h3>
+        <p>Una persona del equipo lo va a leer y te responderá por el medio que nos dejaste.</p>
+        <ion-button fill="outline" (click)="enviarOtro()">Enviar otro mensaje</ion-button>
       </div>
-      <a class="ks-contact-tile" href="tel:+56955162348">
-        <ion-icon name="call-outline"></ion-icon>
-        <p class="label">Teléfono</p>
-        <p class="value">+56 9 5516 2348</p>
-      </a>
-      <a class="ks-contact-tile" href="mailto:keyserv@gmail.com">
-        <ion-icon name="mail-outline"></ion-icon>
-        <p class="label">Correo</p>
-        <p class="value">keyserv@gmail.com</p>
-      </a>
-    </div>
+    </ng-template>
+  </section>
 
-    <ion-card>
-      <ion-card-content>
-        <h3 style="display:flex; align-items:center; gap:8px;"><ion-icon name="chatbox-ellipses-outline"></ion-icon> ¿Tienes un problema o una consulta?</h3>
-        <p style="color: var(--ks-ink-soft);">Cuéntanos qué pasó: nuestro equipo lo revisa y te responde apenas puede.</p>
-
-        <div class="ks-info-note"><ion-icon name="happy-outline"></ion-icon> Nada de respuestas automáticas: una persona de verdad lee cada consulta.</div>
-
-        <ion-text color="success" *ngIf="enviadoOk">
-          <p class="ion-padding-start">Recibimos tu mensaje, te contactaremos pronto.</p>
-        </ion-text>
-
-        <form [formGroup]="formulario" (ngSubmit)="enviar()" *ngIf="!enviadoOk">
-          <ion-list lines="none">
-            <ion-item>
-              <ion-input label="Asunto" labelPlacement="floating" formControlName="asunto_consulta"></ion-input>
-            </ion-item>
-            <ion-text color="danger" *ngIf="mensajeError('asunto_consulta')"><p class="ion-padding-start">{{ mensajeError('asunto_consulta') }}</p></ion-text>
-
-            <ion-item>
-              <ion-textarea label="Cuéntanos qué pasó" labelPlacement="floating" formControlName="descripcion" [autoGrow]="true" rows="4"></ion-textarea>
-            </ion-item>
-            <ion-text color="danger" *ngIf="mensajeError('descripcion')"><p class="ion-padding-start">{{ mensajeError('descripcion') }}</p></ion-text>
-
-            <ng-container *ngIf="requiereDatosContacto">
-              <ion-item>
-                <ion-input label="Tu nombre" labelPlacement="floating" formControlName="nombre_contacto"></ion-input>
-              </ion-item>
-              <ion-text color="danger" *ngIf="mensajeError('nombre_contacto')"><p class="ion-padding-start">{{ mensajeError('nombre_contacto') }}</p></ion-text>
-
-              <ion-item>
-                <ion-input label="Tu correo" labelPlacement="floating" type="email" formControlName="email_contacto"></ion-input>
-              </ion-item>
-              <ion-text color="danger" *ngIf="mensajeError('email_contacto')"><p class="ion-padding-start">{{ mensajeError('email_contacto') }}</p></ion-text>
-            </ng-container>
-          </ion-list>
-
-          <ion-text color="danger" *ngIf="errorGeneral">
-            <p class="ion-padding-start">{{ errorGeneral }}</p>
-          </ion-text>
-
-          <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="enviando">
-            {{ enviando ? 'Enviando…' : 'Enviar consulta' }}
-          </ion-button>
-        </form>
-      </ion-card-content>
-    </ion-card>
-  </div>
-
-  <div class="ks-contacto-mapa">
+  <!-- Mapa a todo el alto; la dirección y los contactos directos flotan arriba a la izquierda (abajo queda la atribución de OpenStreetMap). -->
+  <section class="ks-cto-mapa" appReveal [appRevealDelay]="100">
     <iframe
       title="Mapa de la oficina de KeyServ: Plaza de Armas de Santiago, kilómetro 0"
       loading="lazy"
       referrerpolicy="no-referrer"
       src="https://www.openstreetmap.org/export/embed.html?bbox=-70.6564%2C-33.4413%2C-70.6444%2C-33.4343&amp;layer=mapnik&amp;marker=-33.4378%2C-70.6504"
     ></iframe>
-    <div class="ks-contacto-direccion">
-      <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
-      <div>
-        <strong>Oficina KeyServ (ficticia)</strong>
-        <span>Plaza de Armas, Kilómetro 0, Santiago Centro</span>
+    <div class="ks-cto-tarjeta">
+      <div class="ks-cto-direccion">
+        <span class="ks-cto-pin"><ion-icon name="location" aria-hidden="true"></ion-icon></span>
+        <div>
+          <strong>Oficina KeyServ (ficticia)</strong>
+          <span>Plaza de Armas, Kilómetro 0, Santiago Centro</span>
+        </div>
       </div>
-      <a href="https://www.openstreetmap.org/?mlat=-33.4378&amp;mlon=-70.6504#map=17/-33.4378/-70.6504" target="_blank" rel="noopener">Abrir mapa <span class="ks-flecha">→</span></a>
+      <div class="ks-cto-directos">
+        <a href="tel:+56955162348"><ion-icon name="call-outline" aria-hidden="true"></ion-icon> +56 9 5516 2348</a>
+        <a href="mailto:keyserv@gmail.com"><ion-icon name="mail-outline" aria-hidden="true"></ion-icon> keyserv&#64;gmail.com</a>
+        <a href="https://www.openstreetmap.org/?mlat=-33.4378&amp;mlon=-70.6504#map=17/-33.4378/-70.6504" target="_blank" rel="noopener"><ion-icon name="open-outline" aria-hidden="true"></ion-icon> Abrir mapa</a>
+      </div>
     </div>
-  </div>
+  </section>
 </div>

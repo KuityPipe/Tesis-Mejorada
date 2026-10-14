@@ -2,81 +2,314 @@
   display: block;
 }
 
-.ks-contacto-grid {
+// Dos columnas del mismo alto: el formulario a la izquierda y el mapa a la derecha, que se estira sin dejar fondo vacío.
+.ks-cto {
   display: grid;
-  gap: 24px;
-  align-items: start;
+  gap: 20px;
 
-  @media (min-width: 900px) {
+  @media (min-width: 960px) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    // Las dos columnas miden lo mismo: el mapa se estira hasta el final del formulario, sin fondo vacío debajo.
     align-items: stretch;
   }
 }
 
-.ks-contacto-col {
-  display: grid;
-  gap: 16px;
-}
-
-.ks-contacto-datos {
-  margin: 0;
-}
-
-ion-card {
-  margin: 0;
-}
-
-.ks-contacto-mapa {
+// ---- Formulario ----
+.ks-cto-form {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  padding: clamp(22px, 3vw, 36px);
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-surface);
+  border: 1px solid var(--ks-border);
+  box-shadow: var(--ks-shadow);
+
+  // Franja de color arriba, como en las demás tarjetas de la app.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--ks-teal-strong), var(--ks-coral));
+  }
+}
+
+.ks-cto-cab {
+  margin-bottom: 18px;
+
+  h3 {
+    margin: 10px 0 4px;
+    font: 800 clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem) var(--ks-display, 'Quicksand', sans-serif);
+    letter-spacing: -0.03em;
+    color: var(--ks-navy-dark);
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.55;
+    color: var(--ks-ink-soft);
+  }
+}
+
+.ks-cto-sello {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--ks-teal-light);
+  color: var(--ks-teal-strong);
+  font: 800 0.74rem 'Nunito', sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.ks-cto-campos {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+
+  @media (min-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    .ks-cto-ancho {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.ks-cto-campo {
+  min-width: 0;
+
+  ion-item {
+    margin: 0;
+  }
+}
+
+.ks-cto-error {
+  margin: 4px 0 0 6px;
+  font-size: 0.82rem;
+  color: var(--ion-color-danger, #c5221f);
+  animation: ks-cto-error 0.25s ease;
+}
+
+.ks-cto-error-general {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+@keyframes ks-cto-error {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.ks-cto-enviar {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+// Confirmación: la marca se dibuja sola
+.ks-cto-gracias {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: clamp(24px, 6vw, 60px) 12px;
+  text-align: center;
+
+  svg {
+    width: 84px;
+    height: 84px;
+    fill: none;
+    stroke: var(--ks-teal-strong);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+
+    circle {
+      stroke-dasharray: 151;
+      stroke-dashoffset: 151;
+      animation: ks-cto-trazo 0.7s ease forwards;
+    }
+
+    path {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+      animation: ks-cto-trazo 0.45s ease 0.6s forwards;
+    }
+  }
+
+  h3 {
+    margin: 8px 0 0;
+    font: 800 1.6rem var(--ks-display, 'Quicksand', sans-serif);
+    letter-spacing: -0.03em;
+    color: var(--ks-navy-dark);
+  }
+
+  p {
+    max-width: 380px;
+    margin: 0 0 8px;
+    line-height: 1.6;
+    color: var(--ks-ink-soft);
+  }
+}
+
+@keyframes ks-cto-trazo {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+// ---- Mapa a todo el alto, con la tarjeta de dirección flotando arriba a la izquierda ----
+.ks-cto-mapa {
+  position: relative;
+  overflow: hidden;
+  min-height: 420px;
   border-radius: var(--ks-radius-lg);
   border: 1px solid var(--ks-border);
   background: var(--ks-surface);
   box-shadow: var(--ks-shadow);
 
-  display: flex;
-  flex-direction: column;
-
   iframe {
-    display: block;
+    position: absolute;
+    inset: 0;
     width: 100%;
-    height: clamp(300px, 46vh, 460px);
+    height: 100%;
     border: 0;
+  }
+}
 
-    @media (min-width: 900px) {
-      flex: 1;
-      height: auto;
-      min-height: 360px;
+.ks-cto-tarjeta {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 64px;
+  max-width: 390px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--ks-surface) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ks-border) 80%, transparent);
+  box-shadow: 0 10px 28px rgba(8, 44, 87, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.ks-cto-direccion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  div {
+    display: grid;
+    min-width: 0;
+
+    strong {
+      font-family: 'Quicksand', sans-serif;
+      color: var(--ks-navy-dark);
+    }
+
+    span {
+      color: var(--ks-ink-soft);
+      font-size: 0.88rem;
+      line-height: 1.35;
     }
   }
 }
 
-.ks-contacto-direccion {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 14px 18px;
+.ks-cto-pin {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ks-coral);
+  color: #fff;
+  font-size: 1.25rem;
+  animation: ks-cto-pulso 2.8s ease-in-out infinite;
+}
 
-  > ion-icon {
-    font-size: 1.6rem;
-    color: var(--ks-coral-dark);
+@keyframes ks-cto-pulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ks-coral) 45%, transparent);
   }
+  50% {
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--ks-coral) 0%, transparent);
+  }
+}
 
-  div {
+.ks-cto-directos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--ks-teal-light);
+    color: var(--ks-teal-strong);
+    font: 700 0.82rem 'Quicksand', sans-serif;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+      background: var(--ks-teal-strong);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+  }
+}
+
+@media (max-width: 959px) {
+  .ks-cto-mapa {
+    min-height: 0;
     display: grid;
-    flex: 1;
-    min-width: 180px;
 
-    span {
-      color: var(--ks-ink-soft);
-      font-size: 0.9rem;
+    iframe {
+      position: static;
+      height: 300px;
     }
   }
 
-  a {
-    font-weight: 800;
-    color: var(--ks-teal-strong);
-    text-decoration: none;
+  // En pantallas angostas la tarjeta pasa debajo del mapa en vez de taparlo.
+  .ks-cto-tarjeta {
+    position: static;
+    max-width: none;
+    border-radius: 0;
+    border: 0;
+    border-top: 1px solid var(--ks-border);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-cto-error,
+  .ks-cto-pin {
+    animation: none;
+  }
+
+  .ks-cto-gracias svg circle,
+  .ks-cto-gracias svg path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }

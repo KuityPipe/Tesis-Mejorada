@@ -27,6 +27,8 @@ export class ContactoSeccionComponent {
   formulario = this.fb.nonNullable.group({
     asunto_consulta: ['', Validators.required],
     descripcion: ['', Validators.required],
+    // Opcional. El backend no tiene columna de teléfono: se agrega al final del mensaje para que el equipo lo vea.
+    telefono_contacto: ['', Validators.pattern(/^\+?[\d\s-]{8,18}$/)],
     nombre_contacto: [''],
     email_contacto: [''],
   });
@@ -55,17 +57,24 @@ export class ContactoSeccionComponent {
     this.enviando = true;
     this.errorGeneral = null;
     this.enviadoOk = false;
-    this.api.enviar(this.formulario.getRawValue()).subscribe({
+    const { telefono_contacto, ...datos } = this.formulario.getRawValue();
+    if (telefono_contacto.trim()) datos.descripcion = `${datos.descripcion.trim()}\n\nTeléfono de contacto: ${telefono_contacto.trim()}`;
+    this.api.enviar(datos).subscribe({
       next: () => {
         this.enviando = false;
         this.enviadoOk = true;
-        this.formulario.reset({ asunto_consulta: '', descripcion: '', nombre_contacto: '', email_contacto: '' });
+        this.formulario.reset({ asunto_consulta: '', descripcion: '', telefono_contacto: '', nombre_contacto: '', email_contacto: '' });
       },
       error: (error: HttpErrorResponse) => {
         this.enviando = false;
         this.errorGeneral = this.extraerMensajeError(error);
       },
     });
+  }
+
+  /** Vuelve del "¡Recibimos tu mensaje!" al formulario vacío. */
+  enviarOtro(): void {
+    this.enviadoOk = false;
   }
 
   /**
@@ -91,8 +100,11 @@ export class ContactoSeccionComponent {
     if (!control || !control.touched || !control.errors) {
       return null;
     }
+    if (campo === 'asunto_consulta' && control.errors['required']) return 'Escribe un asunto.';
+    if (campo === 'descripcion' && control.errors['required']) return 'Escribe tu mensaje.';
     if (control.errors['required']) return 'Campo requerido.';
     if (control.errors['email']) return 'Correo inválido.';
+    if (control.errors['pattern']) return 'Escribe un número válido, por ejemplo +56 9 1234 5678.';
     return 'Dato inválido.';
   }
 }
