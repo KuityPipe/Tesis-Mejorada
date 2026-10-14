@@ -40,6 +40,7 @@ from .forms import (
     NuevaPasswordForm, MontoAcordadoForm, CambiarPasswordForm,
     PreferenciasCuentaForm, CrearPerfilForm,
 )
+from .respuestas_pago import respuesta_minima
 from .models import (
     EventoVerificacion,
     Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta,
@@ -1144,7 +1145,7 @@ def _procesar_pago_aprobado(pago, respuesta_bruta):
         return
     pago.estado = Pago.PAGADO
     pago.fecha_confirmacion = timezone.now()
-    pago.respuesta_bruta = respuesta_bruta
+    pago.respuesta_bruta = respuesta_minima(respuesta_bruta)
     pago.save()
     contratacion = pago.contratacion
     if contratacion.estado == Contratacion.CONFIRMADA:
@@ -1260,9 +1261,9 @@ def pago_webpay_retorno_view(request):
         mensaje = f'Pago aprobado — código de autorización {respuesta.get("authorization_code")}.'
     else:
         pago.estado = Pago.RECHAZADO
-        pago.respuesta_bruta = respuesta
+        pago.respuesta_bruta = respuesta_minima(respuesta)
         pago.save()
-        logger.warning('Pago Webpay rechazado: pago=%s respuesta=%s', pago.id_pago, respuesta)
+        logger.warning('Pago Webpay rechazado: pago=%s respuesta=%s', pago.id_pago, pago.respuesta_bruta)
         mensaje = 'El pago fue rechazado por el banco emisor de la tarjeta.'
 
     return render(request, 'KeyServApp/pago_resultado.html', {

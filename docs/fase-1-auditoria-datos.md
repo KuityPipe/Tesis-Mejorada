@@ -56,7 +56,7 @@ Neon aloja la base en São Paulo (Brasil). Pendiente de evaluar con asesoría le
 | 6 | Sin EIPD, registro de tratamiento ni lista de encargados | Alto | **Borradores hechos** (`docs/legal/`, `docs/cumplimiento/`); falta revisión legal |
 | 7 | Retención sin automatizar | Medio | **Corregido**: `mantenimiento_retencion` semanal (GitHub Actions) |
 | 8 | Logs con email/IP | Medio | **Corregido** para email (id de usuario); la IP solo se guarda en accesos sospechosos |
-| 9 | `Pago.respuesta_bruta` guarda la respuesta cruda del medio de pago | Medio | **Abierto**: excluida del export; falta filtrar qué se guarda |
+| 9 | `Pago.respuesta_bruta` guarda la respuesta cruda del medio de pago | Medio | **Cerrado (2026-10-14)**: se guarda solo una lista de campos permitidos (`respuestas_pago.py`: estado, montos, fechas, códigos de autorización; sin tarjeta, pagador, banco ni enlaces) y la migración `0035` limpió lo ya guardado |
 | 10 | Verificación sin vigencia ni auditoría | Medio | **Corregido** (Fase 3): vigencia 180 días y `EventoVerificacion` |
 | 11 | `privacidad.html` omitía el RUT y la retención real | Medio | **Corregido** |
 | 12 | Respaldos y retención en el proveedor de BD no controlados desde el repo | Bajo | **Abierto**: depende del plan de Neon |
@@ -67,7 +67,7 @@ Neon aloja la base en São Paulo (Brasil). Pendiente de evaluar con asesoría le
 1. **Revisión jurídica** de consentimiento, EIPD, registro de tratamiento, plazos de retención y alcance de lo que se
    conserva al eliminar una cuenta (pospuesta por presupuesto).
 2. **Contratos/DPA con encargados** y evaluación de transferencia internacional.
-3. Filtrar `Pago.respuesta_bruta` (hallazgo 9).
+3. ~~Filtrar `Pago.respuesta_bruta` (hallazgo 9)~~ — hecho el 2026-10-14.
 4. **Entorno de producción real**: hoy solo existe el demo; allí se activarán las claves propias de cifrado
    (`BIOMETRIC_ENCRYPTION_KEYS`) y el enforcement de identidad.
 5. La ley entra en vigencia el **2026-12-01**; designar quién atiende solicitudes y brechas (hoy: el dueño del proyecto).

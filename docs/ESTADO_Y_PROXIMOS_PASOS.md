@@ -3,10 +3,24 @@
 > Punto de retoma. Última actualización: 2026-10-13, al cierre de la sesión. Complementa
 > `docs/PLAN_MAESTRO_2026-27.md` (plan y estado por fase) y `docs/plan-ajustes.md` (cambios de alcance).
 
+## Próximos pasos del dueño (empezar por aquí)
+
+**Correo real con tu cuenta personal.** Hoy el demo no envía correos: recuperar contraseña y el código de la vía "sin biometría" se imprimen en consola, y esos envíos usan `fail_silently=True`, así que un error de configuración no se ve. Para dejarlo funcionando:
+
+1. **Elige la cuenta que enviará los correos** (la tuya, felipe.salinasc@outlook.com u otra de Gmail, o un servicio gratuito como Brevo). Si la cuenta tiene verificación en dos pasos, crea una **contraseña de aplicación** (no sirve la clave normal). Outlook/Hotmail personales a veces bloquean el SMTP: si no funciona, prueba con Gmail o Brevo.
+2. **Escribe los datos tú mismo** (nunca los pegues en el chat ni en el repo) en `codigo/backend/django/.env`:
+   `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD` y `DJANGO_DEFAULT_FROM_EMAIL`. El remitente debe ser **la misma dirección de la cuenta SMTP**; si no, el servidor lo rechaza o cae en spam. Ejemplos de hosts en `.env.example`.
+3. **Prueba en local:** `python manage.py probar_correo felipe.salinasc@outlook.com`. Muestra el error real si falla (clave rechazada, remitente no aceptado). Mira la bandeja y el spam, y avisa a Claude si llegó.
+4. **Llévalo al demo:** en Render, servicio `keyserv-api` → Environment, agrega las mismas cinco variables y haz "Save, rebuild and deploy". Prueba "¿Olvidaste tu contraseña?" en el sitio.
+5. **Con el correo funcionando**, pedir a Claude: verificación del correo al registrarse (hoy no se hace porque no habría forma de probarla).
+
+**Otros pendientes que dependen de ti** (en orden de utilidad): revisión de un abogado (consentimiento, EIPD, qué se conserva al borrar una cuenta, contratos con Render/Neon/Netlify); texto de Términos y Condiciones (hoy no existe); decidir la fecha de la política ("agosto de 2026") y cambiar el enlace de Play Store a `https://keyserv.netlify.app/privacidad`; respaldo del keystore de Android; para Corfo: formulario de Google Forms con personas reales, presupuesto con supuestos y equipo/asesores.
+
 ## Sesión 2026-10-13/14 (noche: auditoría completa y arreglos, SIN commitear)
 
 - Auditoría de 20 pantallas en web y celular (errores de consola, desbordes, imágenes, accesibilidad), más el flujo registro → login → cuenta. Hallazgos arreglados: teléfono con `+56` daba 500 (columna int32: ahora 8–9 dígitos con aviso claro), RUT sin validar (dígito verificador + único, `rut.py`), registro sin aceptación de la política (casilla obligatoria, fecha en `Usuario.politica_aceptada_en`, migración 0034), página 404, título por página, fechas/precios en es-CL (`$25.000`, `13/10/2026`), `robots.txt`/`sitemap.xml`/manifest/íconos/Open Graph (`src/publico/`) y cabeceras de seguridad en `netlify.toml`.
 - Rediseño de varias pantallas: carrusel de "Acerca de nosotros" (arrastre con mouse y dedo), "Mi cuenta" en dos columnas, página de privacidad en Ionic (`/privacidad`) y registro con indicador de pasos y tarjetas.
+- 2026-10-14 (después): `Pago.respuesta_bruta` ya guarda solo campos permitidos (`respuestas_pago.py`, migración `0035` limpia lo existente); cierre de accesibilidad (h1 en Mis publicaciones, Reconocimiento facial y Verificación sin biometría; etiquetas en los campos de archivo; áreas táctiles de 24 px en el pie, "Mi cuenta" y el mapa del detalle). También: comando `probar_correo` para diagnosticar el SMTP (los envíos de la app usan `fail_silently=True`) y `.env.example` con ejemplos de proveedores; para recibir correos reales en el demo falta que el dueño cree una cuenta SMTP y cargue `SMTP_HOST/PORT/USER/PASSWORD` y `DJANGO_DEFAULT_FROM_EMAIL` en Render. Con eso el código de las 8 fases queda cerrado: lo que sigue depende de decisiones, dinero o terceros.
 - Pendiente tras esto: SMTP real (hoy recuperar contraseña y el código de la vía sin biometría salen por consola en el demo), página de Términos y Condiciones (requiere texto legal), verificar el correo al registrarse, h1 en las pantallas de verificación y "Mis publicaciones", objetivos táctiles de 24 px, deuda de lint (105 × `prefer-inject`, el CI no corre lint) y una CSP completa en Netlify. Cambiar el enlace de Play Store a `https://keyserv.netlify.app/privacidad` si se quiere el diseño nuevo, y decidir la fecha "agosto de 2026" de la política.
 - Cuentas viejas del demo: el registro ya exige la política solo en la API; las APK antiguas sin la casilla no podrán registrar hasta actualizarse.
 

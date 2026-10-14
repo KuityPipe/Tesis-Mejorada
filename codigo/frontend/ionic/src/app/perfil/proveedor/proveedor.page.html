@@ -62,14 +62,14 @@
             <ion-item lines="none">
               <div class="ks-file-field">
                 <ion-label>Foto de perfil (opcional)</ion-label>
-                <input type="file" accept="image/*" (change)="alElegirFoto($event)" />
+                <input type="file" accept="image/*" aria-label="Foto de perfil (opcional)" (change)="alElegirFoto($event)" />
               </div>
             </ion-item>
 
             <ion-item lines="none">
               <div class="ks-file-field">
                 <ion-label>Certificados / documentos de respaldo (opcional)</ion-label>
-                <input type="file" multiple (change)="alElegirDocumentos($event)" />
+                <input type="file" multiple aria-label="Certificados o documentos de respaldo (opcional)" (change)="alElegirDocumentos($event)" />
               </div>
             </ion-item>
           </ion-list>

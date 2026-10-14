@@ -1570,6 +1570,15 @@ class PagoApiTests(APITestCase):
         self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
         self.assertTrue(HistorialEstadoContratacion.objects.filter(contratacion=self.contratacion, estado=Contratacion.EN_CURSO).exists())
 
+    def test_webpay_confirmar_guarda_solo_los_campos_permitidos_de_la_respuesta(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        respuesta = {'response_code': 0, 'status': 'AUTHORIZED', 'authorization_code': 'AUTH1', 'card_detail': {'card_number': '6623'}, 'session_id': 'privada'}
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', return_value=respuesta):
+            self.client.post('/api/pagos/webpay/confirmar/', {'token_ws': 'tok123'}, format='json')
+
+        pago.refresh_from_db()
+        self.assertEqual(pago.respuesta_bruta, {'response_code': 0, 'status': 'AUTHORIZED', 'authorization_code': 'AUTH1'})
+
     def test_webpay_confirmar_rechazado_no_avanza_la_contratacion(self):
         pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
         respuesta_rechazada = {'response_code': 1, 'status': 'FAILED'}
@@ -2552,3 +2561,61 @@ class EsDemoApiTests(APITestCase):
         self.assertTrue(resumen.endswith('…'))
         self.assertNotIn('DEMO', resumen)
 
+
+class RespuestaPagoMinimaTests(APITestCase):
+    """`Pago.respuesta_bruta` guarda solo campos permitidos: sin tarjeta, pagador, banco ni enlaces."""
+
+    def test_webpay_conserva_estado_y_codigos_y_descarta_la_tarjeta(self):
+        from .respuestas_pago import respuesta_minima
+        respuesta = {
+            'status': 'AUTHORIZED', 'response_code': 0, 'authorization_code': '1213', 'amount': 25000, 'buy_order': 'KS1abc',
+            'session_id': 'sesion-secreta', 'card_detail': {'card_number': '6623'}, 'installments_number': 0,
+        }
+        minima = respuesta_minima(respuesta)
+
+        self.assertEqual(minima['status'], 'AUTHORIZED')
+        self.assertEqual(minima['authorization_code'], '1213')
+        self.assertEqual(minima['amount'], 25000)
+        self.assertNotIn('card_detail', minima)
+        self.assertNotIn('session_id', minima)
+        self.assertIn('card_detail', respuesta)  # no modifica el original
+
+    def test_khipu_descarta_datos_del_pagador_y_enlaces(self):
+        from .respuestas_pago import respuesta_minima
+        minima = respuesta_minima({
+            'payment_id': 'abc', 'status': 'done', 'amount': 15000, 'payer_name': 'Ana Soto', 'payer_email': 'ana@correo.cl',
+            'bank': 'Banco X', 'payment_url': 'https://khipu.com/payment/abc', 'currency': 'CLP',
+        })
+
+        self.assertEqual(minima, {'payment_id': 'abc', 'status': 'done', 'amount': 15000, 'currency': 'CLP'})
+
+    def test_valores_anidados_y_entradas_raras(self):
+        from .respuestas_pago import respuesta_minima
+        self.assertEqual(respuesta_minima({'status': {'x': 1}}), {})
+        self.assertIsNone(respuesta_minima(None))
+        self.assertIsNone(respuesta_minima('texto'))
+
+
+class ProbarCorreoComandoTests(APITestCase):
+    """`manage.py probar_correo`: manda un correo sin silenciar errores (los envíos de la app usan fail_silently=True)."""
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_envia_un_correo_de_prueba(self):
+        from django.core import mail
+        from io import StringIO
+        salida = StringIO()
+        call_command('probar_correo', 'destino@correo.cl', stdout=salida)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['destino@correo.cl'])
+        self.assertIn('Correo enviado', salida.getvalue())
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_si_el_servidor_rechaza_la_clave_explica_el_problema(self):
+        import smtplib
+        from django.core.management.base import CommandError
+        with mock.patch('KeyServApp.management.commands.probar_correo.send_mail', side_effect=smtplib.SMTPAuthenticationError(535, b'mala clave')):
+            with self.assertRaises(CommandError) as ctx:
+                call_command('probar_correo', 'destino@correo.cl')
+
+        self.assertIn('contraseña de aplicación', str(ctx.exception))

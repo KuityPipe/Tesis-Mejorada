@@ -29,6 +29,7 @@ from rest_framework.views import APIView
 from .. import asistente, biometria, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
 from .. import pagos
 from .. import views as vistas_legacy
+from ..respuestas_pago import respuesta_minima
 from ..forms import (
     CambiarPasswordForm, CATEGORIAS_PUBLICACION, ContactoForm, CrearPerfilForm, EditarPerfilForm, MensajeForm,
     MontoAcordadoForm, NuevaPasswordForm, PreferenciasCuentaForm, PublicacionForm, ReautenticacionForm,
@@ -1570,9 +1571,9 @@ class PagoWebpayConfirmarView(APIView):
             mensaje = f'Pago aprobado — código de autorización {respuesta.get("authorization_code")}.'
         else:
             pago.estado = Pago.RECHAZADO
-            pago.respuesta_bruta = respuesta
+            pago.respuesta_bruta = respuesta_minima(respuesta)
             pago.save()
-            logger.warning('Pago Webpay rechazado (api): pago=%s respuesta=%s', pago.id_pago, respuesta)
+            logger.warning('Pago Webpay rechazado (api): pago=%s respuesta=%s', pago.id_pago, pago.respuesta_bruta)
             mensaje = 'El pago fue rechazado por el banco emisor de la tarjeta.'
 
         return Response({'aprobado': aprobado, 'mensaje': mensaje, 'contratacion_id': pago.contratacion_id})

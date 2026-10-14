@@ -509,7 +509,10 @@
 
   ion-checkbox {
     flex: 0 0 auto;
-    margin-top: 2px;
+    --size: 24px;
+    // Área táctil más grande que la casilla dibujada.
+    padding: 8px;
+    margin: -8px -4px -8px -8px;
   }
 
   a {

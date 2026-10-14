@@ -9,6 +9,11 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-fondo-foto" style="--ks-fondo-foto: url(assets/fotos/carpinteria.jpg)">
+  <div class="ks-page-header">
+    <h1><ion-icon name="albums-outline"></ion-icon> Mis publicaciones</h1>
+    <p>Lo que ofreces en KeyServ: revisa su estado y publica uno nuevo cuando quieras.</p>
+  </div>
+
   <app-skeleton *ngIf="cargando" variante="card" [cantidad]="4"></app-skeleton>
 
   <ng-container *ngIf="!cargando">

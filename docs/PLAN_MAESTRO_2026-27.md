@@ -13,16 +13,16 @@
   no hacerlo, ver `plan-ajustes.md`), tests en verde antes de cerrar, ADRs en `docs/adr/`, strangler fig. Nunca borrar biometría ni migrar datos reales sin respaldo y confirmación explícita.
 - Ningún dato personal o biométrico a servicios externos de IA.
 
-## Fases y estado (2026-10-12)
+## Fases y estado (actualizado 2026-10-14)
 
 | Fase | Tema | Estado |
 |---|---|---|
 | 0 | Reconocimiento → `fase-0-reconocimiento.md` | Hecha |
-| 1 | Auditoría de datos sensibles → `fase-1-auditoria-datos.md` | **Hecha** (hallazgos corregidos; abiertos: revisión legal, contratos con encargados, `Pago.respuesta_bruta`) |
+| 1 | Auditoría de datos sensibles → `fase-1-auditoria-datos.md` | **Hecha** (hallazgos corregidos, incluido `Pago.respuesta_bruta`, que ahora guarda solo una lista de campos permitidos; abiertos: revisión legal y contratos con encargados) |
 | 2 | Reforzar la verificación existente (ADR + diagrama) | **Hecha**: `adr/0001` con diagrama Mermaid; WebAuthn evaluado y diferido |
 | 3 | Refuerzo (cifrado, bloqueo, auditoría, rotación, tests) | **Hecha**: cifrado Fernet, enforcement con vigencia de 180 días, `EventoVerificacion`, `rotar_llaves_biometricas` + guía, tests de fallos (E2E de navegador no: el demo tiene el enforcement apagado) |
 | 4 | Cumplimiento visible | **Hecha**: consentimiento, "Mis datos" completo (descargar, corregir, oponerse, bloquear, eliminar), retención visible en la política, protocolo de brechas, EIPD/registro/encargados en borrador (falta revisión legal) |
-| 5 | Bot asistente con IA (NVIDIA NIM) | **Implementado** (ADR 0005): preguntas frecuentes + búsqueda en el catálogo, enmascarado de datos personales, flujo guiado sin IA, botón flotante en todas las pantallas. Falta probarlo con una clave real y cargarla en Render |
+| 5 | Bot asistente con IA (NVIDIA NIM) | **Hecha** (ADR 0005): preguntas frecuentes + búsqueda en el catálogo, enmascarado de datos personales, flujo guiado sin IA, botón flotante en todas las pantallas. Verificado en vivo con la clave real cargada en Render (2026-10-13: `POST /api/asistente/` responde `origen=ia`) |
 | 6 | Rediseño visual 2026/27 | **Hecha en lo visual** (2026-10-13, `fase-6/README.md`): dirección "Confianza cálida", todas las pantallas, accesibilidad y contraste AA, uso del ancho. **Pendiente por decisión:** inglés (i18n), migración a standalone/signals y `@defer` |
 | 7 | Calidad y cierre (README, `resumen-mejoras.md`, índice y matriz en `docs/cumplimiento/`) | **Hecha** (2026-10-12): `cumplimiento/README.md` con matriz, `resumen-mejoras.md`, READMEs renovados, E2E del asistente y de "Mis datos" |
 

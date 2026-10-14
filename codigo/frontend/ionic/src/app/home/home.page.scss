@@ -95,6 +95,7 @@
   }
 
   a {
+    padding-block: 7px;
     font-weight: 700;
     font-size: 0.9rem;
     color: var(--ks-teal-strong);
@@ -261,7 +262,7 @@
 }
 
 .ks-cuenta-texto-boton {
-  padding: 0;
+  padding: 7px 0;
   border: 0;
   background: none;
   color: var(--ks-ink-soft);
