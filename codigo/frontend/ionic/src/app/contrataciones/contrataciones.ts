@@ -158,6 +158,16 @@ export class Contrataciones {
     return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/confirmar/`, { password, monto });
   }
 
+  /** El PROVEEDOR rechaza una solicitud (SOLICITADA -> CANCELADA). No pide contraseña. */
+  rechazar(id: number): Observable<ContratacionDetalle> {
+    return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/rechazar/`, {});
+  }
+
+  /** El CLIENTE cancela antes de pagar (SOLICITADA o CONFIRMADA -> CANCELADA). Una ya pagada devuelve 409 `requiere_soporte`. */
+  cancelar(id: number): Observable<ContratacionDetalle> {
+    return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/cancelar/`, {});
+  }
+
   /** El CLIENTE marca el servicio como completado (EN_CURSO -> COMPLETADA), re-ingresando su contraseña. */
   completar(id: number, password: string): Observable<ContratacionDetalle> {
     return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/completar/`, { password });

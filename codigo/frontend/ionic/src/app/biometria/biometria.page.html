@@ -32,6 +32,9 @@
             {{ verificando ? 'Verificando…' : ('Verificar con ' + tipoBiometria) }}
           </ion-button>
 
+          <p class="ion-padding-start" *ngIf="requiereDocumento">
+            <a routerLink="/verificacion-alternativa">Verificar con mi documento</a> · <a routerLink="/rostro">Reconocimiento facial</a>
+          </p>
           <ion-text color="danger" *ngIf="error">
             <p class="ion-padding-start">{{ error }}</p>
           </ion-text>

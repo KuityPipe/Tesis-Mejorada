@@ -375,6 +375,11 @@ EXIGIR_IDENTIDAD_VERIFICADA = env.bool('EXIGIR_IDENTIDAD_VERIFICADA', default=Fa
 # Días que vale una verificación de identidad (identidad.py); pasado ese plazo hay que repetirla.
 # Propuesta técnica (180 días), a validar con asesoría legal junto con el resto de la política de retención.
 IDENTIDAD_VIGENCIA_DIAS = env.int('IDENTIDAD_VIGENCIA_DIAS', default=180)
+# Eliminar la cuenta no anonimiza al instante: queda bloqueada este número de días por si hay una queja o un problema
+# con la otra parte de un trabajo (decisión del dueño, 2026-10-15). Luego la anonimiza `purgar_datos_vencidos`.
+CUENTA_ELIMINACION_DIAS = env.int('CUENTA_ELIMINACION_DIAS', default=15)
+# Días sin respuesta del proveedor tras los que una solicitud expira sola (`expirar_solicitudes`). Valor inicial a ajustar.
+SOLICITUD_EXPIRA_DIAS = env.int('SOLICITUD_EXPIRA_DIAS', default=7)
 # Asistente con IA (KeyServApp/asistente.py). Cualquier proveedor con API compatible con OpenAI; por defecto NVIDIA NIM
 # (API gratuita de prototipado, con límites de uso). Sin clave el asistente responde con un flujo guiado sin IA.
 LLM_BASE_URL = env('LLM_BASE_URL', default='https://integrate.api.nvidia.com/v1')

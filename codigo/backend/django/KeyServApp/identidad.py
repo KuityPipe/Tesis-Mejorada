@@ -13,7 +13,8 @@ from django.utils import timezone
 
 MENSAJE = (
     'Para contratar o publicar necesitas verificar tu identidad primero. '
-    'Hazlo con la biometría de tu teléfono (recomendado) desde la sección de verificación.'
+    'Hazlo desde la sección de verificación: con el reconocimiento facial o enviando tu documento para revisión. '
+    'Una vez verificado, puedes reconfirmarla con la biometría de tu teléfono.'
 )
 CODIGO = 'identidad_no_verificada'
 
@@ -21,6 +22,18 @@ CODIGO = 'identidad_no_verificada'
 def _reciente(fecha):
     """True si `fecha` cae dentro de la vigencia (`settings.IDENTIDAD_VIGENCIA_DIAS`)."""
     return bool(fecha) and timezone.now() - fecha <= timedelta(days=settings.IDENTIDAD_VIGENCIA_DIAS)
+
+
+def tiene_documento_aprobado(usuario):
+    """
+    True si una persona del staff ya revisó y aprobó un documento de identidad de esta cuenta (vía sin biometría, con
+    el correo confirmado). Es la única prueba que hoy ata la cuenta a una persona real: la biometría nativa solo
+    cuenta como reconfirmación de quien ya pasó por acá (ADR 0006, opción c).
+    """
+    from .models import VerificacionAlternativa
+    return VerificacionAlternativa.objects.filter(
+        usuario=usuario, estado=VerificacionAlternativa.APROBADA, correo_verificado_en__isnull=False,
+    ).exists()
 
 
 def identidad_verificada(usuario):

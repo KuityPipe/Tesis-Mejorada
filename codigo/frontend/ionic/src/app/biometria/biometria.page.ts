@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { NativeBiometric, BiometryType } from '@capgo/capacitor-native-biometric';
 
 import { Auth } from '../core/auth';
@@ -27,6 +28,7 @@ export class BiometriaPage implements OnInit {
   verificando = false;
   error: string | null = null;
   exito = false;
+  requiereDocumento = false;
 
   constructor(private readonly auth: Auth) {}
 
@@ -72,6 +74,7 @@ export class BiometriaPage implements OnInit {
     }
     this.verificando = true;
     this.error = null;
+    this.requiereDocumento = false;
 
     try {
       // Rechaza (throw) si el usuario cancela o falla la verificación —
@@ -94,9 +97,12 @@ export class BiometriaPage implements OnInit {
         this.exito = true;
         this.yaVerificado = true;
       },
-      error: () => {
+      error: (respuesta: HttpErrorResponse) => {
         this.verificando = false;
-        this.error = 'Se verificó tu identidad, pero no pudimos guardarlo en tu cuenta. Prueba de nuevo.';
+        this.error = respuesta.status === 403 && respuesta.error?.code === 'requiere_documento'
+          ? respuesta.error.detail
+          : 'Se verificó tu identidad, pero no pudimos guardarlo en tu cuenta. Prueba de nuevo.';
+        this.requiereDocumento = respuesta.status === 403 && respuesta.error?.code === 'requiere_documento';
       },
     });
   }

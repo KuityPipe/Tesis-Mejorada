@@ -102,6 +102,9 @@
       <ion-card>
         <ion-card-content>
           <p>Puedes descargar una copia de los datos que tenemos sobre ti, o eliminar tu cuenta. Al eliminarla borramos o anonimizamos tus datos personales; conservamos solo lo que la ley nos obliga a guardar de contratos y pagos.</p>
+          <ion-text color="warning" *ngIf="eliminacionProgramadaEn">
+            <p><strong>Tu cuenta se eliminará el {{ eliminacionProgramadaEn | date: 'dd/MM/yyyy' }}.</strong> Mientras tanto está bloqueada. Para cancelar la eliminación, desbloquea el tratamiento de tus datos más abajo.</p>
+          </ion-text>
           <ion-button expand="block" fill="outline" (click)="descargarMisDatos()" [disabled]="descargando">
             {{ descargando ? 'Preparando…' : 'Descargar mis datos' }}
           </ion-button>
@@ -111,13 +114,13 @@
             Eliminar mi cuenta
           </ion-button>
           <div *ngIf="confirmandoEliminar" class="ion-margin-top">
-            <p><strong>Esta acción no se puede deshacer.</strong> Escribe tu contraseña para confirmar.</p>
+            <p>Tu cuenta se <strong>bloqueará ahora</strong> (no podrás publicar ni contratar) y se eliminará definitivamente a los <strong>15 días</strong>: ese plazo existe por si surge una queja o un problema con la otra parte de un trabajo. Tus solicitudes sin confirmar se cancelarán. No puedes eliminarla si tienes contrataciones confirmadas o en curso. Escribe tu contraseña para confirmar.</p>
             <ion-item>
               <ion-input type="password" label="Contraseña" labelPlacement="floating" [(ngModel)]="passwordEliminar" autocomplete="current-password"></ion-input>
             </ion-item>
             <ion-text color="danger" *ngIf="errorEliminar"><p>{{ errorEliminar }}</p></ion-text>
             <ion-button expand="block" color="danger" class="ion-margin-top" (click)="eliminarCuenta()" [disabled]="!passwordEliminar || eliminando">
-              {{ eliminando ? 'Eliminando…' : 'Eliminar definitivamente' }}
+              {{ eliminando ? 'Programando…' : 'Eliminar mi cuenta en 15 días' }}
             </ion-button>
             <ion-button expand="block" fill="clear" color="medium" (click)="confirmandoEliminar = false; passwordEliminar = ''; errorEliminar = null">
               Cancelar

@@ -39,6 +39,51 @@ describe('DetallePage', () => {
     expect(component).toBeTruthy();
   });
 
+  it('rechazar/cancelar: cada rol ve solo su botón, y una contratación ya pagada remite a soporte', () => {
+    const base = { cliente: 10, proveedor: 20 } as never;
+    component.contratacion = { ...(base as object), estado: 'SOLICITADA' } as never;
+
+    component.usuarioActualId = 20; // proveedor
+    expect(component.puedeRechazar).toBeTrue();
+    expect(component.puedeCancelar).toBeFalse();
+
+    component.usuarioActualId = 10; // cliente
+    expect(component.puedeRechazar).toBeFalse();
+    expect(component.puedeCancelar).toBeTrue();
+
+    component.contratacion = { ...(base as object), estado: 'CONFIRMADA' } as never;
+    expect(component.puedeCancelar).toBeTrue();
+
+    component.contratacion = { ...(base as object), estado: 'EN_CURSO' } as never;
+    expect(component.puedeCancelar).toBeFalse();
+    expect(component.requiereSoporteParaCancelar).toBeTrue();
+  });
+
+  it('enviarCierre("cancelar") llama a la API y actualiza la contratación', () => {
+    component.contratacionId = 1;
+    component.enviarCierre('cancelar');
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/contrataciones/1/cancelar/`);
+    expect(req.request.method).toBe('POST');
+    req.flush({ id_contratacion: 1, estado: 'CANCELADA' });
+
+    expect(component.contratacion?.estado).toBe('CANCELADA');
+    expect(component.procesandoAccion).toBeFalse();
+    httpMock.match(`${environment.apiUrl}/contrataciones/1/mensajes/`).forEach((r) => r.flush([]));
+  });
+
+  it('enviarCierre muestra el detalle del 409 cuando ya está pagada', () => {
+    component.contratacionId = 1;
+    component.enviarCierre('cancelar');
+
+    httpMock
+      .expectOne(`${environment.apiUrl}/contrataciones/1/cancelar/`)
+      .flush({ detail: 'Esta contratación ya está pagada', code: 'requiere_soporte' }, { status: 409, statusText: 'Conflict' });
+
+    expect(component.errorAccion).toContain('ya está pagada');
+    expect(component.procesandoAccion).toBeFalse();
+  });
+
   it('esPropio() distingue el mensaje del usuario actual del de la contraparte', () => {
     component.usuarioActualId = 10;
     expect(component.esPropio(mensajeBase)).toBeTrue();

@@ -2,6 +2,7 @@ import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/co
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, Validators } from '@angular/forms';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { AlertController } from '@ionic/angular';
 
 import { Auth } from '../../core/auth';
 import { Retroalimentacion } from '../../core/retroalimentacion';
@@ -79,6 +80,7 @@ export class DetallePage implements OnInit, OnDestroy {
     private readonly contratacionesApi: Contrataciones,
     private readonly pagosApi: Pagos,
     private readonly retroalimentacion: Retroalimentacion,
+    private readonly alertController: AlertController,
   ) {}
 
   ngOnInit(): void {
@@ -178,6 +180,21 @@ export class DetallePage implements OnInit, OnDestroy {
 
   get puedeConfirmar(): boolean {
     return this.esProveedor && this.contratacion?.estado === 'SOLICITADA';
+  }
+
+  /** El proveedor puede rechazar mientras la solicitud no esté confirmada. */
+  get puedeRechazar(): boolean {
+    return this.esProveedor && this.contratacion?.estado === 'SOLICITADA';
+  }
+
+  /** El cliente puede cancelar mientras no haya pagado. */
+  get puedeCancelar(): boolean {
+    return this.esCliente && (this.contratacion?.estado === 'SOLICITADA' || this.contratacion?.estado === 'CONFIRMADA');
+  }
+
+  /** Ya pagada y en curso: cancelarla exige un reembolso, que hoy se gestiona con soporte. */
+  get requiereSoporteParaCancelar(): boolean {
+    return this.esCliente && this.contratacion?.estado === 'EN_CURSO';
   }
 
   get puedeCompletar(): boolean {
@@ -307,6 +324,43 @@ export class DetallePage implements OnInit, OnDestroy {
       error: (error: HttpErrorResponse) => {
         this.procesandoAccion = false;
         this.errorAccion = error.error?.detail ?? 'No se pudo confirmar.';
+      },
+    });
+  }
+
+  /** Pide confirmación antes de rechazar (proveedor) o cancelar (cliente): no se puede deshacer. */
+  async cerrarContratacion(accion: 'rechazar' | 'cancelar'): Promise<void> {
+    if (this.procesandoAccion) {
+      return;
+    }
+    const rechazar = accion === 'rechazar';
+    const alerta = await this.alertController.create({
+      header: rechazar ? 'Rechazar solicitud' : 'Cancelar contratación',
+      message: rechazar
+        ? 'La persona que te la pidió verá que la rechazaste. No se puede deshacer.'
+        : 'Si cancelas, el proveedor ya no verá esta solicitud como activa. No se puede deshacer.',
+      buttons: [
+        { text: 'Volver', role: 'cancel' },
+        { text: rechazar ? 'Rechazar' : 'Cancelar contratación', role: 'destructive', handler: () => this.enviarCierre(accion) },
+      ],
+    });
+    await alerta.present();
+  }
+
+  enviarCierre(accion: 'rechazar' | 'cancelar'): void {
+    this.procesandoAccion = true;
+    this.errorAccion = null;
+    const llamada = accion === 'rechazar' ? this.contratacionesApi.rechazar(this.contratacionId) : this.contratacionesApi.cancelar(this.contratacionId);
+    llamada.subscribe({
+      next: (contratacion) => {
+        this.contratacion = contratacion;
+        this.procesandoAccion = false;
+        this.cargarMensajes();
+        this.retroalimentacion.exito(accion === 'rechazar' ? 'Solicitud rechazada.' : 'Contratación cancelada.');
+      },
+      error: (error: HttpErrorResponse) => {
+        this.procesandoAccion = false;
+        this.errorAccion = error.error?.detail ?? 'No se pudo completar la acción.';
       },
     });
   }

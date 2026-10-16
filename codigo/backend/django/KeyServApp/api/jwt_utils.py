@@ -77,3 +77,12 @@ def obtener_sesion_vigente(refresh_token_plano):
 def revocar_sesion(sesion):
     sesion.revocado_en = timezone.now()
     sesion.save(update_fields=['revocado_en'])
+
+
+def revocar_todas_las_sesiones(usuario):
+    """
+    Revoca todos los refresh tokens vigentes del usuario (cambio o recuperación de contraseña). Sin esto, quien
+    robó un refresh token lo sigue rotando indefinidamente aunque la víctima recupere su cuenta. Los access tokens
+    ya emitidos (stateless) siguen valiendo hasta vencer, `JWT_ACCESS_TOKEN_MINUTOS`.
+    """
+    return TokenSesion.objects.filter(usuario=usuario, revocado_en__isnull=True).update(revocado_en=timezone.now())

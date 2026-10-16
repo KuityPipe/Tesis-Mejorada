@@ -215,6 +215,10 @@ class Usuario(models.Model):
     # Derecho de bloqueo (Ley 21.719): mientras esté fijado, la cuenta se conserva pero no se trata
     # activamente — sus publicaciones salen del catálogo y no puede contratar ni publicar. Reversible.
     tratamiento_bloqueado_en = models.DateTimeField(null=True, blank=True, db_column='TRATAMIENTO_BLOQUEADO_EN')
+    # Derecho de supresión con plazo de espera: al pedir eliminar la cuenta queda bloqueada y se anonimiza recién pasados
+    # `settings.CUENTA_ELIMINACION_DIAS` (15) días (`derechos_titular.anonimizar_cuentas_vencidas`), por si en ese plazo
+    # surge una queja o un problema con la otra parte de un trabajo.
+    eliminacion_solicitada_en = models.DateTimeField(null=True, blank=True, db_column='ELIMINACION_SOLICITADA_EN')
     # NUEVO: encoding de referencia (vector de 128 dimensiones que devuelve
     # face_recognition) para el segundo método de verificación de RF001
     # ("huella, Face ID o clave única" — son alternativas, no las tres a la

@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { Auth, EstadoDerechos } from '../core/auth';
+import { Retroalimentacion } from '../core/retroalimentacion';
 import { Tema, Tema3Estados } from '../core/tema';
 
 /**
@@ -58,18 +59,21 @@ export class PreferenciasPage implements OnInit {
   errorDerechos: string | null = null;
   confirmandoOposicion = false;
   cambiandoBloqueo = false;
+  eliminacionProgramadaEn: string | null = null;
 
   constructor(
     private readonly fb: FormBuilder,
     private readonly auth: Auth,
     private readonly tema: Tema,
     private readonly router: Router,
+    private readonly retroalimentacion: Retroalimentacion,
   ) {}
 
   ngOnInit(): void {
     this.temaActual = this.tema.obtenerActual();
     this.auth.me().subscribe((usuario) => {
       this.formularioPreferencias.patchValue({ notificaciones_sonido: usuario.notificaciones_sonido });
+      this.eliminacionProgramadaEn = usuario.eliminacion_programada_en ?? null;
       this.cargando = false;
     });
     this.cargarDerechos();
@@ -168,7 +172,8 @@ export class PreferenciasPage implements OnInit {
     this.eliminando = true;
     this.errorEliminar = null;
     this.auth.eliminarCuenta(this.passwordEliminar).subscribe({
-      next: () => {
+      next: (respuesta) => {
+        this.retroalimentacion.exito(respuesta.detail);
         this.auth.logout();
         this.router.navigateByUrl('/login');
       },

@@ -14,6 +14,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
+from django.db import transaction
 from django.db.models import F, FloatField, Q, Value
 from django.db.models.functions import ASin, Cast, Cos, Power, Radians, Sin, Sqrt
 from django.http import FileResponse, Http404, HttpResponse
@@ -26,10 +27,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import asistente, biometria, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
+from .. import asistente, biometria, cierres, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
 from .. import pagos
 from .. import views as vistas_legacy
-from ..respuestas_pago import respuesta_minima
 from ..forms import (
     CambiarPasswordForm, CATEGORIAS_PUBLICACION, ContactoForm, CrearPerfilForm, EditarPerfilForm, MensajeForm,
     MontoAcordadoForm, NuevaPasswordForm, PreferenciasCuentaForm, PublicacionForm, ReautenticacionForm,
@@ -245,20 +245,33 @@ class VerificarBiometriaNativaView(APIView):
     ver Fase 5 del plan de migración), en vez del reconocimiento facial
     pesado del servidor (`/rostro/`).
 
-    Sin verificación adicional más allá del JWT a propósito — decisión
-    tomada con el usuario: a diferencia de ese flujo, acá el
-    servidor nunca ve ni puede ver el dato biométrico en sí (Face ID/
-    huella nativos se validan enteramente dentro del enclave seguro del
-    dispositivo; el plugin solo le informa a la app "sí" o "no"). La
-    única garantía real que el servidor puede pedir es que quien llama
-    ya tiene una sesión JWT válida — exactamente lo que hace, mismo
-    criterio que confiar en el device en apps bancarias/de producción.
+    El servidor nunca ve ni puede ver el dato biométrico en sí (Face ID/
+    huella nativos se validan dentro del enclave seguro del dispositivo; el
+    plugin solo le informa a la app "sí" o "no") y hoy no hay forma de
+    comprobar que ese "sí" existió: un JWT válido bastaba para verificarse con
+    un `curl`. Por eso (ADR 0006, opción c) solo cuenta como reconfirmación de
+    quien ya tiene un documento aprobado por una persona; si no, 403
+    `requiere_documento`. Pendiente: una prueba real del dispositivo
+    (llave que firma un desafío, o Play Integrity/App Attest).
     """
 
     def post(self, request):
         usuario = request.user
+        # ADR 0006, opción (c): el servidor no puede comprobar que la biometría ocurrió de verdad en el teléfono (un
+        # `curl` con el JWT bastaba para verificarse), así que esta vía solo "reconfirma" a quien ya tiene un documento
+        # aprobado por una persona. Sin eso no se marca nada.
+        if not identidad.tiene_documento_aprobado(usuario):
+            verificaciones.registrar_fallo(usuario, EventoVerificacion.NATIVA, detalle='sin documento aprobado')
+            return Response(
+                {
+                    'detail': 'Primero verifica tu identidad con tu documento (vía alternativa) o con el reconocimiento facial. '
+                              'Después podrás reconfirmarla con la biometría de tu teléfono.',
+                    'code': 'requiere_documento',
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         verificaciones.marcar_verificado(usuario, EventoVerificacion.NATIVA)
-        logger.info('Verificación biométrica nativa exitosa (api): usuario_id=%s', usuario.id_usuario)
+        logger.info('Verificación biométrica nativa (reconfirmación) exitosa (api): usuario_id=%s', usuario.id_usuario)
         return Response(UsuarioMeSerializer(usuario).data)
 
 
@@ -669,9 +682,10 @@ class BloqueoTratamientoView(APIView):
 
 class EliminarCuentaView(APIView):
     """
-    `POST /api/auth/eliminar-cuenta/` — derecho de supresión. Pide la contraseña (acción
-    irreversible), mismo rate-limit que las demás re-autenticaciones, y se rechaza mientras haya
-    contrataciones en curso. Anonimiza la cuenta, ver `derechos_titular.eliminar_cuenta`.
+    `POST /api/auth/eliminar-cuenta/` — derecho de supresión. Pide la contraseña, mismo rate-limit que las demás
+    re-autenticaciones, y se rechaza mientras haya contrataciones confirmadas o en curso. Las solicitudes aún sin
+    confirmar se cancelan solas. No anonimiza al instante: la cuenta queda bloqueada `CUENTA_ELIMINACION_DIAS` días y
+    luego `purgar_datos_vencidos` la anonimiza (`derechos_titular.solicitar_eliminacion`).
     """
     _CLAVE_REAUTH = 'eliminar_cuenta'
 
@@ -686,16 +700,20 @@ class EliminarCuentaView(APIView):
             return Response({'detail': 'Contraseña incorrecta — no se eliminó la cuenta.'}, status=status.HTTP_400_BAD_REQUEST)
         vistas_legacy._registrar_intento_reautenticacion(usuario, self._CLAVE_REAUTH, exito=True)
 
-        if derechos_titular.contrataciones_activas(usuario).exists():
+        # Las SOLICITADA no cuentan: no hay trabajo comprometido y se cancelan al programar la eliminación.
+        if derechos_titular.contrataciones_activas(usuario).exclude(estado=Contratacion.SOLICITADA).exists():
             return Response(
-                {'detail': 'Tienes contrataciones en curso. Complétalas o cancélalas antes de eliminar tu cuenta.', 'code': 'contrataciones_activas'},
+                {'detail': 'Tienes contrataciones confirmadas o en curso. Complétalas o cancélalas antes de eliminar tu cuenta.', 'code': 'contrataciones_activas'},
                 status=status.HTTP_409_CONFLICT,
             )
 
-        usuario_id = usuario.id_usuario
-        derechos_titular.eliminar_cuenta(usuario)
-        logger.info('Cuenta eliminada (api): usuario_id=%s', usuario_id)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        fecha = derechos_titular.solicitar_eliminacion(usuario)
+        logger.info('Eliminación de cuenta programada (api): usuario_id=%s anonimiza_el=%s', usuario.id_usuario, fecha.date())
+        return Response({
+            'detail': f'Tu cuenta quedó bloqueada y se eliminará el {fecha:%d/%m/%Y}.',
+            'eliminacion_programada_en': fecha,
+            'dias_de_espera': settings.CUENTA_ELIMINACION_DIAS,
+        })
 
 
 class CambiarPasswordView(APIView):
@@ -706,8 +724,12 @@ class CambiarPasswordView(APIView):
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
         request.user.set_password(form.cleaned_data['password'])
         request.user.save(update_fields=['password'])
+        # Se cierran todas las sesiones (también las de otros dispositivos) y se entrega un par nuevo para que
+        # quien cambió la clave no quede fuera de la suya.
+        jwt_utils.revocar_todas_las_sesiones(request.user)
+        access_token, refresh_token, _sesion = jwt_utils.crear_sesion(request.user)
         logger.info('Contraseña cambiada desde preferencias de cuenta (api): usuario_id=%s', request.user.id_usuario)
-        return Response({'detail': 'Contraseña actualizada.'})
+        return Response({'detail': 'Contraseña actualizada.', 'access_token': access_token, 'refresh_token': refresh_token})
 
 
 class CategoriasListView(APIView):
@@ -802,6 +824,7 @@ class RecuperarConfirmarView(APIView):
 
         usuario.set_password(form.cleaned_data['password'])
         usuario.save(update_fields=['password'])
+        jwt_utils.revocar_todas_las_sesiones(usuario)
         logger.info('Contraseña restablecida vía recuperación (api): usuario_id=%s', usuario.id_usuario)
         return Response({'detail': 'Contraseña actualizada. Ya puedes iniciar sesión.'})
 
@@ -1372,6 +1395,66 @@ class ContratacionConfirmarView(APIView):
         return Response(ContratacionDetailSerializer(contratacion).data)
 
 
+class _ContratacionCierreView(APIView):
+    """
+    Base de `rechazar` (proveedor) y `cancelar` (cliente): ambas llevan la contratación a CANCELADA, el único estado
+    de salida que no es COMPLETADA. Sin ellas una solicitud ignorada quedaba abierta para siempre y, como
+    `derechos_titular.contrataciones_activas` la cuenta, cualquiera podía bloquear la eliminación de la cuenta de un
+    proveedor (derecho de supresión) con solo solicitarle un servicio.
+
+    - Quien no participa en la contratación recibe 404 (no se confirma que existe) y queda registrado.
+    - Un participante con el rol equivocado recibe 403, igual que `confirmar`/`completar`.
+    - Una contratación EN_CURSO (ya pagada) no se cancela desde la app: exige un reembolso, que es un proceso de
+      negocio aún sin definir (ver docs/PLAN_FLUJO_DE_DINERO.md). Se responde 409 con `code=requiere_soporte`.
+    - Un cobro iniciado y no completado (Pago PENDIENTE) queda ANULADO.
+    No pide contraseña: no mueve dinero ni datos, y se puede deshacer volviendo a solicitar el servicio.
+    """
+    rol = ''  # 'proveedor' | 'cliente'
+    estados_permitidos = ()
+    recurso = ''
+    texto_sistema = ''
+
+    def post(self, request, contratacion_id):
+        contratacion = _contratacion_de_participante_api(request, contratacion_id)
+        usuario = request.user
+        if usuario != getattr(contratacion, self.rol):
+            vistas_legacy._registrar_intento_sospechoso(request, usuario, self.recurso, contratacion_id, f'no es el {self.rol} (api)')
+            return Response({'detail': f'Solo el {self.rol} puede hacer esto en esta contratación.'}, status=status.HTTP_403_FORBIDDEN)
+
+        with transaction.atomic():
+            # Se bloquean la contratación y su pago: un retorno de Webpay o un webhook de Khipu que llegue justo
+            # ahora espera a que esto termine y ve el estado ya definitivo (y viceversa).
+            contratacion = Contratacion.objects.select_for_update().get(pk=contratacion_id)
+            pago = Pago.objects.select_for_update().filter(contratacion=contratacion).first()
+            if contratacion.estado == Contratacion.EN_CURSO or (pago and pago.estado == Pago.PAGADO):
+                return Response(
+                    {'detail': 'Esta contratación ya está pagada: para cancelarla y recuperar tu dinero contacta a soporte.', 'code': 'requiere_soporte'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            if contratacion.estado not in self.estados_permitidos:
+                return Response({'detail': 'La contratación ya no está en un estado en el que se pueda hacer esto.'}, status=status.HTTP_409_CONFLICT)
+
+            cierres.cancelar_contratacion(contratacion, usuario, f'{usuario} {self.texto_sistema}')
+        logger.info('Contratación cerrada como CANCELADA por el %s (api): id=%s', self.rol, contratacion_id)
+        return Response(ContratacionDetailSerializer(contratacion).data)
+
+
+class ContratacionRechazarView(_ContratacionCierreView):
+    """`POST /api/contrataciones/<id>/rechazar/` — el PROVEEDOR rechaza una solicitud (SOLICITADA -> CANCELADA)."""
+    rol = 'proveedor'
+    estados_permitidos = (Contratacion.SOLICITADA,)
+    recurso = 'contratacion_rechazar'
+    texto_sistema = 'rechazó la solicitud.'
+
+
+class ContratacionCancelarView(_ContratacionCierreView):
+    """`POST /api/contrataciones/<id>/cancelar/` — el CLIENTE cancela antes de pagar (SOLICITADA o CONFIRMADA -> CANCELADA)."""
+    rol = 'cliente'
+    estados_permitidos = (Contratacion.SOLICITADA, Contratacion.CONFIRMADA)
+    recurso = 'contratacion_cancelar'
+    texto_sistema = 'canceló la solicitud.'
+
+
 class ContratacionCompletarView(APIView):
     """`POST /api/contrataciones/<id>/completar/` — equivalente API de `contratacion_completar_view` (el CLIENTE confirma que el servicio se completó, EN_CURSO -> COMPLETADA). Mismo criterio de reuso que `ContratacionConfirmarView`."""
 
@@ -1554,28 +1637,7 @@ class PagoWebpayConfirmarView(APIView):
                 'contratacion_id': pago.contratacion_id if pago else None,
             })
 
-        pago = get_object_or_404(Pago, token_webpay=token_ws)
-        try:
-            respuesta = pagos.TransbankService().confirmar_transaccion(token_ws)
-        except Exception:
-            logger.exception('Error confirmando transacción Webpay (api): pago=%s', pago.id_pago)
-            pago.estado = Pago.RECHAZADO
-            pago.save()
-            return Response({
-                'aprobado': False, 'mensaje': 'No pudimos confirmar el pago con Webpay.', 'contratacion_id': pago.contratacion_id,
-            })
-
-        aprobado = respuesta.get('response_code') == 0 and respuesta.get('status') == 'AUTHORIZED'
-        if aprobado:
-            vistas_legacy._procesar_pago_aprobado(pago, respuesta)
-            mensaje = f'Pago aprobado — código de autorización {respuesta.get("authorization_code")}.'
-        else:
-            pago.estado = Pago.RECHAZADO
-            pago.respuesta_bruta = respuesta_minima(respuesta)
-            pago.save()
-            logger.warning('Pago Webpay rechazado (api): pago=%s respuesta=%s', pago.id_pago, pago.respuesta_bruta)
-            mensaje = 'El pago fue rechazado por el banco emisor de la tarjeta.'
-
+        pago, aprobado, mensaje = vistas_legacy.confirmar_pago_webpay(token_ws)
         return Response({'aprobado': aprobado, 'mensaje': mensaje, 'contratacion_id': pago.contratacion_id})
 
 

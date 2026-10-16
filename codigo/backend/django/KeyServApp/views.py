@@ -25,6 +25,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Func, Q, Value
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -50,6 +51,7 @@ from .models import (
     Valoracion, ValoracionImagen,
 )
 from . import biometria, consentimiento, geolocalizacion, identidad, pagos, verificaciones
+from .api.jwt_utils import revocar_todas_las_sesiones
 from . import validators
 
 logger = logging.getLogger(__name__)
@@ -285,6 +287,7 @@ def preferencias_cuenta_view(request):
         if password_form.is_valid():
             usuario.set_password(password_form.cleaned_data['password'])
             usuario.save(update_fields=['password'])
+            revocar_todas_las_sesiones(usuario)
             logger.info('Contraseña cambiada desde preferencias de cuenta: usuario_id=%s', usuario.id_usuario)
             messages.success(request, 'Contraseña actualizada.')
             return redirect('KeyServApp:preferencias_cuenta')
@@ -395,6 +398,7 @@ def recuperar_confirmar_view(request, token):
         if form.is_valid():
             usuario.set_password(form.cleaned_data['password'])
             usuario.save(update_fields=['password'])
+            revocar_todas_las_sesiones(usuario)
             logger.info('Contraseña restablecida vía recuperación: usuario_id=%s', usuario.id_usuario)
             messages.success(request, 'Contraseña actualizada. Ya puedes iniciar sesión.')
             return redirect('KeyServApp:sesion')
@@ -1141,21 +1145,82 @@ def _procesar_pago_aprobado(pago, respuesta_bruta):
     (Webpay) como el webhook async (Khipu) pueden llegar a confirmar el
     mismo pago, y no debe duplicarse el paso de estado ni el historial.
     """
-    if pago.estado == Pago.PAGADO:
-        return
-    pago.estado = Pago.PAGADO
-    pago.fecha_confirmacion = timezone.now()
-    pago.respuesta_bruta = respuesta_minima(respuesta_bruta)
-    pago.save()
-    contratacion = pago.contratacion
-    if contratacion.estado == Contratacion.CONFIRMADA:
-        contratacion.estado = Contratacion.EN_CURSO
-        contratacion.save()
-        HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.EN_CURSO)
+    # Se bloquea la fila: si el webhook de Khipu y el retorno del navegador llegan a la vez, el segundo espera
+    # al primero y ve el pago ya PAGADO, en vez de pasar ambos el chequeo y duplicar el historial.
+    with transaction.atomic():
+        bloqueado = Pago.objects.select_for_update().get(pk=pago.pk)
+        if bloqueado.estado == Pago.PAGADO:
+            pago.refresh_from_db()
+            return
+        bloqueado.estado = Pago.PAGADO
+        bloqueado.fecha_confirmacion = timezone.now()
+        bloqueado.respuesta_bruta = respuesta_minima(respuesta_bruta)
+        bloqueado.save()
+        contratacion = bloqueado.contratacion
+        if contratacion.estado == Contratacion.CONFIRMADA:
+            contratacion.estado = Contratacion.EN_CURSO
+            contratacion.save()
+            HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.EN_CURSO)
+        else:
+            # Típico de Khipu: el banco confirmó una transferencia de una contratación ya cancelada. Hay que devolver
+            # el dinero a mano (proceso de reembolsos pendiente, docs/PLAN_FLUJO_DE_DINERO.md).
+            logger.warning(
+                'Pago aprobado sobre una contratación en estado %s: pago=%s contratacion=%s — requiere reembolso manual',
+                contratacion.estado, bloqueado.id_pago, contratacion.id_contratacion,
+            )
+    pago.refresh_from_db()
     logger.info(
         'Pago aprobado: id=%s metodo=%s contratacion=%s monto=%s',
         pago.id_pago, pago.metodo, contratacion.id_contratacion, pago.monto,
     )
+
+
+def confirmar_pago_webpay(token_ws):
+    """
+    Confirma (commit) con Transbank el `token_ws` que trae el retorno de Webpay y devuelve `(pago, aprobado, mensaje)`.
+    Lo comparten `pago_webpay_retorno_view` y la API (`PagoWebpayConfirmarView`).
+
+    Idempotente: Transbank no deja confirmar dos veces el mismo token (el SDK lanza una excepción), y el retorno
+    puede llegar repetido (recarga de la página, pantalla de Ionic que se monta de nuevo, doble POST). Por eso un
+    pago que ya está PAGADO no se vuelve a confirmar y se responde "aprobado" con lo guardado, y los caminos de
+    error o rechazo solo cambian el estado mientras el pago siga PENDIENTE (con un UPDATE condicional, para que
+    tampoco lo pise una segunda request concurrente).
+    """
+    pago = get_object_or_404(Pago, token_webpay=token_ws)
+    if pago.estado == Pago.PAGADO:
+        return pago, True, _mensaje_pago_aprobado((pago.respuesta_bruta or {}).get('authorization_code'))
+
+    if pago.estado == Pago.ANULADO:
+        # La contratación se canceló mientras el cliente estaba en Webpay: sin commit Transbank no cobra nada.
+        return pago, False, 'Este pago fue anulado porque la contratación se canceló. No se te cobró nada.'
+
+    try:
+        respuesta = pagos.TransbankService().confirmar_transaccion(token_ws)
+    except Exception:
+        logger.exception('Error confirmando transacción Webpay: pago=%s', pago.id_pago)
+        Pago.objects.filter(pk=pago.pk, estado=Pago.PENDIENTE).update(estado=Pago.RECHAZADO)
+        pago.refresh_from_db()
+        if pago.estado == Pago.PAGADO:
+            return pago, True, _mensaje_pago_aprobado((pago.respuesta_bruta or {}).get('authorization_code'))
+        return pago, False, 'No pudimos confirmar el pago con Webpay.'
+
+    aprobado = respuesta.get('response_code') == 0 and respuesta.get('status') == 'AUTHORIZED'
+    if aprobado:
+        _procesar_pago_aprobado(pago, respuesta)
+        return pago, True, _mensaje_pago_aprobado(respuesta.get('authorization_code'))
+
+    Pago.objects.filter(pk=pago.pk, estado=Pago.PENDIENTE).update(
+        estado=Pago.RECHAZADO, respuesta_bruta=respuesta_minima(respuesta),
+    )
+    pago.refresh_from_db()
+    logger.warning('Pago Webpay rechazado: pago=%s respuesta=%s', pago.id_pago, pago.respuesta_bruta)
+    return pago, False, 'El pago fue rechazado por el banco emisor de la tarjeta.'
+
+
+def _mensaje_pago_aprobado(codigo_autorizacion):
+    if codigo_autorizacion:
+        return f'Pago aprobado — código de autorización {codigo_autorizacion}.'
+    return 'Pago aprobado.'
 
 
 def _validar_pago_posible(request, contratacion_id):
@@ -1244,28 +1309,7 @@ def pago_webpay_retorno_view(request):
             'contratacion': pago.contratacion if pago else None,
         })
 
-    pago = get_object_or_404(Pago, token_webpay=token_ws)
-    try:
-        respuesta = pagos.TransbankService().confirmar_transaccion(token_ws)
-    except Exception:
-        logger.exception('Error confirmando transacción Webpay: pago=%s', pago.id_pago)
-        pago.estado = Pago.RECHAZADO
-        pago.save()
-        return render(request, 'KeyServApp/pago_resultado.html', {
-            'aprobado': False, 'mensaje': 'No pudimos confirmar el pago con Webpay.', 'contratacion': pago.contratacion,
-        })
-
-    aprobado = respuesta.get('response_code') == 0 and respuesta.get('status') == 'AUTHORIZED'
-    if aprobado:
-        _procesar_pago_aprobado(pago, respuesta)
-        mensaje = f'Pago aprobado — código de autorización {respuesta.get("authorization_code")}.'
-    else:
-        pago.estado = Pago.RECHAZADO
-        pago.respuesta_bruta = respuesta_minima(respuesta)
-        pago.save()
-        logger.warning('Pago Webpay rechazado: pago=%s respuesta=%s', pago.id_pago, pago.respuesta_bruta)
-        mensaje = 'El pago fue rechazado por el banco emisor de la tarjeta.'
-
+    pago, aprobado, mensaje = confirmar_pago_webpay(token_ws)
     return render(request, 'KeyServApp/pago_resultado.html', {
         'aprobado': aprobado, 'mensaje': mensaje, 'contratacion': pago.contratacion,
     })
@@ -1357,6 +1401,11 @@ def pago_khipu_retorno_view(request, contratacion_id):
     rato si el webhook todavía no llegó pero el pago ya está aprobado).
     """
     contratacion = get_object_or_404(Contratacion, pk=contratacion_id)
+    usuario = obtener_usuario_actual(request)
+    if usuario not in (contratacion.cliente, contratacion.proveedor):
+        # Mismo criterio que el resto: 404 (no confirma que existe) y queda registrado.
+        _registrar_intento_sospechoso(request, usuario, 'contratacion', contratacion_id, 'contratación ajena (pago khipu)')
+        raise Http404()
     pago = getattr(contratacion, 'pago', None)
     if pago and pago.estado == Pago.PENDIENTE and pago.khipu_payment_id:
         try:

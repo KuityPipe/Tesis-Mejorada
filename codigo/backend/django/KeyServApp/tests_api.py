@@ -31,6 +31,14 @@ from .tests import _crear_region_comuna_tipo, _crear_usuario, _frames_prueba_de_
 from .views import _generar_token_recuperacion, _obtener_o_crear_conversacion_de_contratacion
 
 
+def _aprobar_documento(usuario):
+    """Deja a `usuario` con una verificación por documento aprobada por una persona (lo único que habilita la vía nativa)."""
+    return VerificacionAlternativa.objects.create(
+        usuario=usuario, estado=VerificacionAlternativa.APROBADA,
+        correo_verificado_en=timezone.now(), revisado_en=timezone.now(),
+    )
+
+
 class LoginApiTests(APITestCase):
     def setUp(self):
         _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
@@ -1716,7 +1724,29 @@ class VerificarBiometriaNativaApiTests(APITestCase):
         self.usuario.refresh_from_db()
         self.assertFalse(self.usuario.verificado_biometricamente)
 
-    def test_con_token_marca_verificado(self):
+    def test_con_token_pero_sin_documento_aprobado_no_marca_nada(self):
+        # Un `curl` con solo el JWT ya no verifica la cuenta (ADR 0006, opción c).
+        token = jwt_utils.generar_access_token(self.usuario)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+        resp = self.client.post('/api/auth/verificar-biometria-nativa/', {}, format='json')
+
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.data['code'], 'requiere_documento')
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.verificado_biometricamente)
+        self.assertTrue(EventoVerificacion.objects.filter(usuario=self.usuario, metodo='NATIVA', resultado='FALLIDO').exists())
+
+    def test_una_verificacion_pendiente_o_rechazada_tampoco_habilita_la_via_nativa(self):
+        for estado in (VerificacionAlternativa.INICIADA, VerificacionAlternativa.PENDIENTE_REVISION, VerificacionAlternativa.RECHAZADA):
+            VerificacionAlternativa.objects.update_or_create(
+                usuario=self.usuario, defaults={'estado': estado, 'correo_verificado_en': timezone.now()},
+            )
+            self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+            self.assertEqual(self.client.post('/api/auth/verificar-biometria-nativa/').status_code, 403, estado)
+
+    def test_con_documento_aprobado_marca_verificado(self):
+        _aprobar_documento(self.usuario)
         token = jwt_utils.generar_access_token(self.usuario)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
 
@@ -1891,8 +1921,13 @@ class DerechosTitularApiTests(APITestCase):
         self.usuario.verificado_biometricamente = True
         self.usuario.save()
         resp = self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
-        self.assertEqual(resp.status_code, 204)
+        self.assertEqual(resp.status_code, 200)
+        # Todavía no: hay un plazo de espera (CUENTA_ELIMINACION_DIAS) antes de anonimizar.
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.email, 'titular@test.com')
+        self.assertEqual(derechos_titular.anonimizar_cuentas_vencidas(), 0)
 
+        self.assertEqual(derechos_titular.anonimizar_cuentas_vencidas(dias=0), 1)
         self.usuario.refresh_from_db()
         self.assertEqual(self.usuario.email, f'eliminado-{self.usuario.pk}@eliminado.invalid')
         self.assertEqual(self.usuario.rut_usuario, 'ELIMINADO')
@@ -1907,12 +1942,68 @@ class DerechosTitularApiTests(APITestCase):
     def test_eliminar_conserva_el_contrato_completado_de_la_otra_parte(self):
         contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.otro, proveedor=self.usuario, estado=Contratacion.COMPLETADA)
         self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        derechos_titular.anonimizar_cuentas_vencidas(dias=0)
         self.assertTrue(Contratacion.objects.filter(pk=contratacion.pk).exists())
 
     def test_eliminar_borra_sesiones_y_vacia_mensajes(self):
         TokenSesion.objects.create(usuario=self.usuario, refresh_token_hash='h', expira_en=timezone.now() + timedelta(days=1))
         self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        # Las sesiones se revocan al pedir la eliminación y se borran al anonimizar.
+        self.assertFalse(TokenSesion.objects.filter(usuario=self.usuario, revocado_en__isnull=True).exists())
+        derechos_titular.anonimizar_cuentas_vencidas(dias=0)
         self.assertFalse(TokenSesion.objects.filter(usuario=self.usuario).exists())
+
+    def test_eliminar_bloquea_la_cuenta_y_cancela_solicitudes_abiertas_de_ambos_roles(self):
+        como_proveedor = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.otro, proveedor=self.usuario, estado=Contratacion.SOLICITADA)
+        publicacion_otro = Publicaciones.objects.create(usuario_publicador=self.otro, titulo='Ajena', estado_moderacion=Publicaciones.APROBADA)
+        como_cliente = Contratacion.objects.create(publicacion=publicacion_otro, cliente=self.usuario, proveedor=self.otro, estado=Contratacion.SOLICITADA)
+        resp = self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('eliminacion_programada_en', resp.data)
+        for contratacion in (como_proveedor, como_cliente):
+            contratacion.refresh_from_db()
+            self.assertEqual(contratacion.estado, Contratacion.CANCELADA)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.tratamiento_bloqueado_en)
+        self.assertTrue(self.usuario.eliminacion_solicitada_en)
+
+    def test_pedir_la_eliminacion_otra_vez_no_reinicia_el_plazo(self):
+        self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.usuario.refresh_from_db()
+        primera = self.usuario.eliminacion_solicitada_en
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+        self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.eliminacion_solicitada_en, primera)
+
+    def test_el_plazo_se_cumple_a_los_15_dias(self):
+        self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        Usuario.objects.filter(pk=self.usuario.pk).update(eliminacion_solicitada_en=timezone.now() - timedelta(days=14))
+        self.assertEqual(derechos_titular.anonimizar_cuentas_vencidas(), 0)
+        Usuario.objects.filter(pk=self.usuario.pk).update(eliminacion_solicitada_en=timezone.now() - timedelta(days=16))
+        self.assertEqual(derechos_titular.anonimizar_cuentas_vencidas(), 1)
+        self.assertEqual(derechos_titular.anonimizar_cuentas_vencidas(), 0)  # ya anonimizada: idempotente
+
+    def test_desbloquear_el_tratamiento_cancela_la_eliminacion_programada(self):
+        self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.usuario.refresh_from_db()
+        derechos_titular.fijar_bloqueo(self.usuario, False)
+        self.usuario.refresh_from_db()
+        self.assertIsNone(self.usuario.eliminacion_solicitada_en)
+        Usuario.objects.filter(pk=self.usuario.pk).update(eliminacion_solicitada_en=None)
+        self.assertEqual(derechos_titular.anonimizar_cuentas_vencidas(dias=0), 0)
+
+    def test_pedir_la_eliminacion_avisa_por_correo(self):
+        from django.core import mail
+        self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.assertTrue(any('titular@test.com' in m.to for m in mail.outbox))
+        self.assertTrue(any('se eliminará' in m.subject for m in mail.outbox))
+
+    def test_el_purgado_en_dry_run_no_anonimiza(self):
+        self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_tit'}, format='json')
+        self.assertEqual(derechos_titular.anonimizar_cuentas_vencidas(dias=0, dry_run=True), 1)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.email, 'titular@test.com')
 
 
 @override_settings(EXIGIR_IDENTIDAD_VERIFICADA=True)
@@ -2147,6 +2238,7 @@ class VigenciaYEventosVerificacionTests(APITestCase):
         self.assertEqual(resp.data['code'], 'identidad_no_verificada')
 
     def test_biometria_nativa_fija_fecha_y_registra_evento(self):
+        _aprobar_documento(self.usuario)
         resp = self.client.post('/api/auth/verificar-biometria-nativa/')
         self.assertEqual(resp.status_code, 200)
         self.usuario.refresh_from_db()
@@ -2179,6 +2271,7 @@ class VigenciaYEventosVerificacionTests(APITestCase):
         self.assertEqual(EventoVerificacion.objects.get(usuario=self.usuario).detalle, 'no procesable')
 
     def test_los_eventos_no_guardan_datos_biometricos(self):
+        _aprobar_documento(self.usuario)
         self.client.post('/api/auth/verificar-biometria-nativa/')
         campos = {f.name for f in EventoVerificacion._meta.get_fields()}
         self.assertEqual(campos, {'id_evento', 'usuario', 'metodo', 'accion', 'resultado', 'detalle', 'fecha'})
@@ -2195,6 +2288,7 @@ class VigenciaYEventosVerificacionTests(APITestCase):
         self.assertTrue(EventoVerificacion.objects.filter(usuario=self.usuario, accion='revocacion_consentimiento').exists())
 
     def test_eventos_se_exportan_y_se_borran_con_la_cuenta(self):
+        _aprobar_documento(self.usuario)
         self.client.post('/api/auth/verificar-biometria-nativa/')
         export = self.client.get('/api/auth/mis-datos/').data
         self.assertEqual(len(export['eventos_de_verificacion']), 1)
@@ -2377,6 +2471,26 @@ class EnmascaradoDeDatosPersonalesTests(APITestCase):
     def test_oculta_numeros_largos_como_tarjetas(self):
         texto, _ = asistente.enmascarar_datos_personales('mi tarjeta 4111 1111 1111 1111 vence pronto')
         self.assertNotIn('4111', texto)
+
+    def test_oculta_rut_sin_guion_con_k(self):
+        texto, n = asistente.enmascarar_datos_personales('mi rut 12345678K, gracias')
+        self.assertNotIn('12345678', texto)
+        self.assertEqual(n, 1)
+
+    def test_oculta_direcciones(self):
+        for direccion in ('Av. Providencia 1234', 'calle Los Aromos #56', 'Pasaje Las Rosas N° 12', 'avenida libertador bernardo ohiggins 340'):
+            texto, n = asistente.enmascarar_datos_personales(f'necesito un gasfíter en {direccion} por favor')
+            self.assertIn('[dirección oculta]', texto, direccion)
+            self.assertNotRegex(texto, r'\d{2,}', direccion)
+            self.assertEqual(n, 1, direccion)
+
+    def test_oculta_el_nombre_declarado_pero_no_otras_frases(self):
+        texto, n = asistente.enmascarar_datos_personales('Hola, me llamo Ana Pérez y necesito ayuda')
+        self.assertNotIn('Ana', texto)
+        self.assertNotIn('Pérez', texto)
+        self.assertEqual(n, 1)
+        for frase in ('soy cliente nuevo y quiero contratar', 'mi nombre es un problema para la app', 'Soy de Maipú'):
+            self.assertEqual(asistente.enmascarar_datos_personales(frase)[1], 0, frase)
 
     def test_no_toca_texto_normal_ni_numeros_cortos(self):
         original = 'Necesito 3 gasfíteres para 2 casas, presupuesto 50000'
@@ -2619,3 +2733,229 @@ class ProbarCorreoComandoTests(APITestCase):
                 call_command('probar_correo', 'destino@correo.cl')
 
         self.assertIn('contraseña de aplicación', str(ctx.exception))
+
+
+class ContratacionRechazoCancelacionApiTests(APITestCase):
+    """`POST /api/contrataciones/<id>/rechazar|cancelar/` — la salida que faltaba del flujo SOLICITADA -> ... -> COMPLETADA."""
+
+    def setUp(self):
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_cancela@test.com', 'clave_prov', es_proveedor=True, comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.cliente = _crear_usuario('cli_cancela@test.com', 'clave_cli', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(
+            usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000,
+        )
+
+    def _contratacion(self, estado):
+        return Contratacion.objects.create(
+            publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=estado, monto_acordado=15000,
+        )
+
+    def _como(self, usuario):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(usuario)}')
+
+    def _url(self, contratacion, accion):
+        return f'/api/contrataciones/{contratacion.id_contratacion}/{accion}/'
+
+    def test_el_proveedor_rechaza_una_solicitud(self):
+        contratacion = self._contratacion(Contratacion.SOLICITADA)
+        self._como(self.proveedor)
+        resp = self.client.post(self._url(contratacion, 'rechazar'))
+        self.assertEqual(resp.status_code, 200)
+        contratacion.refresh_from_db()
+        self.assertEqual(contratacion.estado, Contratacion.CANCELADA)
+        self.assertTrue(HistorialEstadoContratacion.objects.filter(contratacion=contratacion, estado=Contratacion.CANCELADA).exists())
+        self.assertTrue(Mensaje.objects.filter(conversacion__contratacion=contratacion, contenido__contains='rechazó').exists())
+
+    def test_el_cliente_no_puede_rechazar_ni_el_proveedor_cancelar(self):
+        contratacion = self._contratacion(Contratacion.SOLICITADA)
+        self._como(self.cliente)
+        self.assertEqual(self.client.post(self._url(contratacion, 'rechazar')).status_code, 403)
+        self._como(self.proveedor)
+        self.assertEqual(self.client.post(self._url(contratacion, 'cancelar')).status_code, 403)
+        contratacion.refresh_from_db()
+        self.assertEqual(contratacion.estado, Contratacion.SOLICITADA)
+
+    def test_el_cliente_cancela_una_solicitud_o_una_confirmada(self):
+        for estado in (Contratacion.SOLICITADA, Contratacion.CONFIRMADA):
+            contratacion = self._contratacion(estado)
+            self._como(self.cliente)
+            resp = self.client.post(self._url(contratacion, 'cancelar'))
+            self.assertEqual(resp.status_code, 200, estado)
+            contratacion.refresh_from_db()
+            self.assertEqual(contratacion.estado, Contratacion.CANCELADA)
+
+    def test_cancelar_anula_un_cobro_pendiente(self):
+        contratacion = self._contratacion(Contratacion.CONFIRMADA)
+        pago = Pago.objects.create(contratacion=contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tokx')
+        self._como(self.cliente)
+        self.assertEqual(self.client.post(self._url(contratacion, 'cancelar')).status_code, 200)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.ANULADO)
+
+    def test_un_pago_anulado_ya_no_se_confirma_con_transbank(self):
+        contratacion = self._contratacion(Contratacion.CONFIRMADA)
+        Pago.objects.create(contratacion=contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tokx')
+        self._como(self.cliente)
+        self.client.post(self._url(contratacion, 'cancelar'))
+        self.client.credentials()
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion') as commit:
+            resp = self.client.post('/api/pagos/webpay/confirmar/', {'token_ws': 'tokx'}, format='json')
+        commit.assert_not_called()
+        self.assertFalse(resp.data['aprobado'])
+        contratacion.refresh_from_db()
+        self.assertEqual(contratacion.estado, Contratacion.CANCELADA)
+
+    def test_una_contratacion_en_curso_no_se_cancela_desde_la_app(self):
+        contratacion = self._contratacion(Contratacion.EN_CURSO)
+        Pago.objects.create(contratacion=contratacion, monto=15000, metodo=Pago.WEBPAY, estado=Pago.PAGADO)
+        self._como(self.cliente)
+        resp = self.client.post(self._url(contratacion, 'cancelar'))
+        self.assertEqual(resp.status_code, 409)
+        self.assertEqual(resp.data['code'], 'requiere_soporte')
+        contratacion.refresh_from_db()
+        self.assertEqual(contratacion.estado, Contratacion.EN_CURSO)
+
+    def test_una_contratacion_ya_cerrada_no_se_puede_cerrar_otra_vez(self):
+        for estado in (Contratacion.COMPLETADA, Contratacion.CANCELADA):
+            contratacion = self._contratacion(estado)
+            self._como(self.cliente)
+            self.assertEqual(self.client.post(self._url(contratacion, 'cancelar')).status_code, 409, estado)
+
+    def test_un_tercero_recibe_404_y_queda_registrado(self):
+        intruso = _crear_usuario('intruso_cancela@test.com', 'clave_int', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        contratacion = self._contratacion(Contratacion.SOLICITADA)
+        self._como(intruso)
+        for accion in ('rechazar', 'cancelar'):
+            self.assertEqual(self.client.post(self._url(contratacion, accion)).status_code, 404)
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(usuario=intruso, recurso='contratacion').exists())
+        contratacion.refresh_from_db()
+        self.assertEqual(contratacion.estado, Contratacion.SOLICITADA)
+
+    def test_sin_sesion_da_401(self):
+        contratacion = self._contratacion(Contratacion.SOLICITADA)
+        self.assertEqual(self.client.post(self._url(contratacion, 'cancelar')).status_code, 401)
+
+    def test_tras_rechazar_el_proveedor_puede_eliminar_su_cuenta(self):
+        contratacion = self._contratacion(Contratacion.SOLICITADA)
+        self._como(self.proveedor)
+        self.client.post(self._url(contratacion, 'rechazar'))
+        resp = self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_prov'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+
+class ExpirarSolicitudesTests(APITestCase):
+    """`manage.py expirar_solicitudes`: una solicitud sin respuesta del proveedor expira sola y se avisa a las dos partes."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_exp@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.cliente = _crear_usuario('cli_exp@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA)
+
+    def _solicitud(self, dias, estado=Contratacion.SOLICITADA):
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=estado)
+        Contratacion.objects.filter(pk=contratacion.pk).update(fecha_creacion=timezone.now() - timedelta(days=dias))
+        return contratacion
+
+    def test_expira_las_vencidas_y_avisa_a_ambos_por_correo(self):
+        from django.core import mail
+        vieja = self._solicitud(dias=8)
+        call_command('expirar_solicitudes')
+        vieja.refresh_from_db()
+        self.assertEqual(vieja.estado, Contratacion.CANCELADA)
+        self.assertTrue(HistorialEstadoContratacion.objects.filter(contratacion=vieja, estado=Contratacion.CANCELADA).exists())
+        self.assertTrue(Mensaje.objects.filter(conversacion__contratacion=vieja, contenido__contains='expiró').exists())
+        destinatarios = {a for m in mail.outbox for a in m.to}
+        self.assertEqual(destinatarios, {'prov_exp@test.com', 'cli_exp@test.com'})
+
+    def test_no_toca_las_recientes_ni_las_que_ya_avanzaron(self):
+        reciente = self._solicitud(dias=2)
+        confirmada = self._solicitud(dias=30, estado=Contratacion.CONFIRMADA)
+        call_command('expirar_solicitudes')
+        reciente.refresh_from_db()
+        confirmada.refresh_from_db()
+        self.assertEqual(reciente.estado, Contratacion.SOLICITADA)
+        self.assertEqual(confirmada.estado, Contratacion.CONFIRMADA)
+
+    def test_dry_run_no_cambia_nada(self):
+        vieja = self._solicitud(dias=8)
+        call_command('expirar_solicitudes', '--dry-run')
+        vieja.refresh_from_db()
+        self.assertEqual(vieja.estado, Contratacion.SOLICITADA)
+
+    def test_el_mantenimiento_de_retencion_la_incluye(self):
+        vieja = self._solicitud(dias=8)
+        call_command('mantenimiento_retencion')
+        vieja.refresh_from_db()
+        self.assertEqual(vieja.estado, Contratacion.CANCELADA)
+
+
+class WebpayDobleConfirmacionApiTests(APITestCase):
+    """Un segundo commit del mismo token_ws (recargar la página de retorno) no debe pisar un pago ya PAGADO."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_doble@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.cliente = _crear_usuario('cli_doble@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000)
+        self.contratacion = Contratacion.objects.create(
+            publicacion=publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=Contratacion.CONFIRMADA, monto_acordado=15000,
+        )
+        self.pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+
+    def test_reconfirmar_un_pago_ya_pagado_no_lo_marca_rechazado_ni_llama_a_transbank(self):
+        aprobada = {'response_code': 0, 'status': 'AUTHORIZED', 'authorization_code': 'AUTH1'}
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', return_value=aprobada):
+            self.client.post('/api/pagos/webpay/confirmar/', {'token_ws': 'tok123'}, format='json')
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', side_effect=Exception('already committed')) as commit:
+            resp = self.client.post('/api/pagos/webpay/confirmar/', {'token_ws': 'tok123'}, format='json')
+        commit.assert_not_called()
+        self.pago.refresh_from_db()
+        self.assertEqual(self.pago.estado, Pago.PAGADO)
+        self.assertTrue(resp.data['aprobado'])
+        self.assertIn('AUTH1', resp.data['mensaje'])
+
+    def test_un_error_de_red_en_un_pago_pendiente_si_lo_marca_rechazado(self):
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', side_effect=Exception('timeout')):
+            resp = self.client.post('/api/pagos/webpay/confirmar/', {'token_ws': 'tok123'}, format='json')
+        self.pago.refresh_from_db()
+        self.assertEqual(self.pago.estado, Pago.RECHAZADO)
+        self.assertFalse(resp.data['aprobado'])
+
+
+class SesionesTrasCambioDeClaveApiTests(APITestCase):
+    """Cambiar o recuperar la contraseña revoca los refresh tokens existentes."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('sesiones@test.com', 'clave_cli', comuna=comuna, tipo_cuenta=tipo_cuenta)
+
+    def _cambiar_password(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+        return self.client.post('/api/auth/cambiar-password/', {
+            'password_actual': 'clave_cli', 'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        }, format='json')
+
+    def test_cambiar_password_invalida_refresh_tokens_anteriores(self):
+        _, refresh_robado, _sesion = jwt_utils.crear_sesion(self.usuario)
+        self.assertEqual(self._cambiar_password().status_code, 200)
+        self.client.credentials()
+        resp = self.client.post('/api/auth/refresh/', {'refresh_token': refresh_robado}, format='json')
+        self.assertEqual(resp.status_code, 401)
+
+    def test_cambiar_password_devuelve_un_par_nuevo_que_sigue_funcionando(self):
+        resp = self._cambiar_password()
+        self.client.credentials()
+        resp = self.client.post('/api/auth/refresh/', {'refresh_token': resp.data['refresh_token']}, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_recuperar_password_invalida_refresh_tokens_anteriores(self):
+        _, refresh_robado, _sesion = jwt_utils.crear_sesion(self.usuario)
+        token = _generar_token_recuperacion(self.usuario)
+        resp = self.client.post(f'/api/auth/recuperar/confirmar/{token}/', {
+            'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        }, format='json')
+        self.assertEqual(resp.status_code, 200)
+        resp = self.client.post('/api/auth/refresh/', {'refresh_token': refresh_robado}, format='json')
+        self.assertEqual(resp.status_code, 401)

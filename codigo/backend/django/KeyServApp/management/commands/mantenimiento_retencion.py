@@ -12,8 +12,9 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = 'Ejecuta limpiar_mensajes_antiguos y purgar_datos_vencidos.'
+    help = 'Ejecuta expirar_solicitudes, limpiar_mensajes_antiguos y purgar_datos_vencidos.'
 
     def handle(self, *args, **opts):
+        call_command('expirar_solicitudes', stdout=self.stdout)
         call_command('limpiar_mensajes_antiguos', stdout=self.stdout)
         call_command('purgar_datos_vencidos', stdout=self.stdout)

@@ -1,6 +1,8 @@
 from django.urls import reverse
 from rest_framework import serializers
 
+from .. import derechos_titular
+
 from ..models import (
     Comuna, Contratacion, Documento, HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago,
     Publicaciones, Region, TipoCuenta, Usuario, Valoracion, ValoracionImagen,
@@ -33,6 +35,7 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
     """
     region = serializers.SerializerMethodField()
     tratamiento_bloqueado = serializers.SerializerMethodField()
+    eliminacion_programada_en = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
@@ -41,7 +44,7 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
             'apellido_usuario', 'apellido2_usuario', 'telefono', 'email',
             'direccion_usuario', 'edad', 'es_proveedor',
             'verificado_biometricamente', 'foto_perfil', 'areas_servicio',
-            'experiencia', 'notificaciones_sonido', 'comuna', 'region', 'tratamiento_bloqueado',
+            'experiencia', 'notificaciones_sonido', 'comuna', 'region', 'tratamiento_bloqueado', 'eliminacion_programada_en',
         ]
         read_only_fields = fields
 
@@ -50,6 +53,10 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
 
     def get_tratamiento_bloqueado(self, usuario) -> bool:
         return bool(usuario.tratamiento_bloqueado_en)
+
+    def get_eliminacion_programada_en(self, usuario):
+        """Fecha en que se anonimizará la cuenta si pidió eliminarla, o `None`."""
+        return derechos_titular.fecha_eliminacion_programada(usuario)
 
 
 class DocumentoPerfilSerializer(serializers.ModelSerializer):

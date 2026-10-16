@@ -3,6 +3,10 @@ Derechos del titular de datos (Ley 21.719): acceso/portabilidad y supresión.
 
 - `exportar_datos`: copia de los datos personales de una persona, en un dict serializable a JSON.
   No incluye el hash de contraseña, los tokens ni el vector facial (solo si existe uno).
+- `solicitar_eliminacion` + `anonimizar_cuentas_vencidas`: la supresión no es inmediata; la cuenta queda bloqueada
+  `settings.CUENTA_ELIMINACION_DIAS` (15) días y luego se anonimiza (decisión del dueño, para no perder la cuenta si
+  surge una queja o un problema con la otra parte del trabajo). Qué más se conserva como evidencia es una decisión
+  legal pendiente: docs/adr/0007-retencion-y-evidencia.md.
 - `eliminar_cuenta`: supresión por anonimización. Se borra o vacía lo identificable (perfil,
   rostro, documentos, mensajes, fotos, sesiones) pero se conservan las filas de contratos y
   pagos, porque hay obligaciones tributarias/contables de retención y los datos de la otra
@@ -11,17 +15,24 @@ Derechos del titular de datos (Ley 21.719): acceso/portabilidad y supresión.
 BORRADOR técnico: los plazos de retención de contratos/pagos y el alcance exacto de lo que
 se conserva deben validarse con un abogado (ver docs/cumplimiento/).
 """
+import logging
 import secrets
+from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from . import cierres, notificaciones_correo
+
 from .models import (
     ConsentimientoBiometrico, Consulta, Contratacion, Documento, EventoVerificacion,
     IntentoAccesoSospechoso, Mensaje, Pago, Publicaciones, SolicitudTitular, TokenSesion,
-    Valoracion, ValoracionImagen,
+    Usuario, Valoracion, ValoracionImagen,
 )
+
+logger = logging.getLogger(__name__)
 
 MENSAJE_BLOQUEADO = (
     'Bloqueaste el tratamiento de tus datos: tu cuenta se conserva pero no puedes publicar ni contratar. '
@@ -40,7 +51,11 @@ def fijar_bloqueo(usuario, bloquear):
     if bloquear == tratamiento_bloqueado(usuario):
         return
     usuario.tratamiento_bloqueado_en = timezone.now() if bloquear else None
-    usuario.save(update_fields=['tratamiento_bloqueado_en'])
+    if not bloquear:
+        # Desbloquear una cuenta con eliminación programada la cancela: si no, la persona creería que recuperó su
+        # cuenta y días después se anonimizaría igual.
+        usuario.eliminacion_solicitada_en = None
+    usuario.save(update_fields=['tratamiento_bloqueado_en', 'eliminacion_solicitada_en'])
     SolicitudTitular.objects.create(
         usuario=usuario, tipo=SolicitudTitular.BLOQUEO, estado=SolicitudTitular.RESUELTA,
         detalle='Bloqueo del tratamiento' if bloquear else 'Desbloqueo del tratamiento',
@@ -153,6 +168,69 @@ def _borrar_archivo(campo):
 
 
 @transaction.atomic
+def fecha_eliminacion_programada(usuario):
+    """Cuándo se anonimizará la cuenta (solicitud + plazo de espera), o `None` si no pidió eliminarla."""
+    if not usuario.eliminacion_solicitada_en:
+        return None
+    return usuario.eliminacion_solicitada_en + timedelta(days=settings.CUENTA_ELIMINACION_DIAS)
+
+
+@transaction.atomic
+def solicitar_eliminacion(usuario):
+    """
+    Programa la eliminación de la cuenta: se cancelan sus solicitudes aún sin confirmar (para que nadie pueda impedir
+    la supresión solicitándole un servicio), la cuenta queda bloqueada (fuera del catálogo, sin publicar ni contratar)
+    y sus sesiones se cierran. La anonimización real ocurre pasado el plazo de espera. Llamar solo sin contrataciones
+    confirmadas o en curso. Devuelve la fecha de anonimización; repetirlo no reinicia el plazo.
+    """
+    ya_programada = fecha_eliminacion_programada(usuario)
+    if ya_programada:
+        return ya_programada
+
+    texto = 'cerró su cuenta, así que la solicitud se canceló.'
+    solicitadas = Contratacion.objects.select_for_update().filter(
+        Q(cliente=usuario) | Q(proveedor=usuario), estado=Contratacion.SOLICITADA,
+    ).select_related('cliente', 'proveedor', 'publicacion')
+    for contratacion in solicitadas:
+        cierres.cancelar_contratacion(contratacion, usuario, f'{usuario} {texto}')
+        otra_parte = contratacion.proveedor if contratacion.cliente_id == usuario.pk else contratacion.cliente
+        notificaciones_correo.avisar(
+            otra_parte, 'una solicitud se canceló',
+            f'La solicitud del servicio "{contratacion.publicacion.titulo}" se canceló porque la otra persona cerró su cuenta.',
+        )
+
+    usuario.eliminacion_solicitada_en = timezone.now()
+    if not usuario.tratamiento_bloqueado_en:
+        usuario.tratamiento_bloqueado_en = usuario.eliminacion_solicitada_en
+    usuario.save(update_fields=['eliminacion_solicitada_en', 'tratamiento_bloqueado_en'])
+    TokenSesion.objects.filter(usuario=usuario, revocado_en__isnull=True).update(revocado_en=timezone.now())
+    fecha = fecha_eliminacion_programada(usuario)
+    notificaciones_correo.avisar(
+        usuario, 'tu cuenta se eliminará',
+        f'Pediste eliminar tu cuenta. Quedó bloqueada y se eliminará el {fecha:%d/%m/%Y}. Si no fuiste tú, escríbenos antes de esa fecha desde la sección Contacto.',
+    )
+    return fecha
+
+
+def anonimizar_cuentas_vencidas(dias=None, dry_run=False):
+    """
+    Anonimiza (`eliminar_cuenta`) las cuentas cuyo plazo de espera ya venció. Una que, pese a todo, tenga una
+    contratación confirmada o en curso se deja para la próxima corrida. Idempotente. Devuelve la cantidad.
+    """
+    dias = settings.CUENTA_ELIMINACION_DIAS if dias is None else dias
+    limite = timezone.now() - timedelta(days=dias)
+    pendientes = Usuario.objects.filter(eliminacion_solicitada_en__lte=limite).exclude(rut_usuario='ELIMINADO')
+    total = 0
+    for usuario in pendientes:
+        if contrataciones_activas(usuario).exists():
+            logger.warning('Cuenta con plazo vencido pero con contrataciones activas, se pospone: usuario_id=%s', usuario.pk)
+            continue
+        if not dry_run:
+            eliminar_cuenta(usuario)
+        total += 1
+    return total
+
+
 def eliminar_cuenta(usuario):
     """Anonimiza la cuenta (ver docstring del módulo). Llamar solo sin contrataciones activas."""
     ConsentimientoBiometrico.revocar(usuario)  # borra el vector facial y baja la verificación

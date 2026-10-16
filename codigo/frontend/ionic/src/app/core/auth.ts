@@ -37,6 +37,14 @@ export interface Usuario {
   region: number | null;
   // Derecho de bloqueo (Ley 21.719): con el tratamiento bloqueado no se puede publicar ni contratar.
   tratamiento_bloqueado?: boolean;
+  // Si pidió eliminar la cuenta: fecha (ISO) en que se anonimizará. Mientras tanto la cuenta está bloqueada.
+  eliminacion_programada_en?: string | null;
+}
+
+export interface RespuestaEliminacion {
+  detail: string;
+  eliminacion_programada_en: string;
+  dias_de_espera: number;
 }
 
 export type TipoSolicitud = 'RECTIFICACION' | 'OPOSICION' | 'BLOQUEO';
@@ -334,18 +342,31 @@ export class Auth {
     return this.http.post<Usuario>(`${environment.apiUrl}/auth/bloqueo-tratamiento/`, { bloquear });
   }
 
-  /** `POST /api/auth/eliminar-cuenta/` — supresión (anonimiza la cuenta); pide la contraseña. 409 si hay contrataciones en curso. */
-  eliminarCuenta(password: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/auth/eliminar-cuenta/`, { password });
+  /**
+   * `POST /api/auth/eliminar-cuenta/` — programa la supresión; pide la contraseña. La cuenta queda bloqueada y se
+   * anonimiza pasados `dias_de_espera` días (15), por si surge una queja. 409 si hay contrataciones confirmadas o en curso.
+   */
+  eliminarCuenta(password: string): Observable<RespuestaEliminacion> {
+    return this.http.post<RespuestaEliminacion>(`${environment.apiUrl}/auth/eliminar-cuenta/`, { password });
   }
 
   /** `POST /api/auth/cambiar-password/` — cambiar la contraseña estando logueado (a diferencia de `confirmarRecuperacion`, pide la contraseña actual). */
-  cambiarPassword(passwordActual: string, password: string, passwordConfirm: string): Observable<{ detail: string }> {
-    return this.http.post<{ detail: string }>(`${environment.apiUrl}/auth/cambiar-password/`, {
-      password_actual: passwordActual,
-      password,
-      password_confirm: passwordConfirm,
-    });
+  cambiarPassword(passwordActual: string, password: string, passwordConfirm: string): Observable<{ detail: string; access_token?: string; refresh_token?: string }> {
+    // El backend revoca todas las sesiones al cambiar la clave y devuelve un par nuevo: sin guardarlo, esta
+    // misma sesión quedaría fuera en el próximo refresh.
+    return this.http
+      .post<{ detail: string; access_token?: string; refresh_token?: string }>(`${environment.apiUrl}/auth/cambiar-password/`, {
+        password_actual: passwordActual,
+        password,
+        password_confirm: passwordConfirm,
+      })
+      .pipe(
+        tap((respuesta) => {
+          if (respuesta.access_token && respuesta.refresh_token) {
+            this.guardarTokens(respuesta.access_token, respuesta.refresh_token);
+          }
+        }),
+      );
   }
 
   /**
@@ -362,11 +383,10 @@ export class Auth {
    * `POST /api/auth/verificar-biometria-nativa/` — la llama
    * `biometria/biometria.page` recién después de que
    * `NativeBiometric.verifyIdentity()` (plugin Capacitor) confirmó la
-   * huella/Face ID en el propio dispositivo. Alcanza con el JWT ya
-   * autenticado (sin re-pedir la contraseña) — decisión tomada con el
-   * usuario: el servidor nunca ve el dato biométrico en sí (se valida
-   * enteramente en el enclave seguro del teléfono), así que la única
-   * garantía real que puede pedir es una sesión ya válida.
+   * huella/Face ID en el propio dispositivo. El servidor no puede
+   * comprobar esa biometría, así que solo la acepta como reconfirmación de
+   * quien ya tiene un documento aprobado (403 `requiere_documento` si no;
+   * ADR 0006, opción c).
    */
   verificarBiometriaNativa(): Observable<Usuario> {
     return this.http.post<Usuario>(`${environment.apiUrl}/auth/verificar-biometria-nativa/`, {});

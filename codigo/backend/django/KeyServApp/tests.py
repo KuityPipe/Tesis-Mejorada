@@ -457,6 +457,15 @@ class PreferenciasCuentaTests(TestCase):
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.check_password('ClaveNueva123'))
 
+    def test_cambiar_password_revoca_las_sesiones_de_la_api(self):
+        from .api import jwt_utils
+        _, refresh_robado, _sesion = jwt_utils.crear_sesion(self.usuario)
+        self.client.post(reverse('KeyServApp:preferencias_cuenta'), {
+            'form': 'password', 'password_actual': 'clave_actual',
+            'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        })
+        self.assertIsNone(jwt_utils.obtener_sesion_vigente(refresh_robado))
+
     def test_cambiar_password_con_la_actual_incorrecta_no_cambia_nada(self):
         resp = self.client.post(reverse('KeyServApp:preferencias_cuenta'), {
             'form': 'password', 'password_actual': 'clave-equivocada',
@@ -552,6 +561,16 @@ class RecuperarPasswordTests(TestCase):
         self.assertRedirects(resp, reverse('KeyServApp:sesion'))
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.check_password('ClaveNueva2026!'))
+
+    def test_recuperar_la_contrasena_revoca_las_sesiones_de_la_api(self):
+        from .api import jwt_utils
+        from .views import _generar_token_recuperacion
+        _, refresh_robado, _sesion = jwt_utils.crear_sesion(self.usuario)
+        token = _generar_token_recuperacion(self.usuario)
+        self.client.post(reverse('KeyServApp:recuperar_confirmar', args=[token]), {
+            'password': 'ClaveNueva2026!', 'password_confirm': 'ClaveNueva2026!',
+        })
+        self.assertIsNone(jwt_utils.obtener_sesion_vigente(refresh_robado))
 
     def test_token_invalido_no_deja_pasar(self):
         resp = self.client.get(reverse('KeyServApp:recuperar_confirmar', args=['token-inventado']), follow=True)
@@ -1406,6 +1425,45 @@ class PagoTests(TestCase):
         self.contratacion.refresh_from_db()
         self.assertEqual(pago.estado, Pago.RECHAZADO)
         self.assertEqual(self.contratacion.estado, Contratacion.CONFIRMADA)
+
+    def test_webpay_retorno_repetido_no_pisa_un_pago_ya_pagado(self):
+        # Recargar la página de retorno repite el token_ws; Transbank rechaza el segundo commit con una excepción.
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        respuesta_aprobada = {'response_code': 0, 'status': 'AUTHORIZED', 'authorization_code': 'AUTH1'}
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', return_value=respuesta_aprobada):
+            self.client.post(reverse('KeyServApp:pago_webpay_retorno'), {'token_ws': 'tok123'})
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', side_effect=Exception('already committed')) as commit:
+            resp = self.client.post(reverse('KeyServApp:pago_webpay_retorno'), {'token_ws': 'tok123'})
+        commit.assert_not_called()
+        pago.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PAGADO)
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
+        self.assertContains(resp, 'AUTH1')
+
+    def test_webpay_error_de_red_en_un_pago_pendiente_lo_marca_rechazado(self):
+        pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')
+        with mock.patch('KeyServApp.pagos.TransbankService.confirmar_transaccion', side_effect=Exception('timeout')):
+            self.client.post(reverse('KeyServApp:pago_webpay_retorno'), {'token_ws': 'tok123'})
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.RECHAZADO)
+
+    def test_khipu_retorno_de_una_contratacion_ajena_da_404_y_queda_registrado(self):
+        intruso = _crear_usuario('intruso_pago@test.com', 'clave_int', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        session = self.client.session
+        session['usuario_id'] = intruso.id_usuario
+        session.save()
+        resp = self.client.get(reverse('KeyServApp:pago_khipu_retorno', args=[self.contratacion.id_contratacion]))
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(recurso='contratacion', usuario=intruso).exists())
+
+    def test_khipu_retorno_del_cliente_sigue_funcionando(self):
+        Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.KHIPU, khipu_payment_id='pay123')
+        with mock.patch('KeyServApp.pagos.KhipuService.consultar_pago', return_value={'status': 'done', 'payment_id': 'pay123'}):
+            resp = self.client.get(reverse('KeyServApp:pago_khipu_retorno', args=[self.contratacion.id_contratacion]))
+        self.assertEqual(resp.status_code, 200)
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
 
     def test_webpay_cancelado_por_el_usuario_queda_anulado(self):
         pago = Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=Pago.WEBPAY, token_webpay='tok123')

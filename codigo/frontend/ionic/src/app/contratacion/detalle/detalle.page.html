@@ -214,6 +214,23 @@
       </ion-card>
     </div>
 
+    <!-- Rechazar (proveedor, SOLICITADA) / Cancelar (cliente, antes de pagar) / aviso de soporte (cliente, ya pagada) -->
+    <div class="ks-section" *ngIf="puedeRechazar || puedeCancelar || requiereSoporteParaCancelar" appReveal>
+      <p class="ks-section-title">{{ puedeRechazar ? 'Rechazar solicitud' : 'Cancelar contratación' }}</p>
+      <ion-card>
+        <ion-card-content>
+          <p *ngIf="requiereSoporteParaCancelar">Esta contratación ya está pagada. Para cancelarla y recuperar tu dinero, contacta a soporte desde la sección Contacto.</p>
+          <ion-text color="danger" *ngIf="errorAccion && !(puedeConfirmar || puedeCompletar)"><p class="ion-padding-start">{{ errorAccion }}</p></ion-text>
+          <ion-button *ngIf="puedeRechazar" expand="block" fill="outline" color="danger" (click)="cerrarContratacion('rechazar')" [disabled]="procesandoAccion">
+            Rechazar solicitud
+          </ion-button>
+          <ion-button *ngIf="puedeCancelar" expand="block" fill="outline" color="danger" (click)="cerrarContratacion('cancelar')" [disabled]="procesandoAccion">
+            Cancelar contratación
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <!-- Valorar (cliente, COMPLETADA, todavía sin reseña) -->
     <div class="ks-section" *ngIf="puedeValorar" appReveal>
       <p class="ks-section-title">Califica este trabajo</p>

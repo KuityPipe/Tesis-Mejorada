@@ -33,7 +33,8 @@ MAX_SERVICIOS = 4
 
 AVISO_IA = (
     'Este chat usa un servicio de inteligencia artificial externo. No escribas datos personales '
-    '(RUT, correo, teléfono, tarjetas): los ocultamos antes de enviarlos, pero es mejor no compartirlos.'
+    '(RUT, correo, teléfono, tarjetas, direcciones): ocultamos los identificadores más comunes antes de enviarlos, '
+    'pero no podemos garantizar que se detecten todos, así que es mejor no compartirlos.'
 )
 
 # --- Enmascarado de datos personales -------------------------------------------------------------
@@ -42,12 +43,27 @@ _RUT = re.compile(r'\b\d{1,2}\.?\d{3}\.?\d{3}\s?-\s?[\dkK]\b')
 _EMAIL = re.compile(r'[\w.+-]+@[\w-]+(?:\.[\w-]+)+')
 _TELEFONO = re.compile(r'(?<!\d)(?:\+?56[\s-]?)?9[\s-]?\d{4}[\s-]?\d{4}(?!\d)')
 _NUMERO_LARGO = re.compile(r'(?<!\d)(?:\d[\s-]?){9,}(?!\d)')  # tarjetas, documentos, cuentas
+_RUT_SIN_GUION = re.compile(r'\b\d{7,8}[kK]\b')  # 12345678K (los numéricos de 9 dígitos ya los cubre _NUMERO_LARGO)
+# Calle/avenida/pasaje + nombre + número ("Av. Providencia 1234", "pasaje Los Olmos #56").
+_DIRECCION = re.compile(
+    r"\b(?:avenida|av\.?|calle|pasaje|psje\.?|pje\.?|camino|poblaci[oó]n|villa)\s+[\wáéíóúñÁÉÍÓÚÑ.' ]{1,40}?\s*(?:#|n[°ºo]\.?\s*)?\d{1,5}\b",
+    re.IGNORECASE,
+)
+# Nombre declarado ("me llamo Ana Pérez", "mi nombre es Pedro", "soy Juan Soto"): el prefijo no distingue
+# mayúsculas, el nombre sí (solo palabras con inicial mayúscula), para no tragarse "soy cliente de...".
+_NOMBRE_DECLARADO = re.compile(
+    r"\b((?i:me llamo|mi nombre es|soy))\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+(?:de\s+|del\s+|la\s+)?[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,3}",
+)
 
 
 def enmascarar_datos_personales(texto):
     """Devuelve `(texto_enmascarado, cantidad_de_cosas_ocultadas)`."""
     total = 0
-    for patron, marca in ((_EMAIL, '[correo oculto]'), (_RUT, '[RUT oculto]'), (_TELEFONO, '[teléfono oculto]'), (_NUMERO_LARGO, '[número oculto]')):
+    for patron, marca in (
+        (_EMAIL, '[correo oculto]'), (_RUT, '[RUT oculto]'), (_TELEFONO, '[teléfono oculto]'),
+        (_NUMERO_LARGO, '[número oculto]'), (_RUT_SIN_GUION, '[RUT oculto]'),
+        (_DIRECCION, '[dirección oculta]'), (_NOMBRE_DECLARADO, r'\1 [nombre oculto]'),
+    ):
         texto, n = patron.subn(marca, texto)
         total += n
     return texto, total
