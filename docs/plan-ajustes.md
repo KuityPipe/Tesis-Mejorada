@@ -108,3 +108,11 @@ revisión legal, entorno de producción real y respaldo del keystore de Android.
   `#0C7F6D` (4,9:1). El verde/coral vivos quedan solo para decoración.
 - **Uso del ancho:** las páginas de secciones pasan de una columna angosta (900 px) a 2 columnas balanceadas
   (`ks-content-cols`, CSS multi-column) y el detalle de servicio usa ficha lateral fija; así no quedan espacios sin usar.
+
+## 2026-10-15 — Revisión externa: correcciones y decisiones del dueño
+
+- **Eliminar cuenta ya no anonimiza al instante:** la cuenta queda bloqueada 15 días (`CUENTA_ELIMINACION_DIAS`) por si hay una queja o un problema entre las partes de un trabajo; luego se anonimiza. Cambia el ADR 0004 (supresión). Lo que se conserva como evidencia para la policía queda **pendiente de abogado** (ADR 0007).
+- **Las solicitudes sin respuesta expiran** (valor inicial 7 días) y se avisa por correo a ambas partes; se crea un punto único de avisos por correo y una lista de avisos propuestos (ADR 0007).
+- **Verificación nativa:** no se puede saltar con un `curl`; solo reconfirma a quien ya tiene un documento aprobado (ADR 0006, opción c). Aumenta el alcance: falta una prueba real del dispositivo y definir "identidad verificada". La afirmación del README sobre atestación de hardware se retiró por no ser cierta.
+- **Nuevo en el plan:** plan del flujo de dinero (comisión, payouts, reembolsos, documentos tributarios), solo investigación y diseño; el modelo de ingresos decidido (3–5 %) no existe aún en el código.
+- **Copy del asistente de IA:** deja de decir "no se envían datos personales"; ahora "se ocultan identificadores comunes y se avisa no compartir datos" (el enmascarado por patrón no es infalible).

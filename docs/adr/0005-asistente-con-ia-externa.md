@@ -12,9 +12,11 @@
    el servidor), el historial de la conversación **enmascarado** y, si corresponde, resultados del **catálogo público**
    que busca el servidor (título, categoría, precio, comuna; solo publicaciones aprobadas y de cuentas sin bloqueo).
    Nunca recibe correo, teléfono, RUT, datos de la cuenta, biometría ni imágenes.
-2. **Enmascarado antes de salir:** RUT (con o sin puntos), correos, teléfonos chilenos y números largos
-   (tarjetas/documentos) se reemplazan por una marca (`enmascarar_datos_personales`). Hay tests de lo que realmente se
-   envía al proveedor.
+2. **Enmascarado antes de salir:** RUT (con o sin puntos y guion), correos, teléfonos chilenos, números largos
+   (tarjetas/documentos), direcciones (calle/avenida/pasaje + número) y nombres declarados ("me llamo…", "soy…") se
+   reemplazan por una marca (`enmascarar_datos_personales`). Hay tests de lo que realmente se envía al proveedor. **No
+   garantiza** que el texto libre quede sin datos personales: oculta identificadores por patrón, y el aviso del widget
+   pide no compartirlos (el texto sin patrón reconocible, como un apellido suelto, pasa tal cual).
 3. **La clave nunca va al frontend.** Proxy en Django; proveedor intercambiable por variables de entorno
    (`LLM_BASE_URL`, `LLM_API_KEY` o `NVIDIA_API_KEY`, `LLM_MODEL`). Sin clave, o si el proveedor falla, responde un
    **flujo guiado sin IA** (palabras clave sobre las mismas preguntas frecuentes) y el catálogo sigue funcionando.

@@ -16,6 +16,18 @@ fuera de alcance de esa sesión:
   `latitud`/`longitud` en `NULL` — no se completan todas de una, se van agregando según haga falta.
   Cualquier corrección a las 9 ya cargadas va en una migración nueva, no editando la `0027`.
 
+## Pendientes de la revisión externa del 2026-10-15
+
+Detalle y decisiones en `docs/ESTADO_Y_PROXIMOS_PASOS.md` y los ADR 0006/0007.
+- **Verificación de identidad:** prueba real del dispositivo para la vía nativa (llave que firma un desafío, secreto de dispositivo o Play Integrity/App Attest), definir "identidad verificada" y su vínculo con la cédula, y manejar la verificación vencida (pedirla al confirmar un trabajo y ocultar del catálogo con aviso previo). ADR 0006.
+- **`Usuario.sesiones_invalidadas_en`:** invalidar también los access tokens ya emitidos al cambiar la clave, bloquear o eliminar (necesita decisión).
+- **Más avisos por correo** (acceso a la cuenta, servicio contratado/confirmado, pago, verificación por vencer): usar `notificaciones_correo.avisar`; depende de tener SMTP real. ADR 0007.
+- **Evidencia para investigaciones:** retención reforzada de casos marcados ("legal hold"); hoy un chat de un trabajo cerrado se borra a los 90 días aunque exista una queja. ADR 0007, con abogado.
+- **Flujo de dinero:** comisión congelada al confirmar, reembolsos (cierra el 409 `requiere_soporte`), payouts o split, disputas y documentos tributarios. `docs/PLAN_FLUJO_DE_DINERO.md`.
+- **Reembolso de pagos sobre contratación cancelada:** hoy solo queda un `logger.warning` (típico de Khipu, cuyo webhook llega tarde).
+- **Cancelar una contratación `EN_CURSO`** (ya pagada): solo por soporte hasta que exista el flujo de reembolso.
+- **Mejora de e2e:** el servidor de desarrollo local es lento con varios workers; fijar `workers: 1` en `playwright.config.ts` si se vuelve a ver (en CI parte limpio).
+
 ## Otros ítems pendientes
 
 Documento vivo (se actualiza cada sesión, a diferencia de `docs/archivo/AUDITORIA_8000_vs_8100.md`, que es

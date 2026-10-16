@@ -31,7 +31,7 @@ It also runs locally in a few minutes — see [Running locally](#running-locally
 - **Auth**: hand-rolled JWT (PyJWT), not `djangorestframework-simplejwt` — see [Technical decisions](#technical-decisions)
 - **Payments**: Transbank Webpay Plus (cards) + Khipu (bank transfer)
 - **Biometrics**: native device biometrics (Face ID / fingerprint via Capacitor, primary), webcam facial recognition with blink-liveness detection (secondary; only an **encrypted** 128-number vector is stored, never an image), and a no-biometrics fallback (email code + document reviewed by a person)
-- **AI assistant**: FAQ + catalog search through NVIDIA NIM (OpenAI-compatible API, swappable); personal data is masked before leaving the server and a no-AI guided flow is the fallback
+- **AI assistant**: FAQ + catalog search through NVIDIA NIM (OpenAI-compatible API, swappable); common identifiers are masked before leaving the server (and users are told not to share personal data), with a no-AI guided flow as the fallback
 - **Data-protection compliance (Ley 21.719)**: consent, encryption at rest, data-subject rights (access, rectification, opposition, blocking, erasure), automated retention, audit log — see [Compliance](#compliance-ley-21719)
 - **Location**: geolocation-based search (real device position via `@capacitor/geolocation`, Haversine distance computed in the API, radius filter), with a map preview + Google Maps link on each listing
 - **Tests**: 407 backend tests + 93 frontend tests, both green (plus a Playwright E2E suite running against the real app in CI)
@@ -86,7 +86,7 @@ KeyServ handles one sensitive datum — the vector derived from a face — so da
 - **Identity verification that expires** (180 days) with an audit trail that never contains biometric data ([ADR 0003](docs/adr/0003-vigencia-y-auditoria-de-verificaciones.md)).
 - **Data-subject rights in the app:** download, rectify, oppose, block (reversible) and delete ([ADR 0004](docs/adr/0004-derechos-del-titular.md)), with a 30-day deadline tracker.
 - **Automated retention** and a breach-response protocol; drafts of the DPIA, record of processing activities and processor list.
-- **No personal data to external AI:** the assistant only sees masked text and public catalog data ([ADR 0005](docs/adr/0005-asistente-con-ia-externa.md)).
+- **Minimized data to external AI:** the assistant never receives account data, biometrics or images; identifiers in free text (ID number, email, phone, long numbers, street addresses, declared names) are masked before leaving the server and the user is warned not to share personal data. Pattern masking is not infallible ([ADR 0005](docs/adr/0005-asistente-con-ia-externa.md)).
 
 The legal texts are technical **drafts**; a lawyer's review is still pending (see [residual risks](docs/cumplimiento/README.md#riesgos-residuales-y-lo-pendiente)).
 
@@ -96,7 +96,7 @@ A few of the calls I'd defend in an interview:
 
 - **Hand-rolled JWT instead of `djangorestframework-simplejwt`.** The app's `Usuario` model predates the API and isn't Django's `AUTH_USER_MODEL` — `simplejwt` assumes `get_user_model()` in several places and doesn't fit cleanly. A small JWT layer (PyJWT for stateless access tokens + an opaque, hashed, revocable refresh token) turned out simpler than bending the app's user model to fit a library.
 - **PostgreSQL over MySQL.** The thesis brief originally specified MySQL; once the project moved past the academic deliverable, PostgreSQL's stronger support for full-text search (`unaccent`, used in the catalog search) and general fit for a Django app made it the better default going forward.
-- **Native biometrics trust model.** When the app verifies identity via the phone's own Face ID/fingerprint (`@capgo/capacitor-native-biometric`), the check happens entirely inside the device's secure enclave — the server structurally cannot verify it directly. Rather than pretend otherwise, the API trusts an already-authenticated JWT session plus the device's hardware attestation, the same trust model banking-style apps use, instead of requiring a redundant password re-entry that wouldn't add real security.
+- **Native biometrics trust model.** When the app verifies identity via the phone's own Face ID/fingerprint (`@capgo/capacitor-native-biometric`), the check happens entirely inside the device's secure enclave — the server structurally cannot verify it directly. Rather than pretend otherwise, the API **currently trusts only an already-authenticated JWT session**: `POST /api/auth/verificar-biometria-nativa/` marks the account as verified without any proof from the device (no hardware attestation, Play Integrity/App Attest or signed challenge exists yet), so anyone with a valid login could call it without opening the app. Native biometrics therefore prove nothing a server can check, and no verification path links an account to an ID card yet. Closing that gap and defining what "verified identity" should mean is proposed in [ADR 0006](docs/adr/0006-verificacion-de-identidad-prueba-del-dispositivo.md) and pending a decision.
 - **Two payment gateways, not one.** Card payments alone (Webpay) don't cover how a meaningful share of Chileans actually pay for services — direct bank transfer (Khipu) is common enough to be worth the extra integration.
 
 ## What broke, and how it got fixed

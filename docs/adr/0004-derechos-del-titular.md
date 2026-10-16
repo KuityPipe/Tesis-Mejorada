@@ -10,13 +10,13 @@
 |---|---|---|
 | Acceso / portabilidad | `GET /api/auth/mis-datos/` (JSON descargable) | Inmediata |
 | Rectificación | Edita su perfil; para lo que no puede cambiar, `POST /api/auth/derechos/` (`RECTIFICACION`) | Solicitud con plazo de 30 días, la resuelve el superusuario en `/admin/` |
-| Supresión | `POST /api/auth/eliminar-cuenta/` (pide contraseña; bloqueada si hay contrataciones activas) | **Anonimización**: se borra o vacía lo identificable; se conservan contratos y pagos por obligación tributaria |
+| Supresión | `POST /api/auth/eliminar-cuenta/` (pide contraseña; rechazada si hay contrataciones confirmadas o en curso; cancela las solicitudes sin confirmar) | La cuenta queda **bloqueada 15 días** y luego se **anonimiza** (ver [ADR 0007](0007-retencion-evidencia-y-avisos.md)): se borra o vacía lo identificable; se conservan contratos y pagos por obligación tributaria |
 | Oposición | `POST /api/auth/derechos/` (`OPOSICION`, `finalidad: biometria`) | Inmediata: se revoca el consentimiento y se borra el vector. Otras oposiciones: revisión manual en 30 días |
 | Bloqueo | `POST /api/auth/bloqueo-tratamiento/` | Inmediata y reversible: sus publicaciones salen del catálogo y no puede publicar ni contratar; se conserva la cuenta |
 
 - Cada solicitud queda en `SolicitudTitular` (tipo, estado, fechas, quién resolvió). El dashboard del superusuario muestra
   las pendientes y destaca las vencidas.
-- Acceso y supresión son autoservicio y no generan solicitud (la supresión borra incluso las solicitudes y los eventos).
+- Acceso y supresión son autoservicio y no generan solicitud (al anonimizar se borran incluso las solicitudes y los eventos).
 
 ## Consecuencias
 

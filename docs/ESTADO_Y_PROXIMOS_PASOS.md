@@ -1,6 +1,6 @@
 # Estado del proyecto y próximos pasos
 
-> Punto de retoma. Última actualización: 2026-10-13, al cierre de la sesión. Complementa
+> Punto de retoma. Última actualización: 2026-10-15, al cierre de la sesión de correcciones de la revisión externa. Complementa
 > `docs/PLAN_MAESTRO_2026-27.md` (plan y estado por fase) y `docs/plan-ajustes.md` (cambios de alcance).
 
 ## Próximos pasos del dueño (empezar por aquí)
@@ -15,6 +15,28 @@
 5. **Con el correo funcionando**, pedir a Claude: verificación del correo al registrarse (hoy no se hace porque no habría forma de probarla).
 
 **Otros pendientes que dependen de ti** (en orden de utilidad): revisión de un abogado (consentimiento, EIPD, qué se conserva al borrar una cuenta, contratos con Render/Neon/Netlify); texto de Términos y Condiciones (hoy no existe); decidir la fecha de la política ("agosto de 2026") y cambiar el enlace de Play Store a `https://keyserv.netlify.app/privacidad`; respaldo del keystore de Android; para Corfo: formulario de Google Forms con personas reales, presupuesto con supuestos y equipo/asesores.
+
+## Sesión 2026-10-15 (correcciones de la revisión externa, SIN commitear)
+
+Revisión externa del repo (copia de `master`) con 5 bugs reproducidos; todos corregidos o con decisión documentada. Suite: backend 460 OK, frontend 124 OK, e2e 10 OK (con `--workers=1`: con 4 workers en paralelo el servidor de desarrollo local es lento y fallan por tiempo).
+
+- **Webpay doble confirmación:** `views.confirmar_pago_webpay` (compartida por plantilla y API). Un pago ya `PAGADO` no se vuelve a confirmar ni se marca rechazado; errores/rechazos solo cambian un pago `PENDIENTE`. `_procesar_pago_aprobado` bloquea la fila (`select_for_update`). Un pago `ANULADO` ya no se confirma con Transbank.
+- **Sesiones:** cambiar o recuperar la contraseña revoca todas las `TokenSesion` (API y plantillas); `cambiar-password` devuelve un par de tokens nuevo y Ionic lo guarda. Los access tokens de 20 min ya emitidos siguen valiendo hasta vencer. **Pendiente de decisión:** `Usuario.sesiones_invalidadas_en` (rechazar access tokens con `iat` anterior), que además serviría para logout global, bloqueo y eliminación.
+- **Rechazar / cancelar contratación:** `POST /api/contrataciones/<id>/rechazar/` (proveedor, `SOLICITADA`) y `.../cancelar/` (cliente, antes de pagar). Pagada o `EN_CURSO` → 409 `requiere_soporte`. Lógica común en `cierres.py`. Botones con confirmación en `contratacion/detalle`.
+- **Eliminar cuenta con espera de 15 días** (decisión del dueño): bloquea la cuenta, cancela sus solicitudes sin confirmar, cierra sesiones y avisa por correo; `purgar_datos_vencidos` anonimiza pasados `CUENTA_ELIMINACION_DIAS`. Desbloquear el tratamiento la cancela. Migración `0036` (escrita a mano).
+- **Solicitudes que expiran:** `expirar_solicitudes` (dentro de `mantenimiento_retencion`), `SOLICITUD_EXPIRA_DIAS`=7 (valor inicial, ajustable), con correo a ambas partes. Punto único de avisos: `notificaciones_correo.avisar`.
+- **Biometría nativa:** el endpoint solo marca verificado a quien ya tiene un documento aprobado por una persona (opción (c) del [ADR 0006](adr/0006-verificacion-de-identidad-prueba-del-dispositivo.md)); sin eso 403 `requiere_documento`. README corregido (decía que había atestación de hardware; no la hay). **Sigue pendiente** una prueba real del dispositivo ((a) llave que firma un desafío, (a-lite) o Play Integrity/App Attest) y decidir qué significa "identidad verificada" (ADR 0006 §2) y qué hacer con la verificación vencida (§4).
+- **Menores:** retorno de Khipu de plantilla exige ser cliente o proveedor; el enmascarado del asistente suma direcciones, nombres declarados y RUT con K sin guion, y el copy (ADR 0005, README, privacidad) ya no dice que no se envían datos personales.
+- **Documentos nuevos:** [ADR 0006](adr/0006-verificacion-de-identidad-prueba-del-dispositivo.md), [ADR 0007](adr/0007-retencion-evidencia-y-avisos.md) (evidencia para la policía y avisos por correo) y [PLAN_FLUJO_DE_DINERO.md](PLAN_FLUJO_DE_DINERO.md) (solo plan).
+- Para correr el e2e local hizo falta `migrate` (la base local iba atrás de la 0033) y completar precios nulos de datos de prueba viejos antes de `sembrar_datos_demo`.
+
+### Pendiente que depende del dueño (recordar al final de cada sesión)
+
+**Decisiones:** elegir la opción de verificación del ADR 0006 más allá de la (c) y qué promete el copy; si se implementa `sesiones_invalidadas_en`; el N de expiración de solicitudes; qué evidencia conservar (ADR 0007, con abogado); el flujo de dinero (`PLAN_FLUJO_DE_DINERO.md`, con contador/abogado).
+**Configuración:** SMTP real (`SMTP_*` + `DJANGO_DEFAULT_FROM_EMAIL` en `.env` y Render, probar con `probar_correo`); en producción confirmar `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `JWT_SECRET` y `BIOMETRIC_ENCRYPTION_KEYS` (hoy tienen valores por defecto inseguros: `SECRET_KEY` fijo, `DEBUG` True, `JWT_SECRET` cae a `SECRET_KEY`, la llave biométrica se deriva de `SECRET_KEY`); revisar si los términos del API gratuito de NVIDIA permiten uso en producción y declarar el envío de texto fuera de Chile en la política y el registro de encargados; respaldar `keyserv-release.keystore` y `keystore.properties` fuera del repo.
+**Legal:** revisión de un abogado (consentimiento biométrico, EIPD, qué se conserva al eliminar una cuenta, contratos con Render/Neon/Netlify/NVIDIA) y Términos y Condiciones (no existen).
+**Corfo:** elegir programa y leer las bases vigentes; encuesta con personas reales; presupuesto con supuestos escritos; equipo y asesores; video demo del README.
+**Revisión manual pendiente:** abrir en el navegador el flujo de eliminar cuenta (Preferencias) y el de rechazar/cancelar (detalle de contratación).
 
 ## Sesión 2026-10-13/14 (noche: auditoría completa y arreglos, SIN commitear)
 

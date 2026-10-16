@@ -12,7 +12,8 @@ El repo es público (portafolio). Esta tabla dice qué hay, para qué sirve y si
 | `plan-ajustes.md` | Registro fechado de cambios de alcance | Sí |
 | `fase-0-reconocimiento.md` | Auditoría inicial y riesgos | Con reserva: lista riesgos de seguridad (ya mitigados la mayoría) |
 | `fase-1-auditoria-datos.md` | Inventario de datos, hallazgos y brechas frente a la ley | Sí |
-| `adr/` | Decisiones de arquitectura (verificación, cifrado, vigencia/auditoría, derechos del titular, asistente con IA) | Sí |
+| `adr/` | Decisiones de arquitectura (verificación, cifrado, vigencia/auditoría, derechos del titular, asistente con IA, prueba del dispositivo e identidad verificada —propuesta—, retención/evidencia/avisos) | Sí |
+| `PLAN_FLUJO_DE_DINERO.md` | Comisión, pagos al proveedor, reembolsos y documentos tributarios: opciones y brechas (solo plan, sin código) | Sí (con reserva: depende de asesoría legal/tributaria) |
 | `legal/protocolo-de-brechas.md` | Protocolo ante brechas de seguridad, **borrador** | Con reserva: marcar como borrador |
 | `cumplimiento/README.md` | **Carpeta de evidencia de cumplimiento**: índice, medidas técnicas, matriz requisito → evidencia y riesgos residuales | Sí |
 | `resumen-mejoras.md` | Resumen ejecutivo de las mejoras 2026/27 (tesis, portafolio, Corfo) | Sí |
