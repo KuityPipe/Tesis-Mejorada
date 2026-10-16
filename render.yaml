@@ -58,5 +58,14 @@ services:
       # Khipu no tiene sandbox público — sin KHIPU_API_KEY, pagar por Khipu
       # falla con un mensaje claro en vez de un 500 (ver pagos.py). No hace
       # falta completarlo para el demo.
+      # Flow y Mercado Pago sí tienen sandbox: completar a mano en Render las claves
+      # de PRUEBA (FLOW_API_KEY, FLOW_SECRET_KEY, MERCADOPAGO_ACCESS_TOKEN) para
+      # que la app los ofrezca como medios de pago; sin ellas no aparecen.
+      - key: FLOW_API_KEY
+        sync: false
+      - key: FLOW_SECRET_KEY
+        sync: false
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
       - key: GEOIP_HABILITADO
         value: "False"

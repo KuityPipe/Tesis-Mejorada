@@ -1,14 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { Pagos } from '../../pagos';
+import { MetodoExterno, Pagos } from '../../pagos';
 
 /**
- * `/pago/khipu/retorno/:id` — a donde Khipu redirige de vuelta al
- * navegador (aprobado o cancelado), equivalente Ionic de
- * `pago_khipu_retorno_view`. La verdad sobre si se pagó la trae el
- * webhook (servidor-a-servidor, sigue en Django), pero acá se reconsulta
- * igual por UX — ver `Pagos.estadoKhipu`.
+ * `/pago/khipu/retorno/:id` y `/pago/retorno/:metodo/:id` (flow, mercadopago) —
+ * a donde la pasarela redirige de vuelta al navegador (aprobado o cancelado),
+ * equivalente Ionic de `pago_khipu_retorno_view`. La verdad sobre si se pagó la
+ * trae el webhook (servidor-a-servidor, sigue en Django), pero acá se reconsulta
+ * igual por UX — ver `Pagos.estadoKhipu` / `Pagos.estadoExterno`.
  */
 @Component({
   selector: 'app-khipu-retorno',
@@ -30,7 +30,11 @@ export class RetornoPage implements OnInit {
 
   ngOnInit(): void {
     this.contratacionId = Number(this.route.snapshot.paramMap.get('id'));
-    this.pagosApi.estadoKhipu(this.contratacionId).subscribe({
+    const metodo = this.route.snapshot.paramMap.get('metodo');
+    const consulta = metodo === 'flow' || metodo === 'mercadopago'
+      ? this.pagosApi.estadoExterno(metodo as MetodoExterno, this.contratacionId)
+      : this.pagosApi.estadoKhipu(this.contratacionId);
+    consulta.subscribe({
       next: (respuesta) => {
         this.cargando = false;
         this.aprobado = respuesta.aprobado;

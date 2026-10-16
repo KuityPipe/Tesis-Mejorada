@@ -116,6 +116,11 @@ const routes: Routes = [
     loadChildren: () => import('./pago/webpay/retorno/retorno.module').then( m => m.RetornoPageModule),
   },
   {
+    path: 'pago/retorno/:metodo/:id',
+    title: 'Resultado del pago · KeyServ',
+    loadChildren: () => import('./pago/khipu/retorno/retorno.module').then( m => m.RetornoPageModule),
+  },
+  {
     path: 'pago/khipu/retorno/:id',
     title: 'Resultado del pago · KeyServ',
     loadChildren: () => import('./pago/khipu/retorno/retorno.module').then( m => m.RetornoPageModule),

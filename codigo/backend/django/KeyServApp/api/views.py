@@ -1733,6 +1733,102 @@ class PagoKhipuEstadoView(APIView):
         return Response({'aprobado': aprobado, 'mensaje': mensaje})
 
 
+class PagoMetodosView(APIView):
+    """`GET /api/pagos/metodos/` — qué medios de pago están configurados en este entorno, para que la app solo ofrezca los que funcionan."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response(pagos.metodos_disponibles())
+
+
+METODOS_EXTERNOS = {'flow': Pago.FLOW, 'mercadopago': Pago.MERCADOPAGO}
+
+
+class PagoExternoIniciarView(APIView):
+    """
+    `POST /api/contrataciones/<id>/pagos/<flow|mercadopago>/iniciar/` — crea el cobro en Flow o en Mercado Pago y
+    devuelve `{payment_url}` para que Ionic navegue ahí (GET directo, sin el truco del `<form>` de Webpay). Mismos
+    chequeos que Webpay/Khipu: solo el cliente, contratación CONFIRMADA, monto acordado real.
+    """
+
+    def post(self, request, contratacion_id, metodo):
+        if metodo not in METODOS_EXTERNOS:
+            raise Http404()
+        contratacion, error = _validar_pago_posible_api(request, contratacion_id)
+        if error:
+            return error
+
+        pago, _creado = Pago.objects.get_or_create(
+            contratacion=contratacion, defaults={'monto': contratacion.monto_acordado, 'metodo': METODOS_EXTERNOS[metodo]},
+        )
+        if pago.estado == Pago.PAGADO:
+            return Response({'detail': 'Esta contratación ya está pagada.'}, status=status.HTTP_400_BAD_REQUEST)
+        pago.metodo = METODOS_EXTERNOS[metodo]
+        pago.monto = contratacion.monto_acordado
+        pago.estado = Pago.PENDIENTE
+        pago.orden_compra = vistas_legacy._generar_orden_compra(contratacion)
+        pago.referencia_externa = None
+        pago.save()
+
+        asunto = f'KeyServ — {contratacion.publicacion.titulo}'[:250]
+        try:
+            if metodo == 'flow':
+                servicio = pagos.FlowService()
+                respuesta = servicio.crear_pago(
+                    monto=pago.monto, asunto=asunto, orden_comercio=pago.orden_compra, email=contratacion.cliente.email,
+                    url_retorno=request.build_absolute_uri(reverse('KeyServApp:pago_flow_retorno', args=[contratacion_id])),
+                    url_confirmacion=request.build_absolute_uri(reverse('KeyServApp:pago_flow_confirmacion')),
+                )
+                pago.referencia_externa = respuesta['token']
+                url_pago = servicio.url_de_pago(respuesta)
+            else:
+                respuesta = pagos.MercadoPagoService().crear_preferencia(
+                    monto=pago.monto, titulo=asunto, referencia=str(pago.id_pago), email=contratacion.cliente.email,
+                    url_retorno=f'{settings.IONIC_FRONTEND_URL}/pago/retorno/mercadopago/{contratacion_id}',
+                    url_notificacion=request.build_absolute_uri(reverse('KeyServApp:pago_mercadopago_notificacion')),
+                )
+                pago.referencia_externa = str(respuesta.get('id') or '')
+                url_pago = respuesta['init_point']
+        except RuntimeError as error:
+            # Sin claves configuradas: mensaje claro en vez de un 500.
+            return Response({'detail': str(error)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception:
+            logger.exception('Error iniciando pago %s (api): contratacion=%s', metodo, contratacion_id)
+            return Response(
+                {'detail': 'No pudimos conectar con la pasarela de pago en este momento. Prueba de nuevo en unos minutos.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        pago.save()
+        logger.info('Pago %s iniciado (api): contratacion=%s pago=%s', metodo, contratacion_id, pago.id_pago)
+        return Response({'payment_url': url_pago})
+
+
+class PagoExternoEstadoView(APIView):
+    """`GET /api/contrataciones/<id>/pagos/<flow|mercadopago>/estado/` — como `PagoKhipuEstadoView`: reconsulta a la pasarela si el pago sigue pendiente, para no hacer esperar al usuario mientras llega el webhook."""
+
+    def get(self, request, contratacion_id, metodo):
+        if metodo not in METODOS_EXTERNOS:
+            raise Http404()
+        contratacion = get_object_or_404(Contratacion, pk=contratacion_id)
+        if request.user not in (contratacion.cliente, contratacion.proveedor):
+            vistas_legacy._registrar_intento_sospechoso(request, request.user, 'contratacion', contratacion_id, f'contratación ajena (api, pago {metodo})')
+            raise Http404()
+
+        pago = getattr(contratacion, 'pago', None)
+        if pago and pago.metodo == METODOS_EXTERNOS[metodo]:
+            pago = vistas_legacy.reconsultar_pago_externo(pago)
+        else:
+            pago = None
+        aprobado = bool(pago and pago.estado == Pago.PAGADO)
+        if aprobado:
+            mensaje = 'Pago confirmado.'
+        elif pago and pago.estado == Pago.PENDIENTE:
+            mensaje = 'Todavía estamos esperando la confirmación del pago — puede tardar unos minutos.'
+        else:
+            mensaje = 'El pago no se completó.'
+        return Response({'aprobado': aprobado, 'mensaje': mensaje})
+
+
 class PagoHistorialView(generics.ListAPIView):
     """`GET /api/pagos/historial/` — equivalente API de `historial_pagos_view`: pagos del cliente logueado, más recientes primero. Nunca los del proveedor (`contratacion__cliente`, no `contratacion__proveedor`) — el proveedor ve el estado del pago de una contratación puntual dentro de esa contratación, no un historial propio (mismo criterio que el template)."""
     serializer_class = PagoHistorialSerializer

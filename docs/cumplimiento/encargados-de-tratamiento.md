@@ -12,6 +12,8 @@
 | NVIDIA (NIM) | Mensajes del asistente **ya enmascarados** (sin RUT, correo, teléfono ni números largos) y resultados del catálogo público | Modelo de lenguaje del asistente | API gratuita de prototipo, con límites; sin clave el asistente funciona sin IA; revisar términos y retención de NVIDIA antes de producción |
 | Transbank (Webpay) | Datos de tarjeta (nunca pasan por KeyServ), monto | Pagos con tarjeta | Sandbox en la demo; producción exige cuenta de comercio |
 | Khipu | Monto y datos de la transferencia | Pagos por transferencia | Sin probar con cuenta real |
+| Flow | Monto y **correo del pagador** | Pagos (tarjeta, transferencia y otros medios) | Sandbox público (`sandbox.flow.cl`); código sin probar contra él: faltan credenciales de una cuenta del dueño |
+| Mercado Pago | Monto y **correo del pagador** | Pagos con tarjeta y otros medios | Credenciales de prueba (`TEST-…`) del panel de desarrolladores; código sin probar contra ellas |
 | DB-IP | Nada: la base de geolocalización se consulta localmente | Ciudad/país aproximados por IP | Atribución CC-BY requerida |
 | Google Maps | IP del navegador del visitante | Mapa embebido de la ubicación del proveedor | Carga desde el navegador del usuario |
 | Proveedor SMTP | Email del destinatario y contenido del correo | Recuperación de contraseña | Por confirmar cuál se usa en producción |

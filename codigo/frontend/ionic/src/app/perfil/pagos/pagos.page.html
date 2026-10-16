@@ -29,7 +29,7 @@
           <ion-icon [name]="iconoMetodo(pago.metodo)" slot="start" color="medium"></ion-icon>
           <ion-label class="ion-text-wrap">
             <h2>{{ pago.publicacion_titulo }}</h2>
-            <p>{{ pago.metodo === 'WEBPAY' ? 'Webpay Plus' : 'Khipu' }} — {{ pago.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p>{{ etiquetaMetodo(pago.metodo) }} — {{ pago.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</p>
           </ion-label>
           <div slot="end" class="ion-text-end">
             <ion-badge [color]="colorEstado(pago.estado)">{{ pago.estado }}</ion-badge>

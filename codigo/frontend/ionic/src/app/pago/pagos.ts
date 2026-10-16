@@ -19,6 +19,16 @@ interface RespuestaIniciarKhipu {
   payment_url: string;
 }
 
+/** Medios de pago configurados en el servidor (`GET /api/pagos/metodos/`). */
+export interface MetodosPago {
+  webpay: boolean;
+  khipu: boolean;
+  flow: boolean;
+  mercadopago: boolean;
+}
+
+export type MetodoExterno = 'flow' | 'mercadopago';
+
 interface RespuestaEstadoPago {
   aprobado: boolean;
   mensaje: string;
@@ -29,7 +39,7 @@ interface RespuestaEstadoPago {
 // lista /perfil/pagos (equivalente Ionic de historial_pagos.html).
 export interface PagoHistorial {
   id_pago: number;
-  metodo: 'WEBPAY' | 'KHIPU';
+  metodo: 'WEBPAY' | 'KHIPU' | 'FLOW' | 'MERCADOPAGO';
   estado: 'PENDIENTE' | 'PAGADO' | 'RECHAZADO' | 'ANULADO';
   monto: number;
   fecha_creacion: string;
@@ -70,6 +80,21 @@ export class Pagos {
   /** Reconsulta contra Khipu si el pago sigue pendiente — la fuente de verdad real es el webhook servidor-a-servidor (que sigue en Django, nunca lo llama el navegador), esto es solo para no hacer esperar al usuario. */
   estadoKhipu(contratacionId: number): Observable<RespuestaEstadoPago> {
     return this.http.get<RespuestaEstadoPago>(`${environment.apiUrl}/contrataciones/${contratacionId}/pagos/khipu/estado/`);
+  }
+
+  /** Qué medios de pago hay disponibles: la app solo ofrece los que el servidor tiene configurados. */
+  metodosDisponibles(): Observable<MetodosPago> {
+    return this.http.get<MetodosPago>(`${environment.apiUrl}/pagos/metodos/`);
+  }
+
+  /** Crea el cobro en Flow o Mercado Pago; devuelve la URL a la que navegar (un GET común, sin el `<form>` de Webpay). */
+  iniciarExterno(metodo: MetodoExterno, contratacionId: number): Observable<RespuestaIniciarKhipu> {
+    return this.http.post<RespuestaIniciarKhipu>(`${environment.apiUrl}/contrataciones/${contratacionId}/pagos/${metodo}/iniciar/`, {});
+  }
+
+  /** Reconsulta a la pasarela si el pago sigue pendiente (la fuente de verdad real es el webhook del servidor). */
+  estadoExterno(metodo: MetodoExterno, contratacionId: number): Observable<RespuestaEstadoPago> {
+    return this.http.get<RespuestaEstadoPago>(`${environment.apiUrl}/contrataciones/${contratacionId}/pagos/${metodo}/estado/`);
   }
 
   /** `GET /api/pagos/historial/` — equivalente API de `historial_pagos_view`, ver `perfil/pagos/pagos.page`. */

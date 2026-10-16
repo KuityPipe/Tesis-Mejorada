@@ -28,6 +28,8 @@ Detalle y decisiones en `docs/ESTADO_Y_PROXIMOS_PASOS.md` y los ADR 0006/0007.
 - **Cancelar una contratación `EN_CURSO`** (ya pagada): solo por soporte hasta que exista el flujo de reembolso.
 - **Mejora de e2e:** el servidor de desarrollo local es lento con varios workers; fijar `workers: 1` en `playwright.config.ts` si se vuelve a ver (en CI parte limpio).
 
+- **Probar Flow y Mercado Pago contra su sandbox real** (el código solo se probó con mocks): firma HMAC de Flow, campos de `payment/create`, `init_point`/`auto_return` y notificaciones de Mercado Pago (que necesitan una URL pública https). Opcional: Fintoc (transferencias, llaves de test) como medio adicional.
+
 ## Otros ítems pendientes
 
 Documento vivo (se actualiza cada sesión, a diferencia de `docs/archivo/AUDITORIA_8000_vs_8100.md`, que es

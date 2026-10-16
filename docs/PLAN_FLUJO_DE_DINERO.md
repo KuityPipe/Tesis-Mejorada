@@ -20,6 +20,8 @@ Decisión del dueño: ingreso por **comisión de 3–5 % por servicio pagado** (
 
 El hueco más serio: hoy **KeyServ recibe plata ajena y no tiene cómo devolverla ni entregarla con trazabilidad**.
 
+> **Actualización 2026-10-15:** Flow y Mercado Pago ya están integrados como **medios de cobro adicionales** (checkout), no como split ni marketplace: siguen entrando a una única cuenta de KeyServ. Lo de abajo sobre repartir el dinero entre proveedores sigue pendiente. Mercado Pago es además el candidato natural para la opción C (split).
+
 ## 2. Opciones de recaudación
 
 ### A. Recaudar todo en KeyServ y transferir al proveedor (lo que existe + payouts)

@@ -182,8 +182,14 @@
             <ion-button expand="block" (click)="pagarConWebpay()" [disabled]="procesandoPago">
               {{ procesandoPago ? 'Redirigiendo…' : 'Pagar con Webpay' }}
             </ion-button>
-            <ion-button expand="block" fill="outline" (click)="pagarConKhipu()" [disabled]="procesandoPago">
+            <ion-button *ngIf="metodosPago.khipu" expand="block" fill="outline" (click)="pagarConKhipu()" [disabled]="procesandoPago">
               {{ procesandoPago ? 'Redirigiendo…' : 'Pagar con Khipu (transferencia)' }}
+            </ion-button>
+            <ion-button *ngIf="metodosPago.mercadopago" expand="block" fill="outline" (click)="pagarConExterno('mercadopago')" [disabled]="procesandoPago">
+              {{ procesandoPago ? 'Redirigiendo…' : 'Pagar con Mercado Pago' }}
+            </ion-button>
+            <ion-button *ngIf="metodosPago.flow" expand="block" fill="outline" (click)="pagarConExterno('flow')" [disabled]="procesandoPago">
+              {{ procesandoPago ? 'Redirigiendo…' : 'Pagar con Flow' }}
             </ion-button>
             <ion-text color="danger" *ngIf="errorPago"><p class="ion-padding-start">{{ errorPago }}</p></ion-text>
           </div>

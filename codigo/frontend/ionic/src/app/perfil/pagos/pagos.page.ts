@@ -45,6 +45,10 @@ export class PagosPage implements OnInit {
   }
 
   iconoMetodo(metodo: string): string {
-    return metodo === 'WEBPAY' ? 'card-outline' : 'business-outline';
+    return metodo === 'WEBPAY' || metodo === 'MERCADOPAGO' ? 'card-outline' : 'business-outline';
+  }
+
+  etiquetaMetodo(metodo: string): string {
+    return { WEBPAY: 'Webpay Plus', KHIPU: 'Khipu', FLOW: 'Flow', MERCADOPAGO: 'Mercado Pago' }[metodo] ?? metodo;
   }
 }

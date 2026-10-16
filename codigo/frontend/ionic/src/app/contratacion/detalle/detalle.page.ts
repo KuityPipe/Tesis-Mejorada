@@ -7,7 +7,7 @@ import { AlertController } from '@ionic/angular';
 import { Auth } from '../../core/auth';
 import { Retroalimentacion } from '../../core/retroalimentacion';
 import { Contrataciones, ContratacionDetalle, Mensaje } from '../../contrataciones/contrataciones';
-import { Pagos } from '../../pago/pagos';
+import { MetodoExterno, MetodosPago, Pagos } from '../../pago/pagos';
 
 /**
  * Detalle de un trabajo puntual — equivalente Ionic de
@@ -70,6 +70,8 @@ export class DetallePage implements OnInit, OnDestroy {
   errorValoracion: string | null = null;
   valoracionOk = false;
   procesandoPago = false;
+  // Hasta saber qué hay configurado en el servidor se asume lo de siempre (Webpay y Khipu).
+  metodosPago: MetodosPago = { webpay: true, khipu: true, flow: false, mercadopago: false };
   errorPago: string | null = null;
 
   constructor(
@@ -88,6 +90,7 @@ export class DetallePage implements OnInit, OnDestroy {
     this.auth.me().subscribe((usuario) => (this.usuarioActualId = usuario.id_usuario));
     this.cargarDetalle();
     this.cargarMensajes();
+    this.pagosApi.metodosDisponibles().subscribe({ next: (metodos) => (this.metodosPago = metodos), error: () => undefined });
   }
 
   ngOnDestroy(): void {
@@ -434,6 +437,24 @@ export class DetallePage implements OnInit, OnDestroy {
       error: (error: HttpErrorResponse) => {
         this.procesandoPago = false;
         this.errorPago = error.error?.detail ?? 'No se pudo iniciar el pago con Khipu.';
+      },
+    });
+  }
+
+  /** Flow y Mercado Pago: igual que Khipu, una navegación GET a la URL que devuelve el servidor. */
+  pagarConExterno(metodo: MetodoExterno): void {
+    if (this.procesandoPago) {
+      return;
+    }
+    this.procesandoPago = true;
+    this.errorPago = null;
+    this.pagosApi.iniciarExterno(metodo, this.contratacionId).subscribe({
+      next: ({ payment_url }) => {
+        window.location.href = payment_url;
+      },
+      error: (error: HttpErrorResponse) => {
+        this.procesandoPago = false;
+        this.errorPago = error.error?.detail ?? 'No se pudo iniciar el pago.';
       },
     });
   }

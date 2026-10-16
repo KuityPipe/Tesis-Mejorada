@@ -72,5 +72,8 @@ urlpatterns = [
     path('pagos/webpay/retorno/', views.pago_webpay_retorno_view, name='pago_webpay_retorno'),
     path('contrataciones/<int:contratacion_id>/pagar/khipu/', views.pago_khipu_iniciar_view, name='pago_khipu_iniciar'),
     path('pagos/khipu/notificacion/', views.pago_khipu_notificacion_view, name='pago_khipu_notificacion'),
+    path('pagos/flow/confirmacion/', views.pago_flow_confirmacion_view, name='pago_flow_confirmacion'),
+    path('pagos/flow/retorno/<int:contratacion_id>/', views.pago_flow_retorno_view, name='pago_flow_retorno'),
+    path('pagos/mercadopago/notificacion/', views.pago_mercadopago_notificacion_view, name='pago_mercadopago_notificacion'),
     path('contrataciones/<int:contratacion_id>/pagar/khipu/retorno/', views.pago_khipu_retorno_view, name='pago_khipu_retorno'),
 ]

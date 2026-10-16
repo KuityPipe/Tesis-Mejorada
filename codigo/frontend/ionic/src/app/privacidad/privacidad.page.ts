@@ -82,7 +82,7 @@ export class PrivacidadPage implements AfterViewInit, OnDestroy {
     {
       icono: 'card-outline',
       titulo: 'Pagos',
-      texto: 'KeyServ nunca ve ni almacena el número de tu tarjeta ni tus credenciales bancarias: eso lo procesan directamente Transbank (Webpay) o Khipu, fuera de nuestros servidores. Solo guardamos el resultado (monto, método y estado: pagado, rechazado o anulado) para tu historial de pagos.',
+      texto: 'KeyServ nunca ve ni almacena el número de tu tarjeta ni tus credenciales bancarias: eso lo procesan directamente Transbank (Webpay), Khipu, Flow o Mercado Pago, fuera de nuestros servidores. Solo guardamos el resultado (monto, método y estado: pagado, rechazado o anulado) para tu historial de pagos.',
     },
     {
       icono: 'chatbubbles-outline',
@@ -97,7 +97,7 @@ export class PrivacidadPage implements AfterViewInit, OnDestroy {
   ];
 
   readonly terceros: Tercero[] = [
-    { icono: 'card-outline', nombre: 'Transbank y Khipu', funcion: 'Pagos', detalle: 'Procesan los pagos con tarjeta (Webpay Plus) y por transferencia. Ninguno recibe más que el monto a cobrar.' },
+    { icono: 'card-outline', nombre: 'Transbank, Khipu, Flow y Mercado Pago', funcion: 'Pagos', detalle: 'Procesan los pagos con tarjeta o transferencia, según el medio que elijas. Transbank y Khipu solo reciben el monto a cobrar; Flow y Mercado Pago reciben además tu correo, que exigen para registrar el pago.' },
     { icono: 'cloud-outline', nombre: 'Render, Neon y Netlify', funcion: 'Alojamiento', detalle: 'Alojan el backend, la base de datos y el frontend. Sus servidores están fuera de Chile: Estados Unidos y Brasil.' },
     { icono: 'logo-github', nombre: 'GitHub', funcion: 'Código y mantenimiento', detalle: 'Aloja el código y ejecuta las tareas automáticas de mantenimiento, como la retención de datos.' },
     { icono: 'earth-outline', nombre: 'DB-IP', funcion: 'Geolocalización local', detalle: 'La base de ubicación aproximada por IP se descarga una vez; no se consulta un servicio externo en cada acceso.' },

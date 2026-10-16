@@ -14,6 +14,10 @@ CAMPOS_PERMITIDOS = frozenset({
     'transaction_date', 'accounting_date', 'buy_order', 'vci',
     # Khipu
     'payment_id', 'status_detail', 'currency', 'transaction_id', 'conclusion_date', 'receipt_date', 'subject', 'type',
+    # Flow
+    'flowOrder', 'commerceOrder', 'requestDate',
+    # Mercado Pago (nunca el pagador ni la tarjeta)
+    'id', 'external_reference', 'transaction_amount', 'currency_id', 'payment_type_id', 'date_approved',
 })
 
 

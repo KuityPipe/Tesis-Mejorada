@@ -635,9 +635,9 @@ class Pago(models.Model):
     )
     monto = models.PositiveIntegerField(db_column='MONTO')
 
-    WEBPAY, KHIPU = 'WEBPAY', 'KHIPU'
-    METODOS_PAGO = [(WEBPAY, 'Webpay Plus'), (KHIPU, 'Khipu')]
-    metodo = models.CharField(max_length=10, choices=METODOS_PAGO, db_column='METODO')
+    WEBPAY, KHIPU, FLOW, MERCADOPAGO = 'WEBPAY', 'KHIPU', 'FLOW', 'MERCADOPAGO'
+    METODOS_PAGO = [(WEBPAY, 'Webpay Plus'), (KHIPU, 'Khipu'), (FLOW, 'Flow'), (MERCADOPAGO, 'Mercado Pago')]
+    metodo = models.CharField(max_length=12, choices=METODOS_PAGO, db_column='METODO')
 
     PENDIENTE, PAGADO, RECHAZADO, ANULADO = 'PENDIENTE', 'PAGADO', 'RECHAZADO', 'ANULADO'
     ESTADOS_PAGO = [
@@ -652,6 +652,8 @@ class Pago(models.Model):
     orden_compra = models.CharField(max_length=26, null=True, blank=True, db_column='ORDEN_COMPRA')
     token_webpay = models.CharField(max_length=64, null=True, blank=True, db_column='TOKEN_WEBPAY')
     khipu_payment_id = models.CharField(max_length=64, null=True, blank=True, db_column='KHIPU_PAYMENT_ID')
+    # Identificador del cobro en la pasarela para Flow (token) y Mercado Pago (id de la preferencia).
+    referencia_externa = models.CharField(max_length=128, null=True, blank=True, db_column='REFERENCIA_EXTERNA')
 
     # Respuesta cruda del medio de pago (commit de Webpay / consulta de
     # Khipu) — solo para auditoría/soporte, nunca se lee para decidir nada

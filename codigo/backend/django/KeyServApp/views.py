@@ -13,6 +13,7 @@ qué hace (pedido explícito del usuario, para poder tocar el código a mano
 más adelante sin tener que releer todo).
 """
 import hashlib
+import json
 import logging
 import os
 import secrets
@@ -27,7 +28,7 @@ from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Func, Q, Value
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -1389,6 +1390,111 @@ def pago_khipu_notificacion_view(request):
         _procesar_pago_aprobado(pago, respuesta)
     else:
         logger.info('Webhook de Khipu recibido, estado todavía no "done": pago=%s status=%s', pago.id_pago, respuesta.get('status'))
+    return JsonResponse({'ok': True})
+
+
+def reconsultar_pago_externo(pago):
+    """
+    Reconsulta contra la pasarela (Khipu, Flow o Mercado Pago) el estado de un pago PENDIENTE y aplica el resultado:
+    aprobado → `_procesar_pago_aprobado`; rechazado o anulado en la pasarela → RECHAZADO (solo si seguía PENDIENTE).
+    Lo comparten el retorno del usuario y los webhooks: ninguno se cree el contenido de lo que le llega, siempre se
+    pregunta a la pasarela. Devuelve el pago refrescado; ante un error de red lo deja como estaba.
+    """
+    if pago.estado != Pago.PENDIENTE:
+        return pago
+    aprobado = rechazado = False
+    try:
+        if pago.metodo == Pago.KHIPU and pago.khipu_payment_id:
+            respuesta = pagos.KhipuService().consultar_pago(pago.khipu_payment_id)
+            aprobado = respuesta.get('status') == 'done'
+        elif pago.metodo == Pago.FLOW and pago.referencia_externa:
+            respuesta = pagos.FlowService().consultar_pago(pago.referencia_externa)
+            estado = int(respuesta.get('status') or 0)
+            aprobado, rechazado = estado == 2, estado in (3, 4)
+        elif pago.metodo == Pago.MERCADOPAGO:
+            respuesta = pagos.MercadoPagoService().buscar_pago(str(pago.id_pago))
+            if not respuesta:
+                return pago
+            aprobado = respuesta.get('status') == 'approved'
+            rechazado = respuesta.get('status') in ('rejected', 'cancelled')
+        else:
+            return pago
+    except Exception:
+        logger.exception('Error reconsultando pago %s: pago=%s', pago.metodo, pago.id_pago)
+        return pago
+
+    if aprobado:
+        _procesar_pago_aprobado(pago, respuesta)
+    elif rechazado:
+        Pago.objects.filter(pk=pago.pk, estado=Pago.PENDIENTE).update(estado=Pago.RECHAZADO, respuesta_bruta=respuesta_minima(respuesta))
+    pago.refresh_from_db()
+    return pago
+
+
+@csrf_exempt
+@require_POST
+def pago_flow_confirmacion_view(request):
+    """
+    Webhook servidor-a-servidor de Flow (`urlConfirmation`): trae solo el `token` del cobro. Igual que con Khipu, nada
+    se da por pagado por lo que diga el POST: se reconsulta el estado real a Flow (`reconsultar_pago_externo`).
+    """
+    token = request.POST.get('token')
+    if not token:
+        return JsonResponse({'ok': False}, status=400)
+    pago = Pago.objects.filter(metodo=Pago.FLOW, referencia_externa=token).first()
+    if not pago:
+        logger.warning('Confirmación de Flow para un token desconocido')
+        return JsonResponse({'ok': False}, status=404)
+    reconsultar_pago_externo(pago)
+    return JsonResponse({'ok': True})
+
+
+@csrf_exempt
+def pago_flow_retorno_view(request, contratacion_id):
+    """
+    A donde Flow devuelve el navegador de la persona (`urlReturn`). Flow lo hace con un POST, y un hosting estático como
+    Netlify no sirve bien un POST a una ruta de la SPA, así que el retorno cae acá y se redirige (303, a un GET) a la
+    pantalla de Ionic, que consulta el estado real con la API.
+    """
+    respuesta = HttpResponseRedirect(f'{settings.IONIC_FRONTEND_URL}/pago/retorno/flow/{contratacion_id}')
+    respuesta.status_code = 303
+    return respuesta
+
+
+@csrf_exempt
+def pago_mercadopago_notificacion_view(request):
+    """
+    Webhook de Mercado Pago (IPN/Webhooks). Solo se atienden las notificaciones de tipo `payment`; el id del pago
+    llega en `data.id` (query o cuerpo JSON). Nunca se cree el cuerpo: se consulta el pago a Mercado Pago y se busca
+    el `Pago` por su `external_reference`. Responde 200 aunque no corresponda, para que Mercado Pago no reintente.
+    """
+    tipo = request.GET.get('type') or request.GET.get('topic')
+    payment_id = request.GET.get('data.id') or request.GET.get('id')
+    if not payment_id and request.body:
+        try:
+            cuerpo = json.loads(request.body)
+            tipo = tipo or cuerpo.get('type')
+            payment_id = (cuerpo.get('data') or {}).get('id')
+        except (ValueError, AttributeError):
+            pass
+    if tipo != 'payment' or not payment_id:
+        return JsonResponse({'ok': True})
+
+    try:
+        datos = pagos.MercadoPagoService().consultar_pago(payment_id)
+    except Exception:
+        logger.exception('Error consultando el pago de Mercado Pago: payment_id=%s', payment_id)
+        return JsonResponse({'ok': False}, status=502)
+    referencia = datos.get('external_reference')
+    pago = Pago.objects.filter(metodo=Pago.MERCADOPAGO, pk=referencia).first() if str(referencia or '').isdigit() else None
+    if not pago:
+        logger.warning('Notificación de Mercado Pago sin pago asociado: payment_id=%s', payment_id)
+        return JsonResponse({'ok': True})
+    estado = datos.get('status')
+    if estado == 'approved':
+        _procesar_pago_aprobado(pago, datos)
+    elif estado in ('rejected', 'cancelled'):
+        Pago.objects.filter(pk=pago.pk, estado=Pago.PENDIENTE).update(estado=Pago.RECHAZADO, respuesta_bruta=respuesta_minima(datos))
     return JsonResponse({'ok': True})
 
 

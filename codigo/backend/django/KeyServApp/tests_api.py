@@ -3018,3 +3018,180 @@ class AccessTokenInvalidadoTests(APITestCase):
         Usuario.objects.filter(pk=self.usuario.pk).update(sesiones_invalidadas_en=timezone.now() - timedelta(seconds=10))
         self.assertEqual(self._con_token(self._token_emitido_hace(60)).status_code, 401)
         self.assertEqual(self._con_token(self._token_emitido_hace(0)).status_code, 200)
+
+
+class PagosFlowYMercadoPagoTests(APITestCase):
+    """Flow y Mercado Pago: iniciar, estado, webhooks y retorno, con los servicios externos mockeados (faltan credenciales reales de sandbox)."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_ext@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.cliente = _crear_usuario('cli_ext@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000)
+        self.contratacion = Contratacion.objects.create(
+            publicacion=publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=Contratacion.CONFIRMADA, monto_acordado=15000,
+        )
+        self.base = f'/api/contrataciones/{self.contratacion.id_contratacion}/pagos'
+
+    def _como(self, usuario):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(usuario)}')
+
+    def _pago(self, metodo, **extra):
+        return Pago.objects.create(contratacion=self.contratacion, monto=15000, metodo=metodo, **extra)
+
+    # --- configuración
+    def test_metodos_refleja_lo_configurado(self):
+        import os
+        with mock.patch.dict(os.environ, {}, clear=False):
+            for clave in ('KHIPU_API_KEY', 'FLOW_API_KEY', 'FLOW_SECRET_KEY', 'MERCADOPAGO_ACCESS_TOKEN'):
+                os.environ.pop(clave, None)
+            self.assertEqual(self.client.get('/api/pagos/metodos/').data, {'webpay': True, 'khipu': False, 'flow': False, 'mercadopago': False})
+            os.environ.update({'FLOW_API_KEY': 'k', 'FLOW_SECRET_KEY': 's', 'MERCADOPAGO_ACCESS_TOKEN': 'TEST-1'})
+            datos = self.client.get('/api/pagos/metodos/').data
+        self.assertTrue(datos['flow'] and datos['mercadopago'] and not datos['khipu'])
+
+    def test_la_firma_de_flow_es_hmac_sha256_de_los_parametros_ordenados(self):
+        import hashlib
+        import hmac
+        import os
+        from . import pagos
+        with mock.patch.dict(os.environ, {'FLOW_API_KEY': 'api', 'FLOW_SECRET_KEY': 'secreto'}):
+            servicio = pagos.FlowService()
+            firma = servicio._firmar({'token': 'T', 'apiKey': 'api'})
+        esperado = hmac.new(b'secreto', b'apiKeyapitokenT', hashlib.sha256).hexdigest()
+        self.assertEqual(firma, esperado)
+
+    # --- iniciar
+    def test_iniciar_flow_crea_el_cobro_y_devuelve_la_url(self):
+        self._como(self.cliente)
+        creado = {'url': 'https://sandbox.flow.cl/app/web/pay.php', 'token': 'TOK1', 'flowOrder': 99}
+        with mock.patch('KeyServApp.pagos.FlowService.crear_pago', return_value=creado) as crear:
+            resp = self.client.post(f'{self.base}/flow/iniciar/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['payment_url'], 'https://sandbox.flow.cl/app/web/pay.php?token=TOK1')
+        pago = Pago.objects.get(contratacion=self.contratacion)
+        self.assertEqual((pago.metodo, pago.estado, pago.referencia_externa), (Pago.FLOW, Pago.PENDIENTE, 'TOK1'))
+        self.assertEqual(crear.call_args.kwargs['email'], 'cli_ext@test.com')
+        self.assertIn('/pagos/flow/retorno/', crear.call_args.kwargs['url_retorno'])
+
+    def test_iniciar_mercadopago_manda_el_id_del_pago_como_referencia(self):
+        self._como(self.cliente)
+        with mock.patch('KeyServApp.pagos.MercadoPagoService.crear_preferencia', return_value={'id': 'PREF1', 'init_point': 'https://www.mercadopago.cl/checkout/v1/redirect?pref_id=PREF1'}) as crear:
+            resp = self.client.post(f'{self.base}/mercadopago/iniciar/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('pref_id=PREF1', resp.data['payment_url'])
+        pago = Pago.objects.get(contratacion=self.contratacion)
+        self.assertEqual((pago.metodo, pago.referencia_externa), (Pago.MERCADOPAGO, 'PREF1'))
+        self.assertEqual(crear.call_args.kwargs['referencia'], str(pago.id_pago))
+
+    def test_iniciar_sin_credenciales_da_503_claro(self):
+        import os
+        self._como(self.cliente)
+        with mock.patch.dict(os.environ, {}, clear=False):
+            for clave in ('FLOW_API_KEY', 'FLOW_SECRET_KEY', 'MERCADOPAGO_ACCESS_TOKEN'):
+                os.environ.pop(clave, None)
+            flow = self.client.post(f'{self.base}/flow/iniciar/')
+            mp = self.client.post(f'{self.base}/mercadopago/iniciar/')
+        self.assertEqual((flow.status_code, mp.status_code), (503, 503))
+        self.assertIn('FLOW_API_KEY', flow.data['detail'])
+        self.assertIn('MERCADOPAGO_ACCESS_TOKEN', mp.data['detail'])
+
+    def test_solo_el_cliente_inicia_y_un_metodo_desconocido_da_404(self):
+        self._como(self.proveedor)
+        self.assertEqual(self.client.post(f'{self.base}/flow/iniciar/').status_code, 403)
+        self._como(self.cliente)
+        self.assertEqual(self.client.post(f'{self.base}/paypal/iniciar/').status_code, 404)
+        self.assertFalse(Pago.objects.exists())
+
+    def test_un_error_de_la_pasarela_da_502(self):
+        self._como(self.cliente)
+        with mock.patch('KeyServApp.pagos.FlowService.crear_pago', side_effect=Exception('boom')):
+            self.assertEqual(self.client.post(f'{self.base}/flow/iniciar/').status_code, 502)
+
+    # --- webhooks
+    def test_confirmacion_de_flow_marca_pagado_tras_reconsultar(self):
+        pago = self._pago(Pago.FLOW, referencia_externa='TOK1')
+        with mock.patch('KeyServApp.pagos.FlowService.consultar_pago', return_value={'status': 2, 'flowOrder': 99, 'payer': 'x@y.cl'}):
+            resp = self.client.post(reverse_pago('pago_flow_confirmacion'), {'token': 'TOK1'})
+        self.assertEqual(resp.status_code, 200)
+        pago.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.assertEqual((pago.estado, self.contratacion.estado), (Pago.PAGADO, Contratacion.EN_CURSO))
+        self.assertNotIn('payer', pago.respuesta_bruta)  # el pagador nunca se guarda
+
+    def test_confirmacion_de_flow_rechazada_anulada_o_pendiente(self):
+        pago = self._pago(Pago.FLOW, referencia_externa='TOK1')
+        with mock.patch('KeyServApp.pagos.FlowService.consultar_pago', return_value={'status': 1}):
+            self.client.post(reverse_pago('pago_flow_confirmacion'), {'token': 'TOK1'})
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
+        with mock.patch('KeyServApp.pagos.FlowService.consultar_pago', return_value={'status': 3}):
+            self.client.post(reverse_pago('pago_flow_confirmacion'), {'token': 'TOK1'})
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.RECHAZADO)
+
+    def test_confirmacion_de_flow_con_token_desconocido_o_sin_token(self):
+        self.assertEqual(self.client.post(reverse_pago('pago_flow_confirmacion'), {'token': 'nada'}).status_code, 404)
+        self.assertEqual(self.client.post(reverse_pago('pago_flow_confirmacion'), {}).status_code, 400)
+
+    def test_notificacion_de_mercadopago_marca_pagado_tras_consultar(self):
+        pago = self._pago(Pago.MERCADOPAGO)
+        datos = {'status': 'approved', 'external_reference': str(pago.id_pago), 'transaction_amount': 15000, 'payer': {'email': 'x@y.cl'}}
+        with mock.patch('KeyServApp.pagos.MercadoPagoService.consultar_pago', return_value=datos):
+            resp = self.client.post(reverse_pago('pago_mercadopago_notificacion') + '?type=payment&data.id=777')
+        self.assertEqual(resp.status_code, 200)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PAGADO)
+        self.assertNotIn('payer', pago.respuesta_bruta)
+
+    def test_notificacion_de_mercadopago_que_no_es_de_pago_se_ignora(self):
+        pago = self._pago(Pago.MERCADOPAGO)
+        with mock.patch('KeyServApp.pagos.MercadoPagoService.consultar_pago') as consultar:
+            resp = self.client.post(reverse_pago('pago_mercadopago_notificacion') + '?type=merchant_order&data.id=1')
+        self.assertEqual(resp.status_code, 200)
+        consultar.assert_not_called()
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
+
+    def test_notificacion_de_mercadopago_en_el_cuerpo_json_y_rechazada(self):
+        pago = self._pago(Pago.MERCADOPAGO)
+        with mock.patch('KeyServApp.pagos.MercadoPagoService.consultar_pago', return_value={'status': 'rejected', 'external_reference': str(pago.id_pago)}):
+            resp = self.client.post(reverse_pago('pago_mercadopago_notificacion'), {'type': 'payment', 'data': {'id': 5}}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.RECHAZADO)
+
+    # --- estado y retorno
+    def test_estado_de_mercadopago_reconsulta_y_aplica(self):
+        pago = self._pago(Pago.MERCADOPAGO)
+        self._como(self.cliente)
+        with mock.patch('KeyServApp.pagos.MercadoPagoService.buscar_pago', return_value={'status': 'approved', 'external_reference': str(pago.id_pago)}):
+            resp = self.client.get(f'{self.base}/mercadopago/estado/')
+        self.assertTrue(resp.data['aprobado'])
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PAGADO)
+
+    def test_estado_pendiente_y_de_un_metodo_que_no_es_el_del_pago(self):
+        self._pago(Pago.FLOW, referencia_externa='T')
+        self._como(self.cliente)
+        with mock.patch('KeyServApp.pagos.FlowService.consultar_pago', return_value={'status': 1}):
+            pendiente = self.client.get(f'{self.base}/flow/estado/')
+        self.assertFalse(pendiente.data['aprobado'])
+        self.assertIn('esperando', pendiente.data['mensaje'])
+        self.assertFalse(self.client.get(f'{self.base}/mercadopago/estado/').data['aprobado'])
+
+    def test_estado_de_una_contratacion_ajena_da_404_y_queda_registrado(self):
+        intruso = _crear_usuario('intruso_ext@test.com', comuna=self.cliente.comuna, tipo_cuenta=self.cliente.tipo_cuenta)
+        self._como(intruso)
+        self.assertEqual(self.client.get(f'{self.base}/flow/estado/').status_code, 404)
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(usuario=intruso, recurso='contratacion').exists())
+
+    def test_el_retorno_de_flow_redirige_con_303_a_la_pantalla_de_ionic(self):
+        resp = self.client.post(f'/pagos/flow/retorno/{self.contratacion.id_contratacion}/', {'token': 'T'})
+        self.assertEqual(resp.status_code, 303)
+        self.assertTrue(resp['Location'].endswith(f'/pago/retorno/flow/{self.contratacion.id_contratacion}'))
+
+
+def reverse_pago(nombre):
+    from django.urls import reverse
+    return reverse(f'KeyServApp:{nombre}')
