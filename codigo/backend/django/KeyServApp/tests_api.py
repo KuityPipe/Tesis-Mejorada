@@ -2959,3 +2959,62 @@ class SesionesTrasCambioDeClaveApiTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         resp = self.client.post('/api/auth/refresh/', {'refresh_token': refresh_robado}, format='json')
         self.assertEqual(resp.status_code, 401)
+
+
+class AccessTokenInvalidadoTests(APITestCase):
+    """`Usuario.sesiones_invalidadas_en`: los access tokens emitidos antes del cambio de clave / eliminación dejan de valer al instante."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('invalida@test.com', 'clave_cli', comuna=comuna, tipo_cuenta=tipo_cuenta)
+
+    def _con_token(self, token):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        return self.client.get('/api/auth/me/')
+
+    def _token_emitido_hace(self, segundos):
+        import jwt
+        from django.conf import settings
+        ahora = timezone.now() - timedelta(seconds=segundos)
+        payload = {'sub': str(self.usuario.id_usuario), 'iat': ahora, 'exp': ahora + timedelta(minutes=20)}
+        return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+    def test_sin_invalidacion_el_token_vale(self):
+        self.assertEqual(self._con_token(jwt_utils.generar_access_token(self.usuario)).status_code, 200)
+
+    def test_cambiar_la_clave_mata_el_access_token_robado_pero_no_el_nuevo(self):
+        robado = self._token_emitido_hace(60)
+        self.assertEqual(self._con_token(robado).status_code, 200)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+        resp = self.client.post('/api/auth/cambiar-password/', {
+            'password_actual': 'clave_cli', 'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123',
+        }, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertEqual(self._con_token(robado).status_code, 401)
+        self.assertEqual(self._con_token(resp.data['access_token']).status_code, 200)
+
+    def test_recuperar_la_clave_mata_el_access_token_anterior(self):
+        robado = self._token_emitido_hace(60)
+        token = _generar_token_recuperacion(self.usuario)
+        self.client.credentials()
+        self.client.post(f'/api/auth/recuperar/confirmar/{token}/', {'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123'}, format='json')
+        self.assertEqual(self._con_token(robado).status_code, 401)
+
+    def test_pedir_la_eliminacion_corta_las_sesiones_al_instante(self):
+        viejo = self._token_emitido_hace(60)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+        self.assertEqual(self.client.post('/api/auth/eliminar-cuenta/', {'password': 'clave_cli'}, format='json').status_code, 200)
+        self.assertEqual(self._con_token(viejo).status_code, 401)
+
+    def test_volver_a_iniciar_sesion_despues_de_invalidar_funciona(self):
+        Usuario.objects.filter(pk=self.usuario.pk).update(sesiones_invalidadas_en=timezone.now() - timedelta(seconds=30))
+        self.usuario.refresh_from_db()
+        resp = self.client.post('/api/auth/login/', {'email': 'invalida@test.com', 'password': 'clave_cli'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self._con_token(resp.data['access_token']).status_code, 200)
+
+    def test_el_token_anterior_a_la_fecha_no_vale_aunque_este_vigente(self):
+        Usuario.objects.filter(pk=self.usuario.pk).update(sesiones_invalidadas_en=timezone.now() - timedelta(seconds=10))
+        self.assertEqual(self._con_token(self._token_emitido_hace(60)).status_code, 401)
+        self.assertEqual(self._con_token(self._token_emitido_hace(0)).status_code, 200)

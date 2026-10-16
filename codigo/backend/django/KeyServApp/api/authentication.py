@@ -51,6 +51,10 @@ class JWTAuthentication(authentication.BaseAuthentication):
         usuario = Usuario.objects.filter(pk=usuario_id).first()
         if usuario is None:
             return None
+        if jwt_utils.access_token_invalidado(usuario, payload):
+            # Se emitió antes de un cambio de contraseña / eliminación: mismo trato que un token vencido (anónimo → 401
+            # en lo protegido), así el cliente intenta refrescar, falla y vuelve a pedir login.
+            return None
         return (usuario, token)
 
     def authenticate_header(self, request):

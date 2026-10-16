@@ -219,6 +219,10 @@ class Usuario(models.Model):
     # `settings.CUENTA_ELIMINACION_DIAS` (15) días (`derechos_titular.anonimizar_cuentas_vencidas`), por si en ese plazo
     # surge una queja o un problema con la otra parte de un trabajo.
     eliminacion_solicitada_en = models.DateTimeField(null=True, blank=True, db_column='ELIMINACION_SOLICITADA_EN')
+    # Los access tokens (JWT) emitidos antes de esta fecha dejan de valer (`api/authentication.py`). Se fija al cambiar
+    # o recuperar la contraseña y al pedir la eliminación de la cuenta, junto con revocar los refresh tokens: así una
+    # sesión robada muere al instante y no recién cuando vence el access token (JWT_ACCESS_TOKEN_MINUTOS).
+    sesiones_invalidadas_en = models.DateTimeField(null=True, blank=True, db_column='SESIONES_INVALIDADAS_EN')
     # NUEVO: encoding de referencia (vector de 128 dimensiones que devuelve
     # face_recognition) para el segundo método de verificación de RF001
     # ("huella, Face ID o clave única" — son alternativas, no las tres a la

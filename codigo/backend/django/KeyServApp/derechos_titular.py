@@ -25,6 +25,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from . import cierres, notificaciones_correo
+from .api import jwt_utils
 
 from .models import (
     ConsentimientoBiometrico, Consulta, Contratacion, Documento, EventoVerificacion,
@@ -203,7 +204,7 @@ def solicitar_eliminacion(usuario):
     if not usuario.tratamiento_bloqueado_en:
         usuario.tratamiento_bloqueado_en = usuario.eliminacion_solicitada_en
     usuario.save(update_fields=['eliminacion_solicitada_en', 'tratamiento_bloqueado_en'])
-    TokenSesion.objects.filter(usuario=usuario, revocado_en__isnull=True).update(revocado_en=timezone.now())
+    jwt_utils.revocar_todas_las_sesiones(usuario)
     fecha = fecha_eliminacion_programada(usuario)
     notificaciones_correo.avisar(
         usuario, 'tu cuenta se eliminará',

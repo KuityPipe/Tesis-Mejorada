@@ -81,8 +81,29 @@ def revocar_sesion(sesion):
 
 def revocar_todas_las_sesiones(usuario):
     """
-    Revoca todos los refresh tokens vigentes del usuario (cambio o recuperación de contraseña). Sin esto, quien
-    robó un refresh token lo sigue rotando indefinidamente aunque la víctima recupere su cuenta. Los access tokens
-    ya emitidos (stateless) siguen valiendo hasta vencer, `JWT_ACCESS_TOKEN_MINUTOS`.
+    Corta todas las sesiones del usuario (cambio o recuperación de contraseña, eliminación de la cuenta):
+    revoca sus refresh tokens y fija `sesiones_invalidadas_en`, con lo que también dejan de valer los access tokens
+    ya emitidos (ver `access_token_invalidado`). Sin lo primero, quien robó un refresh token lo sigue rotando
+    indefinidamente; sin lo segundo, el access token robado seguiría sirviendo hasta vencer.
     """
-    return TokenSesion.objects.filter(usuario=usuario, revocado_en__isnull=True).update(revocado_en=timezone.now())
+    ahora = timezone.now()
+    usuario.sesiones_invalidadas_en = ahora
+    usuario.save(update_fields=['sesiones_invalidadas_en'])
+    return TokenSesion.objects.filter(usuario=usuario, revocado_en__isnull=True).update(revocado_en=ahora)
+
+
+def access_token_invalidado(usuario, payload):
+    """
+    True si el access token (su `payload`) se emitió antes de que se invalidaran las sesiones del usuario.
+
+    `iat` del JWT es un entero en segundos, así que se compara contra la fecha de invalidación truncada al segundo:
+    el par nuevo que se entrega justo después de cambiar la clave (mismo segundo) sigue valiendo. Costo de esa
+    elección: un token viejo emitido en ese mismo segundo también pasaría, una ventana de menos de un segundo.
+    """
+    if not usuario.sesiones_invalidadas_en:
+        return False
+    try:
+        emitido = int(payload.get('iat', 0))
+    except (TypeError, ValueError):
+        return True
+    return emitido < int(usuario.sesiones_invalidadas_en.timestamp())
