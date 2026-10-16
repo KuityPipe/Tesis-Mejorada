@@ -97,6 +97,31 @@
       </ion-card>
     </div>
 
+    <div class="ks-section" appReveal [appRevealDelay]="120">
+      <p class="ks-section-title"><ion-icon name="lock-closed-outline"></ion-icon> Seguridad de la sesión</p>
+      <ion-card>
+        <ion-card-content>
+          <p>Si perdiste un teléfono, usaste un equipo ajeno o sospechas que alguien entró a tu cuenta, cierra la sesión en <strong>todos tus dispositivos</strong> (también en este). Por seguridad te enviamos un código a tu correo para confirmarlo.</p>
+          <ion-button *ngIf="!codigoSesionesEnviado" expand="block" fill="outline" (click)="pedirCodigoSesiones()" [disabled]="enviandoCodigoSesiones">
+            {{ enviandoCodigoSesiones ? 'Enviando…' : 'Cerrar sesión en todos los dispositivos' }}
+          </ion-button>
+          <div *ngIf="codigoSesionesEnviado">
+            <p>Te enviamos un código de 6 dígitos a tu correo. Vence en 10 minutos.</p>
+            <ion-item>
+              <ion-input type="text" inputmode="numeric" maxlength="6" label="Código del correo" labelPlacement="floating" [(ngModel)]="codigoSesiones" autocomplete="one-time-code"></ion-input>
+            </ion-item>
+            <ion-button expand="block" color="danger" class="ion-margin-top" (click)="cerrarTodasLasSesiones()" [disabled]="codigoSesiones.trim().length !== 6 || cerrandoSesiones">
+              {{ cerrandoSesiones ? 'Cerrando…' : 'Confirmar y cerrar todas las sesiones' }}
+            </ion-button>
+            <ion-button expand="block" fill="clear" color="medium" (click)="pedirCodigoSesiones()" [disabled]="enviandoCodigoSesiones">
+              Reenviar el código
+            </ion-button>
+          </div>
+          <ion-text color="danger" *ngIf="errorSesiones"><p>{{ errorSesiones }}</p></ion-text>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <div class="ks-section" appReveal [appRevealDelay]="150">
       <p class="ks-section-title"><ion-icon name="shield-checkmark-outline"></ion-icon> Mis datos</p>
       <ion-card>

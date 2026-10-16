@@ -47,6 +47,33 @@ describe('PreferenciasPage', () => {
     expect(req.request.body.finalidad).toBe('biometria');
   });
 
+  it('cerrar sesiones: pedir el código llama al backend y pasa al paso del código', () => {
+    const http = TestBed.inject(HttpTestingController);
+    component.pedirCodigoSesiones();
+    const req = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/auth/cerrar-sesiones/codigo/'));
+    req.flush({ detail: 'Te enviamos un código a tu correo.', vence_en_minutos: 10 });
+    expect(component.codigoSesionesEnviado).toBeTrue();
+    expect(component.errorSesiones).toBeNull();
+  });
+
+  it('cerrar sesiones: no manda un código que no tiene 6 dígitos', () => {
+    const http = TestBed.inject(HttpTestingController);
+    component.codigoSesiones = '12ab';
+    component.cerrarTodasLasSesiones();
+    http.expectNone((r) => r.method === 'POST' && r.url.endsWith('/auth/cerrar-sesiones/'));
+  });
+
+  it('cerrar sesiones: un código incorrecto muestra el error y no cierra la sesión local', () => {
+    const http = TestBed.inject(HttpTestingController);
+    component.codigoSesiones = '123456';
+    component.cerrarTodasLasSesiones();
+    const req = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/auth/cerrar-sesiones/'));
+    expect(req.request.body).toEqual({ codigo: '123456' });
+    req.flush({ detail: 'Código incorrecto.' }, { status: 400, statusText: 'Bad Request' });
+    expect(component.errorSesiones).toBe('Código incorrecto.');
+    expect(component.cerrandoSesiones).toBeFalse();
+  });
+
   it('alterna el bloqueo contra el valor actual', () => {
     const http = TestBed.inject(HttpTestingController);
     component.derechos = { tratamiento_bloqueado: false, solicitudes: [] };

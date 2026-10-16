@@ -60,6 +60,12 @@ export class PreferenciasPage implements OnInit {
   confirmandoOposicion = false;
   cambiandoBloqueo = false;
   eliminacionProgramadaEn: string | null = null;
+  // Cerrar sesión en todos los dispositivos (código por correo)
+  codigoSesionesEnviado = false;
+  enviandoCodigoSesiones = false;
+  cerrandoSesiones = false;
+  codigoSesiones = '';
+  errorSesiones: string | null = null;
 
   constructor(
     private readonly fb: FormBuilder,
@@ -161,6 +167,46 @@ export class PreferenciasPage implements OnInit {
       error: () => {
         this.errorDatos = 'No pudimos preparar tus datos. Intenta nuevamente.';
         this.descargando = false;
+      },
+    });
+  }
+
+  /** Paso 1: pide el código al correo (el seguro extra: una sesión robada no basta). */
+  pedirCodigoSesiones(): void {
+    if (this.enviandoCodigoSesiones) {
+      return;
+    }
+    this.enviandoCodigoSesiones = true;
+    this.errorSesiones = null;
+    this.auth.pedirCodigoCerrarSesiones().subscribe({
+      next: ({ detail }) => {
+        this.enviandoCodigoSesiones = false;
+        this.codigoSesionesEnviado = true;
+        this.retroalimentacion.exito(detail);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.enviandoCodigoSesiones = false;
+        this.errorSesiones = error.error?.detail ?? 'No pudimos enviar el código. Intenta nuevamente.';
+      },
+    });
+  }
+
+  /** Paso 2: con el código correcto se cierran todas las sesiones, incluida esta, y se vuelve al login. */
+  cerrarTodasLasSesiones(): void {
+    if (!/^\d{6}$/.test(this.codigoSesiones.trim()) || this.cerrandoSesiones) {
+      return;
+    }
+    this.cerrandoSesiones = true;
+    this.errorSesiones = null;
+    this.auth.cerrarTodasLasSesiones(this.codigoSesiones.trim()).subscribe({
+      next: ({ detail }) => {
+        this.retroalimentacion.exito(detail);
+        this.auth.logout();
+        this.router.navigateByUrl('/login');
+      },
+      error: (error: HttpErrorResponse) => {
+        this.cerrandoSesiones = false;
+        this.errorSesiones = error.error?.detail ?? 'No pudimos cerrar las sesiones. Intenta nuevamente.';
       },
     });
   }

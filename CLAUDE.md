@@ -97,6 +97,7 @@ Android build, signed release build, and the Windows/OneDrive/JDK gotchas: see `
 
 - Python 3.14 / Django 5.2 (4.2's template `Context.__copy__` breaks on 3.14). `setuptools<81` is pinned because `face_recognition_models` needs `pkg_resources`; `face_recognition` is installed `--no-deps` alongside `dlib-bin`.
 - The repo lives under OneDrive: Gradle builds can fail with `AccessDeniedException` on `android/app/build/` — delete that folder and rebuild.
+- "Close all sessions" requires an emailed one-time code (`codigos_seguridad.py`, `CodigoSeguridad` model: hashed, 10 min, 5 attempts, single use, 60 s resend wait); reuse it for other sensitive actions. It also closes the current device.
 - Changing or recovering a password, and requesting account deletion, call `jwt_utils.revocar_todas_las_sesiones`: it revokes every `TokenSesion` and sets `Usuario.sesiones_invalidadas_en`, so `JWTAuthentication` also rejects access tokens issued before it (compared at one-second `iat` granularity; the new pair handed out in the same second still works).
 - Playwright e2e against the local dev server: use `--workers=1` (parallel workers make the single dev server slow and tests time out); a repeated login failure locks the (IP, email) pair until the backend restarts.
 - Always run backend tests with `--settings=KeyServProject.settings_test` (swaps PBKDF2 for MD5; 12 min → 25 s, same ~460 tests). Never use that settings module outside tests.

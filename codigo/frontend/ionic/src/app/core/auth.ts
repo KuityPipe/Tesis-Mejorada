@@ -350,6 +350,16 @@ export class Auth {
     return this.http.post<RespuestaEliminacion>(`${environment.apiUrl}/auth/eliminar-cuenta/`, { password });
   }
 
+  /** `POST /api/auth/cerrar-sesiones/codigo/` — paso 1 de "cerrar sesión en todos los dispositivos": manda un código al correo. 429 si se pide otro antes de un minuto. */
+  pedirCodigoCerrarSesiones(): Observable<{ detail: string; vence_en_minutos: number }> {
+    return this.http.post<{ detail: string; vence_en_minutos: number }>(`${environment.apiUrl}/auth/cerrar-sesiones/codigo/`, {});
+  }
+
+  /** `POST /api/auth/cerrar-sesiones/` — paso 2: con el código del correo, cierra TODAS las sesiones (también esta). Quien llama debe hacer `logout()` y volver al login. */
+  cerrarTodasLasSesiones(codigo: string): Observable<{ detail: string }> {
+    return this.http.post<{ detail: string }>(`${environment.apiUrl}/auth/cerrar-sesiones/`, { codigo });
+  }
+
   /** `POST /api/auth/cambiar-password/` — cambiar la contraseña estando logueado (a diferencia de `confirmarRecuperacion`, pide la contraseña actual). */
   cambiarPassword(passwordActual: string, password: string, passwordConfirm: string): Observable<{ detail: string; access_token?: string; refresh_token?: string }> {
     // El backend revoca todas las sesiones al cambiar la clave y devuelve un par nuevo: sin guardarlo, esta

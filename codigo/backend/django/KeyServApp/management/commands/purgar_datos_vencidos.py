@@ -18,7 +18,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from KeyServApp import derechos_titular
-from KeyServApp.models import EventoVerificacion, IntentoAccesoSospechoso, TokenSesion
+from KeyServApp.models import CodigoSeguridad, EventoVerificacion, IntentoAccesoSospechoso, TokenSesion
 
 
 class Command(BaseCommand):
@@ -46,5 +46,6 @@ class Command(BaseCommand):
         intentos.delete()
         tokens.delete()
         eventos.delete()
+        CodigoSeguridad.objects.filter(expira_en__lt=ahora).delete()  # códigos de un solo uso ya vencidos
         n_cuentas = derechos_titular.anonimizar_cuentas_vencidas(opts['dias_eliminacion'])
         self.stdout.write(self.style.SUCCESS(f'Borrados {n_intentos} intentos sospechosos, {n_tokens} tokens de sesión y {n_eventos} eventos de verificación; anonimizadas {n_cuentas} cuentas.'))

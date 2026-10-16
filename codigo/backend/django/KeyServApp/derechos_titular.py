@@ -28,7 +28,7 @@ from . import cierres, notificaciones_correo
 from .api import jwt_utils
 
 from .models import (
-    ConsentimientoBiometrico, Consulta, Contratacion, Documento, EventoVerificacion,
+    CodigoSeguridad, ConsentimientoBiometrico, Consulta, Contratacion, Documento, EventoVerificacion,
     IntentoAccesoSospechoso, Mensaje, Pago, Publicaciones, SolicitudTitular, TokenSesion,
     Usuario, Valoracion, ValoracionImagen,
 )
@@ -237,6 +237,7 @@ def eliminar_cuenta(usuario):
     ConsentimientoBiometrico.revocar(usuario)  # borra el vector facial y baja la verificación
     TokenSesion.objects.filter(usuario=usuario).delete()
     EventoVerificacion.objects.filter(usuario=usuario).delete()
+    CodigoSeguridad.objects.filter(usuario=usuario).delete()
     SolicitudTitular.objects.filter(usuario=usuario).delete()
 
     for documento in Documento.objects.filter(usuario=usuario):

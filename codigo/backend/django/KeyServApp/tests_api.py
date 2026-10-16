@@ -22,7 +22,7 @@ from .api import jwt_utils
 from .models import (
     EventoVerificacion, SolicitudTitular,
     VerificacionAlternativa,
-    ConsentimientoBiometrico,
+    ConsentimientoBiometrico, CodigoSeguridad,
     Comuna, Consulta, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion,
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region, TokenSesion,
     Usuario, Valoracion, ValoracionImagen,
@@ -3195,3 +3195,110 @@ class PagosFlowYMercadoPagoTests(APITestCase):
 def reverse_pago(nombre):
     from django.urls import reverse
     return reverse(f'KeyServApp:{nombre}')
+
+
+class CerrarSesionesConCodigoTests(APITestCase):
+    """Cerrar sesión en todos los dispositivos exige un código de un solo uso enviado al correo."""
+
+    def setUp(self):
+        cache.clear()
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('cerrar@test.com', 'clave_cli', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+
+    def _pedir_codigo(self):
+        import re
+        from django.core import mail
+        resp = self.client.post('/api/auth/cerrar-sesiones/codigo/')
+        self.assertEqual(resp.status_code, 200, resp.data)
+        return re.search(r'Tu código es: (\d{6})', mail.outbox[-1].body).group(1)
+
+    def test_pedir_el_codigo_lo_manda_al_correo_y_solo_guarda_el_hash(self):
+        from django.core import mail
+        codigo = self._pedir_codigo()
+        self.assertEqual(mail.outbox[-1].to, ['cerrar@test.com'])
+        registro = CodigoSeguridad.objects.get(usuario=self.usuario)
+        self.assertNotEqual(registro.codigo_hash, codigo)
+        self.assertNotIn(codigo, registro.codigo_hash)
+
+    def test_con_el_codigo_correcto_cierra_todas_las_sesiones(self):
+        from django.core import mail
+        _, refresh_de_otro_dispositivo, _sesion = jwt_utils.crear_sesion(self.usuario)
+        access_actual = jwt_utils.generar_access_token(self.usuario)
+        Usuario.objects.filter(pk=self.usuario.pk).update(sesiones_invalidadas_en=None)
+        codigo = self._pedir_codigo()
+        # El access token "viejo" debe emitirse antes de la invalidación: se simula retrasando su `iat`.
+        import time
+        time.sleep(1.1)
+
+        resp = self.client.post('/api/auth/cerrar-sesiones/', {'codigo': codigo}, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.client.post('/api/auth/refresh/', {'refresh_token': refresh_de_otro_dispositivo}, format='json').status_code, 401)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_actual}')
+        self.assertEqual(self.client.get('/api/auth/me/').status_code, 401)
+        self.assertTrue(any('cerraste tus sesiones' in m.subject for m in mail.outbox))
+
+    def test_un_codigo_incorrecto_no_cierra_nada(self):
+        _, refresh, _sesion = jwt_utils.crear_sesion(self.usuario)
+        self._pedir_codigo()
+        resp = self.client.post('/api/auth/cerrar-sesiones/', {'codigo': '000000'}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIsNotNone(jwt_utils.obtener_sesion_vigente(refresh))
+
+    def test_sin_pedir_codigo_primero_da_400(self):
+        resp = self.client.post('/api/auth/cerrar-sesiones/', {'codigo': '123456'}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('Primero', resp.data['detail'])
+
+    def test_el_codigo_sirve_una_sola_vez(self):
+        codigo = self._pedir_codigo()
+        self.assertEqual(self.client.post('/api/auth/cerrar-sesiones/', {'codigo': codigo}, format='json').status_code, 200)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+        self.assertEqual(self.client.post('/api/auth/cerrar-sesiones/', {'codigo': codigo}, format='json').status_code, 400)
+
+    def test_tras_cinco_intentos_fallidos_ni_el_codigo_correcto_sirve(self):
+        codigo = self._pedir_codigo()
+        for _ in range(5):
+            self.assertEqual(self.client.post('/api/auth/cerrar-sesiones/', {'codigo': '000000'}, format='json').status_code, 400)
+        resp = self.client.post('/api/auth/cerrar-sesiones/', {'codigo': codigo}, format='json')
+        self.assertEqual(resp.status_code, 429)
+        self.assertFalse(CodigoSeguridad.objects.filter(usuario=self.usuario).exists())
+
+    def test_un_codigo_vencido_no_sirve(self):
+        codigo = self._pedir_codigo()
+        CodigoSeguridad.objects.filter(usuario=self.usuario).update(expira_en=timezone.now() - timedelta(seconds=1))
+        resp = self.client.post('/api/auth/cerrar-sesiones/', {'codigo': codigo}, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('venció', resp.data['detail'])
+
+    def test_pedir_otro_codigo_antes_de_un_minuto_da_429_y_despues_anula_el_anterior(self):
+        primero = self._pedir_codigo()
+        self.assertEqual(self.client.post('/api/auth/cerrar-sesiones/codigo/').status_code, 429)
+        CodigoSeguridad.objects.filter(usuario=self.usuario).update(creado_en=timezone.now() - timedelta(minutes=2))
+        segundo = self._pedir_codigo()
+        self.assertEqual(CodigoSeguridad.objects.filter(usuario=self.usuario).count(), 1)
+        if primero != segundo:
+            self.assertEqual(self.client.post('/api/auth/cerrar-sesiones/', {'codigo': primero}, format='json').status_code, 400)
+
+    def test_requiere_autenticacion(self):
+        self.client.credentials()
+        self.assertEqual(self.client.post('/api/auth/cerrar-sesiones/codigo/').status_code, 401)
+        self.assertEqual(self.client.post('/api/auth/cerrar-sesiones/', {'codigo': '123456'}, format='json').status_code, 401)
+
+    def test_el_codigo_de_otra_persona_no_sirve(self):
+        otro = _crear_usuario('otro_cerrar@test.com', 'clave', comuna=self.usuario.comuna, tipo_cuenta=self.usuario.tipo_cuenta)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(otro)}')
+        codigo_de_otro = self._pedir_codigo()
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+        self._pedir_codigo()
+        self.assertEqual(self.client.post('/api/auth/cerrar-sesiones/', {'codigo': codigo_de_otro}, format='json').status_code, 400)
+
+    def test_la_purga_borra_los_codigos_vencidos_y_eliminar_la_cuenta_los_borra(self):
+        self._pedir_codigo()
+        CodigoSeguridad.objects.filter(usuario=self.usuario).update(expira_en=timezone.now() - timedelta(hours=1))
+        call_command('purgar_datos_vencidos')
+        self.assertFalse(CodigoSeguridad.objects.exists())
+        CodigoSeguridad.objects.create(usuario=self.usuario, proposito='CERRAR_SESIONES', codigo_hash='x', expira_en=timezone.now() + timedelta(minutes=5))
+        derechos_titular.eliminar_cuenta(self.usuario)
+        self.assertFalse(CodigoSeguridad.objects.filter(usuario=self.usuario).exists())

@@ -956,6 +956,31 @@ class ConsentimientoBiometrico(models.Model):
         )
 
 
+class CodigoSeguridad(models.Model):
+    """
+    Código de un solo uso enviado al correo para confirmar una acción sensible (ver `codigos_seguridad.py`). Solo se
+    guarda el hash. Un registro activo por (usuario, propósito); se borra al usarse, al vencer o al pedir otro.
+    """
+    CERRAR_SESIONES = 'CERRAR_SESIONES'
+    PROPOSITOS = [(CERRAR_SESIONES, 'Cerrar sesión en todos los dispositivos')]
+
+    id_codigo = models.BigAutoField(primary_key=True, db_column='ID_CODIGO')
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='codigos_seguridad', db_column='FK_USUARIO')
+    proposito = models.CharField(max_length=20, choices=PROPOSITOS, db_column='PROPOSITO')
+    codigo_hash = models.CharField(max_length=64, db_column='CODIGO_HASH')
+    expira_en = models.DateTimeField(db_column='EXPIRA_EN')
+    intentos = models.PositiveSmallIntegerField(default=0, db_column='INTENTOS')
+    creado_en = models.DateTimeField(auto_now_add=True, db_column='CREADO_EN')
+
+    class Meta:
+        db_table = 'CODIGO_SEGURIDAD'
+        verbose_name = 'Código de seguridad'
+        verbose_name_plural = 'Códigos de seguridad'
+
+    def __str__(self):
+        return f'Código {self.proposito} de usuario {self.usuario_id}'
+
+
 class VerificacionAlternativa(models.Model):
     """
     Solicitud de verificación de identidad SIN biometría (ver `verificacion_alternativa.py`):

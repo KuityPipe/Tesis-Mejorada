@@ -20,7 +20,7 @@ fuera de alcance de esa sesión:
 
 Detalle y decisiones en `docs/ESTADO_Y_PROXIMOS_PASOS.md` y los ADR 0006/0007.
 - **Verificación de identidad:** prueba real del dispositivo para la vía nativa (llave que firma un desafío, secreto de dispositivo o Play Integrity/App Attest), definir "identidad verificada" y su vínculo con la cédula, y manejar la verificación vencida (pedirla al confirmar un trabajo y ocultar del catálogo con aviso previo). ADR 0006.
-- **"Cerrar sesión en todos los dispositivos"** (botón en Preferencias): `jwt_utils.revocar_todas_las_sesiones` ya lo hace; falta el endpoint y la pantalla. (`sesiones_invalidadas_en` ya está hecho para cambio de clave y eliminación.)
+- **Usar el código por correo (`codigos_seguridad`) en otras acciones sensibles:** cambio de correo o teléfono, eliminación de la cuenta (hoy solo pide la contraseña). "Cerrar sesión en todos los dispositivos" ya lo usa.
 - **Más avisos por correo** (acceso a la cuenta, servicio contratado/confirmado, pago, verificación por vencer): usar `notificaciones_correo.avisar`; depende de tener SMTP real. ADR 0007.
 - **Evidencia para investigaciones:** retención reforzada de casos marcados ("legal hold"); hoy un chat de un trabajo cerrado se borra a los 90 días aunque exista una queja. ADR 0007, con abogado.
 - **Flujo de dinero:** comisión congelada al confirmar, reembolsos (cierra el 409 `requiere_soporte`), payouts o split, disputas y documentos tributarios. `docs/PLAN_FLUJO_DE_DINERO.md`.

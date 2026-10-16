@@ -27,8 +27,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import asistente, biometria, cierres, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
-from .. import pagos
+from .. import asistente, biometria, cierres, codigos_seguridad, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
+from .. import notificaciones_correo, pagos
 from .. import views as vistas_legacy
 from ..forms import (
     CambiarPasswordForm, CATEGORIAS_PUBLICACION, ContactoForm, CrearPerfilForm, EditarPerfilForm, MensajeForm,
@@ -37,7 +37,7 @@ from ..forms import (
 )
 from ..models import (
     EventoVerificacion, SolicitudTitular,
-    Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
+    CodigoSeguridad, Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
     HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region,
     Transaccion, TipoCuenta, Usuario, UsuarioConversacion, Valoracion, ValoracionImagen, VerificacionAlternativa,
 )
@@ -714,6 +714,45 @@ class EliminarCuentaView(APIView):
             'eliminacion_programada_en': fecha,
             'dias_de_espera': settings.CUENTA_ELIMINACION_DIAS,
         })
+
+
+class CerrarSesionesCodigoView(APIView):
+    """
+    `POST /api/auth/cerrar-sesiones/codigo/` — paso 1 de "cerrar sesión en todos los dispositivos": manda un código de
+    un solo uso al correo de la cuenta (`codigos_seguridad`). Es el seguro extra: una sesión robada no basta, hay que
+    tener acceso al correo.
+    """
+
+    def post(self, request):
+        try:
+            codigos_seguridad.enviar(
+                request.user, CodigoSeguridad.CERRAR_SESIONES, 'código para cerrar tus sesiones',
+                'Pediste cerrar la sesión de tu cuenta de KeyServ en todos tus dispositivos.',
+            )
+        except codigos_seguridad.ErrorCodigo as error:
+            return Response({'detail': error.mensaje}, status=error.codigo)
+        return Response({'detail': 'Te enviamos un código a tu correo.', 'vence_en_minutos': int(codigos_seguridad.VIGENCIA.total_seconds() // 60)})
+
+
+class CerrarSesionesView(APIView):
+    """
+    `POST /api/auth/cerrar-sesiones/` `{codigo}` — paso 2: con el código correcto revoca todos los refresh tokens e
+    invalida los access tokens ya emitidos (`jwt_utils.revocar_todas_las_sesiones`). **Incluye este dispositivo**: la
+    app debe cerrar su sesión local y volver al login. Avisa por correo de que se hizo.
+    """
+
+    def post(self, request):
+        try:
+            codigos_seguridad.verificar(request.user, CodigoSeguridad.CERRAR_SESIONES, request.data.get('codigo'))
+        except codigos_seguridad.ErrorCodigo as error:
+            return Response({'detail': error.mensaje}, status=error.codigo)
+        jwt_utils.revocar_todas_las_sesiones(request.user)
+        logger.info('Sesiones cerradas en todos los dispositivos (api): usuario_id=%s', request.user.id_usuario)
+        notificaciones_correo.avisar(
+            request.user, 'cerraste tus sesiones',
+            'Se cerró la sesión de tu cuenta en todos tus dispositivos. Si no fuiste tú, cambia tu contraseña de inmediato.',
+        )
+        return Response({'detail': 'Cerramos tu sesión en todos los dispositivos. Vuelve a iniciar sesión.'})
 
 
 class CambiarPasswordView(APIView):
