@@ -530,6 +530,7 @@ def _estado_verificacion_alternativa(usuario):
         'documento_enviado': bool(v and v.documento_id),
         'requiere_video': settings.VERIFICACION_REQUIERE_VIDEO,
         'consentimiento_video': verificacion_alternativa.CONSENTIMIENTO_VIDEO,
+        'consentimiento_video_version': verificacion_alternativa.VERSION_CONSENTIMIENTO_VIDEO,
         'consentimiento_video_aceptado': bool(v and v.video_consentimiento_en),
         'video_enviado': bool(v and v.video),
         'codigo_video': v.codigo_video if v else '',

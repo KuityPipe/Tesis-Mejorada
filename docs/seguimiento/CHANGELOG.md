@@ -3,6 +3,14 @@
 Historia de lo que cambia en KeyServ, en lenguaje simple y por fecha (lo más reciente arriba). El detalle técnico está en
 `git log` y en la hoja `Cambios` del libro de seguimiento. Cómo mantenerlo: [README](README.md).
 
+## 2026-10-16 (tarde)
+
+### Agregado
+- **Guía de postulación a Corfo** (`docs/corfo/`) hecha con las bases técnicas oficiales de Semilla Inicia: requisitos, cómo calza KeyServ, qué falta (Entidad Patrocinadora y mentoría son obligatorias), cómo se evalúa, borrador de la postulación con guion del video de 40 segundos y puente de la tesis a los documentos nuevos.
+- **Plan de adecuación a la Ley 21.719** (`docs/cumplimiento/`): cuenta regresiva al 1 de diciembre de 2026, estado por área, tratamientos nuevos, plan de 6 semanas y preguntas para el abogado.
+- Hojas `Corfo` y `Gantt` en el libro de seguimiento, y 13 tareas nuevas.
+- El consentimiento del video de verificación ahora guarda **la versión del texto** que la persona aceptó.
+
 ## 2026-10-16
 
 ### Agregado

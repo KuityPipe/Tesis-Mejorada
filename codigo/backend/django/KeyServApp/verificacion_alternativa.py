@@ -63,6 +63,9 @@ def _enviar_codigo(usuario, codigo):
     )
 
 
+# Subir al cambiar CONSENTIMIENTO_VIDEO: queda guardada con cada aceptación como constancia de qué texto se aceptó.
+VERSION_CONSENTIMIENTO_VIDEO = '2026-10-v1'
+
 CONSENTIMIENTO_VIDEO = (
     'Acepto grabar un video corto mostrando mi cédula junto a mi cara, y que una persona del equipo de KeyServ lo vea '
     'para comparar mi rostro con la foto de mi cédula. El video no se usa para otra cosa, solo lo ve el equipo que '
@@ -111,7 +114,9 @@ def iniciar(usuario, acepto_advertencia, acepto_video=False):
     codigo = f'{secrets.randbelow(10**6):06d}'
     verificacion.advertencia_aceptada_en = verificacion.advertencia_aceptada_en or timezone.now()
     if settings.VERIFICACION_REQUIERE_VIDEO:
-        verificacion.video_consentimiento_en = verificacion.video_consentimiento_en or timezone.now()
+        if not verificacion.video_consentimiento_en:
+            verificacion.video_consentimiento_en = timezone.now()
+            verificacion.video_consentimiento_version = VERSION_CONSENTIMIENTO_VIDEO
         verificacion.codigo_video = verificacion.codigo_video or _codigo_de_video()
     verificacion.codigo_hash = _hash_codigo(codigo)
     verificacion.codigo_expira_en = timezone.now() + VIGENCIA_CODIGO

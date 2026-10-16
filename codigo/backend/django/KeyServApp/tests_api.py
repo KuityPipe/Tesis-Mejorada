@@ -3602,6 +3602,9 @@ class VerificacionConVideoTests(APITestCase):
         self.assertIn('video', sin.data['detail'])
         self._hasta_el_correo()
         estado = self.client.get('/api/auth/verificacion-alternativa/').data
+        v = VerificacionAlternativa.objects.get(usuario=self.usuario)
+        self.assertEqual(v.video_consentimiento_version, estado['consentimiento_video_version'])  # queda constancia de qué texto aceptó
+        self.assertIsNotNone(v.video_consentimiento_en)
         self.assertRegex(estado['codigo_video'], r'^\d{4}$')
         self.assertTrue(estado['requiere_video'] and estado['consentimiento_video_aceptado'] and not estado['video_enviado'])
 

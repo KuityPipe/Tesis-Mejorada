@@ -1061,6 +1061,8 @@ class VerificacionAlternativa(models.Model):
     video_subido_en = models.DateTimeField(null=True, blank=True, db_column='VIDEO_SUBIDO_EN')
     codigo_video = models.CharField(max_length=4, blank=True, db_column='CODIGO_VIDEO')
     video_consentimiento_en = models.DateTimeField(null=True, blank=True, db_column='VIDEO_CONSENTIMIENTO_EN')
+    # Versión del texto de consentimiento que aceptó (`verificacion_alternativa.VERSION_CONSENTIMIENTO_VIDEO`): sirve de prueba de qué se le dijo exactamente.
+    video_consentimiento_version = models.CharField(max_length=20, blank=True, db_column='VIDEO_CONSENTIMIENTO_VERSION')
 
     class Meta:
         db_table = 'VERIFICACION_ALTERNATIVA'

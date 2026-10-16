@@ -24,6 +24,8 @@ La fuente de verdad del código es **git**; el tablero es para decidir y organiz
 | `Comision` | Calculadora con fórmulas: tramos, tarifas de las pasarelas y margen por transacción | Cambia los valores azules |
 | `Presupuesto` | Costos con supuestos escritos (para Corfo) | Completa las celdas amarillas |
 | `Pruebas` | Guion de recorrido manual con resultado OK/Falla | A mano mientras pruebas |
+| `Corfo` | Requisitos de las bases de Semilla Inicia con su estado (cumple, falta, por verificar) | A mano; detalle en `docs/corfo/` |
+| `Gantt` | Carta Gantt de los 10 meses de ejecución; las barras se mueven al cambiar inicio y fin | Cambia los meses (azul) |
 
 Convención de colores: **azul** = dato que puedes cambiar · **amarillo** = falta completarlo · negro = fórmula o texto fijo.
 
