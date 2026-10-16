@@ -12,6 +12,7 @@ class KeyservappConfig(AppConfig):
         # distintas pero por defecto ambos se ven "Usuario(s)" en el admin —
         # se renombra el nativo para que no se confundan entre sí (ver
         # también Usuario.Meta.verbose_name en models.py).
+        from . import checks  # noqa: F401 — registra los chequeos de configuración de producción
         from django.contrib.auth.models import User
         User._meta.verbose_name = 'Cuenta de staff (login admin)'
         User._meta.verbose_name_plural = 'Cuentas de staff (login admin)'

@@ -316,7 +316,11 @@ DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='KeyServ <no-respo
 # el presupuesto, no descuenta nada de verdad todavía (el pago le cobra el
 # 100% al cliente; la liquidación al proveedor sigue siendo manual, fuera
 # del sistema — ver docs/RECOMMENDED_ARCHITECTURE.md).
-COMISION_PLATAFORMA_PORCENTAJE = env.float('COMISION_PLATAFORMA_PORCENTAJE', default=5.0)
+# Comisión por tramos, que paga el cliente encima del precio (KeyServApp/comisiones.py): lista de [tope en CLP, %],
+# de menor a mayor; el último, con tope null, cubre el resto. Por defecto 6/5/4,5/4 % (ver docs/ANALISIS_COMISION.md: con
+# 3 % en montos grandes y pago con tarjeta se pierde plata). Se cambia con la variable de entorno COMISION_TRAMOS (JSON).
+COMISION_TRAMOS = env.json('COMISION_TRAMOS', default=[[50000, '6'], [200000, '5'], [500000, '4.5'], [None, '4']])
+COMISION_MINIMA = env.int('COMISION_MINIMA', default=1000)
 
 
 # API REST (KeyServApp/api/) — para el frontend Ionic/Angular, ver
@@ -378,6 +382,11 @@ IDENTIDAD_VIGENCIA_DIAS = env.int('IDENTIDAD_VIGENCIA_DIAS', default=180)
 # Eliminar la cuenta no anonimiza al instante: queda bloqueada este número de días por si hay una queja o un problema
 # con la otra parte de un trabajo (decisión del dueño, 2026-10-15). Luego la anonimiza `purgar_datos_vencidos`.
 CUENTA_ELIMINACION_DIAS = env.int('CUENTA_ELIMINACION_DIAS', default=15)
+# Vía de identidad sin biometría: además del documento, la persona graba un video corto mostrando su cédula y diciendo
+# un código; una persona del staff lo compara y aprueba o rechaza (docs/adr/0006). El video es un dato personal sensible:
+# vive en almacenamiento privado, lo ve solo el staff y se BORRA al resolver (aprobar o rechazar) o a los VIDEO_RETENCION_DIAS.
+VERIFICACION_REQUIERE_VIDEO = env.bool('VERIFICACION_REQUIERE_VIDEO', default=True)
+VIDEO_RETENCION_DIAS = env.int('VIDEO_RETENCION_DIAS', default=30)
 # Días sin respuesta del proveedor tras los que una solicitud expira sola (`expirar_solicitudes`). Valor inicial a ajustar.
 SOLICITUD_EXPIRA_DIAS = env.int('SOLICITUD_EXPIRA_DIAS', default=7)
 # Asistente con IA (KeyServApp/asistente.py). Cualquier proveedor con API compatible con OpenAI; por defecto NVIDIA NIM

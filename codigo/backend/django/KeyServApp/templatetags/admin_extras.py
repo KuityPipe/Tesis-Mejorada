@@ -2,7 +2,7 @@
 from django import template
 from django.utils import timezone
 
-from KeyServApp.models import Consulta, IntentoAccesoSospechoso, Publicaciones, SolicitudTitular, VerificacionAlternativa
+from KeyServApp.models import Consulta, IntentoAccesoSospechoso, Publicaciones, Reembolso, SolicitudTitular, VerificacionAlternativa
 
 register = template.Library()
 
@@ -44,5 +44,10 @@ def panel_aprobaciones(context):
         contexto['total_solicitudes_titular'] = abiertas_titular.count()
         contexto['solicitudes_titular'] = abiertas_titular[:8]
         contexto['total_solicitudes_vencidas'] = sum(1 for s in abiertas_titular if s.vencida)
+
+    if usuario.has_perm('KeyServApp.view_reembolso'):
+        por_devolver = Reembolso.objects.filter(estado=Reembolso.PENDIENTE).select_related('pago__contratacion').order_by('creado_en')
+        contexto['total_reembolsos'] = por_devolver.count()
+        contexto['reembolsos_pendientes'] = por_devolver[:8]
 
     return contexto

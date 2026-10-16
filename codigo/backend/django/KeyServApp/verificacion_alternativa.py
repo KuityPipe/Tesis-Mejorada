@@ -63,14 +63,45 @@ def _enviar_codigo(usuario, codigo):
     )
 
 
-def iniciar(usuario, acepto_advertencia):
-    """Registra la aceptación de la advertencia y envía (o reenvía) el código al correo."""
+CONSENTIMIENTO_VIDEO = (
+    'Acepto grabar un video corto mostrando mi cédula junto a mi cara, y que una persona del equipo de KeyServ lo vea '
+    'para comparar mi rostro con la foto de mi cédula. El video no se usa para otra cosa, solo lo ve el equipo que '
+    'revisa mi verificación y se elimina apenas la revisión termina (o a los 30 días si nadie la resuelve).'
+)
+
+
+def _codigo_de_video():
+    return f'{secrets.randbelow(10**4):04d}'
+
+
+def borrar_video(verificacion):
+    """Elimina el archivo del video y deja un código nuevo (así un video anterior no se puede reusar). Idempotente."""
+    if verificacion.video:
+        verificacion.video.delete(save=False)
+    verificacion.video = None
+    verificacion.video_subido_en = None
+    verificacion.codigo_video = _codigo_de_video()
+    verificacion.save(update_fields=['video', 'video_subido_en', 'codigo_video'])
+
+
+def _actualizar_revision(verificacion):
+    """Pasa la solicitud a revisión del staff solo cuando están todos los respaldos (documento y, si se exige, el video)."""
+    completa = bool(verificacion.documento_id) and (bool(verificacion.video) or not settings.VERIFICACION_REQUIERE_VIDEO)
+    verificacion.estado = VerificacionAlternativa.PENDIENTE_REVISION if completa else VerificacionAlternativa.INICIADA
+    verificacion.motivo_rechazo = ''
+    verificacion.save()
+
+
+def iniciar(usuario, acepto_advertencia, acepto_video=False):
+    """Registra la aceptación de la advertencia (y del video, si se exige) y envía (o reenvía) el código al correo."""
     if not acepto_advertencia:
         raise ErrorVerificacion('Debes aceptar la advertencia para continuar con esta vía.')
 
     verificacion, _ = VerificacionAlternativa.objects.get_or_create(usuario=usuario)
     if verificacion.estado == VerificacionAlternativa.APROBADA:
         raise ErrorVerificacion('Tu identidad ya está verificada.', 409)
+    if settings.VERIFICACION_REQUIERE_VIDEO and not (acepto_video or verificacion.video_consentimiento_en):
+        raise ErrorVerificacion('Debes aceptar que se grabe y se revise el video para continuar con esta vía.')
 
     clave = f'verif_alt_reenvio:{usuario.pk}'
     if cache.get(clave):
@@ -79,6 +110,9 @@ def iniciar(usuario, acepto_advertencia):
 
     codigo = f'{secrets.randbelow(10**6):06d}'
     verificacion.advertencia_aceptada_en = verificacion.advertencia_aceptada_en or timezone.now()
+    if settings.VERIFICACION_REQUIERE_VIDEO:
+        verificacion.video_consentimiento_en = verificacion.video_consentimiento_en or timezone.now()
+        verificacion.codigo_video = verificacion.codigo_video or _codigo_de_video()
     verificacion.codigo_hash = _hash_codigo(codigo)
     verificacion.codigo_expira_en = timezone.now() + VIGENCIA_CODIGO
     verificacion.intentos_codigo = 0
@@ -127,9 +161,30 @@ def adjuntar_documento(usuario, archivo, estado_documento):
     documento.save()
 
     verificacion.documento = documento
-    verificacion.estado = VerificacionAlternativa.PENDIENTE_REVISION
-    verificacion.motivo_rechazo = ''
-    verificacion.save()
+    _actualizar_revision(verificacion)
     verificaciones.registrar_evento(usuario, EventoVerificacion.ALTERNATIVA, 'documento_enviado', EventoVerificacion.EXITOSO)
     logger.info('Documento de identidad recibido para revisión: usuario_id=%s', usuario.pk)
+    return verificacion
+
+
+def adjuntar_video(usuario, archivo):
+    """Guarda el video de verificación (almacenamiento privado). Exige correo verificado y haber aceptado la grabación."""
+    from .validators import validar_video
+
+    verificacion = VerificacionAlternativa.objects.filter(usuario=usuario).first()
+    if not verificacion or not verificacion.correo_verificado_en:
+        raise ErrorVerificacion('Primero confirma el código que enviamos a tu correo.')
+    if verificacion.estado == VerificacionAlternativa.APROBADA:
+        raise ErrorVerificacion('Tu identidad ya está verificada.', 409)
+    if not verificacion.video_consentimiento_en:
+        raise ErrorVerificacion('Debes aceptar que se grabe y se revise el video para enviarlo.')
+
+    validar_video(archivo)  # extensión, firma real y tamaño; levanta ValidationError
+    if verificacion.video:
+        verificacion.video.delete(save=False)  # reemplaza uno anterior
+    verificacion.video.save(archivo.name, archivo, save=False)
+    verificacion.video_subido_en = timezone.now()
+    _actualizar_revision(verificacion)
+    verificaciones.registrar_evento(usuario, EventoVerificacion.ALTERNATIVA, 'video_enviado', EventoVerificacion.EXITOSO)
+    logger.info('Video de verificación recibido para revisión: usuario_id=%s', usuario.pk)
     return verificacion

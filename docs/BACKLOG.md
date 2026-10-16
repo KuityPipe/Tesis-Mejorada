@@ -24,11 +24,16 @@ Detalle y decisiones en `docs/ESTADO_Y_PROXIMOS_PASOS.md` y los ADR 0006/0007.
 - **Más avisos por correo** (acceso a la cuenta, servicio contratado/confirmado, pago, verificación por vencer): usar `notificaciones_correo.avisar`; depende de tener SMTP real. ADR 0007.
 - **Evidencia para investigaciones:** retención reforzada de casos marcados ("legal hold"); hoy un chat de un trabajo cerrado se borra a los 90 días aunque exista una queja. ADR 0007, con abogado.
 - **Flujo de dinero:** comisión congelada al confirmar, reembolsos (cierra el 409 `requiere_soporte`), payouts o split, disputas y documentos tributarios. `docs/PLAN_FLUJO_DE_DINERO.md`.
-- **Reembolso de pagos sobre contratación cancelada:** hoy solo queda un `logger.warning` (típico de Khipu, cuyo webhook llega tarde).
-- **Cancelar una contratación `EN_CURSO`** (ya pagada): solo por soporte hasta que exista el flujo de reembolso.
+- **Reembolsos automáticos:** hoy se registran y los resuelve el staff a mano (la devolución es manual). Falta devolver por la API de cada pasarela, reembolsos parciales y contracargos.
+- **Ocultar del catálogo** las publicaciones de proveedores con la verificación vencida (con aviso previo). Confirmar trabajos nuevos ya se bloquea.
+- **Aviso por correo de acceso nuevo a la cuenta** y de verificación por vencer (ADR 0007).
 - **Mejora de e2e:** el servidor de desarrollo local es lento con varios workers; fijar `workers: 1` en `playwright.config.ts` si se vuelve a ver (en CI parte limpio).
 
 - **Probar Flow y Mercado Pago contra su sandbox real** (el código solo se probó con mocks): firma HMAC de Flow, campos de `payment/create`, `init_point`/`auto_return` y notificaciones de Mercado Pago (que necesitan una URL pública https). Opcional: Fintoc (transferencias, llaves de test) como medio adicional.
+
+- **Mostrar el precio con la comisión incluida en el catálogo** (hoy el catálogo muestra el precio sin comisión y el desglose aparece al pagar). Decisión de producto.
+- **Pagos al proveedor:** la comisión ya se calcula y se congela, pero el proveedor todavía no recibe su parte por el sistema (`PLAN_FLUJO_DE_DINERO.md`).
+- **Revisión legal del video de verificación** (consentimiento, plazo de 30 días, base legal) y decidir si las otras vías de verificación deben exigirlo también.
 
 ## Otros ítems pendientes
 

@@ -19,7 +19,7 @@ from django.contrib.auth.hashers import make_password, check_password
 
 from .campos import CampoJSONCifrado
 from .storage import almacenamiento_documentos
-from .validators import validar_documento, validar_imagen
+from .validators import validar_documento, validar_imagen, validar_video
 
 
 # ---------------------------------------------------------------------------
@@ -652,6 +652,11 @@ class Pago(models.Model):
     orden_compra = models.CharField(max_length=26, null=True, blank=True, db_column='ORDEN_COMPRA')
     token_webpay = models.CharField(max_length=64, null=True, blank=True, db_column='TOKEN_WEBPAY')
     khipu_payment_id = models.CharField(max_length=64, null=True, blank=True, db_column='KHIPU_PAYMENT_ID')
+    # Desglose del cobro (comisiones.py): `monto` es el TOTAL que paga el cliente = `monto_servicio` + `comision_monto`.
+    # Nulos en los pagos anteriores a la comisión por tramos.
+    monto_servicio = models.PositiveIntegerField(null=True, blank=True, db_column='MONTO_SERVICIO')
+    comision_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, db_column='COMISION_PORCENTAJE')
+    comision_monto = models.PositiveIntegerField(default=0, db_column='COMISION_MONTO')
     # Identificador del cobro en la pasarela para Flow (token) y Mercado Pago (id de la preferencia).
     referencia_externa = models.CharField(max_length=128, null=True, blank=True, db_column='REFERENCIA_EXTERNA')
 
@@ -956,6 +961,44 @@ class ConsentimientoBiometrico(models.Model):
         )
 
 
+class Reembolso(models.Model):
+    """
+    Dinero que hay que devolver al cliente (ver `reembolsos.py`). El sistema solo lo registra y lo resuelve el staff:
+    no ejecuta la devolución en la pasarela. Un pago puede tener más de un reembolso (p. ej. uno rechazado y otro después).
+    """
+    PAGO_TARDIO, CANCELACION = 'PAGO_TARDIO', 'CANCELACION'
+    MOTIVOS = [
+        (PAGO_TARDIO, 'Pago aprobado sobre una contratación ya cancelada'),
+        (CANCELACION, 'El cliente pidió cancelar un trabajo ya pagado'),
+    ]
+    PENDIENTE, REEMBOLSADO, RECHAZADO = 'PENDIENTE', 'REEMBOLSADO', 'RECHAZADO'
+    ESTADOS = [(PENDIENTE, 'Pendiente'), (REEMBOLSADO, 'Reembolsado'), (RECHAZADO, 'Rechazado')]
+
+    id_reembolso = models.BigAutoField(primary_key=True, db_column='ID_REEMBOLSO')
+    pago = models.ForeignKey(Pago, on_delete=models.PROTECT, related_name='reembolsos', db_column='FK_PAGO')
+    monto = models.PositiveIntegerField(db_column='MONTO')
+    motivo = models.CharField(max_length=12, choices=MOTIVOS, db_column='MOTIVO')
+    detalle = models.CharField(max_length=300, blank=True, db_column='DETALLE')
+    estado = models.CharField(max_length=12, choices=ESTADOS, default=PENDIENTE, db_column='ESTADO')
+    creado_en = models.DateTimeField(auto_now_add=True, db_column='CREADO_EN')
+    resuelto_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='reembolsos_resueltos', db_column='FK_RESUELTO_POR',
+    )
+    resuelto_en = models.DateTimeField(null=True, blank=True, db_column='RESUELTO_EN')
+    # Referencia de la devolución hecha a mano (n.º de transferencia) o, si se rechaza, la razón.
+    referencia = models.CharField(max_length=120, blank=True, db_column='REFERENCIA')
+
+    class Meta:
+        db_table = 'REEMBOLSO'
+        verbose_name = 'Reembolso'
+        verbose_name_plural = 'Reembolsos'
+        ordering = ['-creado_en']
+
+    def __str__(self):
+        return f'Reembolso #{self.id_reembolso} ({self.estado}) de ${self.monto}'
+
+
 class CodigoSeguridad(models.Model):
     """
     Código de un solo uso enviado al correo para confirmar una acción sensible (ver `codigos_seguridad.py`). Solo se
@@ -1010,6 +1053,14 @@ class VerificacionAlternativa(models.Model):
     revisado_en = models.DateTimeField(null=True, blank=True, db_column='REVISADO_EN')
     motivo_rechazo = models.CharField(max_length=200, blank=True, db_column='MOTIVO_RECHAZO')
     creado_en = models.DateTimeField(auto_now_add=True, db_column='CREADO_EN')
+    # Video de verificación (ver verificacion_alternativa.py): la persona muestra su cédula junto a su cara y dice su nombre
+    # y `codigo_video` en voz alta (el código evita reusar un video viejo). Dato sensible: almacenamiento privado, se borra
+    # al resolver la solicitud o al vencer `settings.VIDEO_RETENCION_DIAS`. `video_consentimiento_en` deja constancia de que
+    # aceptó que se grabe y lo revise una persona.
+    video = models.FileField(upload_to='verificacion/videos/', storage=almacenamiento_documentos, null=True, blank=True, db_column='VIDEO', validators=[validar_video])
+    video_subido_en = models.DateTimeField(null=True, blank=True, db_column='VIDEO_SUBIDO_EN')
+    codigo_video = models.CharField(max_length=4, blank=True, db_column='CODIGO_VIDEO')
+    video_consentimiento_en = models.DateTimeField(null=True, blank=True, db_column='VIDEO_CONSENTIMIENTO_EN')
 
     class Meta:
         db_table = 'VERIFICACION_ALTERNATIVA'

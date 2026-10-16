@@ -17,6 +17,10 @@ MENSAJE = (
     'Una vez verificado, puedes reconfirmarla con la biometría de tu teléfono.'
 )
 CODIGO = 'identidad_no_verificada'
+MENSAJE_CONFIRMAR = (
+    'Tu verificación de identidad falta o venció. Vuelve a verificarla desde la sección de verificación '
+    'para poder aceptar trabajos nuevos. Los que ya están en curso no se ven afectados.'
+)
 
 
 def _reciente(fecha):

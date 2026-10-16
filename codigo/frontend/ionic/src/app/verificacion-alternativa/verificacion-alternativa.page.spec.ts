@@ -14,7 +14,8 @@ describe('VerificacionAlternativaPage', () => {
 
   const base: EstadoVerificacionAlternativa = {
     identidad_verificada: false, estado: null, advertencia: 'a', advertencia_aceptada: false,
-    correo_verificado: false, documento_enviado: false, motivo_rechazo: '',
+    correo_verificado: false, documento_enviado: false, requiere_video: false, consentimiento_video: 'v',
+    consentimiento_video_aceptado: false, video_enviado: false, codigo_video: '', motivo_rechazo: '',
   };
 
   beforeEach(async () => {
@@ -41,5 +42,29 @@ describe('VerificacionAlternativaPage', () => {
     expect(component.paso).toBe('revision');
     component.estado = { ...base, identidad_verificada: true };
     expect(component.paso).toBe('verificada');
+  });
+
+  it('con video exigido, después del documento pide el video y recién con ambos pasa a revisión', () => {
+    const conVideo = { ...base, requiere_video: true, advertencia_aceptada: true, correo_verificado: true, codigo_video: '4821' };
+    component.estado = conVideo;
+    expect(component.paso).toBe('documento');
+    component.estado = { ...conVideo, documento_enviado: true };
+    expect(component.paso).toBe('video');
+    // una solicitud antigua que quedó "en revisión" sin video debe poder completarlo
+    component.estado = { ...conVideo, documento_enviado: true, estado: 'PENDIENTE_REVISION' };
+    expect(component.paso).toBe('video');
+    component.estado = { ...conVideo, documento_enviado: true, video_enviado: true, estado: 'PENDIENTE_REVISION' };
+    expect(component.paso).toBe('revision');
+  });
+
+  it('el primer paso exige aceptar también la grabación solo cuando el servidor pide video', () => {
+    component.aceptoAdvertencia = true;
+    component.estado = { ...base, requiere_video: true };
+    expect(component.puedeIniciar).toBeFalse();
+    component.aceptoVideo = true;
+    expect(component.puedeIniciar).toBeTrue();
+    component.estado = { ...base, requiere_video: false };
+    component.aceptoVideo = false;
+    expect(component.puedeIniciar).toBeTrue();
   });
 });

@@ -12,12 +12,19 @@ export interface EstadoVerificacionAlternativa {
   advertencia_aceptada: boolean;
   correo_verificado: boolean;
   documento_enviado: boolean;
+  /** Si el servidor exige además un video corto mostrando la cédula junto a la cara. */
+  requiere_video: boolean;
+  consentimiento_video: string;
+  consentimiento_video_aceptado: boolean;
+  video_enviado: boolean;
+  /** Número de 4 dígitos que la persona debe decir en voz alta en el video. */
+  codigo_video: string;
   motivo_rechazo: string;
 }
 
 /**
- * Vía alternativa a la biometría: advertencia + código por correo + documento de identidad
- * revisado por el staff. Más lenta a propósito; la biometría del teléfono es la vía principal.
+ * Vía alternativa a la biometría: advertencia + código por correo + documento de identidad + video corto
+ * mostrando la cédula junto a la cara, revisados por una persona del staff. Más lenta a propósito; la biometría del teléfono es la vía principal.
  */
 @Injectable({
   providedIn: 'root',
@@ -31,12 +38,18 @@ export class VerificacionAlternativa {
     return this.http.get<EstadoVerificacionAlternativa>(`${this.base}/`);
   }
 
-  iniciar(): Observable<EstadoVerificacionAlternativa> {
-    return this.http.post<EstadoVerificacionAlternativa>(`${this.base}/iniciar/`, { acepto_advertencia: true });
+  iniciar(aceptoVideo = false): Observable<EstadoVerificacionAlternativa> {
+    return this.http.post<EstadoVerificacionAlternativa>(`${this.base}/iniciar/`, { acepto_advertencia: true, acepto_video: aceptoVideo });
   }
 
   confirmarCodigo(codigo: string): Observable<EstadoVerificacionAlternativa> {
     return this.http.post<EstadoVerificacionAlternativa>(`${this.base}/codigo/`, { codigo });
+  }
+
+  enviarVideo(archivo: File): Observable<EstadoVerificacionAlternativa> {
+    const formData = new FormData();
+    formData.append('video', archivo);
+    return this.http.post<EstadoVerificacionAlternativa>(`${this.base}/video/`, formData);
   }
 
   enviarDocumento(archivo: File): Observable<EstadoVerificacionAlternativa> {

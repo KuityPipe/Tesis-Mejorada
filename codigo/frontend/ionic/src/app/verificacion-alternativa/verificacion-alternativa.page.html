@@ -26,7 +26,7 @@
 
       <ion-card *ngIf="paso === 'revision'">
         <ion-card-content>
-          Recibimos tu documento. Lo revisamos manualmente; te avisaremos cuando tu identidad quede verificada.
+          Recibimos tu documento{{ estado.requiere_video ? ' y tu video' : '' }}. Una persona del equipo los revisa manualmente; te avisaremos cuando tu identidad quede verificada. El video se elimina apenas termina la revisión.
         </ion-card-content>
       </ion-card>
 
@@ -48,7 +48,15 @@
                 Entiendo y acepto continuar bajo mi propio riesgo.
               </ion-checkbox>
             </ion-item>
-            <ion-button expand="block" [disabled]="!aceptoAdvertencia || trabajando" (click)="iniciar()">
+            <ng-container *ngIf="estado.requiere_video">
+              <p class="ion-padding-top">{{ estado.consentimiento_video }}</p>
+              <ion-item lines="none">
+                <ion-checkbox [(ngModel)]="aceptoVideo" labelPlacement="end" justify="start">
+                  Acepto grabar el video y que lo revise una persona del equipo.
+                </ion-checkbox>
+              </ion-item>
+            </ng-container>
+            <ion-button expand="block" [disabled]="!puedeIniciar || trabajando" (click)="iniciar()">
               Enviarme un código al correo
             </ion-button>
           </ion-card-content>
@@ -75,10 +83,28 @@
         <p class="ks-section-title">3. Documento de identidad</p>
         <ion-card>
           <ion-card-content>
-            <p>Sube una foto clara de tu cédula (JPG, PNG o PDF). Solo la ve el equipo que revisa tu verificación.</p>
+            <p>Sube una foto clara de tu cédula, por delante (JPG, PNG o PDF). Solo la ve el equipo que revisa tu verificación.</p>
             <input type="file" accept="image/jpeg,image/png,application/pdf" (change)="seleccionarArchivo($event)" />
             <ion-button expand="block" class="ion-margin-top" [disabled]="!archivo || trabajando" (click)="enviarDocumento()">
               Enviar documento
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <div class="ks-section" *ngIf="paso === 'video'">
+        <p class="ks-section-title">4. Video corto con tu cédula</p>
+        <ion-card>
+          <ion-card-content>
+            <p>Graba un video de unos 10 a 20 segundos, con buena luz, donde se vean <strong>tu cara y tu cédula juntas</strong> (la foto y los datos legibles) y digas en voz alta:</p>
+            <ol>
+              <li>tu nombre completo,</li>
+              <li>y este número: <strong class="ks-codigo-video">{{ estado.codigo_video }}</strong>.</li>
+            </ol>
+            <p class="ks-help">El número es distinto para cada intento: así sabemos que el video es de ahora. Una persona del equipo lo compara con tu cédula y lo elimina al terminar.</p>
+            <input type="file" accept="video/*" capture="user" (change)="seleccionarVideo($event)" />
+            <ion-button expand="block" class="ion-margin-top" [disabled]="!archivoVideo || trabajando" (click)="enviarVideo()">
+              {{ trabajando ? 'Enviando…' : 'Enviar video' }}
             </ion-button>
           </ion-card-content>
         </ion-card>

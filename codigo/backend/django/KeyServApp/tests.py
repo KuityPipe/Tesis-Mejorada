@@ -62,6 +62,11 @@ def _crear_region_comuna_tipo():
     return region, comuna, tipo_cuenta
 
 
+def _video_de_prueba(nombre='verificacion.mp4'):
+    """Un MP4 mínimo válido para el validador (la firma `ftyp` en los bytes 4 a 8); no hace falta que se pueda reproducir."""
+    return SimpleUploadedFile(nombre, b'\x00\x00\x00\x18ftypmp42' + b'\x00' * 64, content_type='video/mp4')
+
+
 def _marcar_en_curso(contratacion):
     """
     Simula el efecto de un pago aprobado (CONFIRMADA -> EN_CURSO) sin pasar
@@ -1349,7 +1354,6 @@ class ItemPresupuestoTests(TestCase):
         self.assertEqual(self.contratacion.monto_acordado, 18000)
         self.assertEqual(self.contratacion.items_presupuesto.count(), 0)
 
-    @override_settings(COMISION_PLATAFORMA_PORCENTAJE=5.0)
     def test_detalle_muestra_desglose_y_comision_estimada(self):
         self.contratacion.monto_acordado = 20000
         self.contratacion.estado = Contratacion.CONFIRMADA
@@ -1360,9 +1364,10 @@ class ItemPresupuestoTests(TestCase):
         resp = self.client.get(reverse('KeyServApp:contratacion_detalle', args=[self.contratacion.id_contratacion]))
 
         self.assertEqual(len(resp.context['items_presupuesto']), 2)
-        self.assertEqual(resp.context['comision_porcentaje'], 5.0)
-        self.assertEqual(resp.context['comision_estimada'], 1000)
-        self.assertEqual(resp.context['neto_proveedor_estimado'], 19000)
+        # Tramo por defecto de hasta $50.000: 6 %. La comisión la paga el cliente encima: el proveedor recibe los $20.000 completos.
+        self.assertEqual(resp.context['comision_porcentaje'], 6.0)
+        self.assertEqual(resp.context['comision_estimada'], 1200)
+        self.assertEqual(resp.context['neto_proveedor_estimado'], 20000)
 
     def test_detalle_sin_monto_acordado_no_calcula_comision(self):
         resp = self.client.get(reverse('KeyServApp:contratacion_detalle', args=[self.contratacion.id_contratacion]))
@@ -1993,12 +1998,19 @@ class VerificacionAlternativaModeradorTests(TestCase):
         self.documento = Documento.objects.create(usuario=self.solicitante, nombre_documento='cedula.pdf', archivo_subido=pdf)
         self.verificacion = VerificacionAlternativa.objects.create(
             usuario=self.solicitante, estado=VerificacionAlternativa.PENDIENTE_REVISION,
-            correo_verificado_en=timezone.now(), documento=self.documento,
+            correo_verificado_en=timezone.now(), documento=self.documento, video=_video_de_prueba(),
+            video_subido_en=timezone.now(), video_consentimiento_en=timezone.now(), codigo_video='4821',
         )
+        self.addCleanup(self._borrar_videos)
         self.moderador = User.objects.create_user('mod_identidad', password='ModTest1234', is_staff=True)
         self.moderador.groups.add(Group.objects.get(name='Moderador'))
         self.client = Client()
         self.client.force_login(self.moderador)
+
+    def _borrar_videos(self):
+        for v in VerificacionAlternativa.objects.all():
+            if v.video:
+                v.video.delete(save=False)
 
     def _contexto_panel(self, usuario):
         request = RequestFactory().get('/admin/')
@@ -2233,7 +2245,9 @@ class AdminDerechosTitularTests(TestCase):
         doc = Documento.objects.create(usuario=self.titular, nombre_documento='c.pdf', archivo_subido=pdf)
         v = VerificacionAlternativa.objects.create(
             usuario=self.titular, estado=VerificacionAlternativa.PENDIENTE_REVISION, correo_verificado_en=timezone.now(), documento=doc,
+            video=_video_de_prueba(), video_subido_en=timezone.now(), video_consentimiento_en=timezone.now(),
         )
+        self.addCleanup(lambda: [x.video.delete(save=False) for x in VerificacionAlternativa.objects.all() if x.video])
         client = Client()
         client.force_login(self.superuser)
         client.post(reverse('admin:KeyServApp_verificacionalternativa_change', args=[v.pk]), {'estado': VerificacionAlternativa.APROBADA, 'motivo_rechazo': ''})

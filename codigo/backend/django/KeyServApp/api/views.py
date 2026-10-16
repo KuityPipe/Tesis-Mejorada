@@ -27,7 +27,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .. import asistente, biometria, cierres, codigos_seguridad, consentimiento, derechos_titular, identidad, verificacion_alternativa, verificaciones
+from .. import asistente, biometria, cierres, codigos_seguridad, comisiones, consentimiento, reembolsos, derechos_titular, identidad, verificacion_alternativa, verificaciones
 from .. import notificaciones_correo, pagos
 from .. import views as vistas_legacy
 from ..forms import (
@@ -38,7 +38,7 @@ from ..forms import (
 from ..models import (
     EventoVerificacion, SolicitudTitular,
     CodigoSeguridad, Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta, EstadoDocumento,
-    HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Region,
+    HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago, Publicaciones, Reembolso, Region,
     Transaccion, TipoCuenta, Usuario, UsuarioConversacion, Valoracion, ValoracionImagen, VerificacionAlternativa,
 )
 from ..views import Unaccent
@@ -528,6 +528,11 @@ def _estado_verificacion_alternativa(usuario):
         'advertencia_aceptada': bool(v and v.advertencia_aceptada_en),
         'correo_verificado': bool(v and v.correo_verificado_en),
         'documento_enviado': bool(v and v.documento_id),
+        'requiere_video': settings.VERIFICACION_REQUIERE_VIDEO,
+        'consentimiento_video': verificacion_alternativa.CONSENTIMIENTO_VIDEO,
+        'consentimiento_video_aceptado': bool(v and v.video_consentimiento_en),
+        'video_enviado': bool(v and v.video),
+        'codigo_video': v.codigo_video if v else '',
         'motivo_rechazo': v.motivo_rechazo if v else '',
     }
 
@@ -548,7 +553,9 @@ class VerificacionAlternativaIniciarView(APIView):
 
     def post(self, request):
         try:
-            verificacion_alternativa.iniciar(request.user, request.data.get('acepto_advertencia') is True)
+            verificacion_alternativa.iniciar(
+                request.user, request.data.get('acepto_advertencia') is True, request.data.get('acepto_video') is True,
+            )
         except verificacion_alternativa.ErrorVerificacion as error:
             return _responder_error_verificacion(error)
         return Response(_estado_verificacion_alternativa(request.user), status=status.HTTP_201_CREATED)
@@ -575,6 +582,26 @@ class VerificacionAlternativaDocumentoView(APIView):
         estado_no_firmado = EstadoDocumento.objects.filter(pk=2).first()  # 2 = No firmado (ver fixture catalogos_iniciales)
         try:
             verificacion_alternativa.adjuntar_documento(request.user, archivo, estado_no_firmado)
+        except verificacion_alternativa.ErrorVerificacion as error:
+            return _responder_error_verificacion(error)
+        except ValidationError as error:
+            detalle = ' '.join(error.messages) if hasattr(error, 'messages') else str(error)
+            return Response({'detail': detalle}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(_estado_verificacion_alternativa(request.user))
+
+
+class VerificacionAlternativaVideoView(APIView):
+    """
+    `POST /api/auth/verificacion-alternativa/video/` (multipart, campo `video`) — sube el video corto (cédula junto a la cara,
+    diciendo el nombre y el código de 4 dígitos). Con el documento y el video la solicitud queda pendiente de revisión.
+    """
+
+    def post(self, request):
+        archivo = request.FILES.get('video')
+        if not archivo:
+            return Response({'detail': 'Adjunta el video de verificación.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            verificacion_alternativa.adjuntar_video(request.user, archivo)
         except verificacion_alternativa.ErrorVerificacion as error:
             return _responder_error_verificacion(error)
         except ValidationError as error:
@@ -767,6 +794,10 @@ class CambiarPasswordView(APIView):
         # quien cambió la clave no quede fuera de la suya.
         jwt_utils.revocar_todas_las_sesiones(request.user)
         access_token, refresh_token, _sesion = jwt_utils.crear_sesion(request.user)
+        notificaciones_correo.avisar(
+            request.user, 'cambió tu contraseña',
+            'Tu contraseña de KeyServ se cambió y se cerraron tus otras sesiones. Si no fuiste tú, recupérala de inmediato desde "¿Olvidaste tu contraseña?" y escríbenos desde Contacto.',
+        )
         logger.info('Contraseña cambiada desde preferencias de cuenta (api): usuario_id=%s', request.user.id_usuario)
         return Response({'detail': 'Contraseña actualizada.', 'access_token': access_token, 'refresh_token': refresh_token})
 
@@ -864,6 +895,10 @@ class RecuperarConfirmarView(APIView):
         usuario.set_password(form.cleaned_data['password'])
         usuario.save(update_fields=['password'])
         jwt_utils.revocar_todas_las_sesiones(usuario)
+        notificaciones_correo.avisar(
+            usuario, 'cambió tu contraseña',
+            'Tu contraseña de KeyServ se restableció desde el enlace de recuperación y se cerraron todas tus sesiones. Si no fuiste tú, escríbenos desde Contacto de inmediato.',
+        )
         logger.info('Contraseña restablecida vía recuperación (api): usuario_id=%s', usuario.id_usuario)
         return Response({'detail': 'Contraseña actualizada. Ya puedes iniciar sesión.'})
 
@@ -1182,6 +1217,10 @@ class ContratacionListCreateView(APIView):
             conversacion=conversacion, usuario=cliente,
             contenido=f'[Sistema] {cliente} solicitó contratar "{publicacion.titulo}". Contratación #{contratacion.id_contratacion}.',
         )
+        notificaciones_correo.avisar(
+            proveedor, 'nueva solicitud de servicio',
+            f'{cliente} solicitó tu servicio "{publicacion.titulo}". Respóndela desde la app: si no se responde en {settings.SOLICITUD_EXPIRA_DIAS} días, expira.',
+        )
         logger.info('Contratación solicitada (api): id=%s cliente=%s proveedor=%s', contratacion.id_contratacion, cliente.id_usuario, proveedor.id_usuario)
         return Response(ContratacionDetailSerializer(contratacion).data, status=status.HTTP_201_CREATED)
 
@@ -1402,6 +1441,10 @@ class ContratacionConfirmarView(APIView):
             vistas_legacy._registrar_intento_sospechoso(request, usuario, 'contratacion_confirmar', contratacion_id, 'no es el proveedor (api)')
             return Response({'detail': 'Solo el proveedor puede confirmar esta contratación.'}, status=status.HTTP_403_FORBIDDEN)
 
+        if identidad.falta_verificar(usuario):
+            # Una verificación vencida no debe permitir seguir aceptando trabajo nuevo (ADR 0006 §4).
+            return Response({'detail': identidad.MENSAJE_CONFIRMAR, 'code': identidad.CODIGO}, status=status.HTTP_403_FORBIDDEN)
+
         if vistas_legacy._reautenticacion_bloqueada(usuario, contratacion_id):
             vistas_legacy._registrar_intento_sospechoso(request, usuario, 'reauth_bloqueado_confirmar', contratacion_id, 'demasiados intentos fallidos (api)')
             return Response({'detail': 'Demasiados intentos fallidos. Prueba de nuevo en unos minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
@@ -1430,8 +1473,47 @@ class ContratacionConfirmarView(APIView):
                 ItemPresupuesto(contratacion=contratacion, descripcion=descripcion, categoria=categoria, monto=monto, orden=indice)
                 for indice, (descripcion, categoria, monto) in enumerate(items_presupuesto)
             ])
+        monto_texto = f'{monto_acordado:,}'.replace(',', '.')
+        notificaciones_correo.avisar(
+            contratacion.cliente, 'tu solicitud fue confirmada',
+            f'{usuario} confirmó tu solicitud de "{contratacion.publicacion.titulo}" por ${monto_texto}. Ya puedes pagarla desde la app.',
+        )
         logger.info('Contratación confirmada por el proveedor (api): id=%s monto_acordado=%s items_presupuesto=%s', contratacion.id_contratacion, monto_acordado, len(items_presupuesto))
         return Response(ContratacionDetailSerializer(contratacion).data)
+
+
+class ContratacionReembolsoView(APIView):
+    """
+    `POST /api/contrataciones/<id>/reembolso/` `{motivo}` — el CLIENTE pide cancelar un trabajo ya pagado (EN_CURSO) y
+    que se le devuelva el dinero. Solo abre una solicitud (`reembolsos.abrir`): la devolución la resuelve el staff en
+    `/admin/` y recién ahí el trabajo pasa a CANCELADA. El proveedor se entera por el chat y por correo.
+    """
+
+    def post(self, request, contratacion_id):
+        contratacion = _contratacion_de_participante_api(request, contratacion_id)
+        if request.user != contratacion.cliente:
+            vistas_legacy._registrar_intento_sospechoso(request, request.user, 'contratacion_reembolso', contratacion_id, 'no es el cliente (api)')
+            return Response({'detail': 'Solo el cliente puede pedir el reembolso.'}, status=status.HTTP_403_FORBIDDEN)
+        pago = getattr(contratacion, 'pago', None)
+        if contratacion.estado != Contratacion.EN_CURSO or not pago or pago.estado != Pago.PAGADO:
+            return Response({'detail': 'Solo se puede pedir un reembolso de un trabajo ya pagado y en curso.'}, status=status.HTTP_409_CONFLICT)
+
+        detalle = str(request.data.get('motivo') or '').strip()
+        reembolso, creado = reembolsos.abrir(pago, Reembolso.CANCELACION, detalle)
+        if creado:
+            conversacion = vistas_legacy._obtener_o_crear_conversacion_de_contratacion(contratacion)
+            Mensaje.objects.create(
+                conversacion=conversacion, usuario=request.user,
+                contenido=f'[Sistema] {request.user} pidió cancelar el trabajo y que se le devuelva el pago. Contratación #{contratacion.id_contratacion}.',
+            )
+            notificaciones_correo.avisar(
+                contratacion.proveedor, 'el cliente pidió un reembolso',
+                f'{request.user} pidió cancelar "{contratacion.publicacion.titulo}" y que se le devuelva el pago. El equipo de KeyServ lo revisará.',
+            )
+        return Response(
+            {'estado': reembolso.estado, 'monto': reembolso.monto, 'motivo': reembolso.motivo},
+            status=status.HTTP_201_CREATED if creado else status.HTTP_200_OK,
+        )
 
 
 class _ContratacionCierreView(APIView):
@@ -1474,6 +1556,11 @@ class _ContratacionCierreView(APIView):
                 return Response({'detail': 'La contratación ya no está en un estado en el que se pueda hacer esto.'}, status=status.HTTP_409_CONFLICT)
 
             cierres.cancelar_contratacion(contratacion, usuario, f'{usuario} {self.texto_sistema}')
+        otra_parte = contratacion.cliente if self.rol == 'proveedor' else contratacion.proveedor
+        notificaciones_correo.avisar(
+            otra_parte, 'una solicitud se cerró',
+            f'{usuario} {self.texto_sistema} (Contratación #{contratacion.id_contratacion}).',
+        )
         logger.info('Contratación cerrada como CANCELADA por el %s (api): id=%s', self.rol, contratacion_id)
         return Response(ContratacionDetailSerializer(contratacion).data)
 
@@ -1620,7 +1707,7 @@ class PagoWebpayIniciarView(APIView):
         if pago.estado == Pago.PAGADO:
             return Response({'detail': 'Esta contratación ya está pagada.'}, status=status.HTTP_400_BAD_REQUEST)
         pago.metodo = Pago.WEBPAY
-        pago.monto = contratacion.monto_acordado
+        comisiones.aplicar(pago, contratacion)
         pago.estado = Pago.PENDIENTE
 
         orden_compra = vistas_legacy._generar_orden_compra(contratacion)
@@ -1705,7 +1792,7 @@ class PagoKhipuIniciarView(APIView):
         if pago.estado == Pago.PAGADO:
             return Response({'detail': 'Esta contratación ya está pagada.'}, status=status.HTTP_400_BAD_REQUEST)
         pago.metodo = Pago.KHIPU
-        pago.monto = contratacion.monto_acordado
+        comisiones.aplicar(pago, contratacion)
         pago.estado = Pago.PENDIENTE
         pago.save()
 
@@ -1803,7 +1890,7 @@ class PagoExternoIniciarView(APIView):
         if pago.estado == Pago.PAGADO:
             return Response({'detail': 'Esta contratación ya está pagada.'}, status=status.HTTP_400_BAD_REQUEST)
         pago.metodo = METODOS_EXTERNOS[metodo]
-        pago.monto = contratacion.monto_acordado
+        comisiones.aplicar(pago, contratacion)
         pago.estado = Pago.PENDIENTE
         pago.orden_compra = vistas_legacy._generar_orden_compra(contratacion)
         pago.referencia_externa = None

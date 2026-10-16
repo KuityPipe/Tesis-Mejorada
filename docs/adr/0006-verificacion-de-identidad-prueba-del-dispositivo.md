@@ -49,6 +49,16 @@ Opciones para llegar al nivel 2, de menor a mayor esfuerzo:
   Es lo que de verdad prueba identidad legal; tiene costo por verificación y un contrato de encargado de tratamiento. **Lo
   tiene que evaluar y pagar el dueño**; no investigué proveedores concretos aquí.
 
+**Estado (2026-10-16): implementada la primera mitad del nivel 2.** La vía sin biometría ahora pide, además del documento, un
+**video corto** de la persona mostrando su cédula junto a la cara y diciendo su nombre y un número de 4 dígitos que la app
+le muestra (el número evita reutilizar un video viejo). Una persona del staff lo compara con la foto de la cédula y con el
+nombre y el RUT de la cuenta (que `/admin/` muestra junto al video), y aprueba o rechaza. Es la única vía que hoy ata una
+cuenta con una cédula, con un humano como juez. **El video es un dato sensible:** exige consentimiento expreso, vive en
+almacenamiento privado, solo lo ve el staff, se borra al aprobar o rechazar (o a los 30 días si nadie lo resuelve, o al
+eliminar la cuenta) y no se procesa ni se compara automáticamente. Falta: la revisión de un abogado sobre este tratamiento
+(consentimiento, plazo y base legal), y decidir si la biometría nativa y el rostro en servidor deben exigir también este paso
+antes de contar como "identidad verificada" (hoy cada vía vale por separado).
+
 ### Dónde la promesa es más fuerte que lo implementado (revisar el copy)
 
 Para que decidas si cambiar el texto o el sistema, estos son los lugares que prometen identidad (hay que revisarlos uno a uno):
@@ -97,6 +107,8 @@ propongo las dos, en este orden:
    aplicarlo con un aviso previo (correo) unos días antes de que venza, usando `notificaciones_correo.avisar`.
 
 Los trabajos ya confirmados o en curso **no** se cortan por el vencimiento.
+
+**Estado (2026-10-15):** el punto 1 (pedir reverificación al confirmar) está implementado, activo cuando `EXIGIR_IDENTIDAD_VERIFICADA=True`. El punto 2 (ocultar del catálogo) sigue pendiente.
 
 ## 5. Recomendación
 

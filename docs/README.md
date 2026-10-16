@@ -13,6 +13,8 @@ El repo es público (portafolio). Esta tabla dice qué hay, para qué sirve y si
 | `fase-0-reconocimiento.md` | Auditoría inicial y riesgos | Con reserva: lista riesgos de seguridad (ya mitigados la mayoría) |
 | `fase-1-auditoria-datos.md` | Inventario de datos, hallazgos y brechas frente a la ley | Sí |
 | `adr/` | Decisiones de arquitectura (verificación, cifrado, vigencia/auditoría, derechos del titular, asistente con IA, prueba del dispositivo e identidad verificada —propuesta—, retención/evidencia/avisos) | Sí |
+| `seguimiento/` | **Tablero del proyecto:** libro de Excel (tareas, cambios, decisiones, pendientes, riesgos, presupuesto, calculadora de comisión, guion de pruebas, hoja para Planner), changelog y cómo llevarlo | Sí |
+| `ANALISIS_COMISION.md` | Comisión por tramos, costos de las pasarelas y margen por transacción (con la calculadora para cambiar supuestos) | Sí (tarifas de terceros: confirmar) |
 | `PLAN_FLUJO_DE_DINERO.md` | Comisión, pagos al proveedor, reembolsos y documentos tributarios: opciones y brechas (solo plan, sin código) | Sí (con reserva: depende de asesoría legal/tributaria) |
 | `legal/protocolo-de-brechas.md` | Protocolo ante brechas de seguridad, **borrador** | Con reserva: marcar como borrador |
 | `cumplimiento/README.md` | **Carpeta de evidencia de cumplimiento**: índice, medidas técnicas, matriz requisito → evidencia y riesgos residuales | Sí |

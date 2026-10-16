@@ -52,7 +52,9 @@ Mientras no esté decidido, **no cambiar** los plazos de `limpiar_mensajes_antig
 ## Pendiente: más avisos por correo (propuesta)
 
 Con `notificaciones_correo.avisar` ya existe el punto de envío. Eventos que propongo avisar, en orden de utilidad. Todos son
-informativos y **no llevan datos sensibles** (qué pasó y dónde verlo); ninguno está implementado todavía:
+informativos y **no llevan datos sensibles** (qué pasó y dónde verlo). **Ya implementados** (2026-10-15): el 2 (cambio o
+recuperación de contraseña), el 3 (solicitud recibida, confirmada, rechazada o cancelada), el 4 (pago aprobado) y el 7;
+además, el cierre de sesiones y el reembolso pedido. **Pendientes:** el 1 (acceso nuevo / bloqueo por intentos), el 5 y el 6:
 
 1. Inicio de sesión desde un dispositivo/ubicación nuevo, y **bloqueo por intentos fallidos** ("alguien intentó entrar a tu cuenta").
 2. Cambio de contraseña, de correo o de teléfono (y recuperación de contraseña completada).

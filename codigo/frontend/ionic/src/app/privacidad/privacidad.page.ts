@@ -70,6 +70,11 @@ export class PrivacidadPage implements AfterViewInit, OnDestroy {
       texto: 'Si verificas tu identidad con reconocimiento facial, guardamos un vector numérico derivado de tu rostro (128 números, no una foto): las imágenes de la captura se procesan y se descartan al momento, nunca se almacenan. Si usas la biometría nativa del teléfono (Face ID o huella en la app Android), esa verificación ocurre dentro del hardware seguro de tu dispositivo: nuestro servidor nunca ve ese dato, solo recibe la confirmación de que el teléfono la aprobó.',
     },
     {
+      icono: 'videocam-outline',
+      titulo: 'Verificación de identidad con video',
+      texto: 'Es opcional: si eliges verificarte sin la biometría de tu teléfono, subes una foto de tu cédula y un video corto con tu cara y tu cédula juntas, diciendo tu nombre y un número que te mostramos. Es un dato sensible: una persona del equipo lo mira para comparar tu cara con la foto de tu cédula, queda en almacenamiento privado y se elimina apenas se aprueba o rechaza la solicitud (o a los 30 días si nadie la resuelve, o al eliminar tu cuenta). Solo se hace si aceptas expresamente.',
+    },
+    {
       icono: 'images-outline',
       titulo: 'Documentos e imágenes',
       texto: 'Foto de perfil, fotos de las publicaciones, certificados o documentos que un proveedor suba para respaldar su perfil, y fotos adjuntas a calificaciones o mensajes de chat. Los documentos de identidad se guardan en almacenamiento privado, nunca en una URL pública: solo tú y, si corresponde, un moderador autorizado pueden verlos.',

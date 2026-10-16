@@ -94,7 +94,7 @@
           </ul>
           <p class="mb-0"><strong>Total acordado: ${{ contratacion.monto_acordado }} CLP</strong></p>
           {% if usuario == contratacion.proveedor %}
-          <p class="ks-help mb-0" style="font-size:.82rem;">Comisión de la plataforma (referencial, {{ comision_porcentaje }}%): ${{ comision_estimada }} CLP — recibirías aproximadamente ${{ neto_proveedor_estimado }} CLP.</p>
+          <p class="ks-help mb-0" style="font-size:.82rem;">Comisión de KeyServ ({{ comision_porcentaje }}%): ${{ comision_estimada }} CLP. La paga el cliente encima del precio: tú recibes los ${{ neto_proveedor_estimado }} CLP completos.</p>
           {% endif %}
         </div>
         {% endif %}
@@ -257,7 +257,13 @@
   var comisionEl = document.getElementById('comisionPresupuesto');
   if (!btnToggle) return;
 
-  var COMISION_PORCENTAJE = {{ comision_porcentaje|default:5 }};
+  var COMISION_TRAMOS = {{ comision_tramos|safe }};
+  function porcentajeDe(total) {
+    for (var i = 0; i < COMISION_TRAMOS.length; i++) {
+      if (COMISION_TRAMOS[i][0] === null || total <= COMISION_TRAMOS[i][0]) return COMISION_TRAMOS[i][1];
+    }
+    return COMISION_TRAMOS[COMISION_TRAMOS.length - 1][1];
+  }
 
   btnToggle.addEventListener('click', function () {
     var abierta = hoja.style.display !== 'none';
@@ -273,8 +279,9 @@
     });
     totalEl.textContent = '$' + total.toLocaleString('es-CL');
     if (total > 0) {
-      var comision = Math.round(total * COMISION_PORCENTAJE / 100);
-      comisionEl.textContent = ' — comisión de la plataforma referencial (' + COMISION_PORCENTAJE + '%): $' + comision.toLocaleString('es-CL');
+      var porcentaje = porcentajeDe(total);
+      var comision = Math.round(total * porcentaje / 100);
+      comisionEl.textContent = ' — comisión de KeyServ, que paga el cliente (' + porcentaje + '%): $' + comision.toLocaleString('es-CL');
     } else {
       comisionEl.textContent = '';
     }

@@ -24,13 +24,13 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from . import cierres, notificaciones_correo
+from . import cierres, notificaciones_correo, verificacion_alternativa
 from .api import jwt_utils
 
 from .models import (
     CodigoSeguridad, ConsentimientoBiometrico, Consulta, Contratacion, Documento, EventoVerificacion,
     IntentoAccesoSospechoso, Mensaje, Pago, Publicaciones, SolicitudTitular, TokenSesion,
-    Usuario, Valoracion, ValoracionImagen,
+    Usuario, Valoracion, ValoracionImagen, VerificacionAlternativa,
 )
 
 logger = logging.getLogger(__name__)
@@ -239,6 +239,9 @@ def eliminar_cuenta(usuario):
     EventoVerificacion.objects.filter(usuario=usuario).delete()
     CodigoSeguridad.objects.filter(usuario=usuario).delete()
     SolicitudTitular.objects.filter(usuario=usuario).delete()
+
+    for verificacion in VerificacionAlternativa.objects.filter(usuario=usuario):
+        verificacion_alternativa.borrar_video(verificacion)
 
     for documento in Documento.objects.filter(usuario=usuario):
         _borrar_archivo(documento.archivo_subido)

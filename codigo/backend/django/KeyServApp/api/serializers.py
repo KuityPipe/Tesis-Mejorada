@@ -1,7 +1,7 @@
 from django.urls import reverse
 from rest_framework import serializers
 
-from .. import derechos_titular
+from .. import comisiones, derechos_titular
 
 from ..models import (
     Comuna, Contratacion, Documento, HistorialEstadoContratacion, Imagenes, ItemPresupuesto, Mensaje, Pago,
@@ -140,8 +140,18 @@ class PagoSerializer(serializers.ModelSerializer):
     """Estado del cobro de una Contratacion — nunca expone `respuesta_bruta`/`token_webpay`/`khipu_payment_id` (detalles internos del medio de pago, no algo que el cliente Ionic necesite)."""
     class Meta:
         model = Pago
-        fields = ['id_pago', 'metodo', 'estado', 'monto', 'fecha_creacion', 'fecha_confirmacion']
+        fields = ['id_pago', 'metodo', 'estado', 'monto', 'monto_servicio', 'comision_porcentaje', 'comision_monto', 'fecha_creacion', 'fecha_confirmacion']
         read_only_fields = fields
+
+
+def _reembolso_de(pago):
+    """El reembolso más reciente de un pago como dict mínimo (estado/monto/motivo), o `None`."""
+    if not pago:
+        return None
+    reembolso = pago.reembolsos.order_by('-creado_en').first()
+    if not reembolso:
+        return None
+    return {'estado': reembolso.estado, 'monto': reembolso.monto, 'motivo': reembolso.motivo}
 
 
 class PagoHistorialSerializer(serializers.ModelSerializer):
@@ -220,6 +230,8 @@ class ContratacionDetailSerializer(ContratacionListSerializer):
     items_presupuesto = ItemPresupuestoSerializer(many=True, read_only=True)
     valoracion = ValoracionSerializer(read_only=True)
     pago = PagoSerializer(read_only=True)
+    reembolso = serializers.SerializerMethodField()
+    desglose_pago = serializers.SerializerMethodField()
     # `contratacion_detalle.html` también muestra la descripción e imágenes
     # de la publicación (no solo la portada) — el detalle de contratación
     # es donde tiene sentido revisarlas de nuevo (ej. antes de calificar),
@@ -227,9 +239,19 @@ class ContratacionDetailSerializer(ContratacionListSerializer):
     publicacion_descripcion = serializers.CharField(source='publicacion.descripcion_publicacion', read_only=True)
     publicacion_imagenes = serializers.SerializerMethodField()
 
+    def get_desglose_pago(self, contratacion):
+        """Lo que pagaría el cliente (servicio + comisión = total), calculado con los tramos vigentes. `None` mientras no haya monto acordado."""
+        if not contratacion.monto_acordado:
+            return None
+        d = comisiones.calcular(contratacion.monto_acordado)
+        return {'monto_servicio': d.monto_servicio, 'comision_porcentaje': float(d.porcentaje), 'comision': d.comision, 'total': d.total}
+
+    def get_reembolso(self, contratacion):
+        return _reembolso_de(getattr(contratacion, 'pago', None))
+
     class Meta(ContratacionListSerializer.Meta):
         fields = ContratacionListSerializer.Meta.fields + [
-            'historial', 'items_presupuesto', 'valoracion', 'pago',
+            'historial', 'items_presupuesto', 'valoracion', 'pago', 'reembolso', 'desglose_pago',
             'publicacion_descripcion', 'publicacion_imagenes',
         ]
         read_only_fields = fields

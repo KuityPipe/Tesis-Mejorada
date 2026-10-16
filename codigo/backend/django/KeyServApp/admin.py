@@ -5,6 +5,7 @@ Refactor Fase 3: antes este archivo estaba vacío — 0 de los ~25 modelos
 eran visibles/editables desde /admin/, sin forma de inspeccionar datos
 durante desarrollo/QA.
 """
+from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.models import LogEntry
 from django.urls import reverse
@@ -16,11 +17,11 @@ from .models import (
     Conversacion, Documento, EstadoAutentificacion, EstadoConsulta,
     EstadoDocumento, Firma, Gasto, HistorialEstadoContratacion, Imagenes,
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
-    Ranking, Region, RolCuentaAdministrativa, TipoCuenta, TipoFirma,
+    Ranking, Reembolso, Region, RolCuentaAdministrativa, TipoCuenta, TipoFirma,
     Transaccion, Usuario, UsuarioAdministrativo, UsuarioConversacion,
     Valoracion, ValoracionImagen, VerificacionAlternativa, EventoVerificacion, SolicitudTitular,
 )
-from . import verificaciones
+from . import reembolsos, verificacion_alternativa, verificaciones
 from .views import _recalcular_ranking
 
 
@@ -133,8 +134,39 @@ class VerificacionAlternativaAdmin(admin.ModelAdmin):
     """
     list_display = ('id_verificacion', 'usuario', 'estado', 'correo_verificado_en', 'revisado_por', 'revisado_en', 'creado_en')
     list_filter = ('estado',)
-    fields = ('usuario', 'estado', 'motivo_rechazo', 'advertencia_aceptada_en', 'correo_verificado_en', 'enlace_documento', 'revisado_por', 'revisado_en')
-    readonly_fields = ('usuario', 'advertencia_aceptada_en', 'correo_verificado_en', 'enlace_documento', 'revisado_por', 'revisado_en')
+    fields = (
+        'usuario', 'datos_de_la_cuenta', 'estado', 'motivo_rechazo', 'advertencia_aceptada_en', 'correo_verificado_en',
+        'enlace_documento', 'codigo_video', 'ver_video', 'guia_de_revision', 'revisado_por', 'revisado_en',
+    )
+    readonly_fields = (
+        'usuario', 'datos_de_la_cuenta', 'advertencia_aceptada_en', 'correo_verificado_en', 'enlace_documento',
+        'codigo_video', 'ver_video', 'guia_de_revision', 'revisado_por', 'revisado_en',
+    )
+
+    @admin.display(description='Datos de la cuenta (deben coincidir con la cédula)')
+    def datos_de_la_cuenta(self, obj):
+        u = obj.usuario
+        return format_html('<strong>{} {}</strong> — RUT {}', u.nombre_usuario, u.apellido_usuario, u.rut_usuario)
+
+    @admin.display(description='Video de verificación')
+    def ver_video(self, obj):
+        if not obj.video:
+            return 'Todavía no hay video (o ya se eliminó al resolver la solicitud).'
+        return format_html(
+            '<video controls preload="metadata" style="max-width:420px;width:100%;border-radius:10px" src="{}"></video>',
+            reverse('KeyServApp:verificacion_video', args=[obj.pk]),
+        )
+
+    @admin.display(description='Qué revisar antes de aprobar')
+    def guia_de_revision(self, obj):
+        return format_html(
+            '<ol style="margin:0;padding-left:1.2em"><li>El nombre y el RUT de la cédula coinciden con los de la cuenta (arriba).</li>'
+            '<li>La cédula se lee completa y no parece alterada ni una foto de pantalla.</li>'
+            '<li>La cara del video coincide con la foto de la cédula.</li>'
+            '<li>La persona dice su nombre y el código de 4 dígitos (<strong>{}</strong>) en voz alta, en el mismo video.</li>'
+            '<li>Al <strong>aprobar o rechazar</strong>, el video se elimina automáticamente.</li></ol>',
+            obj.codigo_video or '—',
+        )
 
     @admin.display(description='Documento de identidad')
     def enlace_documento(self, obj):
@@ -147,6 +179,9 @@ class VerificacionAlternativaAdmin(admin.ModelAdmin):
             if obj.estado == VerificacionAlternativa.APROBADA and not (obj.correo_verificado_en and obj.documento_id):
                 obj.estado = VerificacionAlternativa.PENDIENTE_REVISION
                 messages.error(request, 'No se puede aprobar: falta verificar el correo o adjuntar el documento.')
+            elif obj.estado == VerificacionAlternativa.APROBADA and settings.VERIFICACION_REQUIERE_VIDEO and not obj.video:
+                obj.estado = VerificacionAlternativa.PENDIENTE_REVISION
+                messages.error(request, 'No se puede aprobar: falta el video de verificación.')
             elif obj.estado in (VerificacionAlternativa.APROBADA, VerificacionAlternativa.RECHAZADA):
                 obj.revisado_por = request.user
                 obj.revisado_en = timezone.now()
@@ -157,6 +192,8 @@ class VerificacionAlternativaAdmin(admin.ModelAdmin):
                     f'revisado por {request.user.get_username()}',
                 )
         super().save_model(request, obj, form, change)
+        if obj.estado in (VerificacionAlternativa.APROBADA, VerificacionAlternativa.RECHAZADA):
+            verificacion_alternativa.borrar_video(obj)  # el video ya cumplió su objetivo: no se conserva
 
 
 @admin.register(EventoVerificacion)
@@ -449,6 +486,42 @@ class PagoAdmin(admin.ModelAdmin):
         return _badge(obj.get_estado_display(), _TONOS_ESTADO_PAGO.get(obj.estado, 'gray'))
 
 
+@admin.register(Reembolso)
+class ReembolsoAdmin(admin.ModelAdmin):
+    """
+    Cola de dinero por devolver. El sistema no devuelve nada por sí mismo: el staff devuelve fuera del sistema y acá
+    lo marca (con la referencia de la transferencia), lo que cancela el trabajo si seguía en curso. Solo superusuario
+    (finanzas): el grupo Moderador no tiene permisos sobre este modelo.
+    """
+    list_display = ('id_reembolso', 'pago', 'monto', 'motivo', 'estado', 'creado_en', 'resuelto_por', 'resuelto_en')
+    list_filter = ('estado', 'motivo')
+    search_fields = ('pago__contratacion__id_contratacion', 'referencia', 'detalle')
+    readonly_fields = ('pago', 'monto', 'motivo', 'detalle', 'estado', 'creado_en', 'resuelto_por', 'resuelto_en', 'referencia')
+    actions = ['marcar_reembolsado', 'rechazar_reembolso']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.action(description='Marcar como reembolsado (ya devolví el dinero fuera del sistema)')
+    def marcar_reembolsado(self, request, queryset):
+        hechos = 0
+        for reembolso in queryset.filter(estado=Reembolso.PENDIENTE):
+            reembolsos.marcar_reembolsado(reembolso, request.user)
+            hechos += 1
+        self.message_user(request, f'{hechos} reembolso(s) marcado(s). Anota la referencia de la transferencia en tu registro contable.')
+
+    @admin.action(description='Rechazar el reembolso (no se devuelve)')
+    def rechazar_reembolso(self, request, queryset):
+        hechos = 0
+        for reembolso in queryset.filter(estado=Reembolso.PENDIENTE):
+            reembolsos.rechazar(reembolso, request.user)
+            hechos += 1
+        self.message_user(request, f'{hechos} reembolso(s) rechazado(s).')
+
+
 # Catálogos y modelos sin necesidad de una vista de admin a medida —
 # se registran con la vista por defecto para poder al menos verlos/editarlos.
 for _modelo in (
@@ -489,7 +562,7 @@ _CATEGORIAS_ADMIN = [
         'region', 'comuna', 'tipocuenta', 'estadoautentificacion',
         'estadoconsulta', 'estadodocumento', 'tipofirma',
     ]),
-    ('finanzas', 'Finanzas e infraestructura', ['transaccion', 'gasto', 'autentificacion', 'firma', 'pago']),
+    ('finanzas', 'Finanzas e infraestructura', ['transaccion', 'gasto', 'autentificacion', 'firma', 'pago', 'reembolso']),
     ('auditoria', 'Auditoría', ['logentry']),
 ]
 

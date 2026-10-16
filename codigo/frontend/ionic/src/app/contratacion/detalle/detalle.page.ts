@@ -70,6 +70,7 @@ export class DetallePage implements OnInit, OnDestroy {
   errorValoracion: string | null = null;
   valoracionOk = false;
   procesandoPago = false;
+  motivoReembolso = '';
   // Hasta saber qué hay configurado en el servidor se asume lo de siempre (Webpay y Khipu).
   metodosPago: MetodosPago = { webpay: true, khipu: true, flow: false, mercadopago: false };
   errorPago: string | null = null;
@@ -348,6 +349,29 @@ export class DetallePage implements OnInit, OnDestroy {
       ],
     });
     await alerta.present();
+  }
+
+  /** Cliente de un trabajo ya pagado: abre una solicitud de reembolso (la resuelve el equipo de KeyServ). */
+  pedirReembolso(): void {
+    if (this.procesandoAccion) {
+      return;
+    }
+    this.procesandoAccion = true;
+    this.errorAccion = null;
+    this.contratacionesApi.pedirReembolso(this.contratacionId, this.motivoReembolso.trim()).subscribe({
+      next: (reembolso) => {
+        this.procesandoAccion = false;
+        if (this.contratacion) {
+          this.contratacion = { ...this.contratacion, reembolso: reembolso as ContratacionDetalle['reembolso'] };
+        }
+        this.cargarMensajes();
+        this.retroalimentacion.exito('Recibimos tu solicitud de reembolso. Te avisaremos cuando se resuelva.');
+      },
+      error: (error: HttpErrorResponse) => {
+        this.procesandoAccion = false;
+        this.errorAccion = error.error?.detail ?? 'No se pudo enviar la solicitud.';
+      },
+    });
   }
 
   enviarCierre(accion: 'rechazar' | 'cancelar'): void {

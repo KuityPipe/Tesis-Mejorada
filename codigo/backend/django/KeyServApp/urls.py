@@ -44,6 +44,7 @@ urlpatterns = [
     path('servicios/', views.catalogo_view, name='catalogo'),
     path('servicios/crear/', views.publicacion_crear_view, name='publicacion_crear'),
     path('documentos/<int:documento_id>/descargar/', views.documento_descargar_view, name='documento_descargar'),
+    path('verificaciones/<int:verificacion_id>/video/', views.verificacion_video_descargar_view, name='verificacion_video'),
     path('valoraciones/imagenes/<int:imagen_id>/', views.valoracion_imagen_view, name='valoracion_imagen'),
     path('servicios/<int:pk>/', views.publicacion_detalle_view, name='publicacion_detalle'),
     path('servicios/<int:publicacion_id>/contratar/', views.contratacion_crear_view, name='contratacion_crear'),

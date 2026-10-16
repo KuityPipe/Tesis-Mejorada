@@ -27,9 +27,11 @@ MB = 1024 * 1024
 
 TAMANO_MAXIMO_IMAGEN = 8 * MB
 TAMANO_MAXIMO_DOCUMENTO = 10 * MB
+TAMANO_MAXIMO_VIDEO = 40 * MB
 
 EXTENSIONES_IMAGEN_PERMITIDAS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 EXTENSIONES_DOCUMENTO_PERMITIDAS = {'.pdf', '.jpg', '.jpeg', '.png'}
+EXTENSIONES_VIDEO_PERMITIDAS = {'.mp4', '.mov', '.webm'}
 
 # Firmas de bytes reales al inicio del archivo (magic numbers). La extensión
 # y el Content-Type que manda el navegador son triviales de falsear (basta
@@ -89,6 +91,27 @@ def validar_imagen(archivo):
         raise ValidationError('No se pudo procesar el archivo como imagen — puede estar corrupto, ser demasiado pesado en píxeles, o no ser una imagen real.')
     finally:
         archivo.seek(0)
+
+    escanear_archivo(archivo)
+
+
+def validar_video(archivo):
+    """
+    Video corto de verificación de identidad: tamaño + extensión + firma real. MP4 y MOV (QuickTime) llevan `ftyp` en los
+    bytes 4 a 8; WebM (lo que graba un navegador de escritorio) empieza con la cabecera EBML. No se decodifica: se sirve
+    solo a personal autenticado, nunca se procesa en el servidor.
+    """
+    _validar_tamano(archivo, TAMANO_MAXIMO_VIDEO)
+
+    extension = _extension(archivo)
+    if extension not in EXTENSIONES_VIDEO_PERMITIDAS:
+        raise ValidationError(f'Formato de video no permitido ({extension or "sin extensión"}). Usa MP4, MOV o WEBM.')
+
+    inicio = archivo.read(16)
+    archivo.seek(0)
+    firma_ok = inicio.startswith(b'\x1a\x45\xdf\xa3') if extension == '.webm' else inicio[4:8] == b'ftyp'
+    if not firma_ok:
+        raise ValidationError('El contenido del archivo no coincide con su extensión — no parece ser un video real.')
 
     escanear_archivo(archivo)
 

@@ -24,10 +24,10 @@ from .models import (
     VerificacionAlternativa,
     ConsentimientoBiometrico, CodigoSeguridad,
     Comuna, Consulta, Contratacion, Documento, EstadoDocumento, HistorialEstadoContratacion,
-    IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Region, TokenSesion,
+    IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones, Ranking, Reembolso, Region, TokenSesion,
     Usuario, Valoracion, ValoracionImagen,
 )
-from .tests import _crear_region_comuna_tipo, _crear_usuario, _frames_prueba_de_vida, _imagen_de_prueba, _marcar_en_curso
+from .tests import _crear_region_comuna_tipo, _crear_usuario, _video_de_prueba, _frames_prueba_de_vida, _imagen_de_prueba, _marcar_en_curso
 from .views import _generar_token_recuperacion, _obtener_o_crear_conversacion_de_contratacion
 
 
@@ -1784,7 +1784,7 @@ class VerificacionAlternativaApiTests(APITestCase):
         return re.search(r'(\d{6})', self.mail.outbox[-1].body).group(1)
 
     def _iniciar(self):
-        return self.client.post('/api/auth/verificacion-alternativa/iniciar/', {'acepto_advertencia': True}, format='json')
+        return self.client.post('/api/auth/verificacion-alternativa/iniciar/', {'acepto_advertencia': True, 'acepto_video': True}, format='json')
 
     def test_estado_inicial_trae_la_advertencia_y_no_esta_verificada(self):
         resp = self.client.get('/api/auth/verificacion-alternativa/')
@@ -1834,8 +1834,12 @@ class VerificacionAlternativaApiTests(APITestCase):
         self.client.post('/api/auth/verificacion-alternativa/codigo/', {'codigo': self._codigo_enviado()}, format='json')
         resp = self.client.post('/api/auth/verificacion-alternativa/documento/', {'documento': _documento_png_de_prueba()}, format='multipart')
         self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(resp.data['estado'], 'INICIADA')  # con solo el documento todavía falta el video
+        resp = self.client.post('/api/auth/verificacion-alternativa/video/', {'video': _video_de_prueba()}, format='multipart')
+        self.assertEqual(resp.status_code, 200, resp.data)
         self.assertEqual(resp.data['estado'], 'PENDIENTE_REVISION')
         self.assertFalse(resp.data['identidad_verificada'])  # sin aprobación del staff NO cuenta
+        self.addCleanup(lambda: VerificacionAlternativa.objects.get(usuario=self.usuario).video.delete(save=False))
 
         v = VerificacionAlternativa.objects.get(usuario=self.usuario)
         v.estado = VerificacionAlternativa.APROBADA
@@ -3302,3 +3306,417 @@ class CerrarSesionesConCodigoTests(APITestCase):
         CodigoSeguridad.objects.create(usuario=self.usuario, proposito='CERRAR_SESIONES', codigo_hash='x', expira_en=timezone.now() + timedelta(minutes=5))
         derechos_titular.eliminar_cuenta(self.usuario)
         self.assertFalse(CodigoSeguridad.objects.filter(usuario=self.usuario).exists())
+
+
+class ReembolsosApiTests(APITestCase):
+    """Reembolsos: se abren (pago tardío o petición del cliente) y los resuelve el staff; el sistema no mueve dinero."""
+
+    def setUp(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.comuna, self.tipo_cuenta = comuna, tipo_cuenta
+        self.proveedor = _crear_usuario('prov_reem@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.cliente = _crear_usuario('cli_reem@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA, precio=20000)
+        self.contratacion = Contratacion.objects.create(
+            publicacion=publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=Contratacion.EN_CURSO, monto_acordado=20000,
+        )
+        self.pago = Pago.objects.create(contratacion=self.contratacion, monto=20000, metodo=Pago.WEBPAY, estado=Pago.PAGADO)
+        self.url = f'/api/contrataciones/{self.contratacion.id_contratacion}/reembolso/'
+
+    def _como(self, usuario):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(usuario)}')
+
+    def test_el_cliente_pide_el_reembolso_de_un_trabajo_pagado(self):
+        from django.core import mail
+        self._como(self.cliente)
+        resp = self.client.post(self.url, {'motivo': 'El proveedor no llegó'}, format='json')
+        self.assertEqual(resp.status_code, 201)
+        reembolso = Reembolso.objects.get(pago=self.pago)
+        self.assertEqual((reembolso.estado, reembolso.monto, reembolso.motivo, reembolso.detalle), ('PENDIENTE', 20000, 'CANCELACION', 'El proveedor no llegó'))
+        self.assertTrue(Mensaje.objects.filter(contenido__contains='devuelva el pago').exists())
+        self.assertTrue(any('prov_reem@test.com' in m.to for m in mail.outbox))
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)  # sigue hasta que el staff resuelva
+
+    def test_pedirlo_dos_veces_no_duplica(self):
+        self._como(self.cliente)
+        self.client.post(self.url, {}, format='json')
+        self.assertEqual(self.client.post(self.url, {}, format='json').status_code, 200)
+        self.assertEqual(Reembolso.objects.filter(pago=self.pago).count(), 1)
+
+    def test_solo_el_cliente_y_solo_si_esta_pagado_y_en_curso(self):
+        self._como(self.proveedor)
+        self.assertEqual(self.client.post(self.url, {}, format='json').status_code, 403)
+        intruso = _crear_usuario('intruso_reem@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self._como(intruso)
+        self.assertEqual(self.client.post(self.url, {}, format='json').status_code, 404)
+        self._como(self.cliente)
+        Contratacion.objects.filter(pk=self.contratacion.pk).update(estado=Contratacion.CONFIRMADA)
+        self.assertEqual(self.client.post(self.url, {}, format='json').status_code, 409)
+
+    def test_un_pago_aprobado_sobre_una_contratacion_cancelada_abre_un_reembolso(self):
+        from .views import _procesar_pago_aprobado
+        Contratacion.objects.filter(pk=self.contratacion.pk).update(estado=Contratacion.CANCELADA)
+        Pago.objects.filter(pk=self.pago.pk).update(estado=Pago.PENDIENTE)
+        pago = Pago.objects.get(pk=self.pago.pk)
+        _procesar_pago_aprobado(pago, {'status': 'done'})
+        reembolso = Reembolso.objects.get(pago=pago)
+        self.assertEqual((reembolso.motivo, reembolso.estado), ('PAGO_TARDIO', 'PENDIENTE'))
+        Pago.objects.filter(pk=pago.pk).update(estado=Pago.PENDIENTE)
+        pago.refresh_from_db()
+        _procesar_pago_aprobado(pago, {'status': 'done'})
+        self.assertEqual(Reembolso.objects.filter(pago=pago).count(), 1)  # idempotente
+
+    def test_el_staff_marca_reembolsado_y_el_trabajo_se_cancela(self):
+        from django.contrib.auth.models import User
+        from . import reembolsos
+        staff = User.objects.create_superuser('staff_reem', 's@s.cl', 'x')
+        reembolso, _ = reembolsos.abrir(self.pago, Reembolso.CANCELACION)
+        reembolsos.marcar_reembolsado(reembolso, staff, 'TRF-123')
+        reembolso.refresh_from_db()
+        self.contratacion.refresh_from_db()
+        self.pago.refresh_from_db()
+        self.assertEqual((reembolso.estado, reembolso.resuelto_por, reembolso.referencia), ('REEMBOLSADO', staff, 'TRF-123'))
+        self.assertEqual(self.contratacion.estado, Contratacion.CANCELADA)
+        self.assertEqual(self.pago.estado, Pago.ANULADO)
+        self.assertTrue(HistorialEstadoContratacion.objects.filter(contratacion=self.contratacion, estado=Contratacion.CANCELADA).exists())
+
+    def test_rechazar_no_toca_el_trabajo_y_permite_pedir_otro(self):
+        from django.contrib.auth.models import User
+        from . import reembolsos
+        staff = User.objects.create_superuser('staff_reem2', 's2@s.cl', 'x')
+        reembolso, _ = reembolsos.abrir(self.pago, Reembolso.CANCELACION)
+        reembolsos.rechazar(reembolso, staff, 'el trabajo se hizo')
+        self.contratacion.refresh_from_db()
+        self.assertEqual(self.contratacion.estado, Contratacion.EN_CURSO)
+        _, creado = reembolsos.abrir(self.pago, Reembolso.CANCELACION)
+        self.assertTrue(creado)
+
+    def test_el_detalle_de_la_contratacion_expone_el_reembolso(self):
+        self._como(self.cliente)
+        self.assertIsNone(self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/').data['reembolso'])
+        self.client.post(self.url, {}, format='json')
+        datos = self.client.get(f'/api/contrataciones/{self.contratacion.id_contratacion}/').data['reembolso']
+        self.assertEqual((datos['estado'], datos['monto']), ('PENDIENTE', 20000))
+
+
+class AvisosYVerificacionAlConfirmarTests(APITestCase):
+    """Correos informativos del flujo y reverificación al confirmar un trabajo (con el enforcement activo)."""
+
+    def setUp(self):
+        cache.clear()
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        self.proveedor = _crear_usuario('prov_av@test.com', 'clave_prov', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.cliente = _crear_usuario('cli_av@test.com', 'clave_cli', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        self.publicacion = Publicaciones.objects.create(usuario_publicador=self.proveedor, titulo='Gasfitería', estado_moderacion=Publicaciones.APROBADA, precio=15000)
+
+    def _como(self, usuario):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(usuario)}')
+
+    def test_la_solicitud_avisa_al_proveedor_y_la_confirmacion_al_cliente(self):
+        from django.core import mail
+        self._como(self.cliente)
+        resp = self.client.post('/api/contrataciones/', {'publicacion': self.publicacion.pk}, format='json')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual([m.to for m in mail.outbox], [['prov_av@test.com']])
+        self._como(self.proveedor)
+        self.client.post(f'/api/contrataciones/{resp.data["id_contratacion"]}/confirmar/', {'password': 'clave_prov'}, format='json')
+        self.assertEqual(mail.outbox[-1].to, ['cli_av@test.com'])
+        self.assertIn('$15.000', mail.outbox[-1].body)
+
+    def test_el_pago_aprobado_avisa_a_las_dos_partes(self):
+        from django.core import mail
+        from .views import _procesar_pago_aprobado
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor, estado=Contratacion.CONFIRMADA, monto_acordado=15000)
+        pago = Pago.objects.create(contratacion=contratacion, monto=15000, metodo=Pago.WEBPAY)
+        _procesar_pago_aprobado(pago, {'status': 'AUTHORIZED'})
+        self.assertEqual({a for m in mail.outbox for a in m.to}, {'prov_av@test.com', 'cli_av@test.com'})
+
+    def test_cambiar_la_contrasena_avisa_por_correo(self):
+        from django.core import mail
+        self._como(self.cliente)
+        self.client.post('/api/auth/cambiar-password/', {'password_actual': 'clave_cli', 'password': 'ClaveNueva123', 'password_confirm': 'ClaveNueva123'}, format='json')
+        self.assertTrue(any('cambió tu contraseña' in m.subject for m in mail.outbox))
+
+    @override_settings(EXIGIR_IDENTIDAD_VERIFICADA=True)
+    def test_con_la_verificacion_vencida_el_proveedor_no_puede_confirmar(self):
+        contratacion = Contratacion.objects.create(publicacion=self.publicacion, cliente=self.cliente, proveedor=self.proveedor)
+        self._como(self.proveedor)
+        resp = self.client.post(f'/api/contrataciones/{contratacion.id_contratacion}/confirmar/', {'password': 'clave_prov'}, format='json')
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.data['code'], 'identidad_no_verificada')
+        contratacion.refresh_from_db()
+        self.assertEqual(contratacion.estado, Contratacion.SOLICITADA)
+        _aprobar_documento(self.proveedor)
+        resp = self.client.post(f'/api/contrataciones/{contratacion.id_contratacion}/confirmar/', {'password': 'clave_prov'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+
+class ChequeosDeConfiguracionTests(APITestCase):
+    """Producción con claves por defecto debe avisar; desarrollo no."""
+
+    def _ids(self):
+        from . import checks
+        return {a.id for a in checks.claves_de_produccion(None)}
+
+    @override_settings(DEBUG=True)
+    def test_en_desarrollo_no_avisa(self):
+        self.assertEqual(self._ids(), set())
+
+    @override_settings(DEBUG=False, SECRET_KEY='django-insecure-solo-para-desarrollo-local-cambiar-en-produccion', JWT_SECRET='django-insecure-solo-para-desarrollo-local-cambiar-en-produccion', BIOMETRIC_ENCRYPTION_KEYS=[])
+    def test_en_produccion_con_todo_por_defecto_avisa_las_tres(self):
+        self.assertEqual(self._ids(), {'keyserv.W001', 'keyserv.W002', 'keyserv.W003'})
+
+    @override_settings(DEBUG=False, SECRET_KEY='una-clave-larga-y-propia', JWT_SECRET='otra-distinta', BIOMETRIC_ENCRYPTION_KEYS=['x'])
+    def test_en_produccion_bien_configurada_no_avisa(self):
+        self.assertEqual(self._ids(), set())
+
+
+class PanelReembolsosAdminTests(APITestCase):
+    """El dashboard de /admin/ muestra los reembolsos por devolver, solo al superusuario."""
+
+    def test_el_superusuario_ve_el_kpi_y_el_moderador_no(self):
+        from django.contrib.auth.models import Group, User
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        proveedor = _crear_usuario('prov_panel@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        cliente = _crear_usuario('cli_panel@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=proveedor, titulo='X', estado_moderacion=Publicaciones.APROBADA)
+        contratacion = Contratacion.objects.create(publicacion=publicacion, cliente=cliente, proveedor=proveedor, estado=Contratacion.EN_CURSO, monto_acordado=1000)
+        pago = Pago.objects.create(contratacion=contratacion, monto=1000, metodo=Pago.WEBPAY, estado=Pago.PAGADO)
+        Reembolso.objects.create(pago=pago, monto=1000, motivo=Reembolso.CANCELACION)
+
+        User.objects.create_superuser('root_panel', 'r@r.cl', 'clave-root-1')
+        self.client.login(username='root_panel', password='clave-root-1')
+        self.assertContains(self.client.get('/admin/'), 'Reembolsos por devolver')
+
+        call_command('configurar_grupo_moderador')
+        moderador = User.objects.create_user('mod_panel', 'm@m.cl', 'clave-mod-1', is_staff=True)
+        moderador.groups.add(Group.objects.get(name='Moderador'))
+        self.client.login(username='mod_panel', password='clave-mod-1')
+        self.assertNotContains(self.client.get('/admin/'), 'Reembolsos por devolver')
+
+
+class ComisionPorTramosTests(APITestCase):
+    """La comisión se cobra encima del precio, por tramos, y se congela en el Pago al iniciar el cobro."""
+
+    def test_los_tramos_por_defecto_y_sus_limites(self):
+        from . import comisiones
+        esperado = {
+            1000: (6, 1000),       # 6 % = 60, pero rige el mínimo de $1.000
+            20000: (6, 1200),
+            50000: (6, 3000),      # el tope pertenece al tramo
+            50001: (5, 2500),
+            200000: (5, 10000),
+            200001: (4.5, 9000),   # 9.000,045 -> 9.000
+            500000: (4.5, 22500),
+            500001: (4, 20000),
+            2000000: (4, 80000),
+        }
+        for monto, (porcentaje, comision) in esperado.items():
+            d = comisiones.calcular(monto)
+            self.assertEqual((float(d.porcentaje), d.comision, d.total), (porcentaje, comision, monto + comision), monto)
+
+    def test_redondea_hacia_arriba_en_la_mitad_y_un_monto_cero_no_cobra(self):
+        from . import comisiones
+        self.assertEqual(comisiones.calcular(100010).comision, 5001)  # 5.000,5 -> 5.001
+        self.assertEqual(comisiones.calcular(0).comision, 0)
+
+    def test_los_tramos_se_cambian_por_configuracion(self):
+        from . import comisiones
+        # Los tramos originales del dueño (rellenando el hueco de 200.000 a 500.000 con 3,5 %).
+        with override_settings(COMISION_TRAMOS=[[50000, '5'], [200000, '4'], [500000, '3.5'], [None, '3']], COMISION_MINIMA=0):
+            self.assertEqual([comisiones.calcular(m).comision for m in (40000, 150000, 300000, 600000)], [2000, 6000, 10500, 18000])
+
+    def test_iniciar_webpay_cobra_el_total_y_deja_el_desglose_en_el_pago(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        proveedor = _crear_usuario('prov_com@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        cliente = _crear_usuario('cli_com@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA, precio=100000)
+        contratacion = Contratacion.objects.create(publicacion=publicacion, cliente=cliente, proveedor=proveedor, estado=Contratacion.CONFIRMADA, monto_acordado=100000)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(cliente)}')
+
+        with mock.patch('KeyServApp.pagos.TransbankService.iniciar_transaccion', return_value=('tok', 'https://webpay.test')) as iniciar:
+            resp = self.client.post(f'/api/contrataciones/{contratacion.id_contratacion}/pagos/webpay/iniciar/')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(iniciar.call_args.kwargs['monto'], 105000)  # 100.000 + 5 % de comisión
+        pago = Pago.objects.get(contratacion=contratacion)
+        self.assertEqual((pago.monto, pago.monto_servicio, pago.comision_monto, float(pago.comision_porcentaje)), (105000, 100000, 5000, 5.0))
+
+    def test_iniciar_flow_tambien_cobra_el_total(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        proveedor = _crear_usuario('prov_com2@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        cliente = _crear_usuario('cli_com2@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=proveedor, titulo='Pintura', estado_moderacion=Publicaciones.APROBADA, precio=20000)
+        contratacion = Contratacion.objects.create(publicacion=publicacion, cliente=cliente, proveedor=proveedor, estado=Contratacion.CONFIRMADA, monto_acordado=20000)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(cliente)}')
+        with mock.patch('KeyServApp.pagos.FlowService.crear_pago', return_value={'url': 'https://sandbox.flow.cl/x', 'token': 'T'}) as crear:
+            self.client.post(f'/api/contrataciones/{contratacion.id_contratacion}/pagos/flow/iniciar/')
+        self.assertEqual(crear.call_args.kwargs['monto'], 21200)  # 20.000 + 6 %
+
+    def test_el_detalle_de_la_contratacion_trae_el_desglose_antes_de_pagar(self):
+        _, comuna, tipo_cuenta = _crear_region_comuna_tipo()
+        proveedor = _crear_usuario('prov_com3@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo_cuenta)
+        cliente = _crear_usuario('cli_com3@test.com', comuna=comuna, tipo_cuenta=tipo_cuenta)
+        publicacion = Publicaciones.objects.create(usuario_publicador=proveedor, titulo='X', estado_moderacion=Publicaciones.APROBADA, precio=300000)
+        contratacion = Contratacion.objects.create(publicacion=publicacion, cliente=cliente, proveedor=proveedor, estado=Contratacion.SOLICITADA)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(cliente)}')
+        url = f'/api/contrataciones/{contratacion.id_contratacion}/'
+        self.assertIsNone(self.client.get(url).data['desglose_pago'])  # sin monto acordado todavía
+        Contratacion.objects.filter(pk=contratacion.pk).update(monto_acordado=300000, estado=Contratacion.CONFIRMADA)
+        self.assertEqual(self.client.get(url).data['desglose_pago'], {'monto_servicio': 300000, 'comision_porcentaje': 4.5, 'comision': 13500, 'total': 313500})
+
+
+class VerificacionConVideoTests(APITestCase):
+    """Vía con documento + video: el staff compara la cara del video con la cédula; el video se borra al resolver."""
+
+    def setUp(self):
+        from django.core import mail
+        self.mail = mail
+        cache.clear()
+        EstadoDocumento.objects.get_or_create(id_estado_documento=2, defaults={'nombre_estado_documento': 'No firmado'})
+        _, self.comuna, self.tipo_cuenta = _crear_region_comuna_tipo()
+        self.usuario = _crear_usuario('video@test.com', comuna=self.comuna, tipo_cuenta=self.tipo_cuenta)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(self.usuario)}')
+
+    def _hasta_el_correo(self):
+        import re
+        self.client.post('/api/auth/verificacion-alternativa/iniciar/', {'acepto_advertencia': True, 'acepto_video': True}, format='json')
+        codigo = re.search(r'(\d{6})', self.mail.outbox[-1].body).group(1)
+        self.client.post('/api/auth/verificacion-alternativa/codigo/', {'codigo': codigo}, format='json')
+
+    def _subir_documento(self):
+        return self.client.post('/api/auth/verificacion-alternativa/documento/', {'documento': _documento_png_de_prueba()}, format='multipart')
+
+    def _subir_video(self, archivo=None):
+        return self.client.post('/api/auth/verificacion-alternativa/video/', {'video': archivo or _video_de_prueba()}, format='multipart')
+
+    def _limpiar(self):
+        for v in VerificacionAlternativa.objects.filter(usuario=self.usuario):
+            if v.video:
+                v.video.delete(save=False)
+
+    def test_iniciar_exige_aceptar_la_grabacion_y_entrega_un_codigo_de_4_digitos(self):
+        sin = self.client.post('/api/auth/verificacion-alternativa/iniciar/', {'acepto_advertencia': True}, format='json')
+        self.assertEqual(sin.status_code, 400)
+        self.assertIn('video', sin.data['detail'])
+        self._hasta_el_correo()
+        estado = self.client.get('/api/auth/verificacion-alternativa/').data
+        self.assertRegex(estado['codigo_video'], r'^\d{4}$')
+        self.assertTrue(estado['requiere_video'] and estado['consentimiento_video_aceptado'] and not estado['video_enviado'])
+
+    def test_el_video_exige_correo_verificado_y_consentimiento(self):
+        self.assertEqual(self._subir_video().status_code, 400)  # nada iniciado
+        self.client.post('/api/auth/verificacion-alternativa/iniciar/', {'acepto_advertencia': True, 'acepto_video': True}, format='json')
+        self.assertEqual(self._subir_video().status_code, 400)  # falta confirmar el correo
+
+    def test_documento_y_video_en_cualquier_orden_dejan_la_solicitud_en_revision(self):
+        self._hasta_el_correo()
+        self.addCleanup(self._limpiar)
+        self.assertEqual(self._subir_video().data['estado'], 'INICIADA')  # falta el documento
+        resp = self._subir_documento()
+        self.assertEqual((resp.data['estado'], resp.data['video_enviado']), ('PENDIENTE_REVISION', True))
+
+    def test_un_video_con_firma_o_extension_invalida_se_rechaza(self):
+        self._hasta_el_correo()
+        falso = SimpleUploadedFile('virus.mp4', b'MZ' + b'\x00' * 40, content_type='video/mp4')
+        self.assertEqual(self._subir_video(falso).status_code, 400)
+        exe = SimpleUploadedFile('video.exe', b'\x00\x00\x00\x18ftypmp42', content_type='video/mp4')
+        self.assertEqual(self._subir_video(exe).status_code, 400)
+        self.assertFalse(VerificacionAlternativa.objects.get(usuario=self.usuario).video)
+
+    def test_un_video_demasiado_pesado_se_rechaza(self):
+        self._hasta_el_correo()
+        with mock.patch('KeyServApp.validators.TAMANO_MAXIMO_VIDEO', 10):
+            self.assertEqual(self._subir_video().status_code, 400)
+
+    @override_settings(VERIFICACION_REQUIERE_VIDEO=False)
+    def test_con_el_video_desactivado_basta_el_documento(self):
+        self._hasta_el_correo()
+        self.assertEqual(self._subir_documento().data['estado'], 'PENDIENTE_REVISION')
+
+    def test_solo_el_staff_ve_el_video_y_los_demas_reciben_404(self):
+        from django.contrib.auth.models import User
+        from django.test import Client
+        self._hasta_el_correo()
+        self._subir_documento()
+        self._subir_video()
+        self.addCleanup(self._limpiar)
+        verificacion = VerificacionAlternativa.objects.get(usuario=self.usuario)
+        url = f'/verificaciones/{verificacion.pk}/video/'
+
+        self.assertEqual(Client().get(url).status_code, 404)  # anónimo
+        dueno = Client()
+        sesion = dueno.session
+        sesion['usuario_id'] = self.usuario.id_usuario
+        sesion.save()
+        self.assertEqual(dueno.get(url).status_code, 404)  # ni siquiera quien lo grabó
+        self.assertTrue(IntentoAccesoSospechoso.objects.filter(recurso='verificacion_video').exists())
+
+        User.objects.create_superuser('staff_video', 'sv@s.cl', 'clave-staff-1')
+        staff = Client()
+        staff.login(username='staff_video', password='clave-staff-1')
+        resp = staff.get(url)
+        self.assertEqual((resp.status_code, resp['Content-Type']), (200, 'video/mp4'))
+        b''.join(resp.streaming_content)  # consumir la respuesta la cierra; si no, en Windows el archivo queda abierto y no se puede borrar
+
+    def _resolver_como_staff(self, estado):
+        from django.contrib.auth.models import User
+        from django.test import Client
+        User.objects.create_superuser('staff_res', 'sr@s.cl', 'clave-staff-1')
+        staff = Client()
+        staff.login(username='staff_res', password='clave-staff-1')
+        verificacion = VerificacionAlternativa.objects.get(usuario=self.usuario)
+        staff.post(f'/admin/KeyServApp/verificacionalternativa/{verificacion.pk}/change/', {'estado': estado, 'motivo_rechazo': 'no se ve'})
+        verificacion.refresh_from_db()
+        return verificacion
+
+    def test_aprobar_borra_el_video_y_renueva_el_codigo(self):
+        self._hasta_el_correo()
+        self._subir_documento()
+        self._subir_video()
+        antes = VerificacionAlternativa.objects.get(usuario=self.usuario)
+        ruta, codigo = antes.video.name, antes.codigo_video
+        verificacion = self._resolver_como_staff(VerificacionAlternativa.APROBADA)
+        self.assertEqual(verificacion.estado, VerificacionAlternativa.APROBADA)
+        self.assertFalse(verificacion.video)
+        self.assertIsNone(verificacion.video_subido_en)
+        self.assertFalse(VerificacionAlternativa.video.field.storage.exists(ruta))  # el archivo ya no está en disco
+        self.assertEqual(len(verificacion.codigo_video), 4)
+
+    def test_rechazar_tambien_borra_el_video(self):
+        self._hasta_el_correo()
+        self._subir_documento()
+        self._subir_video()
+        verificacion = self._resolver_como_staff(VerificacionAlternativa.RECHAZADA)
+        self.assertEqual(verificacion.estado, VerificacionAlternativa.RECHAZADA)
+        self.assertFalse(verificacion.video)
+
+    def test_no_se_puede_aprobar_sin_video_si_se_exige(self):
+        v = VerificacionAlternativa.objects.create(
+            usuario=self.usuario, estado=VerificacionAlternativa.PENDIENTE_REVISION, correo_verificado_en=timezone.now(),
+            documento=Documento.objects.create(usuario=self.usuario, nombre_documento='c.pdf', archivo_subido=SimpleUploadedFile('c.pdf', b'%PDF-1.4 t')),
+        )
+        self.addCleanup(lambda: v.documento.archivo_subido.delete(save=False))
+        resultado = self._resolver_como_staff(VerificacionAlternativa.APROBADA)
+        self.assertEqual(resultado.estado, VerificacionAlternativa.PENDIENTE_REVISION)
+
+    def test_la_purga_borra_solo_los_videos_sin_resolver_con_mas_de_30_dias(self):
+        self._hasta_el_correo()
+        self._subir_documento()
+        self._subir_video()
+        self.addCleanup(self._limpiar)
+        call_command('purgar_datos_vencidos')
+        self.assertTrue(VerificacionAlternativa.objects.get(usuario=self.usuario).video)  # reciente: se conserva
+        VerificacionAlternativa.objects.filter(usuario=self.usuario).update(video_subido_en=timezone.now() - timedelta(days=31))
+        call_command('purgar_datos_vencidos')
+        self.assertFalse(VerificacionAlternativa.objects.get(usuario=self.usuario).video)
+
+    def test_eliminar_la_cuenta_borra_el_video(self):
+        self._hasta_el_correo()
+        self._subir_documento()
+        self._subir_video()
+        ruta = VerificacionAlternativa.objects.get(usuario=self.usuario).video.name
+        derechos_titular.eliminar_cuenta(self.usuario)
+        self.assertFalse(VerificacionAlternativa.objects.get(usuario=self.usuario).video)
+        self.assertFalse(VerificacionAlternativa.video.field.storage.exists(ruta))

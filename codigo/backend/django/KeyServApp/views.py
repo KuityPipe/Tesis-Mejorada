@@ -48,11 +48,12 @@ from .models import (
     Comuna, ConsentimientoBiometrico, Contratacion, Conversacion, Documento, EstadoConsulta,
     EstadoDocumento, HistorialEstadoContratacion, Imagenes,
     IntentoAccesoSospechoso, ItemPresupuesto, Mensaje, Pago, Publicaciones,
-    Ranking, Region, Transaccion, Usuario, UsuarioConversacion,
+    Ranking, Reembolso, Region, Transaccion, Usuario, UsuarioConversacion,
     Valoracion, ValoracionImagen,
 )
 from . import biometria, consentimiento, geolocalizacion, identidad, pagos, verificaciones
 from .api.jwt_utils import revocar_todas_las_sesiones
+from . import comisiones, notificaciones_correo, reembolsos
 from . import validators
 
 logger = logging.getLogger(__name__)
@@ -803,6 +804,25 @@ def documento_descargar_view(request, documento_id):
     )
 
 
+def verificacion_video_descargar_view(request, verificacion_id):
+    """
+    Único acceso al video de una verificación de identidad: solo personal autenticado (staff). Cualquier otra persona,
+    incluida la dueña del video, recibe 404 (no se confirma que existe) y queda registrado como acceso sospechoso. No hay
+    URL pública: el archivo vive en el almacenamiento privado (`storage.py`).
+    """
+    from .models import VerificacionAlternativa
+
+    verificacion = get_object_or_404(VerificacionAlternativa, pk=verificacion_id)
+    if not (request.user.is_authenticated and request.user.is_staff):
+        _registrar_intento_sospechoso(request, obtener_usuario_actual(request), 'verificacion_video', verificacion_id, 'video de verificación sin ser staff')
+        raise Http404()
+    if not verificacion.video:
+        raise Http404()
+    extension = os.path.splitext(verificacion.video.name)[1].lower()
+    tipo = {'.webm': 'video/webm', '.mov': 'video/quicktime'}.get(extension, 'video/mp4')
+    return FileResponse(verificacion.video.open('rb'), content_type=tipo)
+
+
 def valoracion_imagen_view(request, imagen_id):
     """
     Único acceso a la foto de una reseña (storage privada, ver models.py). Pública solo
@@ -893,9 +913,12 @@ def contratacion_detalle_view(request, contratacion_id):
     items_presupuesto = contratacion.items_presupuesto.all()
     comision_estimada = None
     neto_proveedor_estimado = None
+    comision_porcentaje = None
     if contratacion.monto_acordado:
-        comision_estimada = round(contratacion.monto_acordado * settings.COMISION_PLATAFORMA_PORCENTAJE / 100)
-        neto_proveedor_estimado = contratacion.monto_acordado - comision_estimada
+        desglose = comisiones.calcular(contratacion.monto_acordado)
+        comision_estimada = desglose.comision
+        comision_porcentaje = float(desglose.porcentaje)
+        neto_proveedor_estimado = contratacion.monto_acordado  # la comisión la paga el cliente encima del precio
 
     return render(request, 'KeyServApp/contratacion_detalle.html', {
         'contratacion': contratacion,
@@ -912,7 +935,8 @@ def contratacion_detalle_view(request, contratacion_id):
         'items_presupuesto': items_presupuesto,
         'comision_estimada': comision_estimada,
         'neto_proveedor_estimado': neto_proveedor_estimado,
-        'comision_porcentaje': settings.COMISION_PLATAFORMA_PORCENTAJE,
+        'comision_porcentaje': comision_porcentaje,
+        'comision_tramos': comisiones.tramos_para_publico(),
     })
 
 
@@ -1166,14 +1190,26 @@ def _procesar_pago_aprobado(pago, respuesta_bruta):
             # Típico de Khipu: el banco confirmó una transferencia de una contratación ya cancelada. Hay que devolver
             # el dinero a mano (proceso de reembolsos pendiente, docs/PLAN_FLUJO_DE_DINERO.md).
             logger.warning(
-                'Pago aprobado sobre una contratación en estado %s: pago=%s contratacion=%s — requiere reembolso manual',
+                'Pago aprobado sobre una contratación en estado %s: pago=%s contratacion=%s — se abre un reembolso',
                 contratacion.estado, bloqueado.id_pago, contratacion.id_contratacion,
             )
+            reembolsos.abrir(bloqueado, Reembolso.PAGO_TARDIO, f'Pago aprobado con la contratación en estado {contratacion.estado}.')
     pago.refresh_from_db()
     logger.info(
         'Pago aprobado: id=%s metodo=%s contratacion=%s monto=%s',
         pago.id_pago, pago.metodo, contratacion.id_contratacion, pago.monto,
     )
+    if contratacion.estado == Contratacion.EN_CURSO:
+        titulo = contratacion.publicacion.titulo
+        monto = f'{pago.monto:,}'.replace(',', '.')
+        notificaciones_correo.avisar(
+            contratacion.cliente, 'pago aprobado',
+            f'Tu pago de ${monto} por "{titulo}" fue aprobado. El proveedor ya puede empezar el trabajo.',
+        )
+        notificaciones_correo.avisar(
+            contratacion.proveedor, 'recibiste un pago',
+            f'El cliente pagó ${monto} por "{titulo}". El trabajo ya puede comenzar.',
+        )
 
 
 def confirmar_pago_webpay(token_ws):
@@ -1259,7 +1295,7 @@ def pago_webpay_iniciar_view(request, contratacion_id):
         messages.info(request, 'Esta contratación ya está pagada.')
         return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
     pago.metodo = Pago.WEBPAY
-    pago.monto = contratacion.monto_acordado
+    comisiones.aplicar(pago, contratacion)
     pago.estado = Pago.PENDIENTE
 
     orden_compra = _generar_orden_compra(contratacion)
@@ -1332,7 +1368,7 @@ def pago_khipu_iniciar_view(request, contratacion_id):
         messages.info(request, 'Esta contratación ya está pagada.')
         return redirect('KeyServApp:contratacion_detalle', contratacion_id=contratacion_id)
     pago.metodo = Pago.KHIPU
-    pago.monto = contratacion.monto_acordado
+    comisiones.aplicar(pago, contratacion)
     pago.estado = Pago.PENDIENTE
     pago.save()
 

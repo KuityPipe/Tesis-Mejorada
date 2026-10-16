@@ -179,6 +179,21 @@
           </ion-item>
 
           <div *ngIf="puedePagar">
+            <ion-list lines="none" *ngIf="c.desglose_pago as d" class="ks-desglose-pago">
+              <ion-item>
+                <ion-label>Servicio acordado</ion-label>
+                <span slot="end">${{ d.monto_servicio | number }}</span>
+              </ion-item>
+              <ion-item>
+                <ion-label>Comisión de KeyServ ({{ d.comision_porcentaje }}%)</ion-label>
+                <span slot="end">${{ d.comision | number }}</span>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Total a pagar</strong></ion-label>
+                <strong slot="end">${{ d.total | number }}</strong>
+              </ion-item>
+            </ion-list>
+            <p class="ks-help" *ngIf="c.desglose_pago">El proveedor recibe el servicio completo; la comisión la pagas tú encima y sostiene la plataforma (verificación, soporte y pagos seguros).</p>
             <ion-button expand="block" (click)="pagarConWebpay()" [disabled]="procesandoPago">
               {{ procesandoPago ? 'Redirigiendo…' : 'Pagar con Webpay' }}
             </ion-button>
@@ -225,7 +240,17 @@
       <p class="ks-section-title">{{ puedeRechazar ? 'Rechazar solicitud' : 'Cancelar contratación' }}</p>
       <ion-card>
         <ion-card-content>
-          <p *ngIf="requiereSoporteParaCancelar">Esta contratación ya está pagada. Para cancelarla y recuperar tu dinero, contacta a soporte desde la sección Contacto.</p>
+          <ng-container *ngIf="requiereSoporteParaCancelar">
+            <p *ngIf="!c.reembolso">Esta contratación ya está pagada. Si quieres cancelarla y que te devolvamos el dinero, cuéntanos por qué: el equipo de KeyServ revisa el caso y te avisa. El trabajo sigue en curso hasta que se resuelva.</p>
+            <ion-item *ngIf="!c.reembolso">
+              <ion-textarea label="Motivo (opcional)" labelPlacement="floating" rows="3" maxlength="300" [(ngModel)]="motivoReembolso"></ion-textarea>
+            </ion-item>
+            <ion-button *ngIf="!c.reembolso" expand="block" fill="outline" color="danger" (click)="pedirReembolso()" [disabled]="procesandoAccion">
+              {{ procesandoAccion ? 'Enviando…' : 'Pedir cancelación y reembolso' }}
+            </ion-button>
+            <p *ngIf="c.reembolso?.estado === 'PENDIENTE'"><strong>Tu solicitud de reembolso está en revisión.</strong> Te avisaremos cuando se resuelva.</p>
+            <p *ngIf="c.reembolso?.estado === 'RECHAZADO'">Tu solicitud de reembolso no fue aceptada. Si tienes dudas, escríbenos desde la sección Contacto.</p>
+          </ng-container>
           <ion-text color="danger" *ngIf="errorAccion && !(puedeConfirmar || puedeCompletar)"><p class="ion-padding-start">{{ errorAccion }}</p></ion-text>
           <ion-button *ngIf="puedeRechazar" expand="block" fill="outline" color="danger" (click)="cerrarContratacion('rechazar')" [disabled]="procesandoAccion">
             Rechazar solicitud

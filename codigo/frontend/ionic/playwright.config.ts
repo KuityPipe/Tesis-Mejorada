@@ -16,7 +16,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  // En local, 1: con varios workers en paralelo el servidor de desarrollo se vuelve lento y los tests fallan por tiempo.
+  workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   timeout: 30_000,
 

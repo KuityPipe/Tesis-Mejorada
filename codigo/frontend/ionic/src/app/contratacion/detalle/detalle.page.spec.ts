@@ -72,6 +72,23 @@ describe('DetallePage', () => {
     httpMock.match(`${environment.apiUrl}/contrataciones/1/mensajes/`).forEach((r) => r.flush([]));
   });
 
+  it('pedirReembolso() manda el motivo y deja el reembolso pendiente en la contratación', () => {
+    component.contratacionId = 1;
+    component.contratacion = { cliente: 10, proveedor: 20, estado: 'EN_CURSO', reembolso: null } as never;
+    component.motivoReembolso = '  El proveedor no llegó  ';
+
+    component.pedirReembolso();
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/contrataciones/1/reembolso/`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ motivo: 'El proveedor no llegó' });
+    req.flush({ estado: 'PENDIENTE', monto: 20000, motivo: 'CANCELACION' });
+
+    expect((component.contratacion as unknown as { reembolso: { estado: string } }).reembolso.estado).toBe('PENDIENTE');
+    expect(component.procesandoAccion).toBeFalse();
+    httpMock.match(`${environment.apiUrl}/contrataciones/1/mensajes/`).forEach((r) => r.flush([]));
+  });
+
   it('enviarCierre muestra el detalle del 409 cuando ya está pagada', () => {
     component.contratacionId = 1;
     component.enviarCierre('cancelar');

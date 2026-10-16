@@ -60,19 +60,41 @@ export interface ContratacionResumen {
 // Igual que PagoSerializer (api/serializers.py).
 export interface Pago {
   id_pago: number;
-  metodo: 'WEBPAY' | 'KHIPU';
+  metodo: 'WEBPAY' | 'KHIPU' | 'FLOW' | 'MERCADOPAGO';
   estado: 'PENDIENTE' | 'PAGADO' | 'RECHAZADO' | 'ANULADO';
+  /** Total cobrado al cliente: `monto_servicio` + `comision_monto`. */
   monto: number;
+  monto_servicio: number | null;
+  comision_porcentaje: string | null;
+  comision_monto: number;
   fecha_creacion: string;
   fecha_confirmacion: string | null;
 }
 
 // Campos extra de ContratacionDetailSerializer.
+/** Pedido de devolución del dinero de un trabajo pagado; lo resuelve el equipo de KeyServ. */
+export interface ReembolsoResumen {
+  estado: 'PENDIENTE' | 'REEMBOLSADO' | 'RECHAZADO';
+  monto: number;
+  motivo: 'PAGO_TARDIO' | 'CANCELACION';
+}
+
+/** Lo que paga el cliente: el precio del servicio más la comisión de KeyServ (que se cobra encima; el proveedor recibe el servicio completo). */
+export interface DesglosePago {
+  monto_servicio: number;
+  comision_porcentaje: number;
+  comision: number;
+  total: number;
+}
+
 export interface ContratacionDetalle extends ContratacionResumen {
   historial: HistorialEstado[];
   items_presupuesto: ItemPresupuesto[];
   valoracion: ValoracionDetalle | null;
   pago: Pago | null;
+  reembolso: ReembolsoResumen | null;
+  /** `null` mientras no haya un monto acordado. */
+  desglose_pago: DesglosePago | null;
   publicacion_descripcion: string | null;
   publicacion_imagenes: string[];
 }
@@ -166,6 +188,11 @@ export class Contrataciones {
   /** El CLIENTE cancela antes de pagar (SOLICITADA o CONFIRMADA -> CANCELADA). Una ya pagada devuelve 409 `requiere_soporte`. */
   cancelar(id: number): Observable<ContratacionDetalle> {
     return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/cancelar/`, {});
+  }
+
+  /** El CLIENTE pide cancelar un trabajo ya pagado y que se le devuelva el dinero. Solo abre la solicitud: la resuelve el equipo de KeyServ. */
+  pedirReembolso(id: number, motivo: string): Observable<{ estado: string; monto: number; motivo: string }> {
+    return this.http.post<{ estado: string; monto: number; motivo: string }>(`${environment.apiUrl}/contrataciones/${id}/reembolso/`, { motivo });
   }
 
   /** El CLIENTE marca el servicio como completado (EN_CURSO -> COMPLETADA), re-ingresando su contraseña. */
