@@ -1,0 +1,33 @@
+# Postgres local para desarrollo (solo la base; Django e Ionic siguen corriendo
+# en el host). La imagen oficial trae las contrib, así que la migración 0009
+# puede crear la extensión `unaccent` sin pasos extra.
+#
+# Uso:
+#   docker compose up -d db
+#   # en codigo/backend/django/.env:
+#   #   DB_NAME=keyserv  DB_USER=postgres  DB_PASSWORD=desarrollo
+#   #   DB_HOST=localhost  DB_PORT=5432
+#   python manage.py migrate; python manage.py loaddata catalogos_iniciales
+#
+# La clave por defecto es solo para desarrollo local: no sirve para producción
+# (allá se usa DATABASE_URL, ver render.yaml). Para otra clave: POSTGRES_PASSWORD.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keyserv
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-desarrollo}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - keyserv_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d keyserv"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  keyserv_pgdata:
