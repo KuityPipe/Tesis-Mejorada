@@ -55,6 +55,44 @@ describe('DetallePage', () => {
     expect(req.request.body.items).toEqual([{ descripcion: 'Mano de obra', categoria: 'MANO_DE_OBRA', monto: 24000 }]);
   });
 
+  it('el proveedor solo registra la boleta de un trabajo pagado', () => {
+    component.contratacion = { cliente: 10, proveedor: 20, estado: 'EN_CURSO', pago: { estado: 'PAGADO' } } as never;
+    component.usuarioActualId = 20;
+    expect(component.puedeRegistrarBoleta).toBeTrue();
+    component.usuarioActualId = 10; // el cliente no registra
+    expect(component.puedeRegistrarBoleta).toBeFalse();
+    component.usuarioActualId = 20;
+    component.contratacion = { cliente: 10, proveedor: 20, estado: 'CONFIRMADA', pago: { estado: 'PENDIENTE' } } as never;
+    expect(component.puedeRegistrarBoleta).toBeFalse();
+  });
+
+  it('guardar la boleta manda el folio y la respuesta sobre la primera boleta', () => {
+    component.contratacionId = 7;
+    component.formularioBoleta.setValue({ folio: ' 1234 ', fecha_emision: '2026-10-20', es_primera_boleta: 'SI' });
+    component.guardarBoleta();
+    const req = httpMock.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/contrataciones/7/boleta/'));
+    expect(req.request.body).toEqual({ folio: '1234', fecha_emision: '2026-10-20', es_primera_boleta: 'SI' });
+  });
+
+  it('no manda un folio con letras ni sin responder si es la primera boleta', () => {
+    component.contratacionId = 7;
+    component.formularioBoleta.setValue({ folio: '12ab', fecha_emision: '', es_primera_boleta: '' });
+    component.guardarBoleta();
+    httpMock.expectNone((r) => r.method === 'PUT' && r.url.endsWith('/boleta/'));
+    expect(component.formularioBoleta.controls.folio.errors?.['pattern']).toBeTruthy();
+  });
+
+  it('muestra los errores que devuelve el servidor por campo', () => {
+    component.contratacionId = 7;
+    component.formularioBoleta.setValue({ folio: '55', fecha_emision: '', es_primera_boleta: 'SI' });
+    component.guardarBoleta();
+    httpMock.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/boleta/')).flush(
+      { es_primera_boleta: ['Ya marcaste otra boleta como tu primera.'] }, { status: 400, statusText: 'Bad Request' },
+    );
+    expect(component.erroresBoleta['es_primera_boleta']).toEqual(['Ya marcaste otra boleta como tu primera.']);
+    expect(component.guardandoBoleta).toBeFalse();
+  });
+
   it('quitar la plantilla vuelve a pedir el monto acordado a mano', () => {
     component.itemsPresupuesto = [{ descripcion: 'x', categoria: 'OTRO', monto: 1 }];
     component.totalItemsPresupuesto = 1;

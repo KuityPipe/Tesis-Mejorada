@@ -8,7 +8,7 @@ import { Auth } from '../../core/auth';
 import { RESPUESTAS_REEMPLAZO, esReparacionOMantencion } from '../../core/impacto';
 import { Retroalimentacion } from '../../core/retroalimentacion';
 import { Calculadora, PlantillaValorizacion } from '../../core/calculadora';
-import { Contrataciones, ContratacionDetalle, ItemPropuesto, Mensaje } from '../../contrataciones/contrataciones';
+import { Contrataciones, ContratacionDetalle, EstadoBoleta, ItemPropuesto, Mensaje } from '../../contrataciones/contrataciones';
 import { MetodoExterno, MetodosPago, Pagos } from '../../pago/pagos';
 
 /**
@@ -83,6 +83,17 @@ export class DetallePage implements OnInit, OnDestroy {
   itemsPresupuesto: ItemPropuesto[] = [];
   totalItemsPresupuesto = 0;
   errorPlantilla: string | null = null;
+  // Boleta de honorarios (fase 1: el proveedor la emite en sii.cl y aquí solo registra el folio).
+  estadoBoleta: EstadoBoleta | null = null;
+  formularioBoleta = this.fb.nonNullable.group({
+    folio: ['', [Validators.required, Validators.pattern(/^\s*\d{1,12}\s*$/)]],
+    fecha_emision: [''],
+    es_primera_boleta: ['' as '' | 'SI' | 'NO', Validators.required],
+  });
+  guardandoBoleta = false;
+  erroresBoleta: Record<string, string[]> = {};
+  mensajeBoleta: string | null = null;
+  readonly urlSii = 'https://www.sii.cl';
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -115,6 +126,9 @@ export class DetallePage implements OnInit, OnDestroy {
       next: (contratacion) => {
         this.contratacion = contratacion;
         this.cargando = false;
+        if (this.puedeRegistrarBoleta) {
+          this.cargarBoleta();
+        }
         if (this.puedeConfirmar && !this.plantillasPresupuesto.length) {
           this.calculadora.plantillas().subscribe({ next: (p) => (this.plantillasPresupuesto = p), error: () => undefined });
         }
@@ -122,6 +136,74 @@ export class DetallePage implements OnInit, OnDestroy {
       error: () => {
         this.cargando = false;
       },
+    });
+  }
+
+  /** El proveedor registra el folio de su boleta cuando el trabajo ya está pagado. */
+  get puedeRegistrarBoleta(): boolean {
+    return this.esProveedor && this.contratacion?.pago?.estado === 'PAGADO';
+  }
+
+  cargarBoleta(): void {
+    this.contratacionesApi.boleta(this.contratacionId).subscribe({
+      next: (estado) => {
+        this.estadoBoleta = estado;
+        if (estado.boleta) {
+          this.formularioBoleta.patchValue({
+            folio: estado.boleta.folio,
+            fecha_emision: estado.boleta.fecha_emision ?? '',
+            es_primera_boleta: estado.boleta.es_primera_boleta ? 'SI' : 'NO',
+          });
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  guardarBoleta(): void {
+    if (this.formularioBoleta.invalid || this.guardandoBoleta) {
+      this.formularioBoleta.markAllAsTouched();
+      return;
+    }
+    this.guardandoBoleta = true;
+    this.erroresBoleta = {};
+    this.mensajeBoleta = null;
+    const { folio, fecha_emision, es_primera_boleta } = this.formularioBoleta.getRawValue();
+    this.contratacionesApi.registrarBoleta(this.contratacionId, folio.trim(), fecha_emision, es_primera_boleta as 'SI' | 'NO').subscribe({
+      next: () => {
+        this.guardandoBoleta = false;
+        this.mensajeBoleta = 'Folio registrado.';
+        this.cargarBoleta();
+        this.cargarDetalle();
+      },
+      error: (e: HttpErrorResponse) => {
+        this.guardandoBoleta = false;
+        const errores = e.error && typeof e.error === 'object' ? (e.error as Record<string, unknown>) : {};
+        this.erroresBoleta = {};
+        for (const [campo, valor] of Object.entries(errores)) {
+          this.erroresBoleta[campo] = Array.isArray(valor) ? valor.map(String) : [String(valor)];
+        }
+        if (!Object.keys(this.erroresBoleta).length) {
+          this.erroresBoleta = { detail: ['No pudimos registrar el folio. Intenta de nuevo.'] };
+        }
+      },
+    });
+  }
+
+  quitarBoleta(): void {
+    if (this.guardandoBoleta) {
+      return;
+    }
+    this.guardandoBoleta = true;
+    this.contratacionesApi.quitarBoleta(this.contratacionId).subscribe({
+      next: () => {
+        this.guardandoBoleta = false;
+        this.formularioBoleta.reset({ folio: '', fecha_emision: '', es_primera_boleta: '' });
+        this.mensajeBoleta = 'Folio quitado.';
+        this.cargarBoleta();
+        this.cargarDetalle();
+      },
+      error: () => (this.guardandoBoleta = false),
     });
   }
 

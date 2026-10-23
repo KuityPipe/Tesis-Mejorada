@@ -1264,7 +1264,7 @@ class ContratacionDetailView(APIView):
     def get(self, request, contratacion_id):
         contratacion = get_object_or_404(
             Contratacion.objects.select_related('publicacion', 'cliente', 'proveedor').prefetch_related(
-                'publicacion__imagenes', 'historial_estados', 'items_presupuesto', 'valoracion__imagenes',
+                'publicacion__imagenes', 'historial_estados', 'items_presupuesto', 'valoracion__imagenes', 'boleta',
             ),
             pk=contratacion_id,
         )

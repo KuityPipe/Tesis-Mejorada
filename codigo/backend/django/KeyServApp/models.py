@@ -1227,3 +1227,28 @@ class UsoCalculadora(models.Model):
 
     def __str__(self):
         return f'{self.periodo} ({self.valorizaciones})'
+
+
+class BoletaHonorarios(models.Model):
+    """
+    Folio de la boleta de honorarios que el proveedor emitió **él mismo** en sii.cl por un trabajo pagado (bloque 3, docs/adr/0010).
+    KeyServ no emite boletas ni consulta el SII: solo registra el folio que el proveedor declara, para dejar constancia de que
+    el trabajo se formalizó y para el reporte de impacto. Una por contratación; el mismo folio no se repite para un proveedor.
+    """
+    id_boleta = models.BigAutoField(primary_key=True, db_column='ID_BOLETA')
+    contratacion = models.OneToOneField(Contratacion, on_delete=models.CASCADE, related_name='boleta', db_column='FK_CONTRATACION')
+    proveedor = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='boletas_registradas', db_column='FK_PROVEEDOR')
+    folio = models.CharField(max_length=12, db_column='FOLIO')
+    fecha_emision = models.DateField(null=True, blank=True, db_column='FECHA_EMISION')
+    es_primera_boleta = models.BooleanField(default=False, db_column='ES_PRIMERA_BOLETA')
+    registrada_en = models.DateTimeField(auto_now_add=True, db_column='REGISTRADA_EN')
+    actualizada_en = models.DateTimeField(auto_now=True, db_column='ACTUALIZADA_EN')
+
+    class Meta:
+        db_table = 'BOLETA_HONORARIOS'
+        constraints = [models.UniqueConstraint(fields=['proveedor', 'folio'], name='boleta_folio_unico_por_proveedor')]
+        verbose_name = 'Boleta de honorarios (folio)'
+        verbose_name_plural = 'Boletas de honorarios (folios)'
+
+    def __str__(self):
+        return f'Boleta N° {self.folio}'

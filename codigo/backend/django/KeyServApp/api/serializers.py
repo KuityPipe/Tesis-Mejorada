@@ -233,6 +233,7 @@ class ContratacionDetailSerializer(ContratacionListSerializer):
     pago = PagoSerializer(read_only=True)
     reembolso = serializers.SerializerMethodField()
     desglose_pago = serializers.SerializerMethodField()
+    boleta = serializers.SerializerMethodField()
     # `contratacion_detalle.html` también muestra la descripción e imágenes
     # de la publicación (no solo la portada) — el detalle de contratación
     # es donde tiene sentido revisarlas de nuevo (ej. antes de calificar),
@@ -250,9 +251,14 @@ class ContratacionDetailSerializer(ContratacionListSerializer):
     def get_reembolso(self, contratacion):
         return _reembolso_de(getattr(contratacion, 'pago', None))
 
+    def get_boleta(self, contratacion):
+        """Folio y fecha que declaró el proveedor (lo ven las dos partes; KeyServ no lo verifica con el SII), o `None`."""
+        boleta = getattr(contratacion, 'boleta', None)
+        return {'folio': boleta.folio, 'fecha_emision': boleta.fecha_emision} if boleta else None
+
     class Meta(ContratacionListSerializer.Meta):
         fields = ContratacionListSerializer.Meta.fields + [
-            'historial', 'items_presupuesto', 'valoracion', 'pago', 'reembolso', 'desglose_pago',
+            'historial', 'items_presupuesto', 'valoracion', 'pago', 'reembolso', 'desglose_pago', 'boleta',
             'publicacion_descripcion', 'publicacion_imagenes',
         ]
         read_only_fields = fields

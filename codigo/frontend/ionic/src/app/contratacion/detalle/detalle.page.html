@@ -215,6 +215,55 @@
       </ion-card>
     </div>
 
+    <!-- Boleta de honorarios: el proveedor la emite en sii.cl y aquí solo registra el folio. KeyServ no emite boletas. -->
+    <div class="ks-section" *ngIf="puedeRegistrarBoleta" appReveal>
+      <p class="ks-section-title">Boleta de honorarios</p>
+      <ion-card>
+        <ion-card-content>
+          <p class="ion-no-margin">
+            Emite tu boleta de honorarios electrónica en <a [href]="urlSii" target="_blank" rel="noopener noreferrer">sii.cl</a> y registra aquí su folio.
+            KeyServ no emite boletas ni comprueba el folio con el SII: es una constancia para ti y para quien te contrató.
+          </p>
+          <form [formGroup]="formularioBoleta" (ngSubmit)="guardarBoleta()">
+            <ion-list lines="none">
+              <ion-item>
+                <ion-input label="Folio de la boleta" labelPlacement="floating" inputmode="numeric" maxlength="12" formControlName="folio"></ion-input>
+              </ion-item>
+              <ion-text color="danger" *ngFor="let m of erroresBoleta['folio']"><p class="ion-padding-start">{{ m }}</p></ion-text>
+              <ion-item>
+                <ion-input label="Fecha de emisión (opcional)" labelPlacement="floating" type="date" formControlName="fecha_emision"></ion-input>
+              </ion-item>
+              <ion-text color="danger" *ngFor="let m of erroresBoleta['fecha_emision']"><p class="ion-padding-start">{{ m }}</p></ion-text>
+              <ion-item>
+                <ion-select label="¿Es tu primera boleta?" labelPlacement="floating" interface="popover" placeholder="Elige una opción" formControlName="es_primera_boleta">
+                  <ion-select-option value="SI">Sí, es mi primera boleta</ion-select-option>
+                  <ion-select-option value="NO">No, ya había emitido otras</ion-select-option>
+                </ion-select>
+              </ion-item>
+              <ion-text color="danger" *ngFor="let m of erroresBoleta['es_primera_boleta']"><p class="ion-padding-start">{{ m }}</p></ion-text>
+            </ion-list>
+            <ion-text color="danger" *ngFor="let m of erroresBoleta['detail']"><p class="ion-padding-start">{{ m }}</p></ion-text>
+            <ion-text color="success" *ngIf="mensajeBoleta"><p class="ion-padding-start" role="status">{{ mensajeBoleta }}</p></ion-text>
+            <ion-button expand="block" type="submit" [disabled]="guardandoBoleta">{{ estadoBoleta?.boleta ? 'Actualizar folio' : 'Registrar folio' }}</ion-button>
+            <ion-button expand="block" fill="clear" color="medium" type="button" *ngIf="estadoBoleta?.boleta" (click)="quitarBoleta()" [disabled]="guardandoBoleta">Quitar el folio</ion-button>
+          </form>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- El cliente ve el folio que declaró el proveedor -->
+    <div class="ks-section" *ngIf="!esProveedor && c.boleta" appReveal>
+      <p class="ks-section-title">Boleta de honorarios del proveedor</p>
+      <ion-card>
+        <ion-card-content>
+          <p class="ion-no-margin">
+            El proveedor declaró el folio <strong>N° {{ c.boleta.folio }}</strong><ng-container *ngIf="c.boleta.fecha_emision"> (emitida el {{ c.boleta.fecha_emision | date:'dd/MM/yyyy' }})</ng-container>.
+            Puedes revisarla en <a [href]="urlSii" target="_blank" rel="noopener noreferrer">sii.cl</a>. KeyServ no verifica este dato.
+          </p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <!-- Confirmar (proveedor, SOLICITADA) / Completar (cliente, EN_CURSO) — ambas piden reautenticación, mismo <form> reusado para las dos acciones. -->
     <div class="ks-section" *ngIf="puedeConfirmar || puedeCompletar" appReveal>
       <p class="ks-section-title">{{ puedeConfirmar ? 'Confirmar contratación' : 'Marcar como completada' }}</p>

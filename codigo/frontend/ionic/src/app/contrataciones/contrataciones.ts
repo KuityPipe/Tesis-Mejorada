@@ -104,7 +104,22 @@ export interface DesglosePago {
   total: number;
 }
 
+/** Folio de la boleta de honorarios que declaró el proveedor (KeyServ no lo verifica con el SII). */
+export interface BoletaDeclarada {
+  folio: string;
+  fecha_emision: string | null;
+}
+
+/** Lo que ve el proveedor de su propia boleta (incluye la respuesta sobre "primera boleta"). */
+export interface EstadoBoleta {
+  boleta: (BoletaDeclarada & { es_primera_boleta?: boolean }) | null;
+  puede_registrar: boolean;
+  ya_tiene_primera_boleta?: boolean;
+}
+
 export interface ContratacionDetalle extends ContratacionResumen {
+  /** `null` mientras el proveedor no la haya registrado. */
+  boleta: BoletaDeclarada | null;
   historial: HistorialEstado[];
   items_presupuesto: ItemPresupuesto[];
   valoracion: ValoracionDetalle | null;
@@ -195,6 +210,21 @@ export class Contrataciones {
   /** El PROVEEDOR confirma (SOLICITADA -> CONFIRMADA), re-ingresando su contraseña. `monto` es opcional — sin él, se usa el precio de la publicación. */
   confirmar(id: number, password: string, monto?: number, items?: ItemPropuesto[]): Observable<ContratacionDetalle> {
     return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/confirmar/`, { password, monto, items });
+  }
+
+  /** `GET /api/contrataciones/<id>/boleta/` — el folio declarado (el proveedor ve además su respuesta sobre "primera boleta"). */
+  boleta(id: number): Observable<EstadoBoleta> {
+    return this.http.get<EstadoBoleta>(`${environment.apiUrl}/contrataciones/${id}/boleta/`);
+  }
+
+  /** `PUT /api/contrataciones/<id>/boleta/` — el PROVEEDOR registra (o corrige) el folio de su boleta, ya pagado el trabajo. */
+  registrarBoleta(id: number, folio: string, fechaEmision: string, esPrimeraBoleta: 'SI' | 'NO'): Observable<unknown> {
+    return this.http.put(`${environment.apiUrl}/contrataciones/${id}/boleta/`, { folio, fecha_emision: fechaEmision || null, es_primera_boleta: esPrimeraBoleta });
+  }
+
+  /** `DELETE /api/contrataciones/<id>/boleta/` — el PROVEEDOR quita el folio registrado. */
+  quitarBoleta(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/contrataciones/${id}/boleta/`);
   }
 
   /** El PROVEEDOR rechaza una solicitud (SOLICITADA -> CANCELADA). No pide contraseña. */

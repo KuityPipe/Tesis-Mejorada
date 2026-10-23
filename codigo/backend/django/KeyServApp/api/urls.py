@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_calculadora
+from . import views, views_boleta, views_calculadora
 
 app_name = 'KeyServApp_api'
 
@@ -54,6 +54,7 @@ urlpatterns = [
     path('contrataciones/<int:contratacion_id>/confirmar/', views.ContratacionConfirmarView.as_view(), name='contrataciones-confirmar'),
     path('contrataciones/<int:contratacion_id>/completar/', views.ContratacionCompletarView.as_view(), name='contrataciones-completar'),
     path('contrataciones/<int:contratacion_id>/reembolso/', views.ContratacionReembolsoView.as_view(), name='contrataciones-reembolso'),
+    path('contrataciones/<int:contratacion_id>/boleta/', views_boleta.ContratacionBoletaView.as_view(), name='contrataciones-boleta'),
     path('contrataciones/<int:contratacion_id>/rechazar/', views.ContratacionRechazarView.as_view(), name='contrataciones-rechazar'),
     path('contrataciones/<int:contratacion_id>/cancelar/', views.ContratacionCancelarView.as_view(), name='contrataciones-cancelar'),
     path('contrataciones/<int:contratacion_id>/valoracion/', views.ValoracionCrearView.as_view(), name='contrataciones-valoracion'),

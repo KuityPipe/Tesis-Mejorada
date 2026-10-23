@@ -13,7 +13,7 @@ from statistics import median
 from . import identidad
 from django.db.models import Sum
 
-from .models import EventoVerificacion, Pago, Publicaciones, UsoCalculadora, Usuario, Valoracion, VerificacionAlternativa
+from .models import BoletaHonorarios, EventoVerificacion, Pago, Publicaciones, UsoCalculadora, Usuario, Valoracion, VerificacionAlternativa
 
 MINIMO_GRUPO = 5
 SUFIJO_DEMO = '@demo.keyserv'
@@ -110,6 +110,11 @@ def calcular(incluir_demo=False):
         por_proveedor_mes[(p.contratacion.proveedor_id, fecha.year, fecha.month)] += p.monto_servicio if p.monto_servicio is not None else p.monto
     ingreso_mediano = round(median(por_proveedor_mes.values())) if len(proveedores_con_pago) >= MINIMO_GRUPO else None
 
+    # --- Formalización: boletas de honorarios que los proveedores declararon (fase 1, sin SII) ----------------------
+    boletas = list(BoletaHonorarios.objects.filter(proveedor_id__in=ids_proveedores).values_list('proveedor_id', 'es_primera_boleta'))
+    proveedores_con_boleta = {p for p, _ in boletas}
+    primeras = sum(1 for _, primera in boletas if primera)
+
     # --- Tipo de servicio y circularidad ---------------------------------------------------------------------------
     por_tipo = Counter(p.contratacion.publicacion.tipo_servicio for p in pagos)
     reparar_mantener = por_tipo[Publicaciones.REPARACION] + por_tipo[Publicaciones.MANTENCION]
@@ -146,6 +151,10 @@ def calcular(incluir_demo=False):
         'proveedores_con_primer_pago': _suprimir(len(proveedores_con_pago)),
         'servicios_pagados': len(pagos) if not pagos or len(proveedores_con_pago) >= MINIMO_GRUPO else None,
         'ingreso_mensual_mediano_por_proveedor': ingreso_mediano,
+        'proveedores_con_boleta': _suprimir(len(proveedores_con_boleta)),
+        'servicios_con_boleta': len(boletas) if not boletas or len(proveedores_con_boleta) >= MINIMO_GRUPO else None,
+        'primeras_boletas': primeras if not boletas or len(proveedores_con_boleta) >= MINIMO_GRUPO else None,
+        'pct_servicios_con_boleta': _porcentaje(len(boletas), len(pagos)) if len(proveedores_con_boleta) >= MINIMO_GRUPO and len(pagos) else None,
         'pct_reparacion_mantencion': _porcentaje(reparar_mantener, len(pagos)) if len(pagos) >= MINIMO_GRUPO else None,
         'reparaciones_que_evitaron_reemplazo': respuestas.get(Valoracion.SI, 0) if respondieron >= MINIMO_GRUPO else None,
         'reparaciones_con_respuesta': respondieron if respondieron >= MINIMO_GRUPO else None,

@@ -93,7 +93,7 @@ Encuadre: inclusión laboral y formalización. Los números salen de `manage.py 
 | Situación laboral previa y género (voluntarias) | **Medible**; el texto de la finalidad lo debe revisar un abogado |
 | % de reparación y mantención; reparaciones que evitaron un reemplazo | **Medible** (tipo de servicio + pregunta al calificar) |
 | % del ingreso en la misma comuna ("economía local") | **Medible** |
-| Servicios con boleta y primeras boletas | Pendiente (bloque 3) |
+| Servicios con boleta y primeras boletas | **Medible** (bloque 3, 2026-10-23): el proveedor declara el folio de la boleta que emitió en sii.cl; KeyServ no la emite ni la verifica (se informa como "boletas registradas") |
 | Valorizaciones hechas con la calculadora (y cuántas con boleta o material reutilizado) | **Medible** (bloque 2, 2026-10-23): contador anónimo, se oculta con menos de 5 visitantes. Es una herramienta gratuita sin cuenta: sirve de evidencia de demanda |
 
 ## 7. Otros instrumentos (no revisados a fondo)

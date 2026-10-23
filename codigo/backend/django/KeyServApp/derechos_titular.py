@@ -29,7 +29,7 @@ from .api import jwt_utils
 
 from .models import (
     CodigoSeguridad, ConsentimientoBiometrico, Consulta, Contratacion, Documento, EventoVerificacion,
-    IntentoAccesoSospechoso, Mensaje, Pago, PlantillaValorizacion, Publicaciones, SolicitudTitular, TokenSesion,
+    BoletaHonorarios, IntentoAccesoSospechoso, Mensaje, Pago, PlantillaValorizacion, Publicaciones, SolicitudTitular, TokenSesion,
     Usuario, Valoracion, ValoracionImagen, VerificacionAlternativa,
 )
 
@@ -140,6 +140,11 @@ def exportar_datos(usuario):
             {'contratacion': p.contratacion_id, 'monto': p.monto, 'metodo': p.metodo, 'estado': p.estado,
              'fecha': p.fecha_creacion}
             for p in Pago.objects.filter(Q(contratacion__cliente=usuario) | Q(contratacion__proveedor=usuario))
+        ],
+        'boletas_de_honorarios_registradas': [
+            {'contratacion': b.contratacion_id, 'folio': b.folio, 'fecha_emision': b.fecha_emision,
+             'es_primera_boleta': b.es_primera_boleta, 'registrada_en': b.registrada_en}
+            for b in BoletaHonorarios.objects.filter(proveedor=usuario)
         ],
         'plantillas_de_valorizacion': [
             {'nombre': p.nombre, 'tipo_trabajo': p.tipo_trabajo, 'datos': p.datos, 'actualizada_en': p.actualizada_en}
