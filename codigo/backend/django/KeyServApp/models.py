@@ -592,15 +592,25 @@ class ItemPresupuesto(models.Model):
     contratacion = models.ForeignKey(Contratacion, on_delete=models.CASCADE, related_name='items_presupuesto', db_column='FK_CONTRATACION')
     descripcion = models.CharField(max_length=200, db_column='DESCRIPCION')
 
-    MATERIAL, MANO_DE_OBRA, VIAJE, OTRO = 'MATERIAL', 'MANO_DE_OBRA', 'VIAJE', 'OTRO'
+    MATERIAL, MANO_DE_OBRA, VIAJE, HERRAMIENTAS, IMPREVISTOS, OTRO = (
+        'MATERIAL', 'MANO_DE_OBRA', 'VIAJE', 'HERRAMIENTAS', 'IMPREVISTOS', 'OTRO',
+    )
     CATEGORIAS_ITEM = [
         (MATERIAL, 'Materiales'),
         (MANO_DE_OBRA, 'Tiempo y esfuerzo'),
         (VIAJE, 'Gasto de viaje'),
+        (HERRAMIENTAS, 'Herramientas'),
+        (IMPREVISTOS, 'Imprevistos'),
         (OTRO, 'Otro'),
     ]
     categoria = models.CharField(max_length=12, choices=CATEGORIAS_ITEM, default=OTRO, db_column='CATEGORIA')
     monto = models.PositiveIntegerField(db_column='MONTO')
+    # Detalle opcional que trae la calculadora de valorización (docs/adr/0009). `monto` sigue siendo el total de la fila
+    # (lo que se suma al monto acordado); estos campos solo lo explican y pueden venir vacíos.
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, db_column='CANTIDAD')
+    unidad = models.CharField(max_length=20, blank=True, default='', db_column='UNIDAD')
+    precio_unitario = models.PositiveIntegerField(null=True, blank=True, db_column='PRECIO_UNITARIO')
+    reutilizado = models.BooleanField(default=False, db_column='REUTILIZADO')
     orden = models.PositiveSmallIntegerField(default=0, db_column='ORDEN')
 
     class Meta:
@@ -1168,3 +1178,52 @@ class SolicitudTitular(models.Model):
 
     def __str__(self):
         return f'{self.usuario_id} {self.tipo} {self.estado}'
+
+
+class PlantillaValorizacion(models.Model):
+    """
+    Valorización guardada por una cuenta (calculadora, docs/adr/0009): los datos de entrada de un tipo de trabajo (materiales,
+    traslado, horas...) para reutilizarlos y cargarlos en la hoja de presupuesto al confirmar una contratación. Solo guarda
+    números y descripciones de materiales que escribe la persona; se borra al eliminar la cuenta.
+    """
+    id_plantilla = models.BigAutoField(primary_key=True, db_column='ID_PLANTILLA')
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='plantillas_valorizacion', db_column='FK_USUARIO')
+    nombre = models.CharField(max_length=60, db_column='NOMBRE')
+    tipo_trabajo = models.CharField(max_length=60, blank=True, default='', db_column='TIPO_TRABAJO')
+    datos = models.JSONField(db_column='DATOS')
+    creada_en = models.DateTimeField(auto_now_add=True, db_column='CREADA_EN')
+    actualizada_en = models.DateTimeField(auto_now=True, db_column='ACTUALIZADA_EN')
+
+    class Meta:
+        db_table = 'PLANTILLA_VALORIZACION'
+        ordering = ['nombre']
+        constraints = [models.UniqueConstraint(fields=['usuario', 'nombre'], name='plantilla_nombre_unico_por_usuario')]
+        verbose_name = 'Plantilla de valorización'
+        verbose_name_plural = 'Plantillas de valorización'
+
+    def __str__(self):
+        return self.nombre
+
+
+class UsoCalculadora(models.Model):
+    """
+    Contador anónimo de uso de la calculadora (docs/adr/0009), para `reporte_impacto`. **No guarda datos personales**: el
+    visitante es un identificador aleatorio que genera el navegador, mezclado con una sal secreta y con el mes, de modo que
+    no se puede reconstruir ni seguir entre meses; no se liga a ninguna cuenta ni a la IP. Se purga a los 13 meses.
+    """
+    id_uso = models.BigAutoField(primary_key=True, db_column='ID_USO')
+    periodo = models.CharField(max_length=7, db_column='PERIODO')  # AAAA-MM
+    visitante = models.CharField(max_length=64, db_column='VISITANTE')
+    valorizaciones = models.PositiveIntegerField(default=0, db_column='VALORIZACIONES')
+    con_boleta = models.PositiveIntegerField(default=0, db_column='CON_BOLETA')
+    con_reutilizado = models.PositiveIntegerField(default=0, db_column='CON_REUTILIZADO')
+    actualizado_en = models.DateTimeField(auto_now=True, db_column='ACTUALIZADO_EN')
+
+    class Meta:
+        db_table = 'USO_CALCULADORA'
+        constraints = [models.UniqueConstraint(fields=['periodo', 'visitante'], name='uso_calculadora_unico_por_mes')]
+        verbose_name = 'Uso de la calculadora'
+        verbose_name_plural = 'Usos de la calculadora'
+
+    def __str__(self):
+        return f'{self.periodo} ({self.valorizaciones})'

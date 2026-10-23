@@ -21,7 +21,7 @@ from django.utils import timezone
 from django.conf import settings
 
 from KeyServApp import derechos_titular, verificacion_alternativa
-from KeyServApp.models import CodigoSeguridad, EventoVerificacion, IntentoAccesoSospechoso, TokenSesion, VerificacionAlternativa
+from KeyServApp.models import CodigoSeguridad, EventoVerificacion, IntentoAccesoSospechoso, TokenSesion, UsoCalculadora, VerificacionAlternativa
 
 
 class Command(BaseCommand):
@@ -52,6 +52,7 @@ class Command(BaseCommand):
         tokens.delete()
         eventos.delete()
         CodigoSeguridad.objects.filter(expira_en__lt=ahora).delete()  # códigos de un solo uso ya vencidos
+        UsoCalculadora.objects.filter(actualizado_en__lt=ahora - timedelta(days=400)).delete()  # contador anónimo: 13 meses
         for verificacion in videos:
             verificacion_alternativa.borrar_video(verificacion)  # sin resolver a tiempo: no se conserva
         n_cuentas = derechos_titular.anonimizar_cuentas_vencidas(opts['dias_eliminacion'])

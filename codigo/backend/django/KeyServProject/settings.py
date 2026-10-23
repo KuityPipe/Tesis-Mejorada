@@ -321,6 +321,9 @@ DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='KeyServ <no-respo
 # 3 % en montos grandes y pago con tarjeta se pierde plata). Se cambia con la variable de entorno COMISION_TRAMOS (JSON).
 COMISION_TRAMOS = env.json('COMISION_TRAMOS', default=[[50000, '6'], [200000, '5'], [500000, '4.5'], [None, '4']])
 COMISION_MINIMA = env.int('COMISION_MINIMA', default=1000)
+# Retención de la boleta de honorarios (%) que usa la calculadora de valorización para estimar lo que queda líquido (2027: 16 %).
+# Es una estimación editable: confirmar la cifra vigente con un contador. Ver docs/adr/0009.
+CALCULADORA_RETENCION_BOLETA = env('CALCULADORA_RETENCION_BOLETA', default='16')
 
 
 # API REST (KeyServApp/api/) — para el frontend Ionic/Angular, ver

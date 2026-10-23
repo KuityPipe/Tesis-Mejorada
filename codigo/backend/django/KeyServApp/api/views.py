@@ -9,6 +9,7 @@ divergir con el tiempo.
 import hashlib
 import logging
 import os
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.core.cache import cache
@@ -1186,8 +1187,26 @@ def _parsear_items_presupuesto_api(data):
         categoria = fila.get('categoria')
         if categoria not in categorias_validas:
             categoria = ItemPresupuesto.OTRO
-        items.append((descripcion, categoria, monto))
+        items.append((descripcion, categoria, monto, _detalle_item_presupuesto(fila)))
     return items
+
+
+def _detalle_item_presupuesto(fila):
+    """Detalle opcional de una fila (cantidad, unidad, precio unitario, reutilizado); lo que no se entienda se ignora."""
+    detalle = {'cantidad': None, 'unidad': str(fila.get('unidad') or '').strip()[:20], 'precio_unitario': None, 'reutilizado': bool(fila.get('reutilizado'))}
+    try:
+        cantidad = Decimal(str(fila.get('cantidad')))
+        if cantidad.is_finite() and 0 <= cantidad < Decimal('100000000'):
+            detalle['cantidad'] = cantidad.quantize(Decimal('0.01'))
+    except (InvalidOperation, TypeError, ValueError):
+        pass
+    try:
+        precio = int(fila.get('precio_unitario'))
+        if 0 <= precio <= 2147483647:
+            detalle['precio_unitario'] = precio
+    except (TypeError, ValueError):
+        pass
+    return detalle
 
 
 class ContratacionListCreateView(APIView):
@@ -1472,7 +1491,7 @@ class ContratacionConfirmarView(APIView):
         items_presupuesto = _parsear_items_presupuesto_api(request.data)
         monto_acordado = contratacion.publicacion.precio
         if items_presupuesto:
-            monto_acordado = sum(monto for _, _, monto in items_presupuesto)
+            monto_acordado = sum(item[2] for item in items_presupuesto)
         else:
             monto_form = MontoAcordadoForm({'monto': request.data.get('monto')})
             if monto_form.is_valid() and monto_form.cleaned_data.get('monto'):
@@ -1484,8 +1503,8 @@ class ContratacionConfirmarView(APIView):
         HistorialEstadoContratacion.objects.create(contratacion=contratacion, estado=Contratacion.CONFIRMADA)
         if items_presupuesto:
             ItemPresupuesto.objects.bulk_create([
-                ItemPresupuesto(contratacion=contratacion, descripcion=descripcion, categoria=categoria, monto=monto, orden=indice)
-                for indice, (descripcion, categoria, monto) in enumerate(items_presupuesto)
+                ItemPresupuesto(contratacion=contratacion, descripcion=descripcion, categoria=categoria, monto=monto, orden=indice, **detalle)
+                for indice, (descripcion, categoria, monto, detalle) in enumerate(items_presupuesto)
             ])
         monto_texto = f'{monto_acordado:,}'.replace(',', '.')
         notificaciones_correo.avisar(

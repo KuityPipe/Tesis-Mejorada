@@ -86,7 +86,7 @@ class HistorialEstadoSerializer(serializers.ModelSerializer):
 class ItemPresupuestoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ItemPresupuesto
-        fields = ['id_item_presupuesto', 'descripcion', 'categoria', 'monto', 'orden']
+        fields = ['id_item_presupuesto', 'descripcion', 'categoria', 'monto', 'orden', 'cantidad', 'unidad', 'precio_unitario', 'reutilizado']
         read_only_fields = fields
 
 

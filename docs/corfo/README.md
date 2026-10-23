@@ -94,7 +94,7 @@ Encuadre: inclusión laboral y formalización. Los números salen de `manage.py 
 | % de reparación y mantención; reparaciones que evitaron un reemplazo | **Medible** (tipo de servicio + pregunta al calificar) |
 | % del ingreso en la misma comuna ("economía local") | **Medible** |
 | Servicios con boleta y primeras boletas | Pendiente (bloque 3) |
-| Valorizaciones hechas con la calculadora | Pendiente (bloque 2) |
+| Valorizaciones hechas con la calculadora (y cuántas con boleta o material reutilizado) | **Medible** (bloque 2, 2026-10-23): contador anónimo, se oculta con menos de 5 visitantes. Es una herramienta gratuita sin cuenta: sirve de evidencia de demanda |
 
 ## 7. Otros instrumentos (no revisados a fondo)
 Corfo tiene otras líneas para etapas posteriores (por ejemplo capital semilla o escalamiento) y programas de otras

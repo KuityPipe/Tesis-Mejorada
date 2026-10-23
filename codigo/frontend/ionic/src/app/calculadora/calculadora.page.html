@@ -1,0 +1,175 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
+    <ion-title>Calculadora</ion-title>
+    <app-top-nav slot="end"></app-top-nav>
+    <app-tema-toggle slot="end"></app-tema-toggle>
+    <app-account-menu slot="end"></app-account-menu>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding ks-content-wide ks-pie-abajo">
+  <header class="ks-calc-hero" appReveal>
+    <span class="ks-calc-sello"><ion-icon name="calculator-outline" aria-hidden="true"></ion-icon> Gratis y sin cuenta</span>
+    <h1>¿Cuánto cobrar por <em>tu trabajo</em>?</h1>
+    <p>Suma materiales, traslado, tu tiempo, herramientas, imprevistos y ganancia. Si emites boleta de honorarios, te muestra cuánto cobrar para que, tras la retención, te quede lo que necesitas. No guardamos lo que escribes aquí.</p>
+  </header>
+
+  <form [formGroup]="formulario" class="ks-layout-main-side" (ngSubmit)="calcular()">
+    <div class="ks-calc-principal">
+      <!-- Materiales -->
+      <section class="ks-calc-bloque" appReveal>
+        <h2><ion-icon name="cube-outline" aria-hidden="true"></ion-icon> Materiales</h2>
+        <p class="ks-calc-ayuda">Todo lo que compras o usas para el trabajo. Marca los que son reutilizados o reparados: ayuda a medir cuánto se evita botar.</p>
+        <div formArrayName="materiales" class="ks-calc-filas">
+          <div class="ks-calc-material" *ngFor="let fila of materiales.controls; let i = index" [formGroupName]="i">
+            <ion-input class="ks-calc-desc" label="Descripción" labelPlacement="stacked" formControlName="descripcion" placeholder="Ej: cañería de cobre" fill="outline"></ion-input>
+            <ion-input label="Cantidad" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="cantidad" fill="outline"></ion-input>
+            <ion-input label="Unidad" labelPlacement="stacked" formControlName="unidad" placeholder="m, kg, un." fill="outline"></ion-input>
+            <ion-input label="Precio unitario ($)" labelPlacement="stacked" type="number" inputmode="numeric" min="0" formControlName="precio_unitario" fill="outline"></ion-input>
+            <ion-checkbox class="ks-calc-reuso" formControlName="reutilizado" labelPlacement="end">Reutilizado o reparado</ion-checkbox>
+            <ion-button fill="clear" color="medium" size="small" (click)="quitarMaterial(i)" aria-label="Quitar este material">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+        <ion-button fill="outline" size="small" (click)="agregarMaterial()"><ion-icon slot="start" name="add"></ion-icon>Agregar material</ion-button>
+      </section>
+
+      <!-- Traslado -->
+      <section class="ks-calc-bloque" appReveal [appRevealDelay]="40">
+        <h2><ion-icon name="car-outline" aria-hidden="true"></ion-icon> Traslado</h2>
+        <ion-segment formControlName="traslado_modo" aria-label="Cómo calcular el traslado">
+          <ion-segment-button value="km"><ion-label>Por kilómetros</ion-label></ion-segment-button>
+          <ion-segment-button value="fijo"><ion-label>Monto fijo</ion-label></ion-segment-button>
+        </ion-segment>
+        <div class="ks-calc-fila">
+          <ng-container *ngIf="formulario.controls.traslado_modo.value === 'km'; else trasladoFijo">
+            <ion-input label="Km ida y vuelta" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="km_ida_vuelta" fill="outline"></ion-input>
+            <ion-input label="Costo por km ($)" labelPlacement="stacked" type="number" inputmode="numeric" min="0" formControlName="costo_km" fill="outline"></ion-input>
+          </ng-container>
+          <ng-template #trasladoFijo>
+            <ion-input label="Monto del traslado ($)" labelPlacement="stacked" type="number" inputmode="numeric" min="0" formControlName="monto_fijo" fill="outline"></ion-input>
+          </ng-template>
+          <ion-input label="Peajes y estacionamiento ($)" labelPlacement="stacked" type="number" inputmode="numeric" min="0" formControlName="peajes_estacionamiento" fill="outline"></ion-input>
+        </div>
+      </section>
+
+      <!-- Mano de obra -->
+      <section class="ks-calc-bloque" appReveal [appRevealDelay]="80">
+        <h2><ion-icon name="time-outline" aria-hidden="true"></ion-icon> Tu trabajo</h2>
+        <div class="ks-calc-fila">
+          <ion-input label="Horas de trabajo" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="horas" fill="outline"></ion-input>
+          <ion-input label="Valor por hora ($)" labelPlacement="stacked" type="number" inputmode="numeric" min="0" formControlName="valor_hora" fill="outline"></ion-input>
+          <ion-input label="Personas" labelPlacement="stacked" type="number" inputmode="numeric" min="1" formControlName="personas" fill="outline"></ion-input>
+        </div>
+        <button type="button" class="ks-calc-enlace" (click)="mostrarAyudante = !mostrarAyudante" [attr.aria-expanded]="mostrarAyudante">
+          <ion-icon name="help-circle-outline" aria-hidden="true"></ion-icon> ¿No sabes cuánto cobrar la hora?
+        </button>
+        <div class="ks-calc-ayudante" *ngIf="mostrarAyudante" [formGroup]="ayudante">
+          <p class="ks-calc-ayuda">Divide lo que quieres ganar al mes por las horas que de verdad cobras (no todas las que trabajas: cuenta cotizar, trasladarte y comprar).</p>
+          <div class="ks-calc-fila">
+            <ion-input label="Ingreso mensual que quieres ($)" labelPlacement="stacked" type="number" inputmode="numeric" min="0" formControlName="ingreso_mensual" fill="outline"></ion-input>
+            <ion-input label="Horas cobrables al mes" labelPlacement="stacked" type="number" inputmode="numeric" min="1" formControlName="horas_cobrables" fill="outline"></ion-input>
+          </div>
+          <p class="ks-calc-sugerido" *ngIf="valorHoraSugerido > 0">
+            Te conviene cobrar <strong>{{ valorHoraSugerido | currency:'CLP':'symbol-narrow':'1.0-0' }}</strong> por hora.
+            <ion-button size="small" fill="solid" (click)="usarValorHora()">Usar este valor</ion-button>
+          </p>
+        </div>
+      </section>
+
+      <!-- Herramientas -->
+      <section class="ks-calc-bloque" appReveal [appRevealDelay]="120">
+        <h2><ion-icon name="construct-outline" aria-hidden="true"></ion-icon> Herramientas</h2>
+        <p class="ks-calc-ayuda">El desgaste y el arriendo de lo que usas. Puedes poner un monto o un porcentaje sobre tu mano de obra.</p>
+        <ion-segment formControlName="herramientas_modo" aria-label="Cómo calcular las herramientas">
+          <ion-segment-button value="monto"><ion-label>Monto</ion-label></ion-segment-button>
+          <ion-segment-button value="porcentaje"><ion-label>Porcentaje</ion-label></ion-segment-button>
+        </ion-segment>
+        <div class="ks-calc-fila">
+          <ion-input *ngIf="formulario.controls.herramientas_modo.value === 'monto'; else herrPct" label="Monto ($)" labelPlacement="stacked" type="number" inputmode="numeric" min="0" formControlName="herramientas_monto" fill="outline"></ion-input>
+          <ng-template #herrPct>
+            <ion-input label="% sobre la mano de obra" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="herramientas_porcentaje" fill="outline"></ion-input>
+          </ng-template>
+        </div>
+      </section>
+
+      <!-- Imprevistos, ganancia y documento -->
+      <section class="ks-calc-bloque" appReveal [appRevealDelay]="160">
+        <h2><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon> Imprevistos, ganancia y documento</h2>
+        <div class="ks-calc-fila">
+          <ion-input label="Imprevistos (%)" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="imprevistos_pct" fill="outline"></ion-input>
+          <ion-input label="Ganancia (%)" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="ganancia_pct" fill="outline"></ion-input>
+        </div>
+        <ion-segment formControlName="documento" aria-label="Documento que entregas">
+          <ion-segment-button value="SIN_DOCUMENTO"><ion-label>Sin documento</ion-label></ion-segment-button>
+          <ion-segment-button value="BOLETA_HONORARIOS"><ion-label>Boleta de honorarios</ion-label></ion-segment-button>
+        </ion-segment>
+        <p class="ks-calc-ayuda" *ngIf="formulario.controls.documento.value === 'BOLETA_HONORARIOS'">
+          Con boleta de honorarios se retiene un porcentaje (estimado en {{ config?.retencion_porcentaje ?? 16 }} %): por eso el precio a cobrar sube, para que a ti te quede lo mismo. Es una estimación; confirma la cifra vigente con un contador o en sii.cl.
+        </p>
+      </section>
+
+      <!-- Plantillas: solo con cuenta -->
+      <section class="ks-calc-bloque" *ngIf="autenticado" appReveal>
+        <h2><ion-icon name="bookmark-outline" aria-hidden="true"></ion-icon> Mis plantillas</h2>
+        <p class="ks-calc-ayuda">Guarda esta valorización para un tipo de trabajo y cárgala después al confirmar una contratación.</p>
+        <div class="ks-calc-plantillas">
+          <div class="ks-calc-plantilla" *ngFor="let p of plantillas">
+            <button type="button" class="ks-calc-enlace" (click)="cargarPlantilla(p)">{{ p.nombre }}</button>
+            <ion-button fill="clear" color="medium" size="small" (click)="borrarPlantilla(p)" [attr.aria-label]="'Borrar la plantilla ' + p.nombre"><ion-icon slot="icon-only" name="trash-outline"></ion-icon></ion-button>
+          </div>
+          <p class="ks-calc-ayuda" *ngIf="!plantillas.length">Aún no tienes plantillas.</p>
+        </div>
+        <div class="ks-calc-fila">
+          <ion-input label="Nombre de la plantilla" labelPlacement="stacked" fill="outline" [(ngModel)]="nombrePlantilla" [ngModelOptions]="{ standalone: true }" maxlength="60"></ion-input>
+          <ion-button (click)="guardarPlantilla()" [disabled]="guardandoPlantilla || !nombrePlantilla.trim()">Guardar plantilla</ion-button>
+        </div>
+        <p class="ks-calc-ayuda" *ngIf="mensajePlantilla" role="status">{{ mensajePlantilla }}</p>
+      </section>
+      <p class="ks-calc-ayuda" *ngIf="!autenticado">
+        ¿Quieres guardar plantillas por tipo de trabajo? <a routerLink="/registro">Crea tu cuenta</a> o <a routerLink="/login">inicia sesión</a>.
+      </p>
+    </div>
+
+    <!-- Resumen: fijo a un lado en pantallas anchas -->
+    <aside class="ks-calc-resumen" aria-live="polite">
+      <h2>Resumen</h2>
+      <p class="ks-calc-error" *ngIf="error" role="alert">{{ error }}</p>
+      <ng-container *ngIf="resultado as r">
+        <dl>
+          <div><dt>Materiales</dt><dd>{{ r.materiales_total | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div><dt>Traslado</dt><dd>{{ r.traslado_total | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div><dt>Tu trabajo</dt><dd>{{ r.mano_obra_total | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div><dt>Herramientas</dt><dd>{{ r.herramientas_total | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div class="ks-calc-sub"><dt>Costo directo</dt><dd>{{ r.costo_directo | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div><dt>Imprevistos ({{ r.imprevistos_pct }} %)</dt><dd>{{ r.imprevistos_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div><dt>Ganancia ({{ r.ganancia_pct }} %)</dt><dd>{{ r.ganancia_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div class="ks-calc-sub"><dt>Precio neto</dt><dd>{{ r.precio_neto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+        </dl>
+        <div class="ks-calc-total">
+          <span>{{ r.documento === 'BOLETA_HONORARIOS' ? 'Cobra con tu boleta' : 'Precio a cobrar' }}</span>
+          <strong>{{ r.precio_boleta | currency:'CLP':'symbol-narrow':'1.0-0' }}</strong>
+          <small *ngIf="r.documento === 'BOLETA_HONORARIOS'">Con boleta te quedan <b>{{ r.liquido | currency:'CLP':'symbol-narrow':'1.0-0' }}</b> líquidos (retención estimada {{ r.retencion_pct }} %: {{ r.retencion_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}).</small>
+          <small *ngIf="r.documento !== 'BOLETA_HONORARIOS'">Te quedan {{ r.liquido | currency:'CLP':'symbol-narrow':'1.0-0' }}, sin documento tributario.</small>
+        </div>
+        <p class="ks-calc-cliente">
+          En KeyServ, el cliente paga además una comisión de {{ r.comision_porcentaje }} % ({{ r.comision_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}):
+          total <strong>{{ r.total_cliente | currency:'CLP':'symbol-narrow':'1.0-0' }}</strong>. Tú recibes el precio completo.
+        </p>
+      </ng-container>
+      <div class="ks-calc-exportar">
+        <ion-button expand="block" fill="outline" (click)="exportar('pdf')" [disabled]="!!exportando">
+          <ion-icon slot="start" name="document-text-outline"></ion-icon>{{ exportando === 'pdf' ? 'Generando…' : 'Descargar PDF' }}
+        </ion-button>
+        <ion-button expand="block" fill="outline" (click)="exportar('xlsx')" [disabled]="!!exportando">
+          <ion-icon slot="start" name="grid-outline"></ion-icon>{{ exportando === 'xlsx' ? 'Generando…' : 'Descargar planilla (fórmulas editables)' }}
+        </ion-button>
+      </div>
+      <p class="ks-calc-aviso">Ayuda para fijar un precio: no es un documento tributario ni una oferta.</p>
+    </aside>
+  </form>
+
+  <app-footer></app-footer>
+</ion-content>

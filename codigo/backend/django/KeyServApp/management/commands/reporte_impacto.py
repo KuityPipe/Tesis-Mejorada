@@ -48,4 +48,11 @@ class Command(BaseCommand):
         self.stdout.write('Situación laboral previa (voluntaria):')
         for clave, n in datos['situacion_laboral_previa'].items():
             self.stdout.write(f'  {clave or "sin responder"}: {_valor(n)}')
+        calc = datos['calculadora']
+        self.stdout.write('Calculadora de valorización (contador anónimo):')
+        self.stdout.write(f"  valorizaciones terminadas: {_valor(calc['valorizaciones'])}")
+        self.stdout.write(f"  con boleta de honorarios: {_valor(calc['valorizaciones_con_boleta'])}")
+        self.stdout.write(f"  con material reutilizado: {_valor(calc['valorizaciones_con_material_reutilizado'])}")
+        for periodo, n in calc['visitantes_por_mes'].items():
+            self.stdout.write(f'  visitantes {periodo}: {_valor(n)}')
         self.stdout.write(f'Grupos con menos de {impacto.MINIMO_GRUPO} personas se suprimen; son datos agregados y voluntarios.')

@@ -50,6 +50,12 @@ const routes: Routes = [
     loadChildren: () => import('./privacidad/privacidad.module').then( m => m.PrivacidadPageModule)
   },
   {
+    // Calculadora de valorización: pública y gratuita, sirve a quien aún no tiene cuenta.
+    path: 'calculadora',
+    title: 'Calculadora de precios · KeyServ',
+    loadChildren: () => import('./calculadora/calculadora.module').then( m => m.CalculadoraPageModule)
+  },
+  {
     path: 'registro',
     title: 'Crear cuenta · KeyServ',
     loadChildren: () => import('./registro/registro.module').then( m => m.RegistroPageModule)

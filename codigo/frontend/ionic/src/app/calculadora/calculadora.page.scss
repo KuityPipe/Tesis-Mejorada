@@ -1,0 +1,245 @@
+.ks-calc-hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 20px;
+  padding: clamp(22px, 4vw, 44px);
+  border-radius: var(--ks-radius-lg);
+  color: #fff;
+  background:
+    radial-gradient(60% 80% at 95% 0%, rgba(18, 163, 140, 0.5), transparent 70%),
+    radial-gradient(50% 70% at 0% 100%, rgba(255, 122, 80, 0.3), transparent 70%),
+    linear-gradient(150deg, #0a3a6f, #082c57);
+
+  h1 {
+    margin: 10px 0 8px;
+    font-family: var(--ks-font-display, inherit);
+    font-size: clamp(1.7rem, 4vw, 2.6rem);
+    line-height: 1.1;
+    color: #fff;
+
+    em {
+      font-style: normal;
+      color: #7ee0cf;
+    }
+  }
+
+  p {
+    max-width: 62ch;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.88);
+  }
+}
+
+.ks-calc-sello {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ks-calc-principal {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ks-calc-bloque {
+  padding: 18px;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-surface);
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 6px;
+    font-size: 1.1rem;
+    color: var(--ks-ink);
+  }
+}
+
+.ks-calc-ayuda {
+  margin: 4px 0 12px;
+  font-size: 0.88rem;
+  color: var(--ks-ink-soft);
+}
+
+.ks-calc-filas {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ks-calc-material {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--ks-border);
+
+  .ks-calc-desc {
+    grid-column: 1 / -1;
+  }
+
+  .ks-calc-reuso {
+    grid-column: 1 / 2;
+    font-size: 0.88rem;
+  }
+
+  @media (min-width: 700px) {
+    grid-template-columns: minmax(0, 2fr) 90px 90px minmax(0, 1fr) auto;
+
+    .ks-calc-desc {
+      grid-column: auto;
+    }
+
+    .ks-calc-reuso {
+      grid-column: 1 / 5;
+    }
+  }
+}
+
+.ks-calc-fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ks-calc-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--ks-teal-deep, #0c7f6d);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ks-calc-ayudante {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ks-teal-light);
+}
+
+.ks-calc-sugerido {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.ks-calc-plantillas {
+  display: grid;
+  gap: 2px;
+}
+
+.ks-calc-plantilla {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// ---- Resumen ----
+.ks-calc-resumen {
+  position: sticky;
+  top: 12px;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-surface);
+
+  @media (min-width: 1000px) {
+    margin-top: 0;
+  }
+
+  h2 {
+    margin: 0 0 10px;
+    font-size: 1.1rem;
+    color: var(--ks-ink);
+  }
+
+  dl {
+    margin: 0;
+  }
+
+  dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    font-size: 0.92rem;
+    color: var(--ks-ink-soft);
+  }
+
+  dt,
+  dd {
+    margin: 0;
+  }
+
+  .ks-calc-sub {
+    border-top: 1px solid var(--ks-border);
+    font-weight: 700;
+    color: var(--ks-ink);
+  }
+}
+
+.ks-calc-total {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--ks-teal-light);
+  color: var(--ks-ink);
+
+  strong {
+    font-size: 1.9rem;
+    line-height: 1.1;
+    color: #0c7f6d;
+  }
+
+  small {
+    color: var(--ks-ink-soft);
+  }
+}
+
+.ks-calc-cliente {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  color: var(--ks-ink-soft);
+}
+
+.ks-calc-exportar {
+  display: grid;
+  gap: 6px;
+}
+
+.ks-calc-aviso {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  color: var(--ks-ink-soft);
+}
+
+.ks-calc-error {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(220, 53, 69, 0.12);
+  color: #b02a37;
+  font-size: 0.9rem;
+}

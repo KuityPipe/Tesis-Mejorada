@@ -29,7 +29,7 @@ from .api import jwt_utils
 
 from .models import (
     CodigoSeguridad, ConsentimientoBiometrico, Consulta, Contratacion, Documento, EventoVerificacion,
-    IntentoAccesoSospechoso, Mensaje, Pago, Publicaciones, SolicitudTitular, TokenSesion,
+    IntentoAccesoSospechoso, Mensaje, Pago, PlantillaValorizacion, Publicaciones, SolicitudTitular, TokenSesion,
     Usuario, Valoracion, ValoracionImagen, VerificacionAlternativa,
 )
 
@@ -141,6 +141,10 @@ def exportar_datos(usuario):
              'fecha': p.fecha_creacion}
             for p in Pago.objects.filter(Q(contratacion__cliente=usuario) | Q(contratacion__proveedor=usuario))
         ],
+        'plantillas_de_valorizacion': [
+            {'nombre': p.nombre, 'tipo_trabajo': p.tipo_trabajo, 'datos': p.datos, 'actualizada_en': p.actualizada_en}
+            for p in PlantillaValorizacion.objects.filter(usuario=usuario)
+        ],
         'documentos': [
             {'nombre': d.nombre_documento, 'fecha': d.fecha_subida_documento}
             for d in Documento.objects.filter(usuario=usuario)
@@ -241,6 +245,7 @@ def eliminar_cuenta(usuario):
     EventoVerificacion.objects.filter(usuario=usuario).delete()
     CodigoSeguridad.objects.filter(usuario=usuario).delete()
     SolicitudTitular.objects.filter(usuario=usuario).delete()
+    PlantillaValorizacion.objects.filter(usuario=usuario).delete()
 
     for verificacion in VerificacionAlternativa.objects.filter(usuario=usuario):
         verificacion_alternativa.borrar_video(verificacion)

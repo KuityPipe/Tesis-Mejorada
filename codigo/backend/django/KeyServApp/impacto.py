@@ -11,7 +11,9 @@ from collections import Counter, defaultdict
 from statistics import median
 
 from . import identidad
-from .models import EventoVerificacion, Pago, Publicaciones, Usuario, Valoracion, VerificacionAlternativa
+from django.db.models import Sum
+
+from .models import EventoVerificacion, Pago, Publicaciones, UsoCalculadora, Usuario, Valoracion, VerificacionAlternativa
 
 MINIMO_GRUPO = 5
 SUFIJO_DEMO = '@demo.keyserv'
@@ -59,6 +61,25 @@ def _via_de_verificacion(usuario):
     if evento is None:
         return 'biometria'
     return 'rostro' if evento.metodo == EventoVerificacion.ROSTRO else 'nativa'
+
+
+def _uso_calculadora():
+    """
+    Contador anónimo de la calculadora (sin datos personales, ver `UsoCalculadora`): visitantes distintos por mes y totales
+    de valorizaciones terminadas. Un mes con menos de 5 visitantes se suprime; los totales solo se informan si hubo al
+    menos 5 visitantes en total.
+    """
+    filas = UsoCalculadora.objects.all()
+    por_mes = Counter(filas.values_list('periodo', flat=True))
+    visitantes = {periodo: _suprimir(n) for periodo, n in sorted(por_mes.items())[-12:]}
+    totales = filas.aggregate(v=Sum('valorizaciones'), b=Sum('con_boleta'), r=Sum('con_reutilizado'))
+    suficiente = sum(por_mes.values()) >= MINIMO_GRUPO
+    return {
+        'visitantes_por_mes': visitantes,
+        'valorizaciones': (totales['v'] or 0) if suficiente else None,
+        'valorizaciones_con_boleta': (totales['b'] or 0) if suficiente else None,
+        'valorizaciones_con_material_reutilizado': (totales['r'] or 0) if suficiente else None,
+    }
 
 
 def calcular(incluir_demo=False):
@@ -131,6 +152,7 @@ def calcular(incluir_demo=False):
         'pct_ingreso_misma_comuna': _porcentaje(misma_comuna, total_ingreso) if len(proveedores_con_pago) >= MINIMO_GRUPO else None,
         'situacion_laboral_previa': _distribucion(situaciones, claves_situacion),
         'pct_mujeres': _porcentaje(mujeres, declararon_genero) if mujeres >= MINIMO_GRUPO and declararon_genero - mujeres >= MINIMO_GRUPO else None,
+        'calculadora': _uso_calculadora(),
         'incluye_demo': incluir_demo,
         'minimo_grupo': MINIMO_GRUPO,
     }

@@ -7,7 +7,8 @@ import { AlertController } from '@ionic/angular';
 import { Auth } from '../../core/auth';
 import { RESPUESTAS_REEMPLAZO, esReparacionOMantencion } from '../../core/impacto';
 import { Retroalimentacion } from '../../core/retroalimentacion';
-import { Contrataciones, ContratacionDetalle, Mensaje } from '../../contrataciones/contrataciones';
+import { Calculadora, PlantillaValorizacion } from '../../core/calculadora';
+import { Contrataciones, ContratacionDetalle, ItemPropuesto, Mensaje } from '../../contrataciones/contrataciones';
 import { MetodoExterno, MetodosPago, Pagos } from '../../pago/pagos';
 
 /**
@@ -76,6 +77,12 @@ export class DetallePage implements OnInit, OnDestroy {
   // Hasta saber qué hay configurado en el servidor se asume lo de siempre (Webpay y Khipu).
   metodosPago: MetodosPago = { webpay: true, khipu: true, flow: false, mercadopago: false };
   errorPago: string | null = null;
+  // Plantillas de valorización (calculadora) que el proveedor puede cargar en la hoja de presupuesto al confirmar.
+  plantillasPresupuesto: PlantillaValorizacion[] = [];
+  plantillaElegida: number | null = null;
+  itemsPresupuesto: ItemPropuesto[] = [];
+  totalItemsPresupuesto = 0;
+  errorPlantilla: string | null = null;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -86,6 +93,7 @@ export class DetallePage implements OnInit, OnDestroy {
     private readonly pagosApi: Pagos,
     private readonly retroalimentacion: Retroalimentacion,
     private readonly alertController: AlertController,
+    private readonly calculadora: Calculadora,
   ) {}
 
   ngOnInit(): void {
@@ -107,11 +115,38 @@ export class DetallePage implements OnInit, OnDestroy {
       next: (contratacion) => {
         this.contratacion = contratacion;
         this.cargando = false;
+        if (this.puedeConfirmar && !this.plantillasPresupuesto.length) {
+          this.calculadora.plantillas().subscribe({ next: (p) => (this.plantillasPresupuesto = p), error: () => undefined });
+        }
       },
       error: () => {
         this.cargando = false;
       },
     });
+  }
+
+  /** Carga una plantilla de la calculadora como filas de la hoja de presupuesto; su total pasa a ser el monto acordado. */
+  cargarPlantillaEnPresupuesto(): void {
+    this.errorPlantilla = null;
+    if (this.plantillaElegida == null) {
+      this.quitarPlantillaDelPresupuesto();
+      return;
+    }
+    this.calculadora.itemsDePlantilla(this.plantillaElegida).subscribe({
+      next: ({ items, total }) => {
+        this.itemsPresupuesto = items;
+        this.totalItemsPresupuesto = total;
+      },
+      error: (e: HttpErrorResponse) => {
+        this.errorPlantilla = e.error?.detail ?? 'No pudimos cargar la plantilla.';
+      },
+    });
+  }
+
+  quitarPlantillaDelPresupuesto(): void {
+    this.plantillaElegida = null;
+    this.itemsPresupuesto = [];
+    this.totalItemsPresupuesto = 0;
   }
 
   private cargarMensajes(): void {
@@ -320,9 +355,11 @@ export class DetallePage implements OnInit, OnDestroy {
     this.procesandoAccion = true;
     this.errorAccion = null;
     const { password, monto } = this.formularioReauth.getRawValue();
-    this.contratacionesApi.confirmar(this.contratacionId, password, monto ?? undefined).subscribe({
+    const items = this.itemsPresupuesto.length ? this.itemsPresupuesto : undefined;
+    this.contratacionesApi.confirmar(this.contratacionId, password, monto ?? undefined, items).subscribe({
       next: (contratacion) => {
         this.contratacion = contratacion;
+        this.quitarPlantillaDelPresupuesto();
         this.formularioReauth.reset({ password: '', monto: null });
         this.procesandoAccion = false;
         this.retroalimentacion.exito('Contratación confirmada.');

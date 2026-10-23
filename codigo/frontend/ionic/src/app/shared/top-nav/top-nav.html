@@ -12,6 +12,7 @@ AccountMenuComponent. -->
 <nav class="ks-nav-inline" aria-label="Navegación principal">
   <a routerLink="/" routerLinkActive="ks-nav-active" [routerLinkActiveOptions]="{ exact: true }" (click)="ir()">Inicio</a>
   <a routerLink="/catalogo" routerLinkActive="ks-nav-active">Servicios</a>
+  <a routerLink="/calculadora" routerLinkActive="ks-nav-active">Calculadora</a>
   <a routerLink="/" fragment="acerca" (click)="ir('acerca')">Acerca de nosotros</a>
   <a routerLink="/" fragment="contacto" (click)="ir('contacto')">Contacto</a>
 </nav>
@@ -31,6 +32,10 @@ AccountMenuComponent. -->
         <ion-item button routerLink="/catalogo" routerLinkActive="ks-nav-active" detail="false">
           <ion-icon name="grid-outline" slot="start"></ion-icon>
           <ion-label>Servicios</ion-label>
+        </ion-item>
+        <ion-item button routerLink="/calculadora" routerLinkActive="ks-nav-active" detail="false">
+          <ion-icon name="calculator-outline" slot="start"></ion-icon>
+          <ion-label>Calculadora</ion-label>
         </ion-item>
         <ion-item button routerLink="/" fragment="acerca" detail="false" (click)="ir('acerca')">
           <ion-icon name="information-circle-outline" slot="start"></ion-icon>

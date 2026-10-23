@@ -39,6 +39,30 @@ describe('DetallePage', () => {
     expect(component).toBeTruthy();
   });
 
+  it('cargar una plantilla llena la hoja de presupuesto y se envía al confirmar', () => {
+    component.contratacionId = 7;
+    component.plantillaElegida = 3;
+    component.cargarPlantillaEnPresupuesto();
+    httpMock.expectOne(`${environment.apiUrl}/calculadora/plantillas/3/items/`).flush({
+      items: [{ descripcion: 'Mano de obra', categoria: 'MANO_DE_OBRA', monto: 24000 }], total: 24000,
+    });
+    expect(component.itemsPresupuesto.length).toBe(1);
+    expect(component.totalItemsPresupuesto).toBe(24000);
+
+    component.formularioReauth.patchValue({ password: 'clave' });
+    component.confirmar();
+    const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/contrataciones/7/confirmar/'));
+    expect(req.request.body.items).toEqual([{ descripcion: 'Mano de obra', categoria: 'MANO_DE_OBRA', monto: 24000 }]);
+  });
+
+  it('quitar la plantilla vuelve a pedir el monto acordado a mano', () => {
+    component.itemsPresupuesto = [{ descripcion: 'x', categoria: 'OTRO', monto: 1 }];
+    component.totalItemsPresupuesto = 1;
+    component.quitarPlantillaDelPresupuesto();
+    expect(component.itemsPresupuesto).toEqual([]);
+    expect(component.plantillaElegida).toBeNull();
+  });
+
   it('rechazar/cancelar: cada rol ve solo su botón, y una contratación ya pagada remite a soporte', () => {
     const base = { cliente: 10, proveedor: 20 } as never;
     component.contratacion = { ...(base as object), estado: 'SOLICITADA' } as never;

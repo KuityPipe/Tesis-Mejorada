@@ -100,3 +100,6 @@ PyJWT>=2.9
 
 # Cifrado en reposo de encoding_facial (KeyServApp/campos.py)
 cryptography>=43
+
+# Calculadora de valorización (KeyServApp/calculadora_exportar.py): planilla .xlsx con fórmulas y PDF.
+openpyxl>=3.1

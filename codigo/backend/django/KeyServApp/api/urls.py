@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import views, views_calculadora
 
 app_name = 'KeyServApp_api'
 
@@ -65,6 +65,13 @@ urlpatterns = [
     path('contrataciones/<int:contratacion_id>/pagos/<str:metodo>/estado/', views.PagoExternoEstadoView.as_view(), name='pagos-externo-estado'),
     path('pagos/metodos/', views.PagoMetodosView.as_view(), name='pagos-metodos'),
     path('pagos/historial/', views.PagoHistorialView.as_view(), name='pagos-historial'),
+    path('calculadora/config/', views_calculadora.CalculadoraConfigView.as_view(), name='calculadora-config'),
+    path('calculadora/calcular/', views_calculadora.CalculadoraCalcularView.as_view(), name='calculadora-calcular'),
+    path('calculadora/exportar/pdf/', views_calculadora.CalculadoraExportarPdfView.as_view(), name='calculadora-exportar-pdf'),
+    path('calculadora/exportar/xlsx/', views_calculadora.CalculadoraExportarXlsxView.as_view(), name='calculadora-exportar-xlsx'),
+    path('calculadora/plantillas/', views_calculadora.PlantillasValorizacionView.as_view(), name='calculadora-plantillas'),
+    path('calculadora/plantillas/<int:plantilla_id>/', views_calculadora.PlantillaValorizacionDetalleView.as_view(), name='calculadora-plantilla'),
+    path('calculadora/plantillas/<int:plantilla_id>/items/', views_calculadora.PlantillaValorizacionItemsView.as_view(), name='calculadora-plantilla-items'),
     path('catalogos/regiones/', views.RegionListView.as_view(), name='catalogo-regiones'),
     path('catalogos/comunas/', views.ComunaListView.as_view(), name='catalogo-comunas'),
     path('catalogos/tipos-cuenta/', views.TipoCuentaListView.as_view(), name='catalogo-tipos-cuenta'),

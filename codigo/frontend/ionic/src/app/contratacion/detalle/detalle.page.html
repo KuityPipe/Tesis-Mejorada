@@ -146,7 +146,10 @@
         <ion-card-content>
           <ion-list lines="none">
             <ion-item *ngFor="let item of c.items_presupuesto">
-              <ion-label>{{ item.descripcion }}</ion-label>
+              <ion-label>
+                {{ item.descripcion }}
+                <p *ngIf="item.cantidad && item.precio_unitario">{{ item.cantidad | number:'1.0-2' }} {{ item.unidad }} × ${{ item.precio_unitario | number }}<ng-container *ngIf="item.reutilizado"> · reutilizado</ng-container></p>
+              </ion-label>
               <ion-note slot="end">${{ item.monto | number }}</ion-note>
             </ion-item>
           </ion-list>
@@ -222,10 +225,32 @@
               <ion-item>
                 <ion-input label="Confirma tu contraseña" labelPlacement="floating" type="password" formControlName="password"></ion-input>
               </ion-item>
-              <ion-item *ngIf="puedeConfirmar">
+              <ion-item *ngIf="puedeConfirmar && !itemsPresupuesto.length">
                 <ion-input label="Monto acordado (CLP, opcional)" labelPlacement="floating" type="number" formControlName="monto"></ion-input>
               </ion-item>
+              <ion-item *ngIf="puedeConfirmar && plantillasPresupuesto.length">
+                <ion-select label="Cargar una plantilla de la calculadora (opcional)" labelPlacement="floating" interface="popover" placeholder="Sin plantilla"
+                            [(ngModel)]="plantillaElegida" [ngModelOptions]="{ standalone: true }" (ionChange)="cargarPlantillaEnPresupuesto()">
+                  <ion-select-option [value]="null">Sin plantilla</ion-select-option>
+                  <ion-select-option *ngFor="let p of plantillasPresupuesto" [value]="p.id_plantilla">{{ p.nombre }}</ion-select-option>
+                </ion-select>
+              </ion-item>
             </ion-list>
+            <ion-text color="danger" *ngIf="errorPlantilla"><p class="ion-padding-start">{{ errorPlantilla }}</p></ion-text>
+            <div class="ks-presupuesto-propuesto" *ngIf="puedeConfirmar && itemsPresupuesto.length">
+              <p class="ks-section-title">Presupuesto que enviarás</p>
+              <ion-list lines="none">
+                <ion-item *ngFor="let item of itemsPresupuesto">
+                  <ion-label>{{ item.descripcion }}</ion-label>
+                  <ion-note slot="end">{{ item.monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</ion-note>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Monto acordado</strong></ion-label>
+                  <ion-note slot="end"><strong>{{ totalItemsPresupuesto | currency:'CLP':'symbol-narrow':'1.0-0' }}</strong></ion-note>
+                </ion-item>
+              </ion-list>
+              <ion-button size="small" fill="clear" (click)="quitarPlantillaDelPresupuesto()">Quitar la plantilla</ion-button>
+            </div>
             <ion-text color="danger" *ngIf="errorAccion"><p class="ion-padding-start">{{ errorAccion }}</p></ion-text>
             <ion-button expand="block" type="submit" [disabled]="procesandoAccion">
               {{ procesandoAccion ? 'Guardando…' : (puedeConfirmar ? 'Confirmar' : 'Marcar como completada') }}

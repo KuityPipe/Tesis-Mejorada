@@ -17,6 +17,22 @@ export interface ItemPresupuesto {
   categoria: string;
   monto: number;
   orden: number;
+  /** Detalle opcional que trae la calculadora de valorización. */
+  cantidad?: string | null;
+  unidad?: string;
+  precio_unitario?: number | null;
+  reutilizado?: boolean;
+}
+
+/** Una fila de la hoja de presupuesto que el proveedor propone al confirmar (por ejemplo, cargada desde una plantilla). */
+export interface ItemPropuesto {
+  descripcion: string;
+  categoria: string;
+  monto: number;
+  cantidad?: number;
+  unidad?: string;
+  precio_unitario?: number;
+  reutilizado?: boolean;
 }
 
 export interface ValoracionImagen {
@@ -177,8 +193,8 @@ export class Contrataciones {
   }
 
   /** El PROVEEDOR confirma (SOLICITADA -> CONFIRMADA), re-ingresando su contraseña. `monto` es opcional — sin él, se usa el precio de la publicación. */
-  confirmar(id: number, password: string, monto?: number): Observable<ContratacionDetalle> {
-    return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/confirmar/`, { password, monto });
+  confirmar(id: number, password: string, monto?: number, items?: ItemPropuesto[]): Observable<ContratacionDetalle> {
+    return this.http.post<ContratacionDetalle>(`${environment.apiUrl}/contrataciones/${id}/confirmar/`, { password, monto, items });
   }
 
   /** El PROVEEDOR rechaza una solicitud (SOLICITADA -> CANCELADA). No pide contraseña. */

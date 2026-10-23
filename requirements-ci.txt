@@ -51,3 +51,7 @@ transbank-sdk>=6.1.0
 
 # Cifrado en reposo de encoding_facial (KeyServApp/campos.py)
 cryptography>=43
+
+# Calculadora de valorización (KeyServApp/calculadora_exportar.py): planilla .xlsx con fórmulas y PDF.
+openpyxl>=3.1
+fpdf2>=2.7.9
