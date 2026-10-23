@@ -34,6 +34,7 @@ urlpatterns = [
     path('auth/perfil-proveedor/', views.PerfilProveedorView.as_view(), name='perfil-proveedor'),
     path('auth/perfil-proveedor/documentos/', views.DocumentoPerfilListView.as_view(), name='perfil-proveedor-documentos'),
     path('auth/perfil-proveedor/documentos/<int:documento_id>/', views.DocumentoPerfilEliminarView.as_view(), name='perfil-proveedor-documento-eliminar'),
+    path('auth/datos-impacto/', views.DatosImpactoView.as_view(), name='datos-impacto'),
     path('auth/preferencias/', views.PreferenciasView.as_view(), name='preferencias'),
     path('auth/cambiar-password/', views.CambiarPasswordView.as_view(), name='cambiar-password'),
     path('auth/recuperar/', views.RecuperarView.as_view(), name='recuperar'),

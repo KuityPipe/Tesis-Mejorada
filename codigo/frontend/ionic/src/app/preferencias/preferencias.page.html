@@ -60,6 +60,39 @@
       </ion-card>
     </div>
 
+    <div class="ks-section" appReveal [appRevealDelay]="90">
+      <p class="ks-section-title">Medición de impacto (opcional)</p>
+      <ion-card>
+        <ion-card-content>
+          <p class="ion-no-margin ion-margin-bottom">{{ finalidadImpacto }}</p>
+          <form [formGroup]="formularioImpacto" (ngSubmit)="guardarImpacto()">
+            <ion-list lines="none">
+              <ion-item>
+                <ion-select label="Situación laboral antes de KeyServ" labelPlacement="floating" formControlName="situacion_laboral_previa" interface="popover" placeholder="Sin responder">
+                  <ion-select-option value="">Sin responder</ion-select-option>
+                  <ion-select-option *ngFor="let s of situaciones" [value]="s.valor">{{ s.etiqueta }}</ion-select-option>
+                </ion-select>
+              </ion-item>
+              <ion-item>
+                <ion-select label="Género" labelPlacement="floating" formControlName="genero" interface="popover" placeholder="Sin responder">
+                  <ion-select-option value="">Sin responder</ion-select-option>
+                  <ion-select-option *ngFor="let g of generos" [value]="g.valor">{{ g.etiqueta }}</ion-select-option>
+                </ion-select>
+              </ion-item>
+            </ion-list>
+
+            <ion-text color="success" *ngIf="impactoGuardadoOk">
+              <p class="ion-padding-start">Respuestas actualizadas.</p>
+            </ion-text>
+
+            <ion-button expand="block" class="ion-margin-top" type="submit" [disabled]="guardandoImpacto">
+              {{ guardandoImpacto ? 'Guardando…' : 'Guardar respuestas' }}
+            </ion-button>
+          </form>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <div class="ks-section" appReveal [appRevealDelay]="120">
       <p class="ks-section-title">Cambiar contraseña</p>
       <ion-card>

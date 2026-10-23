@@ -83,6 +83,19 @@ El seguimiento de cada requisito está en la hoja `Corfo` del libro [`../seguimi
 7. Mantener el demo **sin cobros reales** y sin constituir sociedad hasta saber el resultado.
 8. Resolver lo legal: Ley 21.719 ([plan](../cumplimiento/PLAN_ADECUACION_LEY_21719.md)), T&C y video de verificación.
 
-## 6. Otros instrumentos (no revisados a fondo)
+## 6. Indicadores de impacto declarables (estado en el código)
+
+Encuadre: inclusión laboral y formalización. Los números salen de `manage.py reporte_impacto` (solo agregados; grupos de menos de 5 personas ocultos; sin cuentas demo). Detalle: [ADR 0008](../adr/0008-medicion-de-impacto.md).
+
+| Indicador | Estado |
+|---|---|
+| Proveedores verificados (y por qué vía), con primer pago, servicios pagados, ingreso mensual mediano | **Medible** (bloque 1, 2026-10-23); cifras reales solo cuando haya proveedores reales |
+| Situación laboral previa y género (voluntarias) | **Medible**; el texto de la finalidad lo debe revisar un abogado |
+| % de reparación y mantención; reparaciones que evitaron un reemplazo | **Medible** (tipo de servicio + pregunta al calificar) |
+| % del ingreso en la misma comuna ("economía local") | **Medible** |
+| Servicios con boleta y primeras boletas | Pendiente (bloque 3) |
+| Valorizaciones hechas con la calculadora | Pendiente (bloque 2) |
+
+## 7. Otros instrumentos (no revisados a fondo)
 Corfo tiene otras líneas para etapas posteriores (por ejemplo capital semilla o escalamiento) y programas de otras
 instituciones. **No las revisé**: confirma en corfo.cl cuáles hay abiertas antes de descartar o sumar alguna.

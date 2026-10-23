@@ -74,6 +74,16 @@ describe('PreferenciasPage', () => {
     expect(component.cerrandoSesiones).toBeFalse();
   });
 
+  it('guarda las respuestas de impacto, y vacío significa no responder', () => {
+    const http = TestBed.inject(HttpTestingController);
+    component.formularioImpacto.setValue({ situacion_laboral_previa: 'SIN_TRABAJO', genero: '' });
+    component.guardarImpacto();
+    const req = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/auth/datos-impacto/'));
+    expect(req.request.body).toEqual({ situacion_laboral_previa: 'SIN_TRABAJO', genero: '' });
+    req.flush({});
+    expect(component.impactoGuardadoOk).toBeTrue();
+  });
+
   it('alterna el bloqueo contra el valor actual', () => {
     const http = TestBed.inject(HttpTestingController);
     component.derechos = { tratamiento_bloqueado: false, solicitudes: [] };

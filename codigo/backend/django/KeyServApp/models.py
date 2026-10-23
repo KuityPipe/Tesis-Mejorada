@@ -249,6 +249,17 @@ class Usuario(models.Model):
     # único toggle que controla algo real hoy — el beep de Web Audio que
     # suena en base.html cuando llega un mensaje nuevo (ver ese template).
     notificaciones_sonido = models.BooleanField(default=True, db_column='NOTIFICACIONES_SONIDO')
+    # Medición de impacto (docs/adr/0008): preguntas VOLUNTARIAS, editables desde Preferencias, que solo se usan para
+    # el reporte agregado `reporte_impacto` (nunca se muestran a otros usuarios ni condicionan nada). Vacío = no respondió.
+    SIN_TRABAJO, INFORMAL, FORMAL, ESTUDIANTE, NO_DICE = 'SIN_TRABAJO', 'INFORMAL', 'FORMAL', 'ESTUDIANTE', 'NO_DICE'
+    SITUACIONES_LABORALES = [
+        (SIN_TRABAJO, 'Sin trabajo'), (INFORMAL, 'Trabajo informal (sin contrato ni boleta)'),
+        (FORMAL, 'Trabajo formal (con contrato o boletas)'), (ESTUDIANTE, 'Estudiante'), (NO_DICE, 'Prefiero no decir'),
+    ]
+    situacion_laboral_previa = models.CharField(max_length=12, blank=True, default='', choices=SITUACIONES_LABORALES, db_column='SITUACION_LABORAL_PREVIA')
+    MUJER, HOMBRE, OTRO_GENERO, GENERO_NO_DICE = 'MUJER', 'HOMBRE', 'OTRO', 'NO_DICE'
+    GENEROS = [(MUJER, 'Mujer'), (HOMBRE, 'Hombre'), (OTRO_GENERO, 'Otro'), (GENERO_NO_DICE, 'Prefiero no decir')]
+    genero = models.CharField(max_length=8, blank=True, default='', choices=GENEROS, db_column='GENERO')
 
     class Meta:
         db_table = 'USUARIO'
@@ -453,6 +464,13 @@ class Publicaciones(models.Model):
     # existía ningún campo de precio en el esquema heredado de la tesis).
     # Requerido para poder cobrar de verdad al contratar (ver pagos.py).
     precio = models.PositiveIntegerField(null=True, blank=True, db_column='PRECIO')
+    # Tipo de servicio (docs/adr/0008): permite medir cuánto trabajo es reparar o mantener en vez de reemplazar.
+    REPARACION, MANTENCION, INSTALACION_NUEVA, OTRO_TIPO = 'REPARACION', 'MANTENCION', 'INSTALACION_NUEVA', 'OTRO'
+    TIPOS_SERVICIO = [
+        (REPARACION, 'Reparación'), (MANTENCION, 'Mantención'),
+        (INSTALACION_NUEVA, 'Instalación nueva'), (OTRO_TIPO, 'Otro'),
+    ]
+    tipo_servicio = models.CharField(max_length=18, choices=TIPOS_SERVICIO, default=OTRO_TIPO, db_column='TIPO_SERVICIO')
     fecha_publicacion = models.DateTimeField(auto_now_add=True, db_column='FECHA_PUBLICACION')
     actualizado_en = models.DateTimeField(auto_now=True, db_column='ACTUALIZADO_EN')
     # Flujo de moderación descrito en el BPMN "Crear publicación" del PDF (PAGE 135-136):
@@ -694,6 +712,10 @@ class Valoracion(models.Model):
         Contratacion, on_delete=models.CASCADE, null=True, blank=True,
         related_name='valoracion', db_column='FK_CONTRATACION',
     )
+    # Pregunta voluntaria al calificar una reparación: ¿evitó comprar uno nuevo? Vacío = no respondió (docs/adr/0008).
+    SI, NO, NO_APLICA = 'SI', 'NO', 'NO_APLICA'
+    RESPUESTAS_REEMPLAZO = [(SI, 'Sí'), (NO, 'No'), (NO_APLICA, 'No aplica')]
+    evito_reemplazo = models.CharField(max_length=10, blank=True, default='', choices=RESPUESTAS_REEMPLAZO, db_column='EVITO_REEMPLAZO')
     # NUEVO: no solo las fotos adjuntas se moderan — la reseña completa
     # (puntuación + comentario) puede ser difamatoria o abusiva, así que
     # pasa por el mismo flujo que Publicaciones antes de mostrarse en

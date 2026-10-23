@@ -3,6 +3,16 @@
 Historia de lo que cambia en KeyServ, en lenguaje simple y por fecha (lo más reciente arriba). El detalle técnico está en
 `git log` y en la hoja `Cambios` del libro de seguimiento. Cómo mantenerlo: [README](README.md).
 
+## 2026-10-23
+
+Encuadre de la postulación a Corfo: inclusión laboral y formalización (oficios → ingreso formal y trazable). Detalle técnico:
+[ADR 0008](../adr/0008-medicion-de-impacto.md).
+
+### Agregado
+- **Medición de impacto (bloque 1).** Preguntas **voluntarias** de situación laboral previa y género al registrarse (con la finalidad escrita en la misma pantalla; no bloquean el registro) y editables en Preferencias. Cada publicación tiene un **tipo de servicio** (reparación, mantención, instalación nueva, otro) y, al calificar una reparación, el cliente puede decir si evitó comprar uno nuevo.
+- **`manage.py reporte_impacto`:** entrega solo cifras agregadas (proveedores verificados por vía, primer pago, ingreso mensual mediano, % de reparación/mantención, % del ingreso en la misma comuna, situación laboral previa, % de mujeres) y **oculta cualquier grupo de menos de 5 personas**. Excluye las cuentas de demostración.
+- La política de privacidad y el registro de actividades de tratamiento mencionan la finalidad (borrador: lo debe revisar un abogado).
+
 ## 2026-10-16 (tarde)
 
 ### Agregado

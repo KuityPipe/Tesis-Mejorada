@@ -183,6 +183,30 @@
             </div>
           </div>
 
+          <!-- Opcional: la finalidad va escrita aquí mismo (Ley 21.719) y no bloquea el registro. -->
+          <fieldset class="ks-reg-impacto">
+            <legend>Ayúdanos a medir nuestro impacto <span>(opcional)</span></legend>
+            <p class="ks-reg-ayuda">{{ finalidadImpacto }}</p>
+            <div class="ks-reg-campos">
+              <div class="ks-reg-campo">
+                <ion-item>
+                  <ion-select label="Antes de KeyServ, tu situación laboral era" labelPlacement="floating" formControlName="situacion_laboral_previa" interface="popover" [interfaceOptions]="opcionesLista" placeholder="Sin responder">
+                    <ion-select-option value="">Sin responder</ion-select-option>
+                    <ion-select-option *ngFor="let s of situaciones" [value]="s.valor">{{ s.etiqueta }}</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </div>
+              <div class="ks-reg-campo">
+                <ion-item>
+                  <ion-select label="Género" labelPlacement="floating" formControlName="genero" interface="popover" [interfaceOptions]="opcionesLista" placeholder="Sin responder">
+                    <ion-select-option value="">Sin responder</ion-select-option>
+                    <ion-select-option *ngFor="let g of generos" [value]="g.valor">{{ g.etiqueta }}</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </div>
+            </div>
+          </fieldset>
+
           <div class="ks-reg-fuerza" *ngIf="formulario.controls.password.value" [attr.data-nivel]="fuerzaClave.nivel">
             <span class="ks-reg-fuerza-barras" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
             <small>Seguridad: <strong>{{ fuerzaClave.etiqueta }}</strong></small>

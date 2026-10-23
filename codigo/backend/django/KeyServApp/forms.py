@@ -64,6 +64,9 @@ class RegistroForm(forms.Form):
     # nombre/correo quedan rechazadas — antes "123456a" pasaba sin problema.
     password = forms.CharField(widget=forms.PasswordInput, min_length=8, label='Contraseña')
     password_confirm = forms.CharField(widget=forms.PasswordInput, label='Confirmar contraseña')
+    # Medición de impacto (docs/adr/0008): preguntas voluntarias; no bloquean el registro si no se responden.
+    situacion_laboral_previa = forms.ChoiceField(choices=[('', '')] + Usuario.SITUACIONES_LABORALES, required=False, label='Situación laboral antes de KeyServ')
+    genero = forms.ChoiceField(choices=[('', '')] + Usuario.GENEROS, required=False, label='Género')
 
     def clean_rut(self):
         """RUT real (dígito verificador correcto) y no registrado antes."""
@@ -129,6 +132,8 @@ class RegistroForm(forms.Form):
             comuna=self.cleaned_data['comuna'],
             es_proveedor=self.cleaned_data.get('es_proveedor', False),
             politica_aceptada_en=timezone.now() if self.cleaned_data.get('acepta_politica') else None,
+            situacion_laboral_previa=self.cleaned_data.get('situacion_laboral_previa') or '',
+            genero=self.cleaned_data.get('genero') or '',
             transaccion=transaccion,
             password=make_password(self.cleaned_data['password']),
         )
@@ -204,6 +209,17 @@ class PreferenciasCuentaForm(forms.ModelForm):
         model = Usuario
         fields = ['notificaciones_sonido']
         labels = {'notificaciones_sonido': 'Reproducir un sonido cuando llega un mensaje nuevo'}
+
+
+class DatosImpactoForm(forms.ModelForm):
+    """
+    Preguntas voluntarias de situación laboral previa y género (docs/adr/0008), editables desde Preferencias. Van en un
+    formulario aparte de `PreferenciasCuentaForm` para que un cliente que solo manda el toggle de sonido no las borre.
+    Dejar un campo vacío equivale a no responder.
+    """
+    class Meta:
+        model = Usuario
+        fields = ['situacion_laboral_previa', 'genero']
 
 
 class CrearPerfilForm(forms.ModelForm):
@@ -325,10 +341,12 @@ class PublicacionForm(forms.ModelForm):
     )
     categoria_otra = forms.CharField(max_length=60, required=False, label='Especifica la categoría')
     precio = forms.IntegerField(min_value=1, label='Precio (CLP)', help_text='Lo que el cliente paga al contratar este servicio.')
+    # Opcional: si no llega, queda 'Otro' (valor por defecto del modelo).
+    tipo_servicio = forms.ChoiceField(choices=Publicaciones.TIPOS_SERVICIO, required=False, label='Tipo de servicio')
 
     class Meta:
         model = Publicaciones
-        fields = ['titulo', 'sub_titulo', 'descripcion_publicacion', 'categoria', 'precio']
+        fields = ['titulo', 'sub_titulo', 'descripcion_publicacion', 'categoria', 'precio', 'tipo_servicio']
 
     def clean(self):
         """Si eligió "Otra", la categoría real es lo que escribió en el campo de texto libre."""
@@ -347,7 +365,7 @@ class ValoracionForm(forms.ModelForm):
 
     class Meta:
         model = Valoracion
-        fields = ['puntuacion', 'comentario']
+        fields = ['puntuacion', 'comentario', 'evito_reemplazo']
 
     def clean_puntuacion(self):
         """La puntuación debe ser una calificación por estrellas válida (1 a 5)."""

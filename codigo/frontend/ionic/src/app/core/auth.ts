@@ -29,6 +29,9 @@ export interface Usuario {
   areas_servicio: string;
   experiencia: string;
   notificaciones_sonido: boolean;
+  // Preguntas voluntarias de impacto (ADR 0008); '' = no respondió.
+  situacion_laboral_previa?: string;
+  genero?: string;
   // Agregados para precargar el cascade región→comuna de "editar perfil"
   // (perfil/editar/editar.page.ts) sin una request aparte — `comuna` es el
   // pk crudo (no un objeto anidado), `region` se deriva en el backend de
@@ -114,6 +117,9 @@ export interface DatosRegistro {
   password_confirm: string;
   /** Aceptó la política de privacidad (el servidor la exige y guarda la fecha). */
   acepta_politica: boolean;
+  /** Preguntas voluntarias de impacto (ADR 0008); vacío o ausente = no responder. */
+  situacion_laboral_previa?: string;
+  genero?: string;
 }
 
 /**
@@ -320,6 +326,11 @@ export class Auth {
   /** `PUT /api/auth/preferencias/` — hoy el único toggle real (ver PreferenciasCuentaForm, backend). */
   actualizarPreferencias(notificacionesSonido: boolean): Observable<Usuario> {
     return this.http.put<Usuario>(`${environment.apiUrl}/auth/preferencias/`, { notificaciones_sonido: notificacionesSonido });
+  }
+
+  /** `PUT /api/auth/datos-impacto/` — situación laboral previa y género (voluntarios; '' = no responder). */
+  actualizarDatosImpacto(situacionLaboralPrevia: string, genero: string): Observable<Usuario> {
+    return this.http.put<Usuario>(`${environment.apiUrl}/auth/datos-impacto/`, { situacion_laboral_previa: situacionLaboralPrevia, genero });
   }
 
   /** `GET /api/auth/mis-datos/` — derecho de acceso/portabilidad: copia de los datos personales. */

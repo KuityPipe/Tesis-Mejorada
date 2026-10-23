@@ -277,6 +277,12 @@
               <ion-item>
                 <ion-textarea label="Comentario (opcional)" labelPlacement="floating" formControlName="comentario"></ion-textarea>
               </ion-item>
+              <ion-item *ngIf="preguntarReemplazo">
+                <ion-select label="¿Esta reparación evitó comprar uno nuevo? (opcional)" labelPlacement="floating" formControlName="evito_reemplazo" interface="popover" placeholder="Sin responder">
+                  <ion-select-option value="">Sin responder</ion-select-option>
+                  <ion-select-option *ngFor="let r of respuestasReemplazo" [value]="r.valor">{{ r.etiqueta }}</ion-select-option>
+                </ion-select>
+              </ion-item>
               <ion-item lines="none">
                 <div class="ks-file-field">
                   <ion-label>Fotos (opcional)</ion-label>

@@ -97,6 +97,8 @@ def exportar_datos(usuario):
         'es_proveedor': usuario.es_proveedor,
         'areas_servicio': usuario.areas_servicio,
         'experiencia': usuario.experiencia,
+        'situacion_laboral_previa': usuario.situacion_laboral_previa,
+        'genero': usuario.genero,
         'tiene_foto_perfil': bool(usuario.foto_perfil),
         'verificado_biometricamente': usuario.verificado_biometricamente,
         'verificado_en': usuario.verificado_en,
@@ -111,7 +113,7 @@ def exportar_datos(usuario):
         ],
         'publicaciones': [
             {'id': p.id_publicacion, 'titulo': p.titulo, 'descripcion': p.descripcion_publicacion,
-             'categoria': p.categoria, 'precio': p.precio, 'estado': p.estado_moderacion, 'fecha': p.fecha_publicacion}
+             'categoria': p.categoria, 'tipo_servicio': p.tipo_servicio, 'precio': p.precio, 'estado': p.estado_moderacion, 'fecha': p.fecha_publicacion}
             for p in Publicaciones.objects.filter(usuario_publicador=usuario)
         ],
         'contrataciones': [
@@ -277,6 +279,8 @@ def eliminar_cuenta(usuario):
     usuario.direccion_usuario = ''
     usuario.areas_servicio = ''
     usuario.experiencia = ''
+    usuario.situacion_laboral_previa = ''
+    usuario.genero = ''
     usuario.es_proveedor = False
     usuario.verificado_biometricamente = False
     usuario.verificado_en = None

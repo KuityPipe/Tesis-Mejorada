@@ -44,7 +44,7 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
             'apellido_usuario', 'apellido2_usuario', 'telefono', 'email',
             'direccion_usuario', 'edad', 'es_proveedor',
             'verificado_biometricamente', 'foto_perfil', 'areas_servicio',
-            'experiencia', 'notificaciones_sonido', 'comuna', 'region', 'tratamiento_bloqueado', 'eliminacion_programada_en',
+            'experiencia', 'notificaciones_sonido', 'situacion_laboral_previa', 'genero', 'comuna', 'region', 'tratamiento_bloqueado', 'eliminacion_programada_en',
         ]
         read_only_fields = fields
 
@@ -110,7 +110,7 @@ class ValoracionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Valoracion
-        fields = ['id_valoracion', 'puntuacion', 'comentario', 'fecha_valoracion', 'estado_moderacion', 'imagenes']
+        fields = ['id_valoracion', 'puntuacion', 'comentario', 'fecha_valoracion', 'estado_moderacion', 'evito_reemplazo', 'imagenes']
         read_only_fields = fields
 
 
@@ -189,6 +189,7 @@ class ContratacionListSerializer(serializers.ModelSerializer):
     # Para las filas de la lista (categoría y dónde está el servicio): la coordenada es la de la comuna del proveedor
     # (aproximada, no su dirección) y alcanza para calcular una distancia en el cliente si la persona comparte su posición.
     publicacion_categoria = serializers.CharField(source='publicacion.categoria', read_only=True)
+    publicacion_tipo_servicio = serializers.CharField(source='publicacion.tipo_servicio', read_only=True)
     proveedor_comuna = serializers.SerializerMethodField()
     proveedor_latitud = serializers.SerializerMethodField()
     proveedor_longitud = serializers.SerializerMethodField()
@@ -197,7 +198,7 @@ class ContratacionListSerializer(serializers.ModelSerializer):
         model = Contratacion
         fields = [
             'id_contratacion', 'estado', 'monto_acordado', 'fecha_creacion',
-            'publicacion', 'publicacion_titulo', 'publicacion_imagen', 'publicacion_categoria',
+            'publicacion', 'publicacion_titulo', 'publicacion_imagen', 'publicacion_categoria', 'publicacion_tipo_servicio',
             'cliente', 'cliente_nombre', 'proveedor', 'proveedor_nombre',
             'proveedor_comuna', 'proveedor_latitud', 'proveedor_longitud',
             'tiene_valoracion',
@@ -432,7 +433,7 @@ class PublicacionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publicaciones
         fields = [
-            'id_publicacion', 'titulo', 'sub_titulo', 'categoria', 'precio',
+            'id_publicacion', 'titulo', 'sub_titulo', 'categoria', 'tipo_servicio', 'precio',
             'fecha_publicacion', 'imagen_portada', 'proveedor', 'distancia_km', 'resumen',
         ]
         read_only_fields = fields
@@ -473,7 +474,7 @@ class PublicacionPropiaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publicaciones
         fields = [
-            'id_publicacion', 'titulo', 'categoria', 'precio', 'fecha_publicacion',
+            'id_publicacion', 'titulo', 'categoria', 'tipo_servicio', 'precio', 'fecha_publicacion',
             'imagen_portada', 'estado_moderacion', 'estado_moderacion_display',
         ]
         read_only_fields = fields
@@ -493,7 +494,7 @@ class PublicacionDetailSerializer(serializers.ModelSerializer):
         model = Publicaciones
         fields = [
             'id_publicacion', 'titulo', 'sub_titulo', 'descripcion_publicacion',
-            'categoria', 'precio', 'fecha_publicacion', 'imagenes', 'proveedor', 'resenas',
+            'categoria', 'tipo_servicio', 'precio', 'fecha_publicacion', 'imagenes', 'proveedor', 'resenas',
         ]
         read_only_fields = fields
 

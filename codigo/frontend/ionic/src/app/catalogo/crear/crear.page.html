@@ -102,6 +102,17 @@
               </div>
             </div>
 
+            <div class="ks-campo">
+              <label for="c-tipo">Tipo de servicio</label>
+              <div class="ks-input-caja ks-input-select">
+                <ion-icon name="build-outline" aria-hidden="true"></ion-icon>
+                <ion-select id="c-tipo" aria-label="Tipo de servicio" interface="popover" formControlName="tipo_servicio">
+                  <ion-select-option *ngFor="let t of tiposServicio" [value]="t.valor">{{ t.etiqueta }}</ion-select-option>
+                </ion-select>
+              </div>
+              <p class="ks-campo-ayuda">Nos ayuda a medir cuánto trabajo es reparar y mantener en vez de reemplazar.</p>
+            </div>
+
             <div class="ks-campo" *ngIf="formulario.controls.categoria.value === otraCategoria">
               <label for="c-otra">¿Cuál es la categoría?</label>
               <div class="ks-input-caja">

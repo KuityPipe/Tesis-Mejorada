@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { Auth, EstadoDerechos } from '../core/auth';
+import { FINALIDAD_IMPACTO, GENEROS, SITUACIONES_LABORALES } from '../core/impacto';
 import { Retroalimentacion } from '../core/retroalimentacion';
 import { Tema, Tema3Estados } from '../core/tema';
 
@@ -28,6 +29,17 @@ export class PreferenciasPage implements OnInit {
   formularioPreferencias = this.fb.nonNullable.group({
     notificaciones_sonido: [true],
   });
+
+  // Preguntas voluntarias de impacto (ADR 0008).
+  formularioImpacto = this.fb.nonNullable.group({
+    situacion_laboral_previa: [''],
+    genero: [''],
+  });
+  readonly situaciones = SITUACIONES_LABORALES;
+  readonly generos = GENEROS;
+  readonly finalidadImpacto = FINALIDAD_IMPACTO;
+  guardandoImpacto = false;
+  impactoGuardadoOk = false;
 
   formularioPassword = this.fb.nonNullable.group({
     password_actual: ['', Validators.required],
@@ -79,6 +91,10 @@ export class PreferenciasPage implements OnInit {
     this.temaActual = this.tema.obtenerActual();
     this.auth.me().subscribe((usuario) => {
       this.formularioPreferencias.patchValue({ notificaciones_sonido: usuario.notificaciones_sonido });
+      this.formularioImpacto.patchValue({
+        situacion_laboral_previa: usuario.situacion_laboral_previa ?? '',
+        genero: usuario.genero ?? '',
+      });
       this.eliminacionProgramadaEn = usuario.eliminacion_programada_en ?? null;
       this.cargando = false;
     });
@@ -250,6 +266,24 @@ export class PreferenciasPage implements OnInit {
       },
       error: () => {
         this.guardandoPreferencias = false;
+      },
+    });
+  }
+
+  guardarImpacto(): void {
+    if (this.guardandoImpacto) {
+      return;
+    }
+    this.guardandoImpacto = true;
+    this.impactoGuardadoOk = false;
+    const { situacion_laboral_previa, genero } = this.formularioImpacto.getRawValue();
+    this.auth.actualizarDatosImpacto(situacion_laboral_previa, genero).subscribe({
+      next: () => {
+        this.guardandoImpacto = false;
+        this.impactoGuardadoOk = true;
+      },
+      error: () => {
+        this.guardandoImpacto = false;
       },
     });
   }

@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { Auth, Usuario } from '../../core/auth';
+import { TIPOS_SERVICIO } from '../../core/impacto';
 import { Catalogos } from '../../registro/catalogos';
 import { Publicaciones, PublicacionResumen } from '../publicaciones';
 
@@ -48,10 +49,12 @@ export class CrearPage implements OnInit, OnDestroy {
     descripcion_publicacion: ['', Validators.maxLength(LIMITES.descripcion)],
     categoria: ['', Validators.required],
     categoria_otra: [''],
+    tipo_servicio: ['OTRO'],
     precio: [null as number | null, [Validators.required, Validators.min(1)]],
   });
 
   categorias: string[] = [];
+  readonly tiposServicio = TIPOS_SERVICIO;
   readonly otraCategoria = OTRA_CATEGORIA;
 
   cargando = true;
@@ -229,6 +232,7 @@ export class CrearPage implements OnInit, OnDestroy {
     datos.append('descripcion_publicacion', valores.descripcion_publicacion);
     datos.append('categoria', valores.categoria);
     datos.append('categoria_otra', valores.categoria_otra);
+    datos.append('tipo_servicio', valores.tipo_servicio);
     datos.append('precio', String(valores.precio));
     this.imagenesSeleccionadas.forEach((archivo) => datos.append('imagenes', archivo));
     this.documentosSeleccionados.forEach((archivo) => datos.append('documentos', archivo));

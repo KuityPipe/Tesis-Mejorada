@@ -19,6 +19,7 @@
 | Mensajería por contratación | Texto e imágenes | `Mensaje` (imágenes en almacenamiento privado) | Coordinar el servicio | Ejecución del contrato | Chats cerrados: 90 días, salvo exportados (workflow semanal) | Hecho (no alcanza los archivos del disco de Render) |
 | Pagos | Monto, estado, respuesta cruda del medio de pago | `Pago` | Cobrar y conciliar | Ejecución del contrato; obligación tributaria | Plazo tributario (A definir) | **Abierto**: filtrar `respuesta_bruta` |
 | Seguridad | IP, ciudad, país, user-agent de accesos sospechosos | `IntentoAccesoSospechoso` | Detectar abuso | Interés legítimo | 365 días (purga automática) | Hecho |
+| Medición de impacto (voluntaria) | Situación laboral previa, género, tipo de servicio de cada publicación, respuesta "¿evitó comprar uno nuevo?" | `Usuario.situacion_laboral_previa`, `Usuario.genero`, `Publicaciones.tipo_servicio`, `Valoracion.evito_reemplazo` | Medir el impacto de KeyServ en el empleo y la formalización; reporte agregado para el seguimiento y la postulación a Corfo | **Consentimiento** (opcional, revocable: se cambia o borra en Preferencias) | Hasta que la persona lo borre o elimine su cuenta (se vacía al anonimizar) | Borrador; base de licitud, plazo y si es dato sensible: **a validar con abogado**. Solo se reporta agregado, suprimiendo grupos de menos de 5 (`reporte_impacto`) |
 | Valoraciones | Texto, puntaje, fotos | `Valoracion`, `ValoracionImagen` (fotos privadas) | Reputación | Ejecución del contrato | Hasta eliminar la cuenta | Hecho |
 
 ## Brechas contra la Ley 21.719

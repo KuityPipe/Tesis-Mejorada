@@ -32,7 +32,7 @@ from .. import notificaciones_correo, pagos
 from .. import views as vistas_legacy
 from ..forms import (
     CambiarPasswordForm, CATEGORIAS_PUBLICACION, ContactoForm, CrearPerfilForm, EditarPerfilForm, MensajeForm,
-    MontoAcordadoForm, NuevaPasswordForm, PreferenciasCuentaForm, PublicacionForm, ReautenticacionForm,
+    DatosImpactoForm, MontoAcordadoForm, NuevaPasswordForm, PreferenciasCuentaForm, PublicacionForm, ReautenticacionForm,
     RecuperarForm, RegistroForm, ValoracionForm,
 )
 from ..models import (
@@ -500,6 +500,19 @@ class DocumentoPerfilEliminarView(APIView):
         documento = get_object_or_404(Documento, pk=documento_id, usuario=request.user, publicacion__isnull=True)
         documento.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DatosImpactoView(APIView):
+    """
+    `PUT /api/auth/datos-impacto/` — situación laboral previa y género, ambos voluntarios (ADR 0008). Se mandan los dos
+    campos; vacío = no responder. Solo alimentan el reporte agregado; ningún otro usuario los ve.
+    """
+    def put(self, request):
+        form = DatosImpactoForm(request.data, instance=request.user)
+        if not form.is_valid():
+            return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+        form.save()
+        return Response(UsuarioMeSerializer(request.user).data)
 
 
 class PreferenciasView(APIView):

@@ -46,6 +46,7 @@ export interface ContratacionResumen {
   publicacion_titulo: string;
   publicacion_imagen: string | null;
   publicacion_categoria?: string | null;
+  publicacion_tipo_servicio?: string;
   cliente: number;
   cliente_nombre: string;
   proveedor: number;

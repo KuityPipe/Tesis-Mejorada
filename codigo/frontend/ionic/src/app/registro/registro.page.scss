@@ -372,6 +372,28 @@
   color: var(--ks-ink-soft);
 }
 
+// ---- Preguntas voluntarias de impacto ----
+.ks-reg-impacto {
+  margin: 18px 0 0;
+  padding: 14px 16px 16px;
+  border: 1px dashed var(--ks-borde, rgba(127, 127, 127, 0.4));
+  border-radius: 14px;
+
+  legend {
+    padding: 0 8px;
+    font-weight: 600;
+
+    span {
+      font-weight: 400;
+      color: var(--ks-ink-soft);
+    }
+  }
+
+  .ks-reg-ayuda {
+    margin: 0 0 10px;
+  }
+}
+
 // ---- Seguridad de la contraseña ----
 .ks-reg-fuerza {
   display: flex;

@@ -76,6 +76,13 @@ describe('RegistroPage', () => {
     expect(component.mensajeError('acepta_politica')).toContain('política de privacidad');
   });
 
+  it('las preguntas de impacto son opcionales: no impiden completar el registro', () => {
+    expect(component.formulario.controls.situacion_laboral_previa.value).toBe('');
+    expect(component.formulario.controls.situacion_laboral_previa.valid).toBeTrue();
+    expect(component.formulario.controls.genero.valid).toBeTrue();
+    expect(component.finalidadImpacto).toContain('medir el impacto de KeyServ en el empleo');
+  });
+
   it('elegir el tipo de cuenta actualiza es_proveedor', () => {
     component.elegirTipo(true);
     expect(component.formulario.controls.es_proveedor.value).toBeTrue();

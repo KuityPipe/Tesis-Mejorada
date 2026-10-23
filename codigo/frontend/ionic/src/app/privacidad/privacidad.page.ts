@@ -99,6 +99,11 @@ export class PrivacidadPage implements AfterViewInit, OnDestroy {
       titulo: 'Seguridad de la cuenta',
       texto: 'Registramos la dirección IP y una ubicación aproximada (a nivel de ciudad, con una base de datos local, sin consultar servicios externos) cuando detectamos un intento de acceso sospechoso, por ejemplo alguien intentando ver una conversación o un documento que no le pertenece. Es exclusivamente para seguridad, no para perfilar tu ubicación habitual.',
     },
+    {
+      icono: 'stats-chart-outline',
+      titulo: 'Medición del impacto de KeyServ en el empleo (opcional)',
+      texto: 'Si quieres, al registrarte o desde Preferencias puedes indicar tu situación laboral antes de KeyServ y tu género. Las usamos solo para medir el impacto de KeyServ en el empleo y la formalización. Son voluntarias, no cambian tu acceso ni lo que ven otras personas, solo se informan de forma agregada (nunca individual, y se omiten los grupos de menos de 5 personas) y puedes cambiarlas o borrarlas cuando quieras. También usamos el tipo de servicio de cada publicación y, si quieres, tu respuesta a si una reparación evitó comprar uno nuevo.',
+    },
   ];
 
   readonly terceros: Tercero[] = [

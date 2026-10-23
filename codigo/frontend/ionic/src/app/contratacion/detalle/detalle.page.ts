@@ -5,6 +5,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { AlertController } from '@ionic/angular';
 
 import { Auth } from '../../core/auth';
+import { RESPUESTAS_REEMPLAZO, esReparacionOMantencion } from '../../core/impacto';
 import { Retroalimentacion } from '../../core/retroalimentacion';
 import { Contrataciones, ContratacionDetalle, Mensaje } from '../../contrataciones/contrataciones';
 import { MetodoExterno, MetodosPago, Pagos } from '../../pago/pagos';
@@ -50,6 +51,7 @@ export class DetallePage implements OnInit, OnDestroy {
   formularioValoracion = this.fb.nonNullable.group({
     puntuacion: [5, [Validators.required, Validators.min(1), Validators.max(5)]],
     comentario: [''],
+    evito_reemplazo: [''],
   });
 
   enviandoMensaje = false;
@@ -488,6 +490,13 @@ export class DetallePage implements OnInit, OnDestroy {
     this.fotosValoracion = input.files ? Array.from(input.files) : [];
   }
 
+  readonly respuestasReemplazo = RESPUESTAS_REEMPLAZO;
+
+  /** Solo se pregunta "¿evitó comprar uno nuevo?" en reparaciones y mantenciones (ADR 0008). */
+  get preguntarReemplazo(): boolean {
+    return esReparacionOMantencion(this.contratacion?.publicacion_tipo_servicio);
+  }
+
   valorar(): void {
     if (this.formularioValoracion.invalid || this.enviandoValoracion) {
       return;
@@ -495,10 +504,13 @@ export class DetallePage implements OnInit, OnDestroy {
     this.enviandoValoracion = true;
     this.errorValoracion = null;
 
-    const { puntuacion, comentario } = this.formularioValoracion.getRawValue();
+    const { puntuacion, comentario, evito_reemplazo } = this.formularioValoracion.getRawValue();
     const formData = new FormData();
     formData.set('puntuacion', String(puntuacion));
     formData.set('comentario', comentario);
+    if (evito_reemplazo && this.preguntarReemplazo) {
+      formData.set('evito_reemplazo', evito_reemplazo);
+    }
     for (const foto of this.fotosValoracion) {
       formData.append('imagenes', foto);
     }

@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 
 import { Auth, DatosRegistro } from '../core/auth';
 import { Retroalimentacion } from '../core/retroalimentacion';
+import { FINALIDAD_IMPACTO, GENEROS, SITUACIONES_LABORALES } from '../core/impacto';
 import { normalizarRut, validadorRut } from '../core/rut';
 import { Catalogos, ComunaCatalogo, RegionCatalogo } from './catalogos';
 
@@ -35,7 +36,14 @@ export class RegistroPage implements OnInit {
     password: ['', [Validators.required, Validators.minLength(8)]],
     password_confirm: ['', Validators.required],
     acepta_politica: [false, Validators.requiredTrue],
+    // Preguntas voluntarias de impacto (ADR 0008): no bloquean el registro.
+    situacion_laboral_previa: [''],
+    genero: [''],
   });
+
+  readonly situaciones = SITUACIONES_LABORALES;
+  readonly generos = GENEROS;
+  readonly finalidadImpacto = FINALIDAD_IMPACTO;
 
   readonly pasos = [
     { n: 1, titulo: 'Tus datos', detalle: 'Quién eres y cómo contactarte' },

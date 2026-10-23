@@ -1,6 +1,6 @@
 # Estado del proyecto y próximos pasos
 
-> Punto de retoma. Última actualización: 2026-10-15, al cierre de la sesión de correcciones de la revisión externa. Complementa
+> Punto de retoma. Última actualización: 2026-10-23 (implementación del encuadre de inclusión laboral para Corfo; ver la sesión de esa fecha más abajo). Complementa
 > `docs/PLAN_MAESTRO_2026-27.md` (plan y estado por fase) y `docs/plan-ajustes.md` (cambios de alcance).
 
 ## Próximos pasos del dueño (empezar por aquí)
@@ -22,6 +22,13 @@ Hasta que estén cargadas, Flow y Mercado Pago no aparecen como opciones en la a
 5. **Con el correo funcionando**, pedir a Claude: verificación del correo al registrarse (hoy no se hace porque no habría forma de probarla).
 
 **Otros pendientes que dependen de ti** (en orden de utilidad): revisión de un abogado (consentimiento, EIPD, qué se conserva al borrar una cuenta, contratos con Render/Neon/Netlify); texto de Términos y Condiciones (hoy no existe); decidir la fecha de la política ("agosto de 2026") y cambiar el enlace de Play Store a `https://keyserv.netlify.app/privacidad`; respaldo del keystore de Android; para Corfo: formulario de Google Forms con personas reales, presupuesto con supuestos y equipo/asesores.
+
+## Sesión 2026-10-23 (implementación para la postulación a Corfo: inclusión laboral)
+
+Decisiones de estrategia (hoja `Decisiones` D-016 a D-020): encuadre = inclusión laboral y formalización; economía circular = reparar y mantener en vez de reemplazar (el ingreso que queda en la comuna se reporta aparte como "economía local"); calculadora de valorización gratuita y abierta; boleta fase 1 = el proveedor emite en sii.cl y KeyServ registra el folio; ODS 8 (principal), 10 y 12. Un commit por bloque; tareas T-054 a T-057 en la hoja `Tareas`.
+
+- **Bloque 1 — medición de impacto (hecho).** `Usuario.situacion_laboral_previa` y `genero` (voluntarios, migración `0044`; las nuevas parten de la `0045`), `Publicaciones.tipo_servicio`, `Valoracion.evito_reemplazo`; `PUT /api/auth/datos-impacto/`; `impacto.py` + `manage.py reporte_impacto [--json] [--incluir-demo]` (solo agregados, grupos < 5 suprimidos, con supresión complementaria; excluye `@demo.keyserv`). Ionic: preguntas en el registro y en Preferencias, selector de tipo en "Publicar", pregunta en la calificación de reparaciones. [ADR 0008](adr/0008-medicion-de-impacto.md). Suite: backend 548 OK, frontend 136 OK, e2e 11 OK (`--workers=1`).
+- **Pendiente del dueño (bloque 1):** que un abogado revise la finalidad, la base de licitud (consentimiento) y si situación laboral y género son dato sensible (hoja `Pendientes_dueño`); correr `reporte_impacto` contra datos reales solo cuando haya al menos 5 proveedores por grupo.
 
 ## Sesión 2026-10-15 (correcciones de la revisión externa, SIN commitear)
 
