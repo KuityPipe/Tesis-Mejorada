@@ -5,11 +5,14 @@ Exportación de la calculadora de valorización (docs/adr/0009): una planilla .x
 Ni la planilla ni el PDF son documentos tributarios: son una ayuda para fijar un precio.
 """
 from io import BytesIO
+from pathlib import Path
 
 from django.conf import settings
+from django.utils import timezone
 from fpdf import FPDF
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.drawing.image import Image as ImagenExcel
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 from . import calculadora, comisiones
 
@@ -64,9 +67,17 @@ def generar_xlsx(datos):
             celda.font = NEGRITA
         return celda
 
-    hoja['A1'] = 'Valorización de un trabajo - KeyServ'
-    hoja['A1'].font = Font(bold=True, size=14)
+    hoja['A1'] = 'Valorización de un trabajo'
+    hoja['A1'].font = Font(bold=True, size=16, color='0B3D78')
+    hoja['A1'].alignment = Alignment(vertical='center')
+    hoja.row_dimensions[1].height = 54
+    for col in range(1, 7):
+        hoja.cell(1, col).border = Border(bottom=Side(style='thick', color='0C7F6D'))
     hoja['A2'] = 'Las celdas amarillas son datos que puedes cambiar; el resto son fórmulas que se recalculan.'
+    if LOGO.exists():
+        logo = ImagenExcel(str(LOGO))
+        logo.width, logo.height = 90, int(90 * logo.height / logo.width)
+        hoja.add_image(logo, 'F1')
 
     # --- Materiales
     titulo(4, 'MATERIALES')
@@ -177,78 +188,268 @@ def generar_xlsx(datos):
     hoja.merge_cells(start_row=f_tot + 2, start_column=1, end_row=f_tot + 2, end_column=6)
     hoja.row_dimensions[f_tot + 2].height = 48
     hoja.freeze_panes = 'A4'
+    if d['documento'] == 'BOLETA_HONORARIOS':
+        _hoja_boleta(libro, f_pb, f_rm, f_liq)
     salida = BytesIO()
     libro.save(salida)
     return salida.getvalue()
 
 
+def _hoja_boleta(libro, f_pb, f_rm, f_liq):
+    """Segunda hoja con la forma de una boleta de honorarios; sus montos salen de las fórmulas de la primera hoja."""
+    hoja = libro.create_sheet('Boleta (referencia)')
+    hoja.sheet_view.showGridLines = False
+    hoja.column_dimensions['A'].width = 6
+    hoja.column_dimensions['B'].width = 46
+    hoja.column_dimensions['C'].width = 22
+    azul = PatternFill('solid', fgColor='0B3D78')
+    verde = PatternFill('solid', fgColor='E6F4F1')
+    borde = Border(bottom=Side(style='thin', color='999999'))
+    marco = Side(style='medium', color='0B3D78')
+    hoja['B2'] = 'BOLETA DE HONORARIOS - REFERENCIA'
+    hoja['B2'].font = Font(bold=True, size=13, color='FFFFFF')
+    for col in 'BC':
+        hoja[f'{col}2'].fill = azul
+    hoja.row_dimensions[2].height = 26
+    hoja['B2'].alignment = Alignment(vertical='center')
+    if LOGO.exists():
+        logo = ImagenExcel(str(LOGO))
+        logo.width, logo.height = 80, int(80 * logo.height / logo.width)
+        hoja.add_image(logo, 'E2')
+    hoja['B4'] = 'Prestador:'
+    hoja['B5'] = 'RUT:'
+    hoja['B6'] = 'Por servicios de:'
+    for fila in (4, 5, 6):
+        hoja[f'C{fila}'].border = borde
+        hoja[f'C{fila}'].fill = AMARILLO
+    hoja['B8'] = 'Honorarios brutos (monto de la boleta)'
+    hoja['C8'] = f"='Valorización'!F{f_pb}"
+    hoja['B9'] = 'Retención de impuesto estimada'
+    hoja['C9'] = f"=-'Valorización'!F{f_rm}"
+    hoja['B10'] = 'Líquido que recibes'
+    hoja['C10'] = f"='Valorización'!F{f_liq}"
+    for fila in (8, 9, 10):
+        hoja[f'C{fila}'].number_format = FORMATO_PESOS
+    for fila in (8, 10):
+        for col in 'BC':
+            hoja[f'{col}{fila}'].font = NEGRITA
+            hoja[f'{col}{fila}'].fill = verde
+    hoja['B12'] = (
+        'Esta hoja NO es una boleta oficial ni tiene valor tributario: emite tu boleta en sii.cl con estos montos. '
+        'La retención es una estimación y un adelanto de tu impuesto a la renta; confírmala con un contador.'
+    )
+    hoja['B12'].alignment = Alignment(wrap_text=True, vertical='top')
+    hoja['B12'].font = Font(italic=True, size=9, color='5A5A5A')
+    hoja.merge_cells('B12:C12')
+    hoja.row_dimensions[12].height = 48
+    for fila in range(2, 13):
+        hoja[f'B{fila}'].border = Border(left=marco, bottom=hoja[f'B{fila}'].border.bottom)
+        hoja[f'C{fila}'].border = Border(right=marco, bottom=hoja[f'C{fila}'].border.bottom)
+
+
 def _l1(texto):
     """Las fuentes base de PDF solo traen Latin-1: lo que no entra se reemplaza en vez de romper."""
-    return str(texto).encode('latin-1', 'replace').decode('latin-1')
+    return str(texto).replace('–', '-').replace('—', '-').encode('latin-1', 'replace').decode('latin-1')
 
 
 def _pesos(n):
-    return '$' + f'{int(n):,}'.replace(',', '.')
+    return ('-' if n < 0 else '') + '$' + f'{abs(int(n)):,}'.replace(',', '.')
+
+
+AZUL = (11, 61, 120)
+VERDE = (12, 127, 109)
+VERDE_CLARO = (230, 244, 241)
+GRIS_CLARO = (245, 245, 245)
+GRIS_TEXTO = (90, 90, 90)
+LOGO = Path(__file__).resolve().parent / 'static' / 'KeyServApp' / 'imagenes' / 'logo_documentos.png'
 
 
 def generar_pdf(datos):
-    """PDF de una página con el desglose de `calculadora.calcular`."""
+    """
+    Documento de valorización listo para entregar: logo de KeyServ, detalle del trabajo en tabla, totales y, si se elige
+    boleta de honorarios, una hoja de referencia con la forma de una boleta (prestador, honorarios, retención y líquido).
+    No es una boleta ni un documento tributario: la boleta se emite en sii.cl (ver ADR 0009).
+    """
     r = calculadora.calcular(datos)
     pdf = FPDF(format='A4')
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_auto_page_break(auto=True, margin=18)
+    pdf.set_margins(15, 15, 15)
     pdf.add_page()
+    ancho = 180
 
-    pdf.set_font('Helvetica', 'B', 16)
-    pdf.cell(0, 10, _l1('Valorización de un trabajo'), new_x='LMARGIN', new_y='NEXT')
+    def color(rgb):
+        pdf.set_text_color(*rgb)
+
+    def relleno(rgb):
+        pdf.set_fill_color(*rgb)
+
+    def hay_espacio(alto):
+        if pdf.get_y() + alto > pdf.h - 18:
+            pdf.add_page()
+
+    # --- Encabezado: logo a la izquierda, tipo de documento y fecha a la derecha
+    if LOGO.exists():
+        pdf.image(str(LOGO), x=15, y=10, w=36)
+    pdf.set_xy(100, 12)
+    pdf.set_font('Helvetica', 'B', 15)
+    color(AZUL)
+    pdf.cell(95, 8, _l1('VALORIZACIÓN DE TRABAJO'), align='R', new_x='LMARGIN', new_y='NEXT')
+    pdf.set_x(100)
     pdf.set_font('Helvetica', '', 9)
-    pdf.cell(0, 5, _l1('Calculado con la calculadora gratuita de KeyServ'), new_x='LMARGIN', new_y='NEXT')
-    pdf.ln(4)
+    color(GRIS_TEXTO)
+    pdf.cell(95, 5, _l1(f'Fecha: {timezone.localdate():%d/%m/%Y}'), align='R', new_x='LMARGIN', new_y='NEXT')
+    pdf.set_x(100)
+    pdf.cell(95, 5, _l1('Calculada con la calculadora gratuita de KeyServ'), align='R', new_x='LMARGIN', new_y='NEXT')
+    pdf.set_draw_color(*VERDE)
+    pdf.set_line_width(0.8)
+    pdf.line(15, 36, 195, 36)
+    pdf.set_line_width(0.2)
+    pdf.set_y(42)
 
-    def fila(texto, monto, negrita=False, sangria=0):
+    # --- Detalle del trabajo (tabla)
+    pdf.set_font('Helvetica', 'B', 10)
+    relleno(AZUL)
+    color((255, 255, 255))
+    columnas = [(92, 'Concepto', 'L'), (20, 'Cant.', 'R'), (34, 'P. unitario', 'R'), (34, 'Subtotal', 'R')]
+    for w, texto, alin in columnas:
+        pdf.cell(w, 7, _l1(' ' + texto if alin == 'L' else texto + ' '), fill=True, align=alin)
+    pdf.ln(7)
+
+    filas = []
+    for m in r['materiales']:
+        marca = ' (reutilizado)' if m['reutilizado'] else ''
+        unidad = f" {m['unidad']}" if m['unidad'] else ''
+        filas.append((f"{m['descripcion']}{marca}", f"{m['cantidad']:g}{unidad}", _pesos(m['precio_unitario']), _pesos(m['subtotal'])))
+    if r['simple']:
+        filas.append(('Servicio', '', '', _pesos(r['mano_obra_total'])))
+    else:
+        for texto, monto in (('Traslado, peajes y estacionamiento', r['traslado_total']), ('Mano de obra', r['mano_obra_total']), ('Herramientas', r['herramientas_total'])):
+            if monto:
+                filas.append((texto, '', '', _pesos(monto)))
+    if not filas:
+        filas.append(('(sin conceptos)', '', '', _pesos(0)))
+    pdf.set_font('Helvetica', '', 10)
+    color((30, 30, 30))
+    for n, (concepto, cant, unitario, subtotal) in enumerate(filas):
+        hay_espacio(7)
+        relleno(GRIS_CLARO)
+        for (w, _t, alin), texto in zip(columnas, (concepto, cant, unitario, subtotal)):
+            pdf.cell(w, 6.5, _l1((' ' + texto) if alin == 'L' else (texto + ' ')), fill=n % 2 == 0, align=alin)
+        pdf.ln(6.5)
+    pdf.ln(3)
+
+    # --- Totales (a la derecha)
+    def total(texto, monto, negrita=False, fondo=None):
+        pdf.set_x(105)
         pdf.set_font('Helvetica', 'B' if negrita else '', 10)
-        pdf.set_x(pdf.l_margin + sangria)
-        ancho = 190 - sangria - 40
-        pdf.cell(ancho, 6, _l1(texto))
-        pdf.cell(40, 6, _l1(_pesos(monto)), align='R', new_x='LMARGIN', new_y='NEXT')
+        if fondo:
+            relleno(fondo)
+        pdf.cell(55, 7, _l1(' ' + texto), fill=bool(fondo))
+        pdf.cell(35, 7, _l1(_pesos(monto) + ' '), align='R', fill=bool(fondo), new_x='LMARGIN', new_y='NEXT')
 
-    pdf.set_font('Helvetica', 'B', 11)
-    pdf.cell(0, 7, 'Materiales', new_x='LMARGIN', new_y='NEXT')
-    if r['materiales']:
-        for m in r['materiales']:
-            cantidad = f"{m['cantidad']:g}"
-            unidad = f" {m['unidad']}" if m['unidad'] else ''
-            marca = ' (reutilizado)' if m['reutilizado'] else ''
-            fila(f"{m['descripcion']} - {cantidad}{unidad} x {_pesos(m['precio_unitario'])}{marca}", m['subtotal'], sangria=4)
-    else:
-        pdf.set_font('Helvetica', 'I', 10)
-        pdf.cell(0, 6, '(sin materiales)', new_x='LMARGIN', new_y='NEXT')
-    fila('Total materiales', r['materiales_total'], negrita=True)
-    pdf.ln(2)
+    hay_espacio(40)
+    color((30, 30, 30))
+    total('Costo directo', r['costo_directo'])
+    if r['imprevistos_pct'] > 0:
+        total(f"Imprevistos ({r['imprevistos_pct']:g} %)", r['imprevistos_monto'])
+    if r['ganancia_pct'] > 0:
+        total(f"Ganancia ({r['ganancia_pct']:g} %)", r['ganancia_monto'])
+    total('Precio neto', r['precio_neto'], negrita=True, fondo=GRIS_CLARO)
+    pdf.ln(5)
 
-    fila('Traslado, peajes y estacionamiento', r['traslado_total'])
-    fila('Servicio' if r['simple'] else 'Mano de obra', r['mano_obra_total'])
-    fila('Herramientas', r['herramientas_total'])
-    fila('Costo directo', r['costo_directo'], negrita=True)
-    pdf.ln(2)
-    fila(f"Imprevistos ({r['imprevistos_pct']:g} %)", r['imprevistos_monto'])
-    fila(f"Ganancia ({r['ganancia_pct']:g} %)", r['ganancia_monto'])
-    fila('Precio neto (lo que quieres que te quede)', r['precio_neto'], negrita=True)
-    pdf.ln(2)
-
+    # --- Documento que se entrega
     if r['documento'] == 'BOLETA_HONORARIOS':
-        fila(f"Precio a cobrar con boleta de honorarios (retención estimada {r['retencion_pct']:g} %)", r['precio_boleta'], negrita=True)
-        fila('Retención estimada (adelanto de tu impuesto a la renta)', r['retencion_monto'])
-    elif r['documento'] == 'DOCUMENTO_IVA':
-        fila(f"Precio a cobrar con IVA ({r['iva_pct']:g} %)", r['precio_boleta'], negrita=True)
-        fila('IVA (se traspasa al SII)', r['iva_monto'])
+        _caja_boleta(pdf, r, hay_espacio, color, relleno)
     else:
-        fila('Precio a cobrar (sin documento)', r['precio_boleta'], negrita=True)
-    fila('Te quedan líquidos', r['liquido'], negrita=True)
-    pdf.ln(2)
-    fila(f"Comisión de KeyServ ({r['comision_porcentaje']:g} %, la paga el cliente encima)", r['comision_monto'])
-    fila('Total que paga el cliente', r['total_cliente'], negrita=True)
+        hay_espacio(30)
+        etiqueta = 'TOTAL A COBRAR (con IVA)' if r['documento'] == 'DOCUMENTO_IVA' else 'TOTAL A COBRAR (sin documento tributario)'
+        relleno(VERDE_CLARO)
+        pdf.set_font('Helvetica', 'B', 11)
+        color(AZUL)
+        pdf.cell(ancho - 45, 11, _l1(' ' + etiqueta), fill=True)
+        pdf.set_font('Helvetica', 'B', 14)
+        pdf.cell(45, 11, _l1(_pesos(r['precio_boleta']) + ' '), fill=True, align='R', new_x='LMARGIN', new_y='NEXT')
+        pdf.set_font('Helvetica', '', 9)
+        color(GRIS_TEXTO)
+        if r['documento'] == 'DOCUMENTO_IVA':
+            pdf.cell(0, 6, _l1(f"Incluye IVA de {_pesos(r['iva_monto'])} ({r['iva_pct']:g} %), que se traspasa al SII. Te quedan {_pesos(r['liquido'])}."), new_x='LMARGIN', new_y='NEXT')
+        else:
+            pdf.cell(0, 6, _l1(f"Te quedan {_pesos(r['liquido'])}. Sin documento no hay respaldo tributario del trabajo."), new_x='LMARGIN', new_y='NEXT')
+    pdf.ln(5)
+
+    # --- Reparto del cobro en KeyServ
+    hay_espacio(36)
+    pdf.set_font('Helvetica', 'B', 10)
+    color(AZUL)
+    pdf.cell(0, 7, _l1('Así se reparte el cobro en KeyServ'), new_x='LMARGIN', new_y='NEXT')
+    pdf.set_draw_color(200, 200, 200)
+    pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+    color((30, 30, 30))
+    for texto, monto, negrita in (
+        ('Precio que cobras', r['precio_boleta'], False),
+        (f"Comisión de KeyServ ({r['comision_porcentaje']:g} %), la paga quien contrata", r['comision_monto'], False),
+        ('Total que paga el cliente', r['total_cliente'], True),
+    ):
+        pdf.set_font('Helvetica', 'B' if negrita else '', 9.5)
+        pdf.cell(ancho - 40, 6.5, _l1(texto))
+        pdf.cell(40, 6.5, _l1(_pesos(monto)), align='R', new_x='LMARGIN', new_y='NEXT')
 
     pdf.ln(6)
     pdf.set_font('Helvetica', 'I', 8)
+    color(GRIS_TEXTO)
     pdf.multi_cell(0, 4, _l1(AVISO))
     return bytes(pdf.output())
+
+
+def _caja_boleta(pdf, r, hay_espacio, color, relleno):
+    """Hoja de referencia con la forma de una boleta de honorarios: se emite en sii.cl, esto solo ordena los montos."""
+    hay_espacio(92)
+    x, ancho = 15, 180
+    y0 = pdf.get_y()
+    relleno(AZUL)
+    pdf.set_xy(x, y0)
+    pdf.set_font('Helvetica', 'B', 11)
+    color((255, 255, 255))
+    pdf.cell(ancho - 70, 9, _l1('  BOLETA DE HONORARIOS - REFERENCIA'), fill=True)
+    pdf.set_font('Helvetica', '', 8.5)
+    pdf.cell(70, 9, _l1('Los montos para tu boleta en sii.cl  '), fill=True, align='R', new_x='LMARGIN', new_y='NEXT')
+    # Datos del prestador, para completar a mano
+    color((30, 30, 30))
+    pdf.set_font('Helvetica', '', 9.5)
+    pdf.ln(2)
+    pdf.set_x(x + 3)
+    pdf.cell(32, 8, 'Prestador:')
+    pdf.cell(80, 8, '', border='B')
+    pdf.cell(12, 8, '')
+    pdf.cell(12, 8, 'RUT:')
+    pdf.cell(38, 8, '', border='B', new_x='LMARGIN', new_y='NEXT')
+    pdf.set_x(x + 3)
+    pdf.cell(32, 8, 'Por servicios de:')
+    pdf.cell(142, 8, '', border='B', new_x='LMARGIN', new_y='NEXT')
+    pdf.ln(3)
+
+    def linea(texto, monto, negrita=False, fondo=None):
+        pdf.set_x(x + 3)
+        pdf.set_font('Helvetica', 'B' if negrita else '', 10.5 if negrita else 10)
+        if fondo:
+            relleno(fondo)
+        pdf.cell(ancho - 6 - 45, 8, _l1(' ' + texto), fill=bool(fondo))
+        pdf.cell(45, 8, _l1(_pesos(monto) + ' '), align='R', fill=bool(fondo), new_x='LMARGIN', new_y='NEXT')
+
+    linea('Honorarios brutos (monto de la boleta)', r['precio_boleta'], negrita=True, fondo=VERDE_CLARO)
+    linea(f"Retención de impuesto estimada ({r['retencion_pct']:g} %)", -r['retencion_monto'])
+    linea('Líquido que recibes', r['liquido'], negrita=True, fondo=VERDE_CLARO)
+    pdf.ln(1)
+    pdf.set_x(x + 3)
+    pdf.set_font('Helvetica', 'I', 8)
+    color(GRIS_TEXTO)
+    pdf.multi_cell(ancho - 6, 4, _l1(
+        'La retención es un adelanto de tu impuesto a la renta, no un costo: se recupera en tu declaración anual. Esta hoja '
+        'NO es una boleta oficial ni tiene valor tributario: emite tu boleta en sii.cl con estos montos y confirma la '
+        'retención vigente con un contador.'
+    ))
+    pdf.set_draw_color(*AZUL)
+    pdf.set_line_width(0.5)
+    pdf.rect(x, y0, ancho, pdf.get_y() + 2 - y0)
+    pdf.set_line_width(0.2)
+    pdf.set_y(pdf.get_y() + 5)

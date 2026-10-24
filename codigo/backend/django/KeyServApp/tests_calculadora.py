@@ -161,6 +161,26 @@ class ExportacionCalculadoraTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.content.startswith(b'%PDF'))
 
+    def test_la_planilla_agrega_la_hoja_de_boleta_solo_con_boleta_de_honorarios(self):
+        con_boleta = self.client.post('/api/calculadora/exportar/xlsx/', {**EJEMPLO, 'documento': 'BOLETA_HONORARIOS'}, format='json')
+        libro = load_workbook(BytesIO(con_boleta.content))
+        self.assertEqual(len(libro.sheetnames), 2)
+        textos = [c.value for fila in libro.worksheets[1].iter_rows() for c in fila if isinstance(c.value, str)]
+        self.assertTrue(any('NO es una boleta oficial' in t for t in textos))
+        self.assertTrue(any(t.startswith("='Valorización'!F") for t in textos))
+        self.assertEqual(len(libro.worksheets[0]._images), 1)  # logo de KeyServ
+        sin = self.client.post('/api/calculadora/exportar/xlsx/', {**EJEMPLO, 'documento': 'SIN_DOCUMENTO'}, format='json')
+        self.assertEqual(len(load_workbook(BytesIO(sin.content)).sheetnames), 1)
+
+    def test_el_pdf_sale_para_cada_documento_y_con_muchos_materiales(self):
+        for documento in ('BOLETA_HONORARIOS', 'DOCUMENTO_IVA', 'SIN_DOCUMENTO'):
+            resp = self.client.post('/api/calculadora/exportar/pdf/', {**EJEMPLO, 'documento': documento}, format='json')
+            self.assertTrue(resp.content.startswith(b'%PDF'), documento)
+        muchos = [{'descripcion': f'Material {i}', 'cantidad': 1, 'precio_unitario': 1000} for i in range(60)]
+        resp = self.client.post('/api/calculadora/exportar/pdf/', {**EJEMPLO, 'materiales': muchos, 'documento': 'BOLETA_HONORARIOS'}, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreater(resp.content.count(b'/Type /Page\n'), 1)
+
     def test_exportar_datos_invalidos_devuelve_400(self):
         self.assertEqual(self.client.post('/api/calculadora/exportar/pdf/', {'documento': 'X'}, format='json').status_code, 400)
         self.assertEqual(self.client.post('/api/calculadora/exportar/xlsx/', {'mano_obra': {'horas': 'x'}}, format='json').status_code, 400)
