@@ -18,6 +18,33 @@ import {
   valorHora,
 } from '../core/calculadora';
 
+/** Tiempo sin actividad tras el cual la calculadora ofrece ayuda. */
+export const ESPERA_AYUDA_MS = 20000;
+
+export type PasoId = 'modo' | 'precio' | 'materiales' | 'traslado' | 'trabajo' | 'herramientas' | 'extras' | 'documento' | 'resultado';
+export type Termino = 'retencion' | 'iva' | 'imprevistos' | 'ganancia' | 'comision';
+
+/** Guion fijo del guía: lo que dice en cada paso. Sin IA: lo que se escribe aquí no sale a ningún modelo (ADR 0005). */
+export const GUION_PASOS: Record<PasoId, { titulo: string; texto: string; ejemplo: string; terminos: Termino[] }> = {
+  modo: { titulo: '¡Hola! Vamos a ponerle precio a tu trabajo', texto: '¿Ya sabes cuánto quieres que te quede, o prefieres que lo calculemos juntos desde tus costos?', ejemplo: 'si siempre cobras lo mismo (por ejemplo, destapar un lavaplatos), elige la primera opción. Si cada trabajo cambia, la segunda.', terminos: [] },
+  precio: { titulo: 'Lo que quieres que te quede', texto: 'Escribe lo que quieres recibir por el servicio, sin contar materiales ni gastos. Después vemos cuánto cobrar.', ejemplo: 'quieres recibir $30.000 por destapar un lavaplatos: escribe 30000, sin puntos.', terminos: [] },
+  materiales: { titulo: 'Materiales', texto: 'Anota lo que compras o usas para el trabajo. Si no usas nada, déjalo vacío y sigue.', ejemplo: 'una llave de paso: descripción «llave de paso», cantidad 1 y precio unitario 8500.', terminos: [] },
+  traslado: { titulo: 'Traslado', texto: '¿Tienes que ir a otro lugar? Cuenta los kilómetros, peajes y estacionamiento. Si no aplica, salta este paso.', ejemplo: 'si vas 12 km ida y vuelta y calculas $300 por km, son $3.600. Si no sales de tu taller, salta el paso.', terminos: [] },
+  trabajo: { titulo: 'Tu trabajo', texto: 'Tu tiempo vale. Indica cuántas horas tomará y cuánto cobras por hora. ¿No lo sabes? Te ayudo a calcularlo.', ejemplo: 'si el trabajo toma 3 horas y cobras $8.000 por hora, son $24.000.', terminos: [] },
+  herramientas: { titulo: 'Herramientas', texto: 'Las herramientas se gastan o se arriendan. Suma ese desgaste, o salta el paso si no aplica.', ejemplo: 'si en este trabajo gastas unos $2.000 en herramientas, escribe 2000. Si no, salta el paso.', terminos: [] },
+  extras: { titulo: 'Imprevistos y ganancia', texto: 'Dos colchones opcionales: uno para lo que no se ve al cotizar y otro para crecer. Puedes apagarlos.', ejemplo: 'con 10 % de imprevistos y 15 % de ganancia, unos costos de $24.000 suben a $30.360.', terminos: ['imprevistos', 'ganancia'] },
+  documento: { titulo: 'Documento que entregas', texto: 'Según el documento cambia cuánto debes cobrar para que te quede lo que necesitas.', ejemplo: 'si das boleta de honorarios, elige esa; si no entregas ningún documento, «Sin documento».', terminos: ['retencion', 'iva'] },
+  resultado: { titulo: '¡Listo! Esto es lo que sale', texto: 'Estas son tus tres cifras. Abre el detalle si quieres ver cómo se reparte el cobro.', ejemplo: '«Te quedan» es lo que recibes de verdad; «El cliente paga» incluye la comisión de KeyServ.', terminos: ['comision', 'retencion'] },
+};
+
+export const GLOSARIO: Record<Termino, string> = {
+  retencion: 'La retención ({retencion} % estimado) es un adelanto de tu impuesto a la renta que se descuenta cuando emites boleta de honorarios. No es un costo: lo recuperas en tu declaración de abril. Confírmalo con un contador.',
+  iva: 'El IVA ({iva} %) no es tuyo: lo cobras y lo traspasas al SII. Solo corresponde si tienes inicio de actividades de primera categoría.',
+  imprevistos: 'Un colchón para lo que no se ve al cotizar: un material que sube de precio o un arreglo que se complica.',
+  ganancia: 'Lo que queda para ti por encima de tus costos: para renovar herramientas, cubrir meses con poco trabajo y crecer. No es tu pago por hora.',
+  comision: 'La comisión de KeyServ la paga quien contrata, además de tu precio: tú recibes el precio completo.',
+};
+
 /**
  * Calculadora gratuita de valorización (bloque 2). Pública: cualquiera puede ponerle precio a un trabajo sin crear una
  * cuenta. El cálculo vive en el servidor (`KeyServApp/calculadora.py`) para que la comisión y la retención sean siempre
@@ -80,6 +107,21 @@ export class CalculadoraPage implements OnInit, OnDestroy {
   confirmando = false;
   errorConfirmar: string | null = null;
 
+  // Asistente por pasos (por defecto) o todo a la vista. Al confirmar un trabajo se muestra todo junto.
+  vista: 'pasos' | 'todo' = 'pasos';
+  indicePaso = 0;
+  terminoAbierto: Termino | null = null;
+  /** «¿Te confunde algo?»: se abre sola si la persona se queda un rato sin hacer nada. */
+  ayudaAbierta = false;
+  ayudaAutomatica = false;
+  /** En «todo junto»: resalta la invitación a ir paso a paso cuando la persona parece perdida. */
+  sugerirGuia = false;
+  private temporizadorEspera?: ReturnType<typeof setTimeout>;
+
+  readonly guion = GUION_PASOS;
+  readonly glosario = GLOSARIO;
+  readonly etiquetas: Record<Termino, string> = { retencion: 'la retención', iva: 'el IVA', imprevistos: 'los imprevistos', ganancia: 'la ganancia', comision: 'la comisión' };
+
   private suscripcion?: Subscription;
 
   constructor(
@@ -115,6 +157,8 @@ export class CalculadoraPage implements OnInit, OnDestroy {
     });
     // Recalcula mientras la persona escribe, sin disparar una consulta por cada tecla.
     this.suscripcion = this.formulario.valueChanges.pipe(debounceTime(400)).subscribe(() => this.calcular());
+    this.suscripcion.add(this.formulario.valueChanges.subscribe(() => this.reiniciarEspera()));
+    this.reiniciarEspera();
     if (this.autenticado) {
       this.cargarPlantillas();
     }
@@ -126,11 +170,13 @@ export class CalculadoraPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.suscripcion?.unsubscribe();
+    clearTimeout(this.temporizadorEspera);
   }
 
   /** Trabajo que el proveedor va a confirmar: solo si es suyo y sigue en "Solicitada". */
   private cargarTrabajo(id: number): void {
     this.trabajoId = id;
+    this.vista = 'todo';
     if (!this.autenticado) {
       this.errorTrabajo = 'Inicia sesión como proveedor para confirmar este trabajo.';
       return;
@@ -265,6 +311,95 @@ export class CalculadoraPage implements OnInit, OnDestroy {
 
   get modo(): 'simple' | 'costos' {
     return this.formulario.controls.modo.value;
+  }
+
+  // ---- Asistente por pasos ----
+  /** Los pasos según el modo: el normal es corto, el de costos recorre cada tema. */
+  get pasos(): PasoId[] {
+    return this.modo === 'simple'
+      ? ['modo', 'precio', 'documento', 'resultado']
+      : ['modo', 'materiales', 'traslado', 'trabajo', 'herramientas', 'extras', 'documento', 'resultado'];
+  }
+
+  get pasoActual(): PasoId {
+    return this.pasos[Math.min(this.indicePaso, this.pasos.length - 1)];
+  }
+
+  get progreso(): number {
+    return (this.indicePaso + 1) / this.pasos.length;
+  }
+
+  get esPasoOpcional(): boolean {
+    return ['traslado', 'herramientas', 'extras'].includes(this.pasoActual);
+  }
+
+  /** ¿Se muestra este tema? En «todo junto» van todos los del modo; en pasos, solo el actual. */
+  ver(id: PasoId): boolean {
+    return this.vista === 'todo' ? this.pasos.includes(id) : this.pasoActual === id;
+  }
+
+  elegirModo(modo: 'simple' | 'costos'): void {
+    this.formulario.controls.modo.setValue(modo);
+    this.indicePaso = 1;
+    this.cambioDeContexto();
+  }
+
+  siguiente(): void {
+    this.indicePaso = Math.min(this.indicePaso + 1, this.pasos.length - 1);
+    this.cambioDeContexto();
+  }
+
+  atras(): void {
+    this.indicePaso = Math.max(this.indicePaso - 1, 0);
+    this.cambioDeContexto();
+  }
+
+  cambiarVista(vista: 'pasos' | 'todo'): void {
+    this.vista = vista;
+    this.cambioDeContexto();
+  }
+
+  /** Vuelve al primer paso sin borrar lo escrito. */
+  reiniciar(): void {
+    this.indicePaso = 0;
+    this.cambioDeContexto();
+  }
+
+  alternarAyuda(): void {
+    this.ayudaAbierta = !this.ayudaAbierta;
+    this.ayudaAutomatica = false;
+  }
+
+  private cambioDeContexto(): void {
+    this.terminoAbierto = null;
+    this.reiniciarEspera();
+  }
+
+  /** Si pasan ~20 s sin escribir ni navegar, ofrece ayuda: el ejemplo del paso, o ir paso a paso. Cualquier acción lo reinicia. */
+  private reiniciarEspera(): void {
+    clearTimeout(this.temporizadorEspera);
+    this.ayudaAbierta = false;
+    this.ayudaAutomatica = false;
+    this.sugerirGuia = false;
+    this.temporizadorEspera = setTimeout(() => {
+      if (this.vista === 'pasos') {
+        this.ayudaAbierta = true;
+        this.ayudaAutomatica = true;
+      } else {
+        this.sugerirGuia = true;
+      }
+    }, ESPERA_AYUDA_MS);
+  }
+
+  alternarTermino(termino: Termino): void {
+    this.terminoAbierto = this.terminoAbierto === termino ? null : termino;
+  }
+
+  /** Texto del glosario con los porcentajes vigentes del servidor. */
+  textoTermino(termino: Termino): string {
+    return this.glosario[termino]
+      .replace('{retencion}', String(this.config?.retencion_porcentaje ?? 16))
+      .replace('{iva}', String(this.config?.iva_porcentaje ?? 19));
   }
 
   get valorHoraSugerido(): number {

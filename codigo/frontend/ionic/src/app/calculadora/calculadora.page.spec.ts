@@ -1,11 +1,11 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, tick } from '@angular/core/testing';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 
-import { CalculadoraPage } from './calculadora.page';
+import { CalculadoraPage, ESPERA_AYUDA_MS } from './calculadora.page';
 import { SharedModule } from '../shared/shared.module';
 import { Calculadora, describirTramos, valorHora } from '../core/calculadora';
 import { environment } from '../../environments/environment';
@@ -93,6 +93,7 @@ describe('CalculadoraPage', () => {
   });
 
   it('en el modo de costos cada opción se explica en la pantalla', () => {
+    component.vista = 'todo';
     component.formulario.controls.modo.setValue('costos');
     fixture.detectChanges();
     const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
@@ -104,6 +105,7 @@ describe('CalculadoraPage', () => {
 
   it('explica la retención como un adelanto de impuesto y el IVA como plata que no es tuya', () => {
     const texto = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
+    component.vista = 'todo';
     component.formulario.patchValue({ documento: 'BOLETA_HONORARIOS' });
     fixture.detectChanges();
     expect(texto()).toContain('Las boletas de honorarios no llevan IVA');
@@ -203,6 +205,104 @@ describe('CalculadoraPage', () => {
       expect(component.precioCalculadoDistinto).toBeFalse();
       component.resultado = { precio_boleta: 29762 } as never;
       expect(component.precioCalculadoDistinto).toBeTrue();
+    });
+  });
+
+  describe('asistente por pasos', () => {
+    it('arranca en pasos, en el primer paso, y el modo normal es corto', () => {
+      expect(component.vista).toBe('pasos');
+      expect(component.pasoActual).toBe('modo');
+      component.elegirModo('simple');
+      expect(component.pasos).toEqual(['modo', 'precio', 'documento', 'resultado']);
+      expect(component.pasoActual).toBe('precio');
+    });
+
+    it('el modo de costos recorre cada tema y se puede volver atrás', () => {
+      component.elegirModo('costos');
+      expect(component.pasoActual).toBe('materiales');
+      component.siguiente();
+      expect(component.pasoActual).toBe('traslado');
+      expect(component.esPasoOpcional).toBeTrue();
+      component.atras();
+      component.atras();
+      expect(component.pasoActual).toBe('modo');
+      component.atras();
+      expect(component.indicePaso).toBe(0);
+    });
+
+    it('no pasa del último paso y solo muestra el tema actual', () => {
+      component.elegirModo('simple');
+      for (let i = 0; i < 10; i++) {
+        component.siguiente();
+      }
+      expect(component.pasoActual).toBe('resultado');
+      expect(component.ver('resultado')).toBeTrue();
+      expect(component.ver('precio')).toBeFalse();
+      expect(component.progreso).toBe(1);
+    });
+
+    it('en «todo junto» se ven todos los temas del modo', () => {
+      component.cambiarVista('todo');
+      expect(component.ver('precio')).toBeTrue();
+      expect(component.ver('materiales')).toBeFalse();
+      component.formulario.controls.modo.setValue('costos');
+      expect(component.ver('materiales')).toBeTrue();
+      expect(component.ver('precio')).toBeFalse();
+    });
+
+    it('el guía tiene guion para cada paso y el glosario usa los porcentajes del servidor', () => {
+      for (const paso of component.pasos) {
+        expect(component.guion[paso].texto.length).toBeGreaterThan(10);
+      }
+      component.config = { retencion_porcentaje: 14.5, iva_porcentaje: 19 } as never;
+      expect(component.textoTermino('retencion')).toContain('14.5 %');
+      component.alternarTermino('iva');
+      expect(component.terminoAbierto).toBe('iva');
+      component.alternarTermino('iva');
+      expect(component.terminoAbierto).toBeNull();
+    });
+
+    it('cada paso tiene ejemplo y la ayuda se abre y se cierra a mano', () => {
+      for (const paso of component.pasos) {
+        expect(component.guion[paso].ejemplo.length).toBeGreaterThan(10);
+      }
+      component.alternarAyuda();
+      expect(component.ayudaAbierta).toBeTrue();
+      expect(component.ayudaAutomatica).toBeFalse();
+      component.siguiente();
+      expect(component.ayudaAbierta).toBeFalse();
+    });
+
+    it('si la persona se queda quieta, ofrece ayuda sola (pasos) o resalta ir paso a paso (todo junto)', fakeAsync(() => {
+      component.ngOnInit();
+      tick(ESPERA_AYUDA_MS);
+      expect(component.ayudaAbierta).toBeTrue();
+      expect(component.ayudaAutomatica).toBeTrue();
+      component.cambiarVista('todo');
+      expect(component.sugerirGuia).toBeFalse();
+      tick(ESPERA_AYUDA_MS);
+      expect(component.sugerirGuia).toBeTrue();
+      component.ngOnDestroy();
+      discardPeriodicTasks();
+    }));
+
+    it('en «todo junto» el botón de ir paso a paso está a la vista', () => {
+      component.cambiarVista('todo');
+      fixture.detectChanges();
+      const boton = (fixture.nativeElement as HTMLElement).querySelector('.ks-calc-guiame-boton');
+      expect(boton?.textContent).toContain('Ir paso a paso');
+    });
+
+    it('al final muestra tres cifras y el detalle plegado', () => {
+      component.elegirModo('simple');
+      for (let i = 0; i < 3; i++) {
+        component.siguiente();
+      }
+      component.resultado = { simple: true, documento: 'BOLETA_HONORARIOS', precio_boleta: 35715, total_cliente: 37858, liquido: 30000, precio_neto: 30000, retencion_pct: 16, retencion_monto: 5715, comision_porcentaje: 6, comision_monto: 2143 } as never;
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelectorAll('.ks-calc-cifra').length).toBe(3);
+      expect(el.querySelector('details.ks-calc-detalle summary')?.textContent).toContain('Ver el detalle');
     });
   });
 
