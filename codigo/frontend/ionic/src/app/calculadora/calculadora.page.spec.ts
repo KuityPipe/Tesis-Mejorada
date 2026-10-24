@@ -2,11 +2,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 
 import { CalculadoraPage } from './calculadora.page';
 import { SharedModule } from '../shared/shared.module';
-import { Calculadora, valorHora } from '../core/calculadora';
+import { Calculadora, describirTramos, valorHora } from '../core/calculadora';
 import { environment } from '../../environments/environment';
 
 describe('valorHora', () => {
@@ -19,6 +20,13 @@ describe('valorHora', () => {
     expect(valorHora(0, 80)).toBe(0);
     expect(valorHora(800000, 0)).toBe(0);
     expect(valorHora(NaN, 10)).toBe(0);
+  });
+});
+
+describe('describirTramos', () => {
+  it('escribe los tramos como los aplica el servidor', () => {
+    expect(describirTramos([[50000, 6], [200000, 5], [500000, 4.5], [null, 4]])).toBe('6 % hasta $50.000, 5 % hasta $200.000, 4,5 % hasta $500.000 y 4 % sobre eso');
+    expect(describirTramos([[null, 5]])).toBe('5 % sobre eso');
   });
 });
 
@@ -61,11 +69,141 @@ describe('CalculadoraPage', () => {
     expect(d.documento).toBe('BOLETA_HONORARIOS');
   });
 
+  it('arranca en modo normal y manda el precio simple; el modo de costos es la otra opción', () => {
+    expect(component.modo).toBe('simple');
+    component.formulario.patchValue({ precio_simple: 30000, documento: 'BOLETA_HONORARIOS' });
+    expect(component.datos().modo).toBe('simple');
+    expect(component.datos().precio_simple).toBe(30000);
+    component.formulario.controls.modo.setValue('costos');
+    expect(component.modo).toBe('costos');
+    expect(component.datos().modo).toBe('costos');
+  });
+
+  it('cargar una plantilla cambia al modo de costos', () => {
+    component.cargarPlantilla({ id_plantilla: 1, nombre: 'x', tipo_trabajo: '', actualizada_en: '', datos: component.datos() });
+    expect(component.modo).toBe('costos');
+  });
+
+  it('imprevistos y ganancia son opcionales: apagados se mandan en 0', () => {
+    expect(component.datos().imprevistos_pct).toBe(10);
+    expect(component.datos().ganancia_pct).toBe(15);
+    component.formulario.patchValue({ usar_imprevistos: false, usar_ganancia: false });
+    expect(component.datos().imprevistos_pct).toBe(0);
+    expect(component.datos().ganancia_pct).toBe(0);
+  });
+
+  it('en el modo de costos cada opción se explica en la pantalla', () => {
+    component.formulario.controls.modo.setValue('costos');
+    fixture.detectChanges();
+    const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(texto).toContain('Sumar imprevistos');
+    expect(texto).toContain('Un colchón para lo que no se ve al cotizar');
+    expect(texto).toContain('Sumar ganancia');
+    expect(texto).toContain('Lo que queda para ti por encima de tus costos');
+  });
+
+  it('explica la retención como un adelanto de impuesto y el IVA como plata que no es tuya', () => {
+    const texto = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
+    component.formulario.patchValue({ documento: 'BOLETA_HONORARIOS' });
+    fixture.detectChanges();
+    expect(texto()).toContain('Las boletas de honorarios no llevan IVA');
+    expect(texto()).toContain('adelanto de tu impuesto a la renta, no un costo');
+    component.formulario.patchValue({ documento: 'DOCUMENTO_IVA' });
+    fixture.detectChanges();
+    expect(texto()).toContain('El IVA no es tuyo');
+    expect(texto()).toContain('inicio de actividades de primera categoría');
+    component.formulario.patchValue({ documento: 'SIN_DOCUMENTO' });
+    fixture.detectChanges();
+    expect(texto()).toContain('Sin documento no queda constancia tributaria');
+  });
+
+  it('cargar una plantilla respeta si tenía imprevistos o ganancia apagados', () => {
+    const base = component.datos();
+    component.cargarPlantilla({ id_plantilla: 1, nombre: 'x', tipo_trabajo: '', actualizada_en: '', datos: { ...base, imprevistos_pct: 0, ganancia_pct: 20 } });
+    expect(component.formulario.controls.usar_imprevistos.value).toBeFalse();
+    expect(component.formulario.controls.usar_ganancia.value).toBeTrue();
+    expect(component.formulario.controls.ganancia_pct.value).toBe(20);
+  });
+
   it('el ayudante del valor por hora lo copia a la mano de obra', () => {
     component.ayudante.patchValue({ ingreso_mensual: 900000, horas_cobrables: 90 });
     expect(component.valorHoraSugerido).toBe(10000);
     component.usarValorHora();
     expect(component.formulario.controls.valor_hora.value).toBe(10000);
+  });
+
+  it('"para ti" descuenta materiales, traslado y herramientas de lo que recibes', () => {
+    const r = { liquido: 59077, materiales_total: 15500, traslado_total: 6000, herramientas_total: 1200 } as never;
+    expect(component.paraTi(r)).toBe(36377);
+    expect(component.paraTi({ liquido: 100, materiales_total: 500, traslado_total: 0, herramientas_total: 0 } as never)).toBe(0);
+  });
+
+  describe('al confirmar un trabajo desde la calculadora', () => {
+    const trabajo = { id_contratacion: 29, proveedor: 4, estado: 'SOLICITADA', publicacion_precio: 25000, publicacion_titulo: 'Gasfitería' } as never;
+
+    beforeEach(() => {
+      component.trabajo = trabajo;
+      component.trabajoId = 29;
+    });
+
+    it('muestra el precio sugerido de la publicación, grande y a la vista', () => {
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(component.precioSugerido).toBe(25000);
+      expect(el.querySelector('.ks-calc-sugerido-grande strong')?.textContent).toContain('25');
+      expect(el.textContent).toContain('Precio sugerido en tu publicación');
+    });
+
+    it('confirmar con el precio de la publicación no manda monto: el servidor usa el de la publicación', () => {
+      const router = TestBed.inject(Router);
+      spyOn(router, 'navigate').and.resolveTo(true);
+      component.passwordConfirmar = 'clave';
+      component.confirmarTrabajo(false);
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/contrataciones/29/confirmar/'));
+      expect(req.request.body.monto).toBeUndefined();
+      expect(req.request.body.items).toBeUndefined();
+      expect(req.request.body.password).toBe('clave');
+    });
+
+    it('confirmar con el precio calculado en el modo de costos manda el monto y el desglose', () => {
+      component.formulario.controls.modo.setValue('costos');
+      component.resultado = { precio_boleta: 70329, items: [{ descripcion: 'Mano de obra', categoria: 'MANO_DE_OBRA', monto: 70329 }] } as never;
+      component.passwordConfirmar = 'clave';
+      component.confirmarTrabajo(true);
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/contrataciones/29/confirmar/'));
+      expect(req.request.body.monto).toBe(70329);
+      expect(req.request.body.items.length).toBe(1);
+    });
+
+    it('confirmar con el precio calculado en el modo normal manda solo el monto', () => {
+      component.resultado = { precio_boleta: 30000, items: [{ descripcion: 'Servicio', categoria: 'OTRO', monto: 30000 }] } as never;
+      component.passwordConfirmar = 'clave';
+      component.confirmarTrabajo(true);
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/contrataciones/29/confirmar/'));
+      expect(req.request.body.monto).toBe(30000);
+      expect(req.request.body.items).toBeUndefined();
+    });
+
+    it('sin contraseña no confirma', () => {
+      component.confirmarTrabajo(false);
+      httpMock.expectNone((r) => r.url.endsWith('/confirmar/'));
+      expect(component.errorConfirmar).toContain('contraseña');
+    });
+
+    it('un error del servidor se muestra y no navega', () => {
+      component.passwordConfirmar = 'mala';
+      component.confirmarTrabajo(false);
+      httpMock.expectOne((r) => r.url.endsWith('/confirmar/')).flush({ detail: 'Contraseña incorrecta — no se pudo confirmar.' }, { status: 400, statusText: 'Bad Request' });
+      expect(component.errorConfirmar).toContain('Contraseña incorrecta');
+      expect(component.confirmando).toBeFalse();
+    });
+
+    it('ofrece el precio calculado solo si es distinto al de la publicación', () => {
+      component.resultado = { precio_boleta: 25000 } as never;
+      expect(component.precioCalculadoDistinto).toBeFalse();
+      component.resultado = { precio_boleta: 29762 } as never;
+      expect(component.precioCalculadoDistinto).toBeTrue();
+    });
   });
 
   it('nunca deja la lista de materiales vacía', () => {

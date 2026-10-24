@@ -190,6 +190,8 @@ class ContratacionListSerializer(serializers.ModelSerializer):
     # (aproximada, no su dirección) y alcanza para calcular una distancia en el cliente si la persona comparte su posición.
     publicacion_categoria = serializers.CharField(source='publicacion.categoria', read_only=True)
     publicacion_tipo_servicio = serializers.CharField(source='publicacion.tipo_servicio', read_only=True)
+    # Precio que puso el proveedor en su publicación: el monto sugerido al confirmar (la calculadora de ese trabajo lo muestra).
+    publicacion_precio = serializers.IntegerField(source='publicacion.precio', read_only=True, allow_null=True)
     proveedor_comuna = serializers.SerializerMethodField()
     proveedor_latitud = serializers.SerializerMethodField()
     proveedor_longitud = serializers.SerializerMethodField()
@@ -198,7 +200,7 @@ class ContratacionListSerializer(serializers.ModelSerializer):
         model = Contratacion
         fields = [
             'id_contratacion', 'estado', 'monto_acordado', 'fecha_creacion',
-            'publicacion', 'publicacion_titulo', 'publicacion_imagen', 'publicacion_categoria', 'publicacion_tipo_servicio',
+            'publicacion', 'publicacion_titulo', 'publicacion_imagen', 'publicacion_categoria', 'publicacion_tipo_servicio', 'publicacion_precio',
             'cliente', 'cliente_nombre', 'proveedor', 'proveedor_nombre',
             'proveedor_comuna', 'proveedor_latitud', 'proveedor_longitud',
             'tiene_valoracion',

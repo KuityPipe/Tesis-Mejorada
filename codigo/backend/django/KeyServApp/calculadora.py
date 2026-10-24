@@ -22,7 +22,7 @@ from django.conf import settings
 
 from . import comisiones
 
-DOCUMENTOS = ('SIN_DOCUMENTO', 'BOLETA_HONORARIOS')
+DOCUMENTOS = ('SIN_DOCUMENTO', 'BOLETA_HONORARIOS', 'DOCUMENTO_IVA')
 MAX_MATERIALES = 60
 MAX_VALOR = Decimal('100000000')   # 100 millones: cualquier cifra mayor es un error de tipeo
 IMPREVISTOS_DEFECTO = Decimal('10')
@@ -37,10 +37,15 @@ def retencion_defecto():
     return Decimal(str(settings.CALCULADORA_RETENCION_BOLETA))
 
 
+def iva_defecto():
+    return Decimal(str(settings.CALCULADORA_IVA))
+
+
 def configuracion_publica():
     """Valores por defecto y tramos de comisión para que la interfaz los muestre sin duplicarlos."""
     return {
         'retencion_porcentaje': float(retencion_defecto()),
+        'iva_porcentaje': float(iva_defecto()),
         'imprevistos_porcentaje': float(IMPREVISTOS_DEFECTO),
         'ganancia_porcentaje': float(GANANCIA_DEFECTO),
         'comision_tramos': comisiones.tramos_para_publico(),
@@ -109,10 +114,11 @@ def normalizar(datos):
 
     documento = datos.get('documento') or 'SIN_DOCUMENTO'
     if documento not in DOCUMENTOS:
-        raise DatosInvalidos('Documento: elige "sin documento" o "boleta de honorarios".')
+        raise DatosInvalidos('Documento: elige sin documento, boleta de honorarios o documento con IVA.')
 
     retencion = datos.get('retencion_pct')
-    return {
+    normalizado = {
+        'simple': False,
         'materiales': materiales,
         'traslado': {
             'modo': 'fijo' if traslado.get('modo') == 'fijo' else 'km',
@@ -136,6 +142,19 @@ def normalizar(datos):
         'documento': documento,
         'retencion_pct': _porcentaje(retencion, 'Retención', retencion_defecto(), maximo=Decimal('50')),
     }
+    if datos.get('modo') == 'simple':
+        # Modo normal: la persona ya sabe cuánto quiere cobrar por el servicio; solo falta ver el efecto de la boleta y la comisión.
+        precio = _numero(datos.get('precio_simple'), 'Precio del servicio')
+        normalizado.update({
+            'simple': True,
+            'materiales': [],
+            'traslado': {'modo': 'fijo', 'km_ida_vuelta': Decimal('0'), 'costo_km': Decimal('0'), 'monto_fijo': Decimal('0'), 'peajes_estacionamiento': Decimal('0')},
+            'mano_obra': {'horas': Decimal('1'), 'valor_hora': precio, 'personas': Decimal('1')},
+            'herramientas': {'modo': 'monto', 'monto': Decimal('0'), 'porcentaje': Decimal('0')},
+            'imprevistos_pct': Decimal('0'),
+            'ganancia_pct': Decimal('0'),
+        })
+    return normalizado
 
 
 def calcular(datos):
@@ -170,15 +189,21 @@ def calcular(datos):
     precio_neto = costo_directo + imprevistos_monto + ganancia_monto
 
     con_boleta = d['documento'] == 'BOLETA_HONORARIOS'
+    con_iva = d['documento'] == 'DOCUMENTO_IVA'
     retencion_pct = d['retencion_pct']
+    iva_pct = iva_defecto()
+    retencion_monto = iva_monto = 0
     if con_boleta:
         precio_boleta = math.ceil(Decimal(precio_neto) / (1 - retencion_pct / 100))
         retencion_monto = _entero(Decimal(precio_boleta) * retencion_pct / 100, ROUND_FLOOR)
+    elif con_iva:
+        # El IVA se suma encima del precio neto y no es de quien cobra: se traspasa al SII, así que no cuenta en lo que recibe.
+        iva_monto = _entero(Decimal(precio_neto) * iva_pct / 100)
+        precio_boleta = precio_neto + iva_monto
     else:
         precio_boleta = precio_neto
-        retencion_monto = 0
-    liquido = precio_boleta - retencion_monto
-    ajuste_boleta = precio_boleta - precio_neto  # lo que se suma al precio para que, tras la retención, queden `precio_neto`
+    liquido = precio_boleta - retencion_monto - iva_monto
+    ajuste_boleta = precio_boleta - precio_neto if con_boleta else 0  # sube el precio para que, tras la retención, queden `precio_neto`
 
     desglose = comisiones.calcular(precio_boleta)
 
@@ -192,11 +217,12 @@ def calcular(datos):
             })
     for descripcion, categoria, monto in (
         ('Traslado, peajes y estacionamiento', 'VIAJE', traslado_total),
-        ('Mano de obra', 'MANO_DE_OBRA', mano_obra_total),
+        ('Servicio', 'OTRO', mano_obra_total) if d['simple'] else ('Mano de obra', 'MANO_DE_OBRA', mano_obra_total),
         ('Herramientas', 'HERRAMIENTAS', herramientas_total),
         (f'Imprevistos ({_texto_pct(d["imprevistos_pct"])} %)', 'IMPREVISTOS', imprevistos_monto),
         (f'Ganancia ({_texto_pct(d["ganancia_pct"])} %)', 'OTRO', ganancia_monto),
         (f'Retención de la boleta de honorarios ({_texto_pct(retencion_pct)} %)', 'OTRO', ajuste_boleta),
+        (f'IVA ({_texto_pct(iva_pct)} %)', 'OTRO', iva_monto),
     ):
         if monto > 0:
             items.append({'descripcion': descripcion, 'categoria': categoria, 'monto': monto})
@@ -216,11 +242,14 @@ def calcular(datos):
         'documento': d['documento'],
         'retencion_pct': float(retencion_pct) if con_boleta else 0.0,
         'retencion_monto': retencion_monto,
+        'iva_pct': float(iva_pct) if con_iva else 0.0,
+        'iva_monto': iva_monto,
         'precio_boleta': precio_boleta,
         'liquido': liquido,
         'comision_porcentaje': float(desglose.porcentaje),
         'comision_monto': desglose.comision,
         'total_cliente': desglose.total,
+        'simple': d['simple'],
         'tiene_reutilizado': any(m['reutilizado'] for m in d['materiales']),
         'items': items,
     }

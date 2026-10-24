@@ -41,6 +41,90 @@
   font-weight: 600;
 }
 
+// Trabajo que se está confirmando: el precio de la publicación, grande y llamativo
+.ks-calc-trabajo {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-surface);
+  border: 2px solid #0c7f6d;
+
+  @media (min-width: 800px) {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 1.1fr);
+    align-items: center;
+  }
+
+  h2 {
+    margin: 8px 0 4px;
+    font-size: 1.3rem;
+    color: var(--ks-ink);
+  }
+
+  p {
+    margin: 0;
+    color: var(--ks-ink-soft);
+  }
+
+  .ks-calc-sello {
+    background: var(--ks-teal-light);
+    color: #0c7f6d;
+  }
+}
+
+.ks-calc-sugerido-grande {
+  display: grid;
+  gap: 4px;
+  padding: 16px 20px;
+  border-radius: 18px;
+  background: linear-gradient(150deg, #0a3a6f, #082c57);
+  color: #fff;
+  text-align: center;
+
+  small {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #7ee0cf;
+  }
+
+  strong {
+    font-family: var(--ks-font-display, inherit);
+    font-size: clamp(2.8rem, 8vw, 4.4rem);
+    line-height: 1.05;
+    color: #fff;
+  }
+
+  span {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+
+.ks-calc-confirmar {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 14px;
+  border: 2px solid #0c7f6d;
+  border-radius: 14px;
+  background: var(--ks-teal-light);
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--ks-ink);
+  }
+}
+
+.ks-calc-modo {
+  padding: 4px;
+  border: 1px solid var(--ks-border);
+  border-radius: 14px;
+  background: var(--ks-surface);
+}
+
 .ks-calc-principal {
   display: grid;
   gap: 16px;
@@ -61,6 +145,32 @@
     font-size: 1.1rem;
     color: var(--ks-ink);
   }
+}
+
+.ks-calc-opcional {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ks-ink-soft);
+}
+
+.ks-calc-opcion {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--ks-border);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  .ks-calc-ayuda {
+    margin: 0;
+  }
+}
+
+.ks-calc-documento {
+  margin-top: 12px;
 }
 
 .ks-calc-ayuda {
@@ -218,9 +328,56 @@
   }
 }
 
-.ks-calc-cliente {
-  margin: 0 0 12px;
-  font-size: 0.88rem;
+.ks-calc-reparto {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px dashed var(--ks-border);
+  border-radius: 14px;
+
+  h3 {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    color: var(--ks-ink);
+  }
+
+  dl {
+    margin: 0;
+  }
+
+  dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    font-size: 0.88rem;
+    color: var(--ks-ink-soft);
+  }
+
+  dt,
+  dd {
+    margin: 0;
+  }
+
+  dd {
+    white-space: nowrap;
+  }
+
+  .ks-calc-sub {
+    border-top: 1px solid var(--ks-border);
+    font-weight: 700;
+    color: var(--ks-ink);
+  }
+
+  .ks-calc-tuparte {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px solid var(--ks-border);
+  }
+}
+
+.ks-calc-nota {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
   color: var(--ks-ink-soft);
 }
 

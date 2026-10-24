@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
@@ -39,20 +40,26 @@ describe('DetallePage', () => {
     expect(component).toBeTruthy();
   });
 
-  it('cargar una plantilla llena la hoja de presupuesto y se envía al confirmar', () => {
-    component.contratacionId = 7;
-    component.plantillaElegida = 3;
-    component.cargarPlantillaEnPresupuesto();
-    httpMock.expectOne(`${environment.apiUrl}/calculadora/plantillas/3/items/`).flush({
-      items: [{ descripcion: 'Mano de obra', categoria: 'MANO_DE_OBRA', monto: 24000 }], total: 24000,
-    });
-    expect(component.itemsPresupuesto.length).toBe(1);
-    expect(component.totalItemsPresupuesto).toBe(24000);
+  it('"Confirmar contratación" lleva a la calculadora de ese trabajo', () => {
+    const router = TestBed.inject(Router);
+    const navegar = spyOn(router, 'navigate').and.resolveTo(true);
+    component.contratacionId = 29;
+    component.irACalculadora();
+    expect(navegar).toHaveBeenCalledWith(['/calculadora'], { queryParams: { contratacion: 29 } });
+  });
 
-    component.formularioReauth.patchValue({ password: 'clave' });
-    component.confirmar();
-    const req = httpMock.expectOne((r) => r.method === 'POST' && r.url.endsWith('/contrataciones/7/confirmar/'));
-    expect(req.request.body.items).toEqual([{ descripcion: 'Mano de obra', categoria: 'MANO_DE_OBRA', monto: 24000 }]);
+  it('el proveedor ve "Confirmar contratación" como un botón hacia la calculadora, sin pedir la contraseña aquí', () => {
+    component.usuarioActualId = 20;
+    component.cargando = false;
+    component.contratacion = {
+      cliente: 10, proveedor: 20, estado: 'SOLICITADA', pago: null, items_presupuesto: [], boleta: null, historial: [],
+      publicacion_imagenes: [], desglose_pago: null,
+    } as never;
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Confirmar contratación');
+    expect(el.textContent).toContain('calculadora de este trabajo');
+    expect(el.querySelector('ion-input[label="Confirma tu contraseña"]')).toBeNull();
   });
 
   it('el proveedor solo registra la boleta de un trabajo pagado', () => {
@@ -93,12 +100,21 @@ describe('DetallePage', () => {
     expect(component.guardandoBoleta).toBeFalse();
   });
 
-  it('quitar la plantilla vuelve a pedir el monto acordado a mano', () => {
-    component.itemsPresupuesto = [{ descripcion: 'x', categoria: 'OTRO', monto: 1 }];
-    component.totalItemsPresupuesto = 1;
-    component.quitarPlantillaDelPresupuesto();
-    expect(component.itemsPresupuesto).toEqual([]);
-    expect(component.plantillaElegida).toBeNull();
+  it('quien contrata ve cómo se calcula su pago y un agradecimiento', () => {
+    component.usuarioActualId = 10;
+    component.tramosComision = '6 % hasta $50.000 y 4 % sobre eso';
+    component.contratacion = {
+      cliente: 10, proveedor: 20, estado: 'CONFIRMADA', pago: null, items_presupuesto: [], boleta: null, historial: [],
+      publicacion_imagenes: [], desglose_pago: { monto_servicio: 20000, comision_porcentaje: 6, comision: 1200, total: 21200 },
+    } as never;
+    component.cargando = false;
+    fixture.detectChanges();
+    const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(texto).toContain('Cómo se calcula tu pago');
+    expect(texto).toContain('6 % hasta $50.000 y 4 % sobre eso');
+    expect(texto).toMatch(/21[.,]200/);
+    expect(texto).toContain('Gracias por elegir KeyServ');
+    expect(texto).toContain('ambiente sano');
   });
 
   it('rechazar/cancelar: cada rol ve solo su botón, y una contratación ya pagada remite a soporte', () => {

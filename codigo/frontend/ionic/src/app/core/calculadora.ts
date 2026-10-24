@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 
-export type Documento = 'SIN_DOCUMENTO' | 'BOLETA_HONORARIOS';
+export type Documento = 'SIN_DOCUMENTO' | 'BOLETA_HONORARIOS' | 'DOCUMENTO_IVA';
 
 export interface MaterialValorizacion {
   descripcion: string;
@@ -16,6 +16,9 @@ export interface MaterialValorizacion {
 
 /** Cuerpo que entiende `POST /api/calculadora/calcular/` (ver KeyServApp/calculadora.py). */
 export interface DatosValorizacion {
+  /** `simple`: la persona ya sabe cuánto cobrar (solo se ve el efecto de la boleta y la comisión); `costos`: se calcula desde los costos. */
+  modo?: 'simple' | 'costos';
+  precio_simple?: number;
   materiales: MaterialValorizacion[];
   traslado: { modo: 'km' | 'fijo'; km_ida_vuelta: number; costo_km: number; monto_fijo: number; peajes_estacionamiento: number };
   mano_obra: { horas: number; valor_hora: number; personas: number };
@@ -36,6 +39,7 @@ export interface ItemValorizacion {
 }
 
 export interface ResultadoValorizacion {
+  simple: boolean;
   materiales_total: number;
   traslado_total: number;
   mano_obra_total: number;
@@ -49,6 +53,8 @@ export interface ResultadoValorizacion {
   documento: Documento;
   retencion_pct: number;
   retencion_monto: number;
+  iva_pct: number;
+  iva_monto: number;
   precio_boleta: number;
   liquido: number;
   comision_porcentaje: number;
@@ -60,6 +66,7 @@ export interface ResultadoValorizacion {
 
 export interface ConfigCalculadora {
   retencion_porcentaje: number;
+  iva_porcentaje: number;
   imprevistos_porcentaje: number;
   ganancia_porcentaje: number;
   comision_tramos: [number | null, number][];
@@ -72,6 +79,14 @@ export interface PlantillaValorizacion {
   tipo_trabajo: string;
   datos: DatosValorizacion;
   actualizada_en: string;
+}
+
+/** "6 % hasta $50.000, 5 % hasta $200.000, 4,5 % hasta $500.000 y 4 % sobre eso" a partir de los tramos que entrega el servidor. */
+export function describirTramos(tramos: [number | null, number][]): string {
+  const pesos = (n: number) => '$' + n.toLocaleString('es-CL');
+  const pct = (p: number) => `${String(p).replace('.', ',')} %`;
+  const partes = tramos.map(([tope, porcentaje], i) => (tope === null ? `${pct(porcentaje)} sobre eso` : `${pct(porcentaje)} hasta ${pesos(tope)}`));
+  return partes.length > 1 ? `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}` : partes.join('');
 }
 
 const CLAVE_VISITANTE = 'ks_visitante_calculadora';

@@ -232,3 +232,27 @@
     cursor: pointer;
   }
 }
+
+// Explicación de la comisión y agradecimiento (versión de quien contrata)
+.ks-explica-comision {
+  margin: 8px 0 12px;
+}
+
+.ks-gracias {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--ks-teal-light);
+  font-size: 0.88rem;
+  color: var(--ks-ink);
+
+  ion-icon {
+    flex: none;
+    margin-top: 2px;
+    font-size: 1.2rem;
+    color: #0c7f6d;
+  }
+}

@@ -354,3 +354,96 @@ class HojaDePresupuestoExtendidaTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         item = self.contratacion.items_presupuesto.get()
         self.assertEqual((item.cantidad, item.precio_unitario), (None, None))
+
+
+class ModoNormalCalculadoraTests(SimpleTestCase):
+    """Modo normal: la persona ya sabe cuánto cobrar; solo se ve el efecto de la boleta y la comisión."""
+
+    def test_sin_documento_el_precio_es_el_que_se_escribe(self):
+        r = calculadora.calcular({'modo': 'simple', 'precio_simple': 30000})
+        self.assertTrue(r['simple'])
+        self.assertEqual((r['precio_neto'], r['precio_boleta'], r['liquido']), (30000, 30000, 30000))
+        self.assertEqual((r['imprevistos_monto'], r['ganancia_monto']), (0, 0))
+        self.assertEqual(r['total_cliente'], 30000 + comisiones.calcular(30000).comision)
+        self.assertEqual(r['items'], [{'descripcion': 'Servicio', 'categoria': 'OTRO', 'monto': 30000}])
+
+    def test_con_boleta_sube_el_precio_para_que_quede_lo_deseado(self):
+        r = calculadora.calcular({'modo': 'simple', 'precio_simple': 30000, 'documento': 'BOLETA_HONORARIOS'})
+        self.assertEqual(r['precio_neto'], 30000)
+        self.assertEqual(r['precio_boleta'], 35715)             # ceil(30.000 / 0,84)
+        self.assertGreaterEqual(r['liquido'], 30000)
+        self.assertEqual(sum(i['monto'] for i in r['items']), r['precio_boleta'])
+
+    def test_ignora_lo_de_la_calculadora_de_costos(self):
+        r = calculadora.calcular({**EJEMPLO, 'modo': 'simple', 'precio_simple': 10000, 'imprevistos_pct': 50, 'ganancia_pct': 50})
+        self.assertEqual(r['precio_neto'], 10000)
+        self.assertEqual(r['materiales'], [])
+
+    def test_exige_un_numero_valido(self):
+        with self.assertRaises(calculadora.DatosInvalidos):
+            calculadora.calcular({'modo': 'simple', 'precio_simple': -5})
+        self.assertEqual(calculadora.calcular({'modo': 'simple'})['precio_boleta'], 0)
+
+    def test_el_modo_de_costos_sigue_igual(self):
+        self.assertFalse(calculadora.calcular(EJEMPLO)['simple'])
+        self.assertEqual(calculadora.calcular(EJEMPLO)['precio_boleta'], 70329)
+
+
+class PrecioDeLaPublicacionEnLaContratacionTests(APITestCase):
+    """La calculadora de un trabajo parte del precio de la publicación: tiene que viajar con la contratación."""
+
+    def test_la_contratacion_trae_el_precio_de_la_publicacion(self):
+        _, comuna, tipo = _crear_region_comuna_tipo()
+        proveedor = _crear_usuario('prov_precio@test.com', es_proveedor=True, comuna=comuna, tipo_cuenta=tipo)
+        cliente = _crear_usuario('cli_precio@test.com', comuna=comuna, tipo_cuenta=tipo)
+        con_precio = Publicaciones.objects.create(usuario_publicador=proveedor, titulo='A', estado_moderacion=Publicaciones.APROBADA, precio=25000)
+        sin_precio = Publicaciones.objects.create(usuario_publicador=proveedor, titulo='B', estado_moderacion=Publicaciones.APROBADA)
+        c1 = Contratacion.objects.create(publicacion=con_precio, cliente=cliente, proveedor=proveedor)
+        c2 = Contratacion.objects.create(publicacion=sin_precio, cliente=cliente, proveedor=proveedor)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {jwt_utils.generar_access_token(proveedor)}')
+        self.assertEqual(self.client.get(f'/api/contrataciones/{c1.id_contratacion}/').data['publicacion_precio'], 25000)
+        self.assertIsNone(self.client.get(f'/api/contrataciones/{c2.id_contratacion}/').data['publicacion_precio'])
+        self.assertEqual({c['id_contratacion']: c['publicacion_precio'] for c in self.client.get('/api/contrataciones/').data}[c1.id_contratacion], 25000)
+
+
+class IvaYDocumentosCalculadoraTests(SimpleTestCase):
+    """La boleta de honorarios no lleva IVA; un documento afecto sí (19 %) y ese IVA no es de quien cobra."""
+
+    BASE = {'mano_obra': {'horas': 3, 'valor_hora': 10000}, 'imprevistos_pct': 0, 'ganancia_pct': 0}
+
+    def test_con_iva_se_suma_encima_y_no_cuenta_en_lo_que_recibes(self):
+        r = calculadora.calcular({**self.BASE, 'documento': 'DOCUMENTO_IVA'})
+        self.assertEqual(r['precio_neto'], 30000)
+        self.assertEqual((r['iva_pct'], r['iva_monto']), (19.0, 5700))
+        self.assertEqual(r['precio_boleta'], 35700)
+        self.assertEqual((r['retencion_monto'], r['liquido']), (0, 30000))
+        self.assertEqual(r['total_cliente'], 35700 + comisiones.calcular(35700).comision)  # la comisión se calcula sobre lo que se cobra
+
+    def test_la_boleta_de_honorarios_no_lleva_iva(self):
+        r = calculadora.calcular({**self.BASE, 'documento': 'BOLETA_HONORARIOS'})
+        self.assertEqual((r['iva_pct'], r['iva_monto']), (0.0, 0))
+        self.assertGreater(r['retencion_monto'], 0)
+
+    def test_sin_documento_no_hay_ni_iva_ni_retencion(self):
+        r = calculadora.calcular({**self.BASE, 'documento': 'SIN_DOCUMENTO'})
+        self.assertEqual((r['iva_monto'], r['retencion_monto'], r['precio_boleta']), (0, 0, 30000))
+
+    def test_los_items_suman_el_precio_con_iva(self):
+        r = calculadora.calcular({**EJEMPLO, 'documento': 'DOCUMENTO_IVA'})
+        self.assertEqual(sum(i['monto'] for i in r['items']), r['precio_boleta'])
+        self.assertTrue(any(i['descripcion'].startswith('IVA') for i in r['items']))
+
+    def test_imprevistos_y_ganancia_se_pueden_dejar_en_cero(self):
+        r = calculadora.calcular({**self.BASE})
+        self.assertEqual((r['imprevistos_monto'], r['ganancia_monto'], r['precio_neto']), (0, 0, 30000))
+        r = calculadora.calcular({'mano_obra': {'horas': 3, 'valor_hora': 10000}})  # sin decirlo: por defecto 10 % y 15 %
+        self.assertEqual(r['precio_neto'], 37950)
+
+    def test_modo_normal_con_iva(self):
+        r = calculadora.calcular({'modo': 'simple', 'precio_simple': 20000, 'documento': 'DOCUMENTO_IVA'})
+        self.assertEqual((r['precio_boleta'], r['liquido']), (23800, 20000))
+
+    def test_el_iva_se_configura(self):
+        with override_settings(CALCULADORA_IVA='10'):
+            r = calculadora.calcular({**self.BASE, 'documento': 'DOCUMENTO_IVA'})
+        self.assertEqual(r['iva_monto'], 3000)

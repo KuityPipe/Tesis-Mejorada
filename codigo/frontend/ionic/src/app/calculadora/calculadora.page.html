@@ -12,11 +12,49 @@
   <header class="ks-calc-hero" appReveal>
     <span class="ks-calc-sello"><ion-icon name="calculator-outline" aria-hidden="true"></ion-icon> Gratis y sin cuenta</span>
     <h1>¿Cuánto cobrar por <em>tu trabajo</em>?</h1>
-    <p>Suma materiales, traslado, tu tiempo, herramientas, imprevistos y ganancia. Si emites boleta de honorarios, te muestra cuánto cobrar para que, tras la retención, te quede lo que necesitas. No guardamos lo que escribes aquí.</p>
+    <p>Elige el modo <strong>Normal</strong> si ya sabes cuánto cobrar, o la <strong>Calculadora de costos</strong> para sumar materiales, traslado, tu tiempo, herramientas, imprevistos y ganancia. Si emites boleta de honorarios, te muestra cuánto cobrar para que, tras la retención, te quede lo que necesitas. No guardamos lo que escribes aquí.</p>
   </header>
+
+  <!-- Llegada desde "Confirmar contratación" de un trabajo: el precio de la publicación, grande y a la vista -->
+  <section class="ks-calc-trabajo" *ngIf="trabajo" appReveal aria-label="Trabajo que vas a confirmar">
+    <div class="ks-calc-trabajo-info">
+      <span class="ks-calc-sello">Trabajo #{{ trabajo.id_contratacion }}</span>
+      <h2>{{ trabajo.publicacion_titulo }}</h2>
+      <p>Solicitado por {{ trabajo.cliente_nombre }}. Define el monto y confirma abajo, junto al resumen.</p>
+    </div>
+    <div class="ks-calc-sugerido-grande" *ngIf="precioSugerido; else sinPrecio">
+      <small>Precio sugerido en tu publicación</small>
+      <strong>{{ precioSugerido | currency:'CLP':'symbol-narrow':'1.0-0' }}</strong>
+      <span>Es lo que el cliente vio al contratar. Puedes mantenerlo o cambiarlo si el trabajo es distinto: usa la calculadora para ver cuánto cobrar.</span>
+    </div>
+    <ng-template #sinPrecio>
+      <div class="ks-calc-sugerido-grande">
+        <small>Tu publicación no tiene precio</small>
+        <span>Calcula el monto con la calculadora y confirma con ese valor.</span>
+      </div>
+    </ng-template>
+  </section>
+  <p class="ks-calc-error" *ngIf="errorTrabajo" role="alert">
+    {{ errorTrabajo }} <a routerLink="/reservas">Ir a mis contrataciones</a>
+  </p>
 
   <form [formGroup]="formulario" class="ks-layout-main-side" (ngSubmit)="calcular()">
     <div class="ks-calc-principal">
+      <!-- Dos formas de calcular: normal (ya sabes cuánto cobrar) o desde tus costos -->
+      <ion-segment formControlName="modo" class="ks-calc-modo" aria-label="Cómo quieres calcular">
+        <ion-segment-button value="simple"><ion-label>Normal</ion-label></ion-segment-button>
+        <ion-segment-button value="costos"><ion-label>Calculadora de costos</ion-label></ion-segment-button>
+      </ion-segment>
+
+      <!-- Modo normal -->
+      <section class="ks-calc-bloque" *ngIf="modo === 'simple'" appReveal>
+        <h2><ion-icon name="cash-outline" aria-hidden="true"></ion-icon> Cobrar un servicio</h2>
+        <p class="ks-calc-ayuda">Para un servicio simple: escribe cuánto quieres que te quede y mira cuánto cobrar según el documento que entregas. Si no estás seguro del precio, usa la calculadora de costos.</p>
+        <ion-input label="¿Cuánto quieres que te quede por el servicio? ($)" labelPlacement="stacked" type="number" inputmode="numeric" min="0" formControlName="precio_simple" fill="outline" placeholder="Ej: 30000"></ion-input>
+        <ng-container *ngTemplateOutlet="documentoTpl"></ng-container>
+      </section>
+
+      <ng-container *ngIf="modo === 'costos'">
       <!-- Materiales -->
       <section class="ks-calc-bloque" appReveal>
         <h2><ion-icon name="cube-outline" aria-hidden="true"></ion-icon> Materiales</h2>
@@ -95,20 +133,25 @@
         </div>
       </section>
 
-      <!-- Imprevistos, ganancia y documento -->
+      <!-- Imprevistos y ganancia: opcionales, cada uno con su explicación -->
       <section class="ks-calc-bloque" appReveal [appRevealDelay]="160">
-        <h2><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon> Imprevistos, ganancia y documento</h2>
-        <div class="ks-calc-fila">
-          <ion-input label="Imprevistos (%)" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="imprevistos_pct" fill="outline"></ion-input>
-          <ion-input label="Ganancia (%)" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="ganancia_pct" fill="outline"></ion-input>
+        <h2><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon> Imprevistos y ganancia <small class="ks-calc-opcional">(opcionales)</small></h2>
+        <div class="ks-calc-opcion">
+          <ion-toggle formControlName="usar_imprevistos" labelPlacement="end" justify="start">Sumar imprevistos</ion-toggle>
+          <p class="ks-calc-ayuda">Un colchón para lo que no se ve al cotizar: un material que sube de precio, una visita extra, un arreglo que se complica. Se calcula como un porcentaje de tus costos. Si el trabajo es muy simple y lo tienes todo claro, puedes apagarlo.</p>
+          <ion-input *ngIf="formulario.controls.usar_imprevistos.value" label="Imprevistos (% de tus costos)" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="imprevistos_pct" fill="outline"></ion-input>
         </div>
-        <ion-segment formControlName="documento" aria-label="Documento que entregas">
-          <ion-segment-button value="SIN_DOCUMENTO"><ion-label>Sin documento</ion-label></ion-segment-button>
-          <ion-segment-button value="BOLETA_HONORARIOS"><ion-label>Boleta de honorarios</ion-label></ion-segment-button>
-        </ion-segment>
-        <p class="ks-calc-ayuda" *ngIf="formulario.controls.documento.value === 'BOLETA_HONORARIOS'">
-          Con boleta de honorarios se retiene un porcentaje (estimado en {{ config?.retencion_porcentaje ?? 16 }} %): por eso el precio a cobrar sube, para que a ti te quede lo mismo. Es una estimación; confirma la cifra vigente con un contador o en sii.cl.
-        </p>
+        <div class="ks-calc-opcion">
+          <ion-toggle formControlName="usar_ganancia" labelPlacement="end" justify="start">Sumar ganancia</ion-toggle>
+          <p class="ks-calc-ayuda">Lo que queda para ti por encima de tus costos: sirve para renovar herramientas, cubrir los meses con menos trabajo y crecer. No es tu pago por hora (eso va en «Tu trabajo»). Se calcula como un porcentaje sobre tus costos más los imprevistos.</p>
+          <ion-input *ngIf="formulario.controls.usar_ganancia.value" label="Ganancia (%)" labelPlacement="stacked" type="number" inputmode="decimal" min="0" formControlName="ganancia_pct" fill="outline"></ion-input>
+        </div>
+      </section>
+
+      <!-- Documento -->
+      <section class="ks-calc-bloque" appReveal [appRevealDelay]="200">
+        <h2><ion-icon name="document-outline" aria-hidden="true"></ion-icon> Documento que entregas</h2>
+        <ng-container *ngTemplateOutlet="documentoTpl"></ng-container>
       </section>
 
       <!-- Plantillas: solo con cuenta -->
@@ -131,6 +174,7 @@
       <p class="ks-calc-ayuda" *ngIf="!autenticado">
         ¿Quieres guardar plantillas por tipo de trabajo? <a routerLink="/registro">Crea tu cuenta</a> o <a routerLink="/login">inicia sesión</a>.
       </p>
+      </ng-container>
     </div>
 
     <!-- Resumen: fijo a un lado en pantallas anchas -->
@@ -138,27 +182,61 @@
       <h2>Resumen</h2>
       <p class="ks-calc-error" *ngIf="error" role="alert">{{ error }}</p>
       <ng-container *ngIf="resultado as r">
-        <dl>
+        <dl *ngIf="r.simple">
+          <div class="ks-calc-sub"><dt>Quieres que te quede</dt><dd>{{ r.precio_neto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+        </dl>
+        <dl *ngIf="!r.simple">
           <div><dt>Materiales</dt><dd>{{ r.materiales_total | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
           <div><dt>Traslado</dt><dd>{{ r.traslado_total | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
           <div><dt>Tu trabajo</dt><dd>{{ r.mano_obra_total | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
           <div><dt>Herramientas</dt><dd>{{ r.herramientas_total | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
           <div class="ks-calc-sub"><dt>Costo directo</dt><dd>{{ r.costo_directo | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
-          <div><dt>Imprevistos ({{ r.imprevistos_pct }} %)</dt><dd>{{ r.imprevistos_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
-          <div><dt>Ganancia ({{ r.ganancia_pct }} %)</dt><dd>{{ r.ganancia_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div *ngIf="r.imprevistos_pct > 0"><dt>Imprevistos ({{ r.imprevistos_pct }} %)</dt><dd>{{ r.imprevistos_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          <div *ngIf="r.ganancia_pct > 0"><dt>Ganancia ({{ r.ganancia_pct }} %)</dt><dd>{{ r.ganancia_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
           <div class="ks-calc-sub"><dt>Precio neto</dt><dd>{{ r.precio_neto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
         </dl>
         <div class="ks-calc-total">
-          <span>{{ r.documento === 'BOLETA_HONORARIOS' ? 'Cobra con tu boleta' : 'Precio a cobrar' }}</span>
+          <span>{{ r.documento === 'BOLETA_HONORARIOS' ? 'Cobra con tu boleta' : (r.documento === 'DOCUMENTO_IVA' ? 'Cobra con IVA incluido' : 'Precio a cobrar') }}</span>
           <strong>{{ r.precio_boleta | currency:'CLP':'symbol-narrow':'1.0-0' }}</strong>
           <small *ngIf="r.documento === 'BOLETA_HONORARIOS'">Con boleta te quedan <b>{{ r.liquido | currency:'CLP':'symbol-narrow':'1.0-0' }}</b> líquidos (retención estimada {{ r.retencion_pct }} %: {{ r.retencion_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}).</small>
-          <small *ngIf="r.documento !== 'BOLETA_HONORARIOS'">Te quedan {{ r.liquido | currency:'CLP':'symbol-narrow':'1.0-0' }}, sin documento tributario.</small>
+          <small *ngIf="r.documento === 'DOCUMENTO_IVA'">Te quedan <b>{{ r.liquido | currency:'CLP':'symbol-narrow':'1.0-0' }}</b>: el IVA ({{ r.iva_pct }} %, {{ r.iva_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}) se traspasa al SII.</small>
+          <small *ngIf="r.documento === 'SIN_DOCUMENTO'">Te quedan {{ r.liquido | currency:'CLP':'symbol-narrow':'1.0-0' }}, sin documento tributario.</small>
         </div>
-        <p class="ks-calc-cliente">
-          En KeyServ, el cliente paga además una comisión de {{ r.comision_porcentaje }} % ({{ r.comision_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}):
-          total <strong>{{ r.total_cliente | currency:'CLP':'symbol-narrow':'1.0-0' }}</strong>. Tú recibes el precio completo.
-        </p>
+        <section class="ks-calc-reparto" aria-label="Así se reparte el cobro en KeyServ">
+          <h3>Así se reparte el cobro en KeyServ</h3>
+          <dl>
+            <div><dt>Precio que cobras</dt><dd>{{ r.precio_boleta | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+            <div><dt>Comisión de KeyServ ({{ r.comision_porcentaje }} %), la paga quien contrata</dt><dd>+ {{ r.comision_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+            <div class="ks-calc-sub"><dt>Total que paga el cliente</dt><dd>{{ r.total_cliente | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+          </dl>
+          <p class="ks-calc-nota" *ngIf="tramosTexto">La comisión es de {{ tramosTexto }} (mínimo {{ (config?.comision_minima ?? 1000) | currency:'CLP':'symbol-narrow':'1.0-0' }}). No se descuenta de tu precio: tú recibes el precio completo.</p>
+          <dl class="ks-calc-tuparte">
+            <div *ngIf="r.documento === 'BOLETA_HONORARIOS'"><dt>Retención estimada ({{ r.retencion_pct }} %): adelanto de tu impuesto, se recupera en tu declaración</dt><dd>− {{ r.retencion_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+            <div *ngIf="r.documento === 'DOCUMENTO_IVA'"><dt>IVA ({{ r.iva_pct }} %): se traspasa al SII</dt><dd>− {{ r.iva_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+            <div class="ks-calc-sub"><dt>Lo que recibes (líquido)</dt><dd>{{ r.liquido | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+            <ng-container *ngIf="!r.simple">
+              <div><dt>Tu ganancia sobre los costos ({{ r.ganancia_pct }} %)</dt><dd>{{ r.ganancia_monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+              <div class="ks-calc-sub"><dt>Te quedan por tu trabajo, tras materiales, traslado y herramientas</dt><dd>{{ paraTi(r) | currency:'CLP':'symbol-narrow':'1.0-0' }}</dd></div>
+            </ng-container>
+          </dl>
+        </section>
       </ng-container>
+      <!-- Confirmar el trabajo (solo cuando se llega desde "Confirmar contratación") -->
+      <section class="ks-calc-confirmar" *ngIf="trabajo" aria-label="Confirmar este trabajo">
+        <h3>Confirmar este trabajo</h3>
+        <ion-input label="Confirma tu contraseña" labelPlacement="stacked" type="password" fill="outline" autocomplete="current-password"
+                   [(ngModel)]="passwordConfirmar" [ngModelOptions]="{ standalone: true }"></ion-input>
+        <ion-button *ngIf="precioSugerido" expand="block" size="large" type="button" (click)="confirmarTrabajo(false)" [disabled]="confirmando">
+          {{ confirmando ? 'Confirmando…' : 'Confirmar con ' + (precioSugerido | currency:'CLP':'symbol-narrow':'1.0-0') + ' (tu publicación)' }}
+        </ion-button>
+        <ion-button *ngIf="precioCalculadoDistinto || !precioSugerido" expand="block" [fill]="precioSugerido ? 'outline' : 'solid'" size="large" type="button"
+                    (click)="confirmarTrabajo(true)" [disabled]="confirmando || !(resultado && resultado.precio_boleta > 0)">
+          {{ confirmando ? 'Confirmando…' : 'Confirmar con ' + ((resultado?.precio_boleta ?? 0) | currency:'CLP':'symbol-narrow':'1.0-0') + ' (calculado)' }}
+        </ion-button>
+        <p class="ks-calc-error" *ngIf="errorConfirmar" role="alert">{{ errorConfirmar }}</p>
+        <p class="ks-calc-nota">El cliente verá este monto más la comisión de KeyServ y podrá pagarlo. Confirmar no se puede deshacer; si cambias de idea antes de que pague, puedes rechazar el trabajo.</p>
+      </section>
+
       <div class="ks-calc-exportar">
         <ion-button expand="block" fill="outline" (click)="exportar('pdf')" [disabled]="!!exportando">
           <ion-icon slot="start" name="document-text-outline"></ion-icon>{{ exportando === 'pdf' ? 'Generando…' : 'Descargar PDF' }}
@@ -169,6 +247,28 @@
       </div>
       <p class="ks-calc-aviso">Ayuda para fijar un precio: no es un documento tributario ni una oferta.</p>
     </aside>
+    <!-- Selector de documento y su explicación, usados en el modo normal y en el de costos -->
+    <ng-template #documentoTpl>
+      <ion-segment formControlName="documento" aria-label="Documento que entregas">
+        <ion-segment-button value="SIN_DOCUMENTO"><ion-label>Sin documento</ion-label></ion-segment-button>
+        <ion-segment-button value="BOLETA_HONORARIOS"><ion-label>Boleta de honorarios</ion-label></ion-segment-button>
+        <ion-segment-button value="DOCUMENTO_IVA"><ion-label>Documento con IVA</ion-label></ion-segment-button>
+      </ion-segment>
+      <ng-container [ngSwitch]="formulario.controls.documento.value">
+        <p class="ks-calc-ayuda ks-calc-documento" *ngSwitchCase="'BOLETA_HONORARIOS'">
+          <strong>Las boletas de honorarios no llevan IVA.</strong> Se retiene un {{ config?.retencion_porcentaje ?? 16 }} % (estimado) de lo que cobras: es un
+          <strong>adelanto de tu impuesto a la renta, no un costo</strong>. Lo descuentas de tu impuesto en la declaración anual de abril y, si te sobra, te lo devuelven.
+          Por eso el precio sube: para que hoy te llegue lo que necesitas. Confirma la cifra vigente con un contador o en sii.cl.
+        </p>
+        <p class="ks-calc-ayuda ks-calc-documento" *ngSwitchCase="'DOCUMENTO_IVA'">
+          <strong>Úsalo solo si tienes inicio de actividades de primera categoría</strong> y emites boleta de ventas y servicios o factura: el precio lleva IVA ({{ config?.iva_porcentaje ?? 19 }} %).
+          <strong>El IVA no es tuyo</strong>: lo traspasas al SII, por eso se descuenta de lo que recibes. Si compras materiales con factura, ese IVA lo puedes descontar del que cobras (crédito fiscal): consulta a un contador.
+        </p>
+        <p class="ks-calc-ayuda ks-calc-documento" *ngSwitchDefault>
+          Sin documento no queda constancia tributaria del trabajo: no hay retención ni IVA, pero tampoco respaldo para ti ni para quien te contrata.
+        </p>
+      </ng-container>
+    </ng-template>
   </form>
 
   <app-footer></app-footer>

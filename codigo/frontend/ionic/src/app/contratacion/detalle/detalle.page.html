@@ -196,7 +196,18 @@
                 <strong slot="end">${{ d.total | number }}</strong>
               </ion-item>
             </ion-list>
-            <p class="ks-help" *ngIf="c.desglose_pago">El proveedor recibe el servicio completo; la comisión la pagas tú encima y sostiene la plataforma (verificación, soporte y pagos seguros).</p>
+            <div class="ks-explica-comision" *ngIf="c.desglose_pago as d">
+              <p class="ks-help">
+                <strong>Cómo se calcula tu pago.</strong> Pagas el servicio acordado más una comisión de KeyServ de {{ d.comision_porcentaje }} %
+                <ng-container *ngIf="tramosComision">(la comisión es de {{ tramosComision }}; mínimo {{ comisionMinima | currency:'CLP':'symbol-narrow':'1.0-0' }})</ng-container>.
+                El proveedor recibe el servicio completo: la comisión no se le descuenta, la pagas tú encima y sostiene la verificación de identidad, el soporte y los pagos seguros.
+                En total pagarás <strong>${{ d.total | number }}</strong>.
+              </p>
+              <p class="ks-gracias">
+                <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+                Gracias por elegir KeyServ: al contratar por aquí ayudas a que todos compitamos en un ambiente sano, donde cada proveedor se gana su lugar por su trabajo y su identidad verificada.
+              </p>
+            </div>
             <ion-button expand="block" (click)="pagarConWebpay()" [disabled]="procesandoPago">
               {{ procesandoPago ? 'Redirigiendo…' : 'Pagar con Webpay' }}
             </ion-button>
@@ -264,45 +275,36 @@
       </ion-card>
     </div>
 
-    <!-- Confirmar (proveedor, SOLICITADA) / Completar (cliente, EN_CURSO) — ambas piden reautenticación, mismo <form> reusado para las dos acciones. -->
-    <div class="ks-section" *ngIf="puedeConfirmar || puedeCompletar" appReveal>
-      <p class="ks-section-title">{{ puedeConfirmar ? 'Confirmar contratación' : 'Marcar como completada' }}</p>
+    <!-- Confirmar (proveedor, SOLICITADA): lleva a la calculadora de este trabajo, con el precio de la publicación a la vista -->
+    <div class="ks-section" *ngIf="puedeConfirmar" appReveal>
+      <p class="ks-section-title">Confirmar contratación</p>
       <ion-card>
         <ion-card-content>
-          <form [formGroup]="formularioReauth" (ngSubmit)="puedeConfirmar ? confirmar() : completar()">
+          <p class="ion-no-margin ion-margin-bottom">
+            Antes de confirmar vas a definir el monto del trabajo. Te llevamos a la calculadora de este trabajo, donde ves el precio que pusiste en tu publicación
+            (puedes mantenerlo o cambiarlo) y confirmas con tu contraseña.
+          </p>
+          <ion-button expand="block" (click)="irACalculadora()">
+            Confirmar contratación <ion-icon slot="end" name="arrow-forward-outline"></ion-icon>
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Completar (cliente, EN_CURSO) — pide reautenticación -->
+    <div class="ks-section" *ngIf="puedeCompletar" appReveal>
+      <p class="ks-section-title">Marcar como completada</p>
+      <ion-card>
+        <ion-card-content>
+          <form [formGroup]="formularioReauth" (ngSubmit)="completar()">
             <ion-list lines="none">
               <ion-item>
                 <ion-input label="Confirma tu contraseña" labelPlacement="floating" type="password" formControlName="password"></ion-input>
               </ion-item>
-              <ion-item *ngIf="puedeConfirmar && !itemsPresupuesto.length">
-                <ion-input label="Monto acordado (CLP, opcional)" labelPlacement="floating" type="number" formControlName="monto"></ion-input>
-              </ion-item>
-              <ion-item *ngIf="puedeConfirmar && plantillasPresupuesto.length">
-                <ion-select label="Cargar una plantilla de la calculadora (opcional)" labelPlacement="floating" interface="popover" placeholder="Sin plantilla"
-                            [(ngModel)]="plantillaElegida" [ngModelOptions]="{ standalone: true }" (ionChange)="cargarPlantillaEnPresupuesto()">
-                  <ion-select-option [value]="null">Sin plantilla</ion-select-option>
-                  <ion-select-option *ngFor="let p of plantillasPresupuesto" [value]="p.id_plantilla">{{ p.nombre }}</ion-select-option>
-                </ion-select>
-              </ion-item>
             </ion-list>
-            <ion-text color="danger" *ngIf="errorPlantilla"><p class="ion-padding-start">{{ errorPlantilla }}</p></ion-text>
-            <div class="ks-presupuesto-propuesto" *ngIf="puedeConfirmar && itemsPresupuesto.length">
-              <p class="ks-section-title">Presupuesto que enviarás</p>
-              <ion-list lines="none">
-                <ion-item *ngFor="let item of itemsPresupuesto">
-                  <ion-label>{{ item.descripcion }}</ion-label>
-                  <ion-note slot="end">{{ item.monto | currency:'CLP':'symbol-narrow':'1.0-0' }}</ion-note>
-                </ion-item>
-                <ion-item>
-                  <ion-label><strong>Monto acordado</strong></ion-label>
-                  <ion-note slot="end"><strong>{{ totalItemsPresupuesto | currency:'CLP':'symbol-narrow':'1.0-0' }}</strong></ion-note>
-                </ion-item>
-              </ion-list>
-              <ion-button size="small" fill="clear" (click)="quitarPlantillaDelPresupuesto()">Quitar la plantilla</ion-button>
-            </div>
             <ion-text color="danger" *ngIf="errorAccion"><p class="ion-padding-start">{{ errorAccion }}</p></ion-text>
             <ion-button expand="block" type="submit" [disabled]="procesandoAccion">
-              {{ procesandoAccion ? 'Guardando…' : (puedeConfirmar ? 'Confirmar' : 'Marcar como completada') }}
+              {{ procesandoAccion ? 'Guardando…' : 'Marcar como completada' }}
             </ion-button>
           </form>
         </ion-card-content>

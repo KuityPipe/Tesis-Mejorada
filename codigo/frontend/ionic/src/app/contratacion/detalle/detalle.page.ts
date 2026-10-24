@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, Validators } from '@angular/forms';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { AlertController } from '@ionic/angular';
@@ -7,8 +7,8 @@ import { AlertController } from '@ionic/angular';
 import { Auth } from '../../core/auth';
 import { RESPUESTAS_REEMPLAZO, esReparacionOMantencion } from '../../core/impacto';
 import { Retroalimentacion } from '../../core/retroalimentacion';
-import { Calculadora, PlantillaValorizacion } from '../../core/calculadora';
-import { Contrataciones, ContratacionDetalle, EstadoBoleta, ItemPropuesto, Mensaje } from '../../contrataciones/contrataciones';
+import { Calculadora, describirTramos } from '../../core/calculadora';
+import { Contrataciones, ContratacionDetalle, EstadoBoleta, Mensaje } from '../../contrataciones/contrataciones';
 import { MetodoExterno, MetodosPago, Pagos } from '../../pago/pagos';
 
 /**
@@ -77,12 +77,6 @@ export class DetallePage implements OnInit, OnDestroy {
   // Hasta saber qué hay configurado en el servidor se asume lo de siempre (Webpay y Khipu).
   metodosPago: MetodosPago = { webpay: true, khipu: true, flow: false, mercadopago: false };
   errorPago: string | null = null;
-  // Plantillas de valorización (calculadora) que el proveedor puede cargar en la hoja de presupuesto al confirmar.
-  plantillasPresupuesto: PlantillaValorizacion[] = [];
-  plantillaElegida: number | null = null;
-  itemsPresupuesto: ItemPropuesto[] = [];
-  totalItemsPresupuesto = 0;
-  errorPlantilla: string | null = null;
   // Boleta de honorarios (fase 1: el proveedor la emite en sii.cl y aquí solo registra el folio).
   estadoBoleta: EstadoBoleta | null = null;
   formularioBoleta = this.fb.nonNullable.group({
@@ -94,9 +88,13 @@ export class DetallePage implements OnInit, OnDestroy {
   erroresBoleta: Record<string, string[]> = {};
   mensajeBoleta: string | null = null;
   readonly urlSii = 'https://www.sii.cl';
+  // Tramos de la comisión en palabras (se piden al servidor para no duplicar la tabla).
+  tramosComision = '';
+  comisionMinima = 1000;
 
   constructor(
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly fb: FormBuilder,
     private readonly http: HttpClient,
     private readonly auth: Auth,
@@ -110,6 +108,13 @@ export class DetallePage implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.contratacionId = Number(this.route.snapshot.paramMap.get('id'));
     this.auth.me().subscribe((usuario) => (this.usuarioActualId = usuario.id_usuario));
+    this.calculadora.config().subscribe({
+      next: (config) => {
+        this.tramosComision = describirTramos(config.comision_tramos);
+        this.comisionMinima = config.comision_minima;
+      },
+      error: () => undefined,
+    });
     this.cargarDetalle();
     this.cargarMensajes();
     this.pagosApi.metodosDisponibles().subscribe({ next: (metodos) => (this.metodosPago = metodos), error: () => undefined });
@@ -128,9 +133,6 @@ export class DetallePage implements OnInit, OnDestroy {
         this.cargando = false;
         if (this.puedeRegistrarBoleta) {
           this.cargarBoleta();
-        }
-        if (this.puedeConfirmar && !this.plantillasPresupuesto.length) {
-          this.calculadora.plantillas().subscribe({ next: (p) => (this.plantillasPresupuesto = p), error: () => undefined });
         }
       },
       error: () => {
@@ -205,30 +207,6 @@ export class DetallePage implements OnInit, OnDestroy {
       },
       error: () => (this.guardandoBoleta = false),
     });
-  }
-
-  /** Carga una plantilla de la calculadora como filas de la hoja de presupuesto; su total pasa a ser el monto acordado. */
-  cargarPlantillaEnPresupuesto(): void {
-    this.errorPlantilla = null;
-    if (this.plantillaElegida == null) {
-      this.quitarPlantillaDelPresupuesto();
-      return;
-    }
-    this.calculadora.itemsDePlantilla(this.plantillaElegida).subscribe({
-      next: ({ items, total }) => {
-        this.itemsPresupuesto = items;
-        this.totalItemsPresupuesto = total;
-      },
-      error: (e: HttpErrorResponse) => {
-        this.errorPlantilla = e.error?.detail ?? 'No pudimos cargar la plantilla.';
-      },
-    });
-  }
-
-  quitarPlantillaDelPresupuesto(): void {
-    this.plantillaElegida = null;
-    this.itemsPresupuesto = [];
-    this.totalItemsPresupuesto = 0;
   }
 
   private cargarMensajes(): void {
@@ -430,27 +408,12 @@ export class DetallePage implements OnInit, OnDestroy {
     });
   }
 
-  confirmar(): void {
-    if (this.formularioReauth.invalid || this.procesandoAccion) {
-      return;
-    }
-    this.procesandoAccion = true;
-    this.errorAccion = null;
-    const { password, monto } = this.formularioReauth.getRawValue();
-    const items = this.itemsPresupuesto.length ? this.itemsPresupuesto : undefined;
-    this.contratacionesApi.confirmar(this.contratacionId, password, monto ?? undefined, items).subscribe({
-      next: (contratacion) => {
-        this.contratacion = contratacion;
-        this.quitarPlantillaDelPresupuesto();
-        this.formularioReauth.reset({ password: '', monto: null });
-        this.procesandoAccion = false;
-        this.retroalimentacion.exito('Contratación confirmada.');
-      },
-      error: (error: HttpErrorResponse) => {
-        this.procesandoAccion = false;
-        this.errorAccion = error.error?.detail ?? 'No se pudo confirmar.';
-      },
-    });
+  /**
+   * "Confirmar contratación" lleva a la calculadora de ESTE trabajo: ahí el proveedor ve el precio sugerido en su publicación,
+   * decide si lo mantiene o lo ajusta, y confirma con su contraseña.
+   */
+  irACalculadora(): void {
+    this.router.navigate(['/calculadora'], { queryParams: { contratacion: this.contratacionId } });
   }
 
   /** Pide confirmación antes de rechazar (proveedor) o cancelar (cliente): no se puede deshacer. */

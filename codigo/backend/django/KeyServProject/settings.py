@@ -324,6 +324,8 @@ COMISION_MINIMA = env.int('COMISION_MINIMA', default=1000)
 # Retención de la boleta de honorarios (%) que usa la calculadora de valorización para estimar lo que queda líquido (2027: 16 %).
 # Es una estimación editable: confirmar la cifra vigente con un contador. Ver docs/adr/0009.
 CALCULADORA_RETENCION_BOLETA = env('CALCULADORA_RETENCION_BOLETA', default='16')
+# IVA (%) para quien emite un documento afecto (boleta de ventas y servicios o factura). La boleta de honorarios NO lleva IVA.
+CALCULADORA_IVA = env('CALCULADORA_IVA', default='19')
 
 
 # API REST (KeyServApp/api/) — para el frontend Ionic/Angular, ver

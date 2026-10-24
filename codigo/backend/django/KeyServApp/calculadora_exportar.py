@@ -21,7 +21,7 @@ FILAS_MATERIALES_MIN = 8
 
 AVISO = (
     'Esta valorización es una ayuda para fijar un precio: no es un documento tributario ni una oferta. La retención de la '
-    'boleta de honorarios es una estimación; confirma la cifra vigente con un contador.'
+    'boleta de honorarios es una estimación; confirma la cifra vigente y el tratamiento del IVA con un contador.'
 )
 
 
@@ -136,28 +136,32 @@ def generar_xlsx(datos):
     # --- Parámetros
     fila = f_herr + 2
     titulo(fila, 'PARÁMETROS')
-    f_imp, f_gan, f_ret, f_boleta = fila + 1, fila + 2, fila + 3, fila + 4
+    f_imp, f_gan, f_ret, f_iva_pct, f_boleta = fila + 1, fila + 2, fila + 3, fila + 4, fila + 5
     hoja.cell(f_imp, 1, 'Imprevistos (%)')
     dato(f_imp, 2, float(d['imprevistos_pct']), '0.##')
     hoja.cell(f_gan, 1, 'Ganancia (%)')
     dato(f_gan, 2, float(d['ganancia_pct']), '0.##')
     hoja.cell(f_ret, 1, 'Retención de la boleta de honorarios (%) - estimación')
     dato(f_ret, 2, float(d['retencion_pct']), '0.##')
-    hoja.cell(f_boleta, 1, '¿Emites boleta de honorarios? (1 = sí, 0 = no)')
-    dato(f_boleta, 2, 1 if d['documento'] == 'BOLETA_HONORARIOS' else 0, '0')
+    hoja.cell(f_iva_pct, 1, 'IVA (%), solo si emites un documento afecto')
+    dato(f_iva_pct, 2, float(calculadora.iva_defecto()), '0.##')
+    hoja.cell(f_boleta, 1, 'Documento: 0 = sin documento, 1 = boleta de honorarios (lleva retención), 2 = con IVA')
+    dato(f_boleta, 2, {'BOLETA_HONORARIOS': 1, 'DOCUMENTO_IVA': 2}.get(d['documento'], 0), '0')
 
     # --- Resultado
     fila = f_boleta + 2
     titulo(fila, 'RESULTADO')
-    f_c, f_i, f_g, f_neto, f_pb, f_rm, f_liq, f_com, f_tot = (fila + k for k in range(1, 10))
+    f_c, f_i, f_g, f_neto, f_pb, f_rm, f_iva, f_liq, f_com, f_tot = (fila + k for k in range(1, 11))
     filas = [
         (f_c, 'Costo directo (materiales + traslado + mano de obra + herramientas)', f'=F{f_materiales}+F{f_traslado}+F{f_mo}+F{f_herr}'),
         (f_i, 'Imprevistos', f'=ROUND(F{f_c}*B{f_imp}/100,0)'),
         (f_g, 'Ganancia', f'=ROUND((F{f_c}+F{f_i})*B{f_gan}/100,0)'),
         (f_neto, 'Precio neto (lo que quieres que te quede)', f'=F{f_c}+F{f_i}+F{f_g}'),
-        (f_pb, 'Precio a cobrar (con boleta, ya incluye la retención)', f'=IF(B{f_boleta}=1,ROUNDUP(F{f_neto}/(1-B{f_ret}/100),0),F{f_neto})'),
-        (f_rm, 'Retención estimada', f'=IF(B{f_boleta}=1,ROUNDDOWN(F{f_pb}*B{f_ret}/100,0),0)'),
-        (f_liq, 'Te quedan líquidos', f'=F{f_pb}-F{f_rm}'),
+        (f_pb, 'Precio a cobrar (con boleta incluye la retención; con IVA incluye el IVA)',
+         f'=IF(B{f_boleta}=1,ROUNDUP(F{f_neto}/(1-B{f_ret}/100),0),IF(B{f_boleta}=2,F{f_neto}+ROUND(F{f_neto}*B{f_iva_pct}/100,0),F{f_neto}))'),
+        (f_rm, 'Retención estimada (adelanto de tu impuesto a la renta: se recupera en tu declaración anual)', f'=IF(B{f_boleta}=1,ROUNDDOWN(F{f_pb}*B{f_ret}/100,0),0)'),
+        (f_iva, 'IVA (no es tuyo: se traspasa al SII)', f'=IF(B{f_boleta}=2,F{f_pb}-F{f_neto},0)'),
+        (f_liq, 'Te quedan líquidos', f'=F{f_pb}-F{f_rm}-F{f_iva}'),
         (f_com, 'Comisión de KeyServ (la paga el cliente encima)',
          f'=IF(F{f_pb}<=0,0,MAX({int(settings.COMISION_MINIMA)},ROUND(F{f_pb}*({_formula_porcentaje_comision("F" + str(f_pb))})/100,0)))'),
         (f_tot, 'Total que paga el cliente', f'=F{f_pb}+F{f_com}'),
@@ -222,7 +226,7 @@ def generar_pdf(datos):
     pdf.ln(2)
 
     fila('Traslado, peajes y estacionamiento', r['traslado_total'])
-    fila('Mano de obra', r['mano_obra_total'])
+    fila('Servicio' if r['simple'] else 'Mano de obra', r['mano_obra_total'])
     fila('Herramientas', r['herramientas_total'])
     fila('Costo directo', r['costo_directo'], negrita=True)
     pdf.ln(2)
@@ -233,7 +237,10 @@ def generar_pdf(datos):
 
     if r['documento'] == 'BOLETA_HONORARIOS':
         fila(f"Precio a cobrar con boleta de honorarios (retención estimada {r['retencion_pct']:g} %)", r['precio_boleta'], negrita=True)
-        fila('Retención estimada', r['retencion_monto'])
+        fila('Retención estimada (adelanto de tu impuesto a la renta)', r['retencion_monto'])
+    elif r['documento'] == 'DOCUMENTO_IVA':
+        fila(f"Precio a cobrar con IVA ({r['iva_pct']:g} %)", r['precio_boleta'], negrita=True)
+        fila('IVA (se traspasa al SII)', r['iva_monto'])
     else:
         fila('Precio a cobrar (sin documento)', r['precio_boleta'], negrita=True)
     fila('Te quedan líquidos', r['liquido'], negrita=True)

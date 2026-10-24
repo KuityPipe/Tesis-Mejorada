@@ -63,6 +63,8 @@ export interface ContratacionResumen {
   publicacion_imagen: string | null;
   publicacion_categoria?: string | null;
   publicacion_tipo_servicio?: string;
+  /** Precio de la publicación: el monto sugerido al confirmar. */
+  publicacion_precio?: number | null;
   cliente: number;
   cliente_nombre: string;
   proveedor: number;
