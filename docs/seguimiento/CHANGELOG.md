@@ -3,6 +3,15 @@
 Historia de lo que cambia en KeyServ, en lenguaje simple y por fecha (lo más reciente arriba). El detalle técnico está en
 `git log` y en la hoja `Cambios` del libro de seguimiento. Cómo mantenerlo: [README](README.md).
 
+## 2026-10-24
+
+### Agregado
+- **Calculadora paso a paso.** Un asistente te lleva un tema a la vez (qué necesitas, materiales, traslado, tu tiempo, herramientas, imprevistos y ganancia, documento) y termina con tres cifras: lo que cobras, lo que paga el cliente y lo que te queda; el detalle queda plegado. Un guía con textos fijos (sin inteligencia artificial: lo que escribes no sale a ningún modelo) explica cada paso, ofrece ejemplos y, si te quedas quieto un rato, te ayuda solo. «Ver todo junto» mantiene la pantalla completa de antes, con un botón bien visible para volver al asistente.
+- **El PDF y la planilla de la calculadora se ven como un documento para entregar:** logo de KeyServ, tabla de conceptos, totales y, si usas boleta de honorarios, una hoja de referencia con los montos (honorarios, retención, líquido) y espacio para tus datos. Aclara que no es una boleta oficial: se emite en sii.cl.
+
+### Cambiado
+- Todas las pantallas tienen ahora la misma barra de navegación que el inicio (logo, menú, tema y cuenta); se quitó la flecha de volver de 18 páginas.
+
 ## 2026-10-23
 
 Encuadre de la postulación a Corfo: inclusión laboral y formalización (oficios → ingreso formal y trazable). Detalle técnico:
