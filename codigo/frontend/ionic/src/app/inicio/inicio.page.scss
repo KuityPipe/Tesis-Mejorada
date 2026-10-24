@@ -578,6 +578,37 @@ $coral: #c2410c;
   }
 }
 
+// Aviso de la vía sin historial (cédula + video), dentro del panel de proveedores
+.ks-prov-sinhistorial {
+  display: flex;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px dashed rgba(127, 240, 220, 0.55);
+
+  > ion-icon {
+    flex: none;
+    margin-top: 2px;
+    font-size: 1.5rem;
+    color: #7ff0dc;
+  }
+
+  strong {
+    display: block;
+    margin-bottom: 4px;
+    font: 700 1rem 'Quicksand', sans-serif;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+
 .ks-prov-acciones {
   display: flex;
   flex-wrap: wrap;

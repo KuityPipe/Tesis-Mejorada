@@ -118,4 +118,10 @@ Los trabajos ya confirmados o en curso **no** se cortan por el vencimiento.
    de la app es una preocupación.
 3. **Antes de prometer "identidad verificada" a un cliente o a Corfo:** elegir una de las opciones del nivel 2 de la sección 2.
 
+**Actualización 2026-10-23 (bloque 4):** la portada y el registro destacan la vía de cédula y video para quien no tiene historial de
+trabajo formal. El texto es deliberadamente fiel a lo implementado: la revisión la hace una persona del equipo, **no** es una
+consulta al Registro Civil ni una comparación automática, el video se borra al terminar la revisión y el documento queda en
+almacenamiento privado mientras exista la cuenta. También se corrigió el aviso "0 fotos de tu rostro guardadas", que no valía
+para esta vía.
+
 Hasta la decisión, el test `BiometriaNativaSinPruebaTests` queda marcado como `expectedFailure` y apunta a este ADR.

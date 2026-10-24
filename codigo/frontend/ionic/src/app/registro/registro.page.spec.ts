@@ -76,6 +76,17 @@ describe('RegistroPage', () => {
     expect(component.mensajeError('acepta_politica')).toContain('política de privacidad');
   });
 
+  it('al elegir "Ofrezco servicios" aparece la vía sin historial, dicha con honestidad', () => {
+    const texto = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(texto()).not.toContain('Nunca has trabajado con boleta');
+    component.elegirTipo(true);
+    fixture.detectChanges();
+    expect(texto()).toContain('Nunca has trabajado con boleta');
+    expect(texto()).toContain('una persona del equipo los revisa a mano');
+    expect(texto()).toContain('No es una consulta al Registro Civil');
+    expect(texto()).not.toMatch(/KeyServ (emite|verifica con el Registro)/);
+  });
+
   it('las preguntas de impacto son opcionales: no impiden completar el registro', () => {
     expect(component.formulario.controls.situacion_laboral_previa.value).toBe('');
     expect(component.formulario.controls.situacion_laboral_previa.valid).toBeTrue();

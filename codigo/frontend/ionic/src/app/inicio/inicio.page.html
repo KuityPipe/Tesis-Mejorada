@@ -34,7 +34,7 @@
       <div class="ks-hero26-hud" aria-hidden="true">
         <div class="ks-vidrio ks-hud-1"><small class="ks-micro-hud">Estado · en línea</small><ion-icon name="checkmark-circle"></ion-icon><div><strong>Identidad verificada</strong><span>Biometría, rostro o documento</span></div></div>
         <div class="ks-vidrio ks-hud-2"><small class="ks-micro-hud">Vigencia</small><strong>180 días</strong><span>vigencia de cada verificación</span></div>
-        <div class="ks-vidrio ks-hud-3"><small class="ks-micro-hud">Privacidad</small><strong>0 fotos</strong><span>de tu rostro guardadas</span></div>
+        <div class="ks-vidrio ks-hud-3"><small class="ks-micro-hud">Privacidad</small><strong>0 fotos</strong><span>en el reconocimiento facial: solo un vector cifrado</span></div>
       </div>
 
       <a class="ks-hero26-scroll" href="javascript:void(0)" (click)="irAServicios()" aria-label="Ir a los servicios">Desliza <span class="ks-flecha">↓</span></a>
@@ -182,6 +182,13 @@
           <li><ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon> Chat directo con tus clientes</li>
           <li><ion-icon name="star-outline" aria-hidden="true"></ion-icon> Reputación con calificaciones reales</li>
         </ul>
+        <div class="ks-prov-sinhistorial">
+          <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+          <div>
+            <strong>Empieza aunque nunca hayas trabajado con boleta</strong>
+            <p>No necesitas historial ni referencias. Verifica tu identidad con tu cédula y un video corto, que revisa una persona del equipo (sin reconocimiento facial automático). El video se borra al terminar la revisión. Es una revisión humana, no una consulta al Registro Civil.</p>
+          </div>
+        </div>
         <div class="ks-prov-acciones">
           <ion-button *ngIf="!conSesion" routerLink="/registro" color="secondary" size="large">Crear mi cuenta <span class="ks-flecha">→</span></ion-button>
           <ion-button *ngIf="conSesion" routerLink="/catalogo/crear" color="secondary" size="large">Publicar un servicio <span class="ks-flecha">→</span></ion-button>
@@ -196,7 +203,7 @@
         </li>
         <li appReveal [appRevealDelay]="200">
           <span class="ks-prov-n">2</span>
-          <div><strong>Verifica tu identidad</strong><small>Con la biometría de tu teléfono, tu rostro o tu documento.</small></div>
+          <div><strong>Verifica tu identidad</strong><small>Con la biometría de tu teléfono, tu rostro, o tu cédula y un video si prefieres no usar biometría.</small></div>
           <ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon>
         </li>
         <li appReveal [appRevealDelay]="300">

@@ -29,4 +29,13 @@ describe('InicioPage', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('explica la vía sin historial sin prometer más de lo que hace (ADR 0006)', () => {
+    const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(texto).toContain('Empieza aunque nunca hayas trabajado con boleta');
+    expect(texto).toContain('revisa una persona del equipo');
+    expect(texto).toContain('no una consulta al Registro Civil');
+    // El aviso de privacidad ya no afirma "0 fotos de tu rostro guardadas" (la vía de cédula y video sí guarda un documento).
+    expect(texto).not.toContain('de tu rostro guardadas');
+  });
 });

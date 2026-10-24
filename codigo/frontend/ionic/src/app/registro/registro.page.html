@@ -164,6 +164,15 @@
           </div>
           <p class="ks-reg-ayuda">Puedes cambiarlo cuando quieras desde tu cuenta.</p>
 
+          <!-- Vía sin historial: honesta sobre qué es (ADR 0006) -->
+          <div class="ks-reg-sinhistorial" *ngIf="formulario.controls.es_proveedor.value" role="note">
+            <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+            <div>
+              <strong>¿Nunca has trabajado con boleta? Puedes empezar igual</strong>
+              <p>Para ofrecer servicios verificas tu identidad. Si no quieres usar la biometría de tu teléfono ni tu rostro, subes tu cédula y un video corto: una persona del equipo los revisa a mano. No es una consulta al Registro Civil, el video se borra al terminar la revisión y tu documento queda en almacenamiento privado mientras tengas cuenta. Lo haces después de crear la cuenta, desde «Verificación sin biometría».</p>
+            </div>
+          </div>
+
           <div class="ks-reg-campos">
             <div class="ks-reg-campo">
               <ion-item>
