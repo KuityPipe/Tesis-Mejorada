@@ -1,19 +1,10 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/"></ion-back-button>
-    </ion-buttons>
-    <!-- Logo clickeable → Inicio (pedido explícito del usuario: "agrega una interacción para
-    volver al inicio" en el header) — el back-button ya vuelve a la pantalla anterior en el
-    historial, esto es la acción explícita de "ir a Inicio" directo, sin importar de dónde se
-    llegó, mismo patrón de logo-lleva-al-inicio que cualquier sitio. Las otras 3 pantallas raíz
-    (login/catálogo/home/inicio) ya muestran el logo pero nunca lo hicieron clickeable — acá sí
-    hace falta, porque es la única pantalla sin esos accesos rápidos en el header. -->
-    <a routerLink="/" slot="start" class="ks-header-logo-link" aria-label="Volver al inicio">
-      <img src="assets/logo.png" alt="KeyServ" class="ks-toolbar-logo">
-    </a>
+    <img src="assets/logo.png" alt="KeyServ" slot="start" class="ks-toolbar-logo">
     <ion-title>Crear cuenta</ion-title>
+    <app-top-nav slot="end"></app-top-nav>
     <app-tema-toggle slot="end"></app-tema-toggle>
+    <app-account-menu slot="end"></app-account-menu>
   </ion-toolbar>
 </ion-header>
 
